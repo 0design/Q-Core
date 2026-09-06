@@ -1,0 +1,35 @@
+{
+  "loopId": "brand-mentions",
+  "status": "success",
+  "summary": "Completed 3/3 steps.",
+  "startedAt": "2026-08-01T17:13:53.046Z",
+  "costUsd": 0.0025,
+  "tokensIn": 5994,
+  "tokensOut": 800,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Search the feed",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Keep the real ones",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0.0025,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send the summary",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "runId": "2a610723-3869-4fd0-b4aa-e050ab26e768",
+  "loopId": "wide-fanout",
+  "status": "success",
+  "summary": "Completed 14/14 steps.",
+  "startedAt": "2026-08-02T06:29:36.421Z",
+  "costUsd": 0,
+  "tokensIn": 0,
+  "tokensOut": 0,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Read feed",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    },
+    {
+      "kind": "fan-out",
+      "name": "Per entry",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 0,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 1,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 2,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 3,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 4,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 5,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 6,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 7,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 8,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 9,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 10,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Post entry",
+      "status": "success",
+      "itemIndex": 11,
+      "costUsd": 0
+    }
+  ]
+}

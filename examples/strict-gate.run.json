@@ -1,0 +1,33 @@
+{
+  "runId": "3cd50b0b-9aae-4f8a-a672-a792c4cb1723",
+  "loopId": "strict-gate",
+  "status": "success",
+  "summary": "Completed 3/3 steps.",
+  "startedAt": "2026-08-02T06:29:36.545Z",
+  "costUsd": 0.0001,
+  "tokensIn": 186,
+  "tokensOut": 37,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Read rate",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    },
+    {
+      "kind": "approval-gate",
+      "name": "Above the line?",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0.0001
+    },
+    {
+      "kind": "api-request",
+      "name": "Send the alert",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    }
+  ]
+}

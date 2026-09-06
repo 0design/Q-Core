@@ -1,0 +1,89 @@
+# Gate for contributed loops.
+#
+# ON ACTIONS MINUTES: this repository is PUBLIC, and public repositories get
+# GitHub-hosted runners for free. The house rule about preferring ssh/local over
+# Actions is about METERED private repos, where a busy week can burn a month's
+# quota. It does not apply here, and a pull request from a stranger has no other
+# place to be checked.
+#
+# WHAT THIS CANNOT DO: run a loop. That needs a model key, and a key does not go
+# into a workflow triggered by a fork. Running it is the maintainer's step before
+# merge — which is why the catalogue distinguishes "measured" from "not run yet".
+
+name: validate
+
+on:
+  pull_request:
+    paths: ["loops/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json"]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # No `npm ci`: the package has no dependencies, and that is a property
+      # worth protecting. If a lockfile ever appears here, something was added
+      # that the README says is not there.
+      - name: no dependencies
+        run: |
+          deps=$(node -p "Object.keys(require('./package.json').dependencies||{}).length")
+          if [ "$deps" != "0" ]; then
+            echo "::error::package.json declares $deps dependency/ies. qloop ships with none — that is why it runs on a clean machine."
+            exit 1
+          fi
+
+      - name: tests
+        run: node --test test/*.test.mjs
+
+      - name: every manifest validates
+        run: |
+          fail=0
+          for f in loops/*.yaml; do
+            if node bin/qloop.mjs validate "$f" > /dev/null 2>/tmp/err; then
+              echo "  ok   $f"
+            else
+              echo "  FAIL $f"; sed 's/^/       /' /tmp/err; fail=1
+            fi
+          done
+          exit $fail
+
+      # The catalogue is generated. If a pull request hand-edits it — or adds a
+      # loop without regenerating — the two disagree, and the site would start
+      # describing loops that are not what it says they are.
+      - name: catalog.json is in sync with loops/ and registry/
+        run: |
+          cp catalog.json /tmp/catalog.committed.json
+          npm run --silent catalog
+          if ! diff -q /tmp/catalog.committed.json catalog.json > /dev/null; then
+            echo "::error::catalog.json does not match loops/ and registry/. Run: npm run catalog"
+            diff -u /tmp/catalog.committed.json catalog.json | head -60
+            exit 1
+          fi
+          node -e "
+            const c = JSON.parse(require('fs').readFileSync('catalog.json','utf8'));
+            if (!Array.isArray(c.loops) || !c.loops.length) { console.error('catalog.json missing loops'); process.exit(1); }
+            if (!Array.isArray(c.components) || !c.components.length) { console.error('catalog.json missing components'); process.exit(1); }
+            if (!Array.isArray(c.demos) || !c.demos.length) { console.error('catalog.json missing demos'); process.exit(1); }
+            if (c.catalogVersion !== 2) { console.error('catalogVersion must be 2'); process.exit(1); }
+            console.log('  in sync ·', c.loops.length, 'loops ·', c.components.length, 'components ·', c.demos.length, 'demos');
+          "
+
+      # A manifest is meant to reference secrets, never to contain them.
+      - name: no secrets committed
+        run: |
+          if grep -rInE '(sk-or-[A-Za-z0-9]{16,}|[0-9]{8,10}:[A-Za-z0-9_-]{30,})' \
+               --exclude-dir=.git . ; then
+            echo "::error::something shaped like an API key or a bot token is committed. Use {{env.NAME}}."
+            exit 1
+          fi
+          echo "  clean"

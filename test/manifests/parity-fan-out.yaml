@@ -1,0 +1,52 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# PARITY CASE D — fan-out expands the same lane, item for item.
+#
+# The feed holds five entries and maxItems is three. Both homes must create
+# exactly three lanes, each carrying ITS OWN item — three identical requests
+# would mean the lane variables are not being substituted, which is the failure
+# this case exists to catch.
+#
+# The truncation (5 found → 3 taken) must be reported out loud by the node in
+# both homes. Silent truncation reads as "we processed the feed" when we did not.
+# =============================================================================
+
+id: parity-fan-out
+name: "Parity D — a lane per item, and honest truncation"
+version: 1.0.0
+description: >
+  Five entries, a cap of three, three distinct outgoing requests. No model call,
+  so this case is free to run.
+owner: oleg
+
+triggers:
+  - kind: manual
+
+settings:
+  budgetUsd: 0.50
+
+steps:
+  - id: pn-fetch
+    kind: fetch
+    config:
+      name: "Fetch feed"
+      url: "http://127.0.0.1:19876/feed.xml"
+      format: rss
+      limit: 10
+
+  - id: pn-lane
+    kind: fan-out
+    config:
+      name: "Per entry"
+      over: "{{steps.Fetch feed.output.entries}}"
+      maxItems: "3"
+    then:
+      - id: pn-post
+        kind: api-request
+        config:
+          name: "Post entry"
+          method: POST
+          url: "http://127.0.0.1:19876/entry"
+          expect: "2xx"
+          body: '{"i":"{{index}}","title":"{{item.title}}"}'

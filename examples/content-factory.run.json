@@ -1,0 +1,51 @@
+{
+  "loopId": "content-factory",
+  "status": "success",
+  "summary": "Completed 5/5 steps.",
+  "startedAt": "2026-08-01T17:20:18.961Z",
+  "costUsd": 0.0002,
+  "tokensIn": 490,
+  "tokensOut": 129,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Fetch material",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Write the post",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0.0001,
+      "note": null
+    },
+    {
+      "kind": "approval-gate",
+      "name": "Formal rules",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0.0001,
+      "note": null
+    },
+    {
+      "kind": "approval-gate",
+      "name": "Publish this?",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Publish to Telegram",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": "written to the file sink (no credential set)"
+    }
+  ]
+}

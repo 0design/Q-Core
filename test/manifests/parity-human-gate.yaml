@@ -1,0 +1,48 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# PARITY CASE B — when the gate IS there, it actually holds.
+#
+# fetch → approval-gate(human) → api-request. Both homes must park at the gate
+# and leave the outgoing request UNSENT. A gate that lets the next step through
+# is not a gate, and the two runners must be wrong or right together.
+# =============================================================================
+
+id: parity-human-gate
+name: "Parity B — the gate holds the outgoing request"
+version: 1.0.0
+description: >
+  The run stops at a human gate. api-request must not execute in either home.
+owner: oleg
+
+triggers:
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  budgetUsd: 0.50
+
+steps:
+  - id: pg-fetch
+    kind: fetch
+    config:
+      name: "Fetch feed"
+      url: "http://127.0.0.1:19876/feed.xml"
+      format: rss
+      limit: 5
+
+  - id: pg-gate
+    kind: approval-gate
+    config:
+      name: "Review"
+      reviewer: human
+      anchor: "digest"
+
+  - id: pg-publish
+    kind: api-request
+    config:
+      name: "Publish"
+      method: POST
+      url: "http://127.0.0.1:19876/publish-gated"
+      expect: "2xx"
+      body: '{"note":"this must never arrive while the gate is undecided"}'

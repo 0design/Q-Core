@@ -1,0 +1,39 @@
+{
+  "name": "qloops",
+  "version": "0.1.2",
+  "license": "MIT",
+  "description": "Run a QFactory loop from a YAML manifest. No database, no server, no build step.",
+  "type": "module",
+  "bin": {
+    "qloops": "bin/qloops.mjs",
+    "qloop": "bin/qloop.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "catalog": "node -e \"import('./src/catalog.mjs').then(async({buildCatalog})=>{const{writeFileSync}=await import('node:fs');writeFileSync('catalog.json',JSON.stringify(buildCatalog('loops',{examplesDir:'examples'}),null,2)+'\\n')})\"",
+    "proof": "node scripts/record-proof.mjs --all"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "launchd/",
+    "examples/",
+    "LICENSE",
+    "CONTRIBUTING.md",
+    "README.md",
+    "SPEC-MANIFEST.md"
+  ],
+  "dependencies": {},
+  "author": "Oleg Kukharuk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0design/qloops.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0design/qloop/issues"
+  },
+  "homepage": "https://github.com/0design/qloop#readme"
+}

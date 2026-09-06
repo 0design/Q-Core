@@ -1,0 +1,7 @@
+# Run state — local facts, not source. `.qf/` sits beside whatever manifest made it.
+.qf/
+node_modules/
+*.tgz
+.DS_Store
+.qf/
+*.log

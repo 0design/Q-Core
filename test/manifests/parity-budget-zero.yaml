@@ -1,0 +1,50 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# PARITY CASE C — the budget cuts BEFORE the paid step, in both homes.
+#
+# budgetUsd: 0 with an llm-call in the middle. The run must fail AT the model
+# call, name the budget as the reason, and send nothing. A ceiling checked after
+# the invoice is not a ceiling; a ceiling that holds in one home and not the
+# other is worse — it means the same manifest costs different money depending on
+# where it ran.
+# =============================================================================
+
+id: parity-budget-zero
+name: "Parity C — $0 stops the run at the paid step"
+version: 1.0.0
+description: >
+  The model call is refused on budget, and the outgoing request never happens.
+owner: oleg
+
+triggers:
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  budgetUsd: 0
+
+steps:
+  - id: pb-fetch
+    kind: fetch
+    config:
+      name: "Fetch feed"
+      url: "http://127.0.0.1:19876/feed.xml"
+      format: rss
+      limit: 5
+
+  - id: pb-sum
+    kind: llm-call
+    config:
+      name: "Summarize"
+      maxTokens: "200"
+      instructions: "Summarise the entries in one sentence."
+
+  - id: pb-publish
+    kind: api-request
+    config:
+      name: "Publish"
+      method: POST
+      url: "http://127.0.0.1:19876/publish-budget"
+      expect: "2xx"
+      body: '{"note":"a stopped run must not send this"}'

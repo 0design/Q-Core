@@ -1,0 +1,35 @@
+{
+  "loopId": "release-watch",
+  "status": "success",
+  "summary": "Completed 3/3 steps.",
+  "startedAt": "2026-08-01T17:13:48.300Z",
+  "costUsd": 0.0027,
+  "tokensIn": 10032,
+  "tokensOut": 171,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Fetch releases",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Write the note",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0.0027,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send the note",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    }
+  ]
+}

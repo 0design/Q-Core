@@ -1,0 +1,35 @@
+{
+  "loopId": "content-feed",
+  "status": "success",
+  "summary": "Completed 3/3 steps.",
+  "startedAt": "2026-08-01T17:37:38.760Z",
+  "costUsd": 0.0007,
+  "tokensIn": 979,
+  "tokensOut": 343,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Fetch feed",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Write digest",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0.0007,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send to Telegram",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": "written to the file sink (no credential set)"
+    }
+  ]
+}

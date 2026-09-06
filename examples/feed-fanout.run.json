@@ -1,0 +1,107 @@
+{
+  "loopId": "feed-fanout",
+  "status": "success",
+  "summary": "Completed 12/12 steps.",
+  "startedAt": "2026-08-01T17:14:15.475Z",
+  "costUsd": 0.003,
+  "tokensIn": 11319,
+  "tokensOut": 177,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Fetch feed",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "fan-out",
+      "name": "Per entry",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Take on this one",
+      "status": "success",
+      "itemIndex": 0,
+      "costUsd": 0.0006,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send this one",
+      "status": "success",
+      "itemIndex": 0,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Take on this one",
+      "status": "success",
+      "itemIndex": 1,
+      "costUsd": 0.0006,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send this one",
+      "status": "success",
+      "itemIndex": 1,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Take on this one",
+      "status": "success",
+      "itemIndex": 2,
+      "costUsd": 0.0006,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send this one",
+      "status": "success",
+      "itemIndex": 2,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Take on this one",
+      "status": "success",
+      "itemIndex": 3,
+      "costUsd": 0.0006,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send this one",
+      "status": "success",
+      "itemIndex": 3,
+      "costUsd": 0,
+      "note": null
+    },
+    {
+      "kind": "llm-call",
+      "name": "Take on this one",
+      "status": "success",
+      "itemIndex": 4,
+      "costUsd": 0.0006,
+      "note": null
+    },
+    {
+      "kind": "api-request",
+      "name": "Send this one",
+      "status": "success",
+      "itemIndex": 4,
+      "costUsd": 0,
+      "note": null
+    }
+  ]
+}

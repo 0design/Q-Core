@@ -1,0 +1,33 @@
+{
+  "runId": "a65fd51a-ffa8-45eb-af64-a27ba9d0429f",
+  "loopId": "json-digest",
+  "status": "success",
+  "summary": "Completed 3/3 steps.",
+  "startedAt": "2026-08-02T06:29:34.579Z",
+  "costUsd": 0.0002,
+  "tokensIn": 485,
+  "tokensOut": 49,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Read feed",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    },
+    {
+      "kind": "llm-call",
+      "name": "Shape it",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0.0002
+    },
+    {
+      "kind": "api-request",
+      "name": "Send the shape",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+/** Types for the driver. Hand-written — see manifest.d.mts on why. */
+import type { LoopManifest, LoopManifestSettings, LoopManifestStep } from "./manifest.d.mts";
+
+export type RunStatus = "running" | "success" | "failed" | "waiting_human";
+export type StepStatus = "pending" | "running" | "success" | "failed" | "waiting_human" | "planned";
+
+export interface RunStep {
+  seq: number;
+  stepId: string;
+  kind: string;
+  name: string;
+  depth: number;
+  laneOf: string | null;
+  config: Record<string, string>;
+  then: LoopManifestStep[] | null;
+  status: StepStatus;
+  decision: string | null;
+  gateReason: string | null;
+  output: unknown;
+  errorText: string | null;
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+  item?: unknown;
+  itemIndex: number | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface Run {
+  runId: string;
+  loopId: string;
+  loopName: string;
+  manifestFile: string | null;
+  trigger: string;
+  status: RunStatus;
+  summary: string;
+  startedAt: string;
+  finishedAt: string | null;
+  costUsd: number;
+  tokensIn: number;
+  tokensOut: number;
+  steps: RunStep[];
+}
+
+export interface Knobs {
+  model: string;
+  budgetUsd: number | null;
+  sensitivity: unknown;
+  limits: unknown;
+  exit: { kind?: string };
+  provenance: { model: string; budget: string };
+}
+
+export interface DriveOptions {
+  store?: unknown;
+  knobs?: Knobs;
+  settings?: LoopManifestSettings;
+  apiKey?: string | null;
+  dryRun?: boolean;
+  onStep?: (step: RunStep) => void;
+}
+
+export declare const DEFAULT_RUN_BUDGET_USD: number;
+export declare const DEFAULT_MAX_TOKENS: number;
+
+export declare function resolveKnobs(settings?: LoopManifestSettings): Knobs;
+export declare function createRun(manifest: LoopManifest, opts?: { trigger?: string }): Run;
+export declare function driveRun(run: Run, opts?: DriveOptions): Promise<Run>;
+export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject" }): Promise<Run>;

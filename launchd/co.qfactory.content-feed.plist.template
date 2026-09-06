@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Daily 09:30 local time, via launchd (owner decision, 2026-08-02).
+
+  `qf run` performs ONE pass. This file is the thing that decides when that pass
+  happens — the runner does not schedule itself and does not pretend to. That is
+  not a missing feature: a scheduler you can see in `launchctl list` and stop
+  with one command is better than one hiding inside a CLI.
+
+  SECRETS ARE NOT IN HERE. The job sources ~/.qf/env, which holds
+  OPENROUTER_API_KEY, TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID and should be
+  chmod 600. A plist is world-readable and ends up in backups.
+
+  StartCalendarInterval fires at 09:30 LOCAL time, so it follows the clock change;
+  the manifest's cron line is UTC (06:30) and does not. When the two disagree, the
+  plist is the one that actually runs.
+
+  If the machine is asleep at 09:30, launchd runs the job when it wakes. That is
+  the honest limit of a laptop: for a digest that must arrive at 09:30 sharp, the
+  loop belongs on something that stays awake.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>co.qfactory.content-feed</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-lc</string>
+    <string>[ -f "$HOME/.qf/env" ] &amp;&amp; . "$HOME/.qf/env"; exec __NODE__ __QF__ run __MANIFEST__</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>30</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <!-- Both streams are kept. A failed run writes its reason to .qf/last-run.json
+       as well, but the log is where you look when the failure was the runner
+       itself rather than a step. -->
+  <key>StandardOutPath</key>
+  <string>__LOGDIR__/content-feed.log</string>
+  <key>StandardErrorPath</key>
+  <string>__LOGDIR__/content-feed.err.log</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

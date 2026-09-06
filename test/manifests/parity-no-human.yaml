@@ -1,0 +1,61 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# PARITY CASE A — a loop that never meets a person.
+#
+# fetch → llm-call → api-request. This is the case the whole taxonomy argument
+# rests on: human-gate is OPTIONAL, and a loop that ends in an outgoing request
+# is a finished loop, not an unfinished one.
+#
+# The receiver is 127.0.0.1:19876, started by scripts/loop-parity.ts. The port is
+# written out rather than injected so this file is a real manifest you can read
+# and run, not a template with holes in it.
+# =============================================================================
+
+id: parity-no-human
+name: "Parity A — fetch, summarise, publish"
+version: 1.0.0
+description: >
+  Runs identically through qf-runner and through the database engine. No gate,
+  no person, ends in api-request.
+owner: oleg
+
+triggers:
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  # Generous on purpose: this case proves the knob is READ, not that it cuts.
+  # Case C is the one that proves cutting.
+  budgetUsd: 0.50
+
+steps:
+  - id: pf-fetch
+    kind: fetch
+    config:
+      name: "Fetch feed"
+      url: "http://127.0.0.1:19876/feed.xml"
+      format: rss
+      limit: 5
+
+  - id: pf-sum
+    kind: llm-call
+    config:
+      name: "Summarize"
+      role: editor
+      maxTokens: "200"
+      instructions: >
+        You are given a JSON bundle whose `entries` array holds feed items.
+        Write a 2-sentence digest naming the most interesting item and why.
+        Plain text, no markdown.
+
+  # The body is a template by STEP NAME. If the resolver breaks, the receiver
+  # gets literal braces — visible in the parity output, not hidden in a log.
+  - id: pf-publish
+    kind: api-request
+    config:
+      name: "Publish"
+      method: POST
+      url: "http://127.0.0.1:19876/publish"
+      expect: "2xx"
+      body: '{"digest":"{{steps.Summarize.output.text}}","sourceCount":"{{steps.Fetch feed.output.count}}"}'

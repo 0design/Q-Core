@@ -1,0 +1,26 @@
+{
+  "runId": "66070ec4-a63e-412c-a394-4e62d5d8efe4",
+  "loopId": "webhook-relay",
+  "status": "success",
+  "summary": "Completed 2/2 steps.",
+  "startedAt": "2026-08-02T06:29:34.426Z",
+  "costUsd": 0,
+  "tokensIn": 0,
+  "tokensOut": 0,
+  "steps": [
+    {
+      "kind": "fetch",
+      "name": "Read source",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    },
+    {
+      "kind": "api-request",
+      "name": "Forward it",
+      "status": "success",
+      "itemIndex": null,
+      "costUsd": 0
+    }
+  ]
+}
