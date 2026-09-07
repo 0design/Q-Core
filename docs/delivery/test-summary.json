@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-07",
+  "node": "v22.14.0",
+  "commands": [
+    {
+      "command": "npm test",
+      "tests": 89,
+      "pass": 89,
+      "fail": 0,
+      "outputTail": "1..89\n# tests 89\n# suites 0\n# pass 89\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 7602.397833\n"
+    },
+    {
+      "command": "npm run test:package",
+      "status": "pass",
+      "checks": {
+        "imports": "package exports OK",
+        "validate": true,
+        "legacyHumanGateExit": 2,
+        "installedAgentFixture": "success"
+      }
+    },
+    {
+      "command": "node scripts/check-site-export.mjs /absolute/site-repo",
+      "status": "11 manifests valid; consumer repin pending"
+    },
+    {
+      "command": "git diff --check",
+      "status": "pass"
+    }
+  ],
+  "artifact": "artifacts/qloops-0.2.0-core.1.tgz",
+  "sha256": "6b5ada4665ab0196df5003494e8967f3b5fd7dc27b42a2dd3f078862fd04f189"
+}

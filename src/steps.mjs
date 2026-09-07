@@ -22,8 +22,8 @@ export { fetchWithRetry } from "./http.mjs";
 /** Cap on a response body we hold in memory and write into state. */
 const BODY_CAP = 64_000;
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const LLM_TIMEOUT_MS = 90_000;
+import { openRouter } from "./providers/openrouter.mjs";
+
 /** Human label of a step for messages: `config.name`, else the kind. */
 export function stepLabel(step) {
   return str(step.config, "name") ?? step.kind;
@@ -130,54 +130,9 @@ export async function runFetch(step, ctx) {
 /* ──────────────────────────── llm-call ──────────────────────────── */
 
 /** One model call. No canned fallback — see runLlmCall on why a mock is poison here. */
-export async function chatOnce({ apiKey, model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs }) {
-  let res;
-  try {
-    res = await fetchWithRetry(
-      OPENROUTER_URL,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: user },
-          ],
-          temperature: temperature ?? 0.3,
-          max_tokens: maxTokens,
-        }),
-      },
-      { timeoutMs: timeoutMs ?? LLM_TIMEOUT_MS, retries: retries ?? 2, delaysMs },
-    );
-  } catch (e) {
-    throw new Error(`OpenRouter unreachable: ${e instanceof Error ? e.message : String(e)}`);
-  }
-  if (!res.ok) {
-    /* The reason is part of the message because the two cases need different
-       actions from a person: a revoked key means go replace it, a 5xx means
-       just run it again. */
-    const reason =
-      res.status === 401 || res.status === 403
-        ? "invalid or revoked key"
-        : res.status === 429
-          ? "rate limited"
-          : res.status >= 500
-            ? "provider error"
-            : "request rejected";
-    throw new Error(`OpenRouter ${res.status} — ${reason}`);
-  }
-  const json = await res.json();
-  const content = json?.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!content) throw new Error("OpenRouter returned an empty completion — this step has nothing to pass on.");
-  return {
-    content,
-    usage: {
-      tokensIn: json?.usage?.prompt_tokens ?? 0,
-      tokensOut: json?.usage?.completion_tokens ?? 0,
-      model,
-    },
-  };
+export async function chatOnce({ apiKey, model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal }) {
+  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef:'OPENROUTER_API_KEY', payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal }, {env:{OPENROUTER_API_KEY:apiKey}});
+  return { ...result, usage:{...result.usage, model:result.provider.model ?? model} };
 }
 
 /** First JSON object in a reply, tolerating fences and prose around it. */

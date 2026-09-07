@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-07",
+  "claude": {
+    "version": "2.1.156",
+    "authStatusLoggedIn": true,
+    "authMethod": "claude.ai",
+    "headlessExit": 1,
+    "is_error": true,
+    "api_error_status": 401,
+    "message": "OAuth access token has expired. Re-authenticate to continue.",
+    "status": "blocked",
+    "permissionMode": "default",
+    "tools": [],
+    "fallbackAttempted": false,
+    "credentialsChanged": false
+  },
+  "openrouter": {"keyConfiguredInProcessEnvironment": false, "liveCallAttempted": false, "status": "blocked"},
+  "browser": {
+    "target": "http://127.0.0.1:8769/good.html",
+    "status": "blocked",
+    "reason": "Admin-enforced policy could not be verified; browser access was not granted.",
+    "screenshotsCaptured": false,
+    "workaroundAttempted": false
+  }
+}

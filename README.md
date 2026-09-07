@@ -1,319 +1,135 @@
-# qloop
+# qloops
 
-Describe a loop in a file. Run it with one command.
+Local, dependency-free loop runtime for Node.js >=20.3. The local delivery
+candidate is `0.2.0-core.1`; it is not an npm release or production acceptance.
 
-No database, no server, no build step, no dependencies.
+## Install a reviewed local package
 
-## Run one
-
-Requires Node.js 20.3 or newer (combined timeout/cancellation signals).
-
-```bash
-npm install -g qloops
+```sh
+npm install /absolute/path/qloops-0.2.0-core.1.tgz
+npx qloops validate ./loop.yaml
+npx qloops run ./loop.yaml
 ```
 
-The package is `qloops`; the command it installs is `qloop`. npm refused the
-bare `qloop` as too close to `q-loop`, an unrelated package last published in
-2016 — so the registry name carries the `s` and what you type does not.
+Both `qloops` and legacy `qloop` are installed. No `qf` alias. The package includes
+runtime, schema, providers and synthetic contract fixtures. Canonical loops live
+in an independent registry, not a neighboring private source checkout.
 
-```bash
-qloop init release-watch
-qloop run release-watch.yaml
+```sh
+npx qloops install /absolute/registry-export CATALOG_SHA256 loop-id 1.0.0 ./loop.yaml
 ```
 
-```
-Release watch — what shipped in your dependencies · run 819fb995
-  ✓ fetch          Fetch releases
-  ✓ llm-call       Write the note
-  ✓ api-request    Send the note
+The catalog must pin this engine version. Installer verifies catalog bytes,
+manifest identity, checksums and exact dependencies, and writes `loop.yaml.lock.json`.
+It never overwrites files. HTTPS registries are supported; HTTP is localhost-only.
+No implicit mutable remote catalog is used. Legacy remote discovery requires both
+`QLOOP_CATALOG_URL` and `QLOOP_CATALOG_SHA256`. `QFACTORY_REGISTRY` is an explicitly
+trusted local development overlay, not a verified release install.
 
-  SUCCESS: Completed 3/3 steps.
-```
+## Agent -> Core -> CLI -> result
 
-That is the whole tool. `qloop run` executes one pass and exits — see
-[Scheduling](#scheduling) for making it happen every morning.
-
-## Commands
-
-| | |
-|---|---|
-| `qloop catalog` | loops, components, and demos in this build (`--section` filters; `--json` dumps the file) |
-| `qloop init <id> [dir]` | copy one here, ready to edit |
-| `qloop validate <manifest>` | check it and print what it would do |
-| `qloop run <manifest>` | execute one pass |
-| `qloop run <manifest> --dry-run` | resolve and order every step, touch nothing |
-| `qloop status [<manifest>]` | recent runs, and why the last one stopped |
-| `qloop approve <manifest> [runId]` | continue a run held at a human gate (`--reject` refuses) |
-| `qloop doctor` | check this machine before blaming the loop |
-
-Exit codes: `0` success · `1` failed · `2` waiting on a human · `64` bad usage.
-They differ on purpose — whatever is watching has to tell "it broke" from "there
-was nothing today", and both from "somebody needs to look at this".
-
-Installed as `qloop`. There is deliberately no `qf` alias: that name belongs to
-`@q-factory/bridge`, and claiming it made `npm i -g qloops` fail outright — not
-partially — for anyone who already had Bridge installed.
-
-## Setup
-
-One variable covers most of the catalogue:
-
-```bash
-export OPENROUTER_API_KEY=sk-or-…
+```sh
+npx qloops agent request.json
+# or pipe bounded JSON on stdin
+npx qloops agent - < request.json
 ```
 
-Loops that send somewhere need a receiver — a webhook you own, or a Telegram
-bot:
+See `contracts/v1/fixtures.json` for a complete request and
+`contracts/v1/request.schema.json` for the structural schema. `validateRequest`
+adds path and authorization checks. Substitute real absolute workspace, Node and
+Claude paths. `sdd-pipeline@1.0.0` runs the built-in SDD capability;
+`synthetic-sdd@1.0.0` is its test alias. Canonical registry acceptance still
+requires the site to wire and pin its own manifest.
 
-```bash
-export QLOOP_WEBHOOK_URL=https://…
-export TELEGRAM_BOT_TOKEN=…   # from @BotFather
-export TELEGRAM_CHAT_ID=…
+The first call returns `needs_human` with a spec and approval hash. Review the
+specification, verifier, exact file scope and context. Resume the same request
+with `resumeRunId` and `approval: {"hash":"RETURNED_HASH","decision":"approve"}`.
+Use `reject` to cancel. Changed scope/intent/provider/verifier invalidates approval.
+Approval is an assertion by the local trusted caller; Core is not an identity
+service. There is no implicit approval or “resume last chat”.
+
+Claude 2.1.156 is the initially reviewed CLI. Existing authentication is used;
+no credential copying, nesting guard removal or permissions bypass. CLI inference
+has no tools, hooks are disabled, MCP is explicitly empty, and no session is
+persisted. It proposes text. Core applies only exact approved files, then runs a
+caller-authorized executable/argument array as verifier. Tests/verifier files are
+not writable. This is not an OS sandbox: use trusted workspaces and verifiers.
+
+One JSON result is emitted on stdout. `success=0`, `failed=1`, `needs_human=2`,
+`cancelled=130`, invalid request `64`. State lives in `.qf/agent-<UUID>.json`.
+An exclusive workspace lock blocks overlapping runs. Interrupted writes require
+reconciliation. Completed resume checks artifact hashes before returning cached
+success. A failed verifier triggers only the configured bounded repairs.
+
+Provider identity and usage are recorded; unknown values are null. Orchestration
+is deterministic, model output is not. Deadline/output/token/repair bounds are
+explicit. Optional `maxCostUsd` requires a caller-supplied conservative
+`maxCallCostUsd`: it gates subsequent calls and stops on unknown/exceeded usage.
+It is not a billing guarantee; provider estimates can differ from invoices.
+Site-funded reservation/settlement remains the site's responsibility.
+
+## Reusable providers
+
+```js
+import { openRouter } from 'qloops';
+const result = await openRouter({
+  messages: [{ role: 'user', content: 'Summarize this synthetic input.' }],
+  model: 'YOUR_EXPLICIT_MODEL', keyRef: 'OPENROUTER_API_KEY',
+  payerScope: 'local-byok', maxTokens: 256, timeoutMs: 30000, retries: 2,
+});
 ```
 
-**Without a receiver the loop still runs.** The result goes to `.qf/out/` and
-the run says so, loudly — which is how you prove a loop end to end before you
-have credentials for anything. Without a model key it is the other way round:
-the step **fails** rather than inventing text, because invented text would
-travel down the chain and out through the next request as if it were real.
+Set the named key in the environment; never put values in manifests. Results
+include content, actual model, request ID and nullable usage/cost. Errors are
+typed, provider/model fallback is never implicit. `site-funded` labels payer scope
+but does not implement the site's $10 quota. The site must reserve before calling.
+`chatOnce` remains a compatible wrapper over this adapter; `llm-call` is supported.
+Legacy token/cost estimates are not equivalent to provider-billed usage.
 
-`qloop doctor` tells you which of these is set. It prints names, never values.
+HTTP transport retries network/timeout/429/5xx failures with bounded backoff;
+ordinary 4xx fail fast. Caller cancellation stops request/backoff without retry.
+Response body parsing errors are not retried. Internal policy allows 0–10 retries,
+positive timeouts and nonnegative delays; invalid policy fails before requests.
+Outgoing legacy API retries can duplicate writes: use receipt-aware content APIs
+for publication. Retry is never exactly-once delivery.
 
-## Catalogue
+## Content and quality capabilities
 
-The public tree is three folders plus one generated file. The CLI and the site
-read the same `catalog.json`.
+`qloops content request.json` uses `qf.content-request/v1`: explicit sources,
+allowedOrigins, profile, provider, receipt-aware webhook receiver and deadline.
+`runContent` exports the same orchestration with caller-injected capabilities.
+Source identity dedup, source-attribution checks, exact draft/receiver approval,
+durable receipt and ambiguous-send reconciliation are implemented. Receiver JSON
+must be `{ "id": "unique-receipt", "delivered": true }`. A file sink is not a
+Telegram receipt. Only synthetic/local receivers were exercised here.
 
-```
-loops/                  YAML manifests
-registry/components/    step, trigger, and composite contracts
-registry/demos/         named runs against a loop
-examples/               recorded proofs
-catalog.json            generated — do not edit
-```
+`determined` exports A2D-style plan-bound execute/verify/repair. `qualityCheck`
+exports aindf-check (ds-readiness/UI composition) and unslop with hard/soft split,
+versioned findings, explicit coverage and optional recipe transport. `loadAindf`
+and `loadUnslop` load checksum-pinned upstream installations; no canon is copied.
+Missing DS, stale evidence, unknown rules and missing browser evidence cannot pass.
+See delivery documentation for upstream/version and acceptance limitations.
 
-`npm run catalog` rebuilds `catalog.json` from those folders. Hand-editing it
-is refused by CI.
+## Legacy YAML commands
 
-`qloop catalog` prints all three sections. `--section loops|components|demos`
-filters; `--json` dumps the file. `qloop init` still copies a loop.
+`qloop validate`, `run [--dry-run]`, `status`, `approve [--reject]`, `catalog`,
+`init` and `doctor` remain available for `qf.loop/v1`. Step kinds and fields are in
+[SPEC-MANIFEST.md](./SPEC-MANIFEST.md). Legacy JSON is not the new agent envelope.
+`run` performs one pass; scheduling belongs to the caller/launchd. State is local
+in `.qf/`; no server/database is required. Legacy YAML agent-call and check mode
+remain reserved; the new APIs must not be presented as implemented YAML kinds.
 
-## Templates
+## Verify
 
-Eleven loops ship with qloops. Each has actually been executed — what
-`qloop catalog` reports is measured from a real run recorded in `examples/`.
-
-### release-watch — what shipped in your dependencies
-
-The cheapest one to try: one credential, no accounts anywhere.
-
-```bash
-qloop init release-watch
-```
-
-Change the URL to a project you actually depend on — GitHub publishes a
-releases feed for every public repository:
-
-```yaml
-url: "https://github.com/YOUR/REPO/releases.atom"
-```
-
-### content-feed — the morning digest
-
-Reads a feed, writes a short digest, sends it. Runs to the end on its own.
-
-```bash
-qloop init content-feed
+```sh
+npm test
+npm run test:package
 ```
 
-The message carries a signature line with the **real** cost of that run —
-`{{run.costUsd}}` resolves to what the run has spent by the time the message
-goes out. Delete the line if you do not want it.
+Tests cover real localhost HTTP, subprocess fixtures, installed callers, negative
+paths, approval and resume. Fixtures are not live inference evidence. The
+2026-09-07 real Claude attempt failed with expired OAuth; reauthenticate using the
+CLI's own login flow before rerunning live acceptance. No live OpenRouter call was
+made without a configured key. Local release evidence is in `docs/delivery/`.
 
-### brand-mentions — who talked about you today
-
-Searches a news feed and keeps only the mentions actually about you. Says
-"No mentions today." when there are none, instead of padding.
-
-Point the search at yourself:
-
-```yaml
-url: "https://news.google.com/rss/search?q=YOUR+BRAND&hl=en-US&gl=US&ceid=US:en"
-```
-
-### feed-fanout — a lane per entry
-
-The alternative to one blended summary: `fan-out` opens a lane per item, so each
-entry gets its own model call and its own outgoing message.
-
-**Cost scales with items** — five lanes is five model calls. That is what the
-budget knob is for; it cuts *before* the call that would cross the ceiling.
-
-```yaml
-maxItems: "5"     # raise this and raise budgetUsd with it
-```
-
-### price-watch — machine filters, human authorises
-
-The shape to copy whenever a loop ends in something you cannot undo:
-
-```
-fetch → agent-gate → human-gate → api-request
-```
-
-The agent-gate is a machine check against your `rubric` — it decides whether
-this is worth anyone's attention. The human gate sits in front of the
-irreversible step. Run it and it stops:
-
-```
-  ⏸ approval-gate  Send it?
-  WAITING_HUMAN: Waiting on a human at step "Send it?".
-```
-
-```bash
-qloop approve price-watch.yaml          # or --reject
-```
-
-Write the rubric as a condition, not a wish. A vague rubric passes everything
-and is worse than no gate at all.
-
-### content-factory — draft, check, approve, publish
-
-The same two gates, with publishing at the end. The irreversible step is last
-and behind both, because a re-run publishes again — there is no idempotency key
-in the format, and pretending otherwise would be the expensive kind of wrong.
-
-## Write your own
-
-A loop is a YAML file with steps. Six kinds, no more: `schedule` (a trigger),
-`fetch`, `llm-call`, `api-request`, `approval-gate`, `fan-out`.
-
-```yaml
-manifest: qf.loop/v1
-id: hello
-steps:
-  - id: pull
-    kind: fetch
-    config: { url: "https://news.ycombinator.com/rss", format: rss, limit: "5" }
-  - id: write
-    kind: llm-call
-    config:
-      name: "Write digest"
-      instructions: "One line per entry: title and link. No preamble."
-  - id: send
-    kind: api-request
-    config:
-      url: "https://example.com/hook"
-      body: '{"text":"{{steps.Write digest.output.text}}"}'
-```
-
-```bash
-qloop validate hello.yaml && qloop run hello.yaml --dry-run
-```
-
-The full schema — every field of every step kind, the three knobs, what is
-reserved for later — is in [SPEC-MANIFEST.md](./SPEC-MANIFEST.md).
-
-Secrets never go in the file: `{{env.NAME}}` reads them from the environment,
-so sharing a loop does not mean sharing your bot.
-
-## State
-
-Everything a run leaves behind sits in `.qf/`, beside the manifest:
-
-```
-.qf/runs/<runId>.json    every step, its output, its tokens, its cost
-.qf/last-run.json        the newest outcome — status, reason, failing step
-.qf/out/<runId>.txt      the file sink, when no receiver is configured
-```
-
-Plain files, because the question you actually ask at 09:35 is "what happened",
-and `cat .qf/last-run.json` answers it without a client or a server.
-
-## Scheduling
-
-`qloop run` performs ONE pass. Repetition is launchd's job, where you can see it
-in `launchctl list` and stop it with one command. The template runs daily at
-09:30 local time.
-
-```bash
-sed -e "s#__NODE__#$(command -v node)#" -e "s#__QF__#$(command -v qloop)#" \
-    -e "s#__MANIFEST__#$PWD/content-feed.yaml#" -e "s#__LOGDIR__#$HOME/Library/Logs#" \
-    launchd/co.qfactory.content-feed.plist.template > ~/Library/LaunchAgents/co.qfactory.content-feed.plist
-```
-
-```bash
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/co.qfactory.content-feed.plist
-```
-
-Stop it with `launchctl bootout gui/$(id -u)/co.qfactory.content-feed`.
-
-Secrets come from `~/.qf/env`, which the job sources before every run — one file
-you can `chmod 600`, never the plist, never the manifest.
-
-**If the machine is asleep at 09:30, launchd runs the job on wake.** That is the
-honest limit of a laptop. A digest that must arrive at 09:30 sharp belongs on
-something that stays awake.
-
-## When something does not arrive
-
-```bash
-qloop status content-feed.yaml
-```
-
-```
-  ✗ 2026-08-01 14:53:14  failed  "Fetch feed": GET https://… → HTTP 502.
-
-  last run FAILED: "Fetch feed": GET https://… → HTTP 502.
-```
-
-A failed run exits non-zero and writes the reason down, so "it broke" and
-"nothing happened today" never look the same.
-
-## What is free, and what is not
-
-Running a loop on your machine is free and always will be — that is this
-repository. Scheduling as a service, quotas, plans, shared workspaces and the
-run-history UI are the product.
-
-The line: **local execution free, orchestration paid.**
-
-## What this does not do
-
-Stated plainly, because a tool that implies more than it does costs more than
-one that admits its edges.
-
-- **No scheduler.** `qloop run` is one pass. See [Scheduling](#scheduling).
-- **No memory between runs.** No cursor, no "last seen". A feed loop re-sends
-  whatever the feed holds now; de-duplication belongs to the receiver.
-- **No idempotency key.** Transient fetch/LLM/API failures retry twice (timeout,
-  network, 429, 5xx), with 1.5s/4s backoff. An ambiguous failure can repeat an
-  outgoing write; a full re-run repeats requests too. Publishing needs explicit
-  receiver de-duplication before use. Retrying is not exactly-once delivery.
-- **One failed step stops the run.** There is no `continue_on_error`.
-- **No `sensitivity` policy.** A manifest that sets one is *refused*, not run
-  with the knob ignored — the profile exists to hold back irreversible steps.
-- **An agent-gate is an LLM** judging against your rubric, not a real checker.
-  `mode: check` is reserved in the format and refused, rather than faked.
-- **No `agent-call`.** Reserved in the format, not implemented.
-
-## Keeping it honest
-
-The shared transport lives in `src/http.mjs`; the `steps.mjs` export remains
-compatible. Its internal policy accepts 0-10 retries, positive timeout durations
-and non-negative delays. Invalid policy fails before a request. A caller-supplied
-AbortSignal stops requests/backoff without retrying cancellation. The manifest
-does not yet expose this cancellation control or a custom retry policy. Response
-body parsing errors are not retried; callers consume the final response.
-
-`npm test` includes local HTTP failure/recovery and persisted driver-state tests,
-plus mocked model-caller tests. Those are not evidence of a live paid model call.
-
-The same manifests also run inside the product, from a database. Two
-implementations of one behaviour drift, so they are pinned together by a parity
-test: one manifest, one loader, executed both ways, step sequence and outcomes
-compared. A difference is a red test, not a footnote.
-
-## License
-
-MIT.
+MIT. No remote push, npm publish or production deployment is implied.

@@ -53,6 +53,7 @@ export class RunStore {
   }
 
   runFile(runId) {
+    if (typeof runId !== "string" || !/^[a-zA-Z0-9-]{1,100}$/.test(runId)) throw new Error("Invalid runId");
     return join(this.runsDir, `${runId}.json`);
   }
 
@@ -82,7 +83,7 @@ export class RunStore {
       startedAt: run.startedAt,
       finishedAt: run.finishedAt,
       costUsd: Number(run.costUsd ?? 0),
-      exitCode: run.status === "success" ? 0 : 1,
+      exitCode: run.status === "success" ? 0 : run.status === "waiting_human" ? 2 : run.status === "cancelled" ? 130 : 1,
     });
   }
 
@@ -103,6 +104,7 @@ export class RunStore {
 
   /** Write one file-sink delivery and return its path. */
   writeSink(runId, body) {
+    this.runFile(runId); // validate caller-provided identity before constructing an output path
     mkdirSync(this.outDir, { recursive: true });
     const file = join(this.outDir, `${runId}.txt`);
     writeFileSync(file, body, "utf8");

@@ -1,0 +1,5 @@
+6b5ada4665ab0196df5003494e8967f3b5fd7dc27b42a2dd3f078862fd04f189  artifacts/qloops-0.2.0-core.1.tgz
+857e6d528432bd7c7275f0de8bca9c06f8d762ede464a87fdf8037dbecc255fa  contracts/v1/README.md
+34a296dd50da98cff17ee2a570ea009e63f60daf4c4b379b836a1fb701b99b93  contracts/v1/request.schema.json
+cde9da43d783c4d02e693746706b0fa598d0145cdecac3f16f408b9f19c07555  contracts/v1/result.schema.json
+c13beeaaeb49516ec07d6383510d3503070af4c1632923553477c91a59be0681  contracts/v1/fixtures.json

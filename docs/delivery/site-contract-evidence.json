@@ -1,0 +1,86 @@
+{
+  "evidenceKind": "read-only site export + Core validator; consumer integration NOT accepted",
+  "catalogSha256": "03847ec2704b36c757eb33ca41ef72f8172ae29362d73e1ddc13e5f716e73e5b",
+  "release": "2026.09.07-site.1",
+  "consumerPin": {
+    "package": "qloops",
+    "version": "0.2.0-core.1",
+    "manifest": "qf.loop/v1",
+    "protocol": "qf.agent/v1",
+    "contractRevision": 1,
+    "artifact": "vendor/qloops-0.2.0-core.1.tgz",
+    "artifactSha256": "b5a346c6eebddb05f1c62380b94ef4e2c4d4bb69a28024a8e7303fa3c0b78eb6",
+    "integrity": "sha512-8IG4YBK2OomG30UmRsOsr9V6uwo0I5xUK+YFvDKg63R6LM4/LYppVKAUoDqIg2lT6/WfK14CMkfe8eweLEOWTg==",
+    "schemaSha256": "83e5ef6bd729ab029fe5f57f56baecd296a65310f1f2fa5b9b12dca2c0d9a897",
+    "requestSchemaSha256": "480496d5c83bdce95f2298044f1ac32f531c23b70705e6a2d3e0ce7d21db0a45",
+    "status": "consumer-integration-candidate",
+    "source": "Site-packed read-only Core snapshot; differs from earlier Core package-evidence hash",
+    "pending": [
+      "Core final handoff acceptance",
+      "canonical SDD ID runtime support",
+      "controlled real model evidence",
+      "Content-factory Telegram receipts",
+      "upstream quality release/browser acceptance"
+    ]
+  },
+  "installedCore": "0.2.0-core.1",
+  "manifests": [
+    {
+      "id": "brand-mentions",
+      "status": "valid",
+      "sha256": "bbfb2052c86fe95be130fc4d87c6af8ec757ba91f51d21bca681ad22367b3362"
+    },
+    {
+      "id": "budget-guard",
+      "status": "valid",
+      "sha256": "7a123c7e7a2be4ebf41c75c7f6c0eb99b94a4a245babb0722b0ead3bdc243526"
+    },
+    {
+      "id": "content-factory",
+      "status": "valid",
+      "sha256": "318948e4c25539662c6d3a7dbc8550f0ec89a1d22e6c3f1350b8e8d7900f7fa3"
+    },
+    {
+      "id": "content-feed",
+      "status": "valid",
+      "sha256": "f9d588e3bbf9041e02e7057aae83d48b3c7e6f2a59b8d521064f8349ce9cb207"
+    },
+    {
+      "id": "feed-fanout",
+      "status": "valid",
+      "sha256": "d771e462d1f40b06672a2b654153df8da3373190b209c3eb6e5f74e15c541864"
+    },
+    {
+      "id": "json-digest",
+      "status": "valid",
+      "sha256": "cb730da45f69c57a3f4fbcf2a97df8339907d443b7fb9f4631ed12f308bad449"
+    },
+    {
+      "id": "price-watch",
+      "status": "valid",
+      "sha256": "70e82b724ede0a7da8b3e25bd07bebd7a6198811d8653c271115dd269428d6c7"
+    },
+    {
+      "id": "release-watch",
+      "status": "valid",
+      "sha256": "053b60d872a176426d35ac9fd55b653a0ed889eb57362cffe17f841e8271361c"
+    },
+    {
+      "id": "strict-gate",
+      "status": "valid",
+      "sha256": "d6ebf8ae34b6a888f99031f8da586c799f523855af96a60a8849d5ed14abbe0f"
+    },
+    {
+      "id": "webhook-relay",
+      "status": "valid",
+      "sha256": "c9b8fb7d28490d648d918fb8b8cfc4b59117eb27aa0354ed3fb9dbf687bd4637"
+    },
+    {
+      "id": "wide-fanout",
+      "status": "valid",
+      "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485"
+    }
+  ],
+  "coreArtifactSha256": "6b5ada4665ab0196df5003494e8967f3b5fd7dc27b42a2dd3f078862fd04f189",
+  "integrationStatus": "pending-consumer-repin"
+}

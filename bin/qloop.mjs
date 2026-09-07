@@ -19,7 +19,7 @@
  */
 import { copyFileSync, existsSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadManifest, validateManifest, ManifestError } from "../src/manifest.mjs";
 import { createRun, driveRun, resumeRun, resolveKnobs } from "../src/run.mjs";
@@ -453,7 +453,7 @@ async function cmdInit(args, flags) {
      person already edited — the manifest IS their work, not scaffolding. */
   if (existsSync(dest)) fail(`${shortPath(dest)} already exists — not overwriting it.`);
   if (remote) writeFileSync(dest, remote.text, "utf8");
-  else copyFileSync(join(HERE, "..", entry.file), dest);
+  else copyFileSync(join(LOOPS_DIR, basename(entry.file)), dest);
 
   process.stdout.write(`${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);
   if (remote) {

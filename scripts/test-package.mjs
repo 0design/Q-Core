@@ -1,0 +1,110 @@
+import {
+  mkdtempSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import assert from "node:assert/strict";
+import { hash } from "../src/contracts.mjs";
+const root = resolve("."),
+  tmp = mkdtempSync(join(tmpdir(), "qloops-clean-install-"));
+const exec = (cmd, args, opts = {}) =>
+  execFileSync(cmd, args, {
+    cwd: tmp,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      QF_NO_UPDATE_CHECK: "1",
+      QFACTORY_REGISTRY: "",
+      QLOOP_CATALOG_URL: "",
+    },
+    ...opts,
+  });
+try {
+  const packed = JSON.parse(
+    exec("npm", ["pack", root, "--ignore-scripts", "--json"]),
+  )[0];
+  const tarball = join(tmp, packed.filename);
+  const sha256 = hash(readFileSync(tarball));
+  exec("npm", [
+    "install",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    tarball,
+  ]);
+  const smoke =
+    "import {validateManifest,openRouter,runAgent,runContent,determined,qualityCheck} from 'qloops'; if(![validateManifest,openRouter,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
+  const imports = exec(process.execPath, ["--input-type=module", "-e", smoke]);
+  const manifest =
+    "manifest: qf.loop/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
+  writeFileSync(join(tmp, "clean.yaml"), manifest);
+  const bin = join(tmp, "node_modules/qloops/bin/qloops.mjs");
+  const validation = exec(process.execPath, [bin, "validate", "clean.yaml"]);
+  let runCode = 0;
+  try {
+    exec(process.execPath, [bin, "run", "clean.yaml"]);
+  } catch (e) {
+    runCode = e.status;
+  }
+  assert.equal(runCode, 2);
+  const request = JSON.parse(
+    readFileSync(join(root, "contracts/v1/fixtures.json")),
+  ).positive;
+  request.workspace = tmp;
+  request.allowedTools = [process.execPath];
+  request.verifier.command = process.execPath;
+  request.provider.executable = join(root, "test/fixtures/claude.mjs");
+  request.allowedPaths = ["value.mjs"];
+  writeFileSync(join(tmp, "value.mjs"), "export const add=()=>0;");
+  writeFileSync(
+    join(tmp, "verify.mjs"),
+    "import {add} from './value.mjs';if(add(2,3)!==5)process.exit(1);",
+  );
+  let first;
+  try {
+    exec(process.execPath, [bin, "agent", "-"], {
+      input: JSON.stringify(request),
+    });
+  } catch (e) {
+    assert.equal(e.status, 2);
+    first = JSON.parse(e.stdout);
+  }
+  assert.equal(first.nextAction.type, "approve_spec");
+  request.resumeRunId = first.runId;
+  request.approval = { hash: first.nextAction.hash, decision: "approve" };
+  assert.equal(
+    JSON.parse(
+      exec(process.execPath, [bin, "agent", "-"], {
+        input: JSON.stringify(request),
+      }),
+    ).status,
+    "success",
+  );
+  mkdirSync(join(root, "docs/delivery"), { recursive: true });
+  const evidence = {
+    package: packed.name,
+    version: packed.version,
+    sha256,
+    integrity: packed.integrity,
+    files: packed.files.map((f) => f.path),
+    checks: {
+      imports: imports.trim(),
+      validate: !!validation,
+      legacyHumanGateExit: runCode,
+      installedAgentFixture: "success",
+    },
+    evidenceKind: "clean-install + real subprocess fixture; not live inference",
+  };
+  writeFileSync(
+    join(root, "docs/delivery/package-evidence.json"),
+    JSON.stringify(evidence, null, 2) + "\n",
+  );
+  console.log(JSON.stringify(evidence, null, 2));
+} finally {
+  rmSync(tmp, { recursive: true, force: true });
+}
