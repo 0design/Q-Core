@@ -9,7 +9,7 @@
     "qloop": "bin/qloop.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.3.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",

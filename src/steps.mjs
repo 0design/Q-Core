@@ -16,52 +16,14 @@
  */
 import { requireStr, num, oneOf, str } from "./config.mjs";
 import { resolveTemplate, resolveTemplateDeep, missingEnvRefs } from "./template.mjs";
+import { fetchWithRetry } from "./http.mjs";
+export { fetchWithRetry } from "./http.mjs";
 
 /** Cap on a response body we hold in memory and write into state. */
 const BODY_CAP = 64_000;
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const LLM_TIMEOUT_MS = 90_000;
-const RETRY_DELAYS_MS = [1_500, 4_000];
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function isRetryableNetwork(err) {
-  const name = err instanceof Error ? err.name : "";
-  const msg = err instanceof Error ? err.message : String(err);
-  return name === "TimeoutError" || name === "AbortError" || /fetch failed|ECONNRESET|ENOTFOUND|EAI_AGAIN|socket|network|unreachable/i.test(msg);
-}
-
-function isRetryableHttp(status) {
-  return status === 429 || status >= 500;
-}
-
-/**
- * fetch with timeout and a small retry on transient network / 429 / 5xx.
- * Permanent client errors (4xx except 429) fail immediately.
- */
-export async function fetchWithRetry(url, init = {}, { timeoutMs = 30_000, retries = 2, delaysMs = RETRY_DELAYS_MS } = {}) {
-  let lastErr;
-  const attempts = retries + 1;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
-      if (isRetryableHttp(res.status) && i < attempts - 1) {
-        await sleep(delaysMs[Math.min(i, delaysMs.length - 1)]);
-        continue;
-      }
-      return res;
-    } catch (e) {
-      lastErr = e;
-      if (!isRetryableNetwork(e) || i === attempts - 1) throw e;
-      await sleep(delaysMs[Math.min(i, delaysMs.length - 1)]);
-    }
-  }
-  throw lastErr;
-}
-
 /** Human label of a step for messages: `config.name`, else the kind. */
 export function stepLabel(step) {
   return str(step.config, "name") ?? step.kind;

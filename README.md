@@ -6,6 +6,8 @@ No database, no server, no build step, no dependencies.
 
 ## Run one
 
+Requires Node.js 20.3 or newer (combined timeout/cancellation signals).
+
 ```bash
 npm install -g qloops
 ```
@@ -284,8 +286,10 @@ one that admits its edges.
 - **No scheduler.** `qloop run` is one pass. See [Scheduling](#scheduling).
 - **No memory between runs.** No cursor, no "last seen". A feed loop re-sends
   whatever the feed holds now; de-duplication belongs to the receiver.
-- **No idempotency key.** Transient fetch/LLM failures retry twice (timeout,
-  network, 429, 5xx). A full re-run still repeats the outgoing requests.
+- **No idempotency key.** Transient fetch/LLM/API failures retry twice (timeout,
+  network, 429, 5xx), with 1.5s/4s backoff. An ambiguous failure can repeat an
+  outgoing write; a full re-run repeats requests too. Publishing needs explicit
+  receiver de-duplication before use. Retrying is not exactly-once delivery.
 - **One failed step stops the run.** There is no `continue_on_error`.
 - **No `sensitivity` policy.** A manifest that sets one is *refused*, not run
   with the knob ignored — the profile exists to hold back irreversible steps.
@@ -294,6 +298,16 @@ one that admits its edges.
 - **No `agent-call`.** Reserved in the format, not implemented.
 
 ## Keeping it honest
+
+The shared transport lives in `src/http.mjs`; the `steps.mjs` export remains
+compatible. Its internal policy accepts 0-10 retries, positive timeout durations
+and non-negative delays. Invalid policy fails before a request. A caller-supplied
+AbortSignal stops requests/backoff without retrying cancellation. The manifest
+does not yet expose this cancellation control or a custom retry policy. Response
+body parsing errors are not retried; callers consume the final response.
+
+`npm test` includes local HTTP failure/recovery and persisted driver-state tests,
+plus mocked model-caller tests. Those are not evidence of a live paid model call.
 
 The same manifests also run inside the product, from a database. Two
 implementations of one behaviour drift, so they are pinned together by a parity

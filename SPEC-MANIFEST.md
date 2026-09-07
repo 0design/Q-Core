@@ -272,10 +272,13 @@ that goes into git — "share the loop" must not mean "share the bot token".
 
 - A failed step **stops the run**. `.qf/last-run.json` records the status, the
   reason and the failing step; the process exits non-zero.
-- **No retries.** Nothing in the format asks for one, and a retry the author did
-  not write would double outgoing requests.
-- **No idempotency key.** A re-run repeats the outgoing requests. Loops that
-  publish should be de-duplicated at the receiver.
+- **Fixed runtime retries, not manifest-configurable.** Fetch, model and API
+  requests retry transient network/timeout/429/5xx failures twice, with 1.5s/4s
+  backoff. Other 4xx fail immediately. Exhaustion remains a failure. Body parsing
+  failures are not retried. Explicit transport cancellation does not retry.
+- **No idempotency key.** A retry after an ambiguous response or a re-run can
+  repeat outgoing writes. Publishing requires receiver de-duplication; this
+  runtime does not promise exactly-once delivery.
 - **No `continue_on_error` / `optional`.** One unreachable source fails the run.
   This is a known cost, not an oversight.
 - A run parked at a gate is neither failed nor finished: it is held on disk and
