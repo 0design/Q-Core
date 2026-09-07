@@ -23,7 +23,7 @@
       "upstream quality release/browser acceptance"
     ]
   },
-  "installedCore": "0.2.0-core.1",
+  "installedCore": "0.2.0-core.2",
   "manifests": [
     {
       "id": "brand-mentions",
@@ -81,6 +81,6 @@
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485"
     }
   ],
-  "coreArtifactSha256": "6b5ada4665ab0196df5003494e8967f3b5fd7dc27b42a2dd3f078862fd04f189",
+  "coreArtifactSha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2",
   "integrationStatus": "pending-consumer-repin"
 }

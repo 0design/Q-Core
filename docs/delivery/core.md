@@ -1,3 +1,5 @@
+> Update 2026-09-07: Codex support and candidate core.2 supersede the earlier CLI limitation and artifact pin below. See [Codex delivery](codex.md) and current SHA256SUMS.
+
 # Core delivery candidate — 2026-09-07
 
 Status: substantial local implementation delivered; **MVP/MLP release acceptance

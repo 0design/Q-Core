@@ -1,0 +1,50 @@
+{
+  "evidenceKind": "live Codex ChatGPT source adapter; independent verifier; completed resume checked by script",
+  "result": {
+    "protocolVersion": "qf.agent/v1",
+    "requestId": "controlled-live-sdd",
+    "runId": "60f7dafc-e9ed-4b60-b999-1beac0dca5fc",
+    "status": "success",
+    "summary": "Approved change passed the caller-authorized verifier",
+    "artifacts": [
+      {
+        "path": "value.mjs",
+        "sha256": "4a381860447226426a116b024081641b32f9b6c4f7c2c5d3cb86987e85c8ae33",
+        "revision": 1
+      }
+    ],
+    "evidence": [
+      {
+        "verifier": {
+          "command": "/usr/local/bin/node",
+          "args": [
+            "verify.mjs"
+          ]
+        },
+        "artifactHash": "6f9a87f1382e2e2c2de38201d3ff1784069e29a4f90cfe1a9a32429e893948a5",
+        "revision": 1,
+        "outcome": "pass",
+        "exitCode": 0,
+        "stdoutHash": "f16fb729635c6b0758e026cfa095cb3e7067a26f11eb893600fd4cc40fca632c",
+        "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "error": null,
+    "nextAction": null,
+    "provider": {
+      "kind": "codex",
+      "version": "0.153.4",
+      "requestedModel": "gpt-5.4-mini",
+      "model": null,
+      "payerScope": "local-cli",
+      "authMethod": "chatgpt",
+      "permissionMode": "read-only",
+      "acceptedTools": []
+    },
+    "usage": {
+      "tokensIn": 6529,
+      "tokensOut": 360,
+      "costUsd": null
+    }
+  }
+}

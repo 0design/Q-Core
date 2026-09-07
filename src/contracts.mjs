@@ -141,7 +141,7 @@ export function validateRequest(r) {
     );
   }
   insist(
-    r.provider && ["claude", "openrouter"].includes(r.provider.kind),
+    r.provider && ["claude", "codex", "openrouter"].includes(r.provider.kind),
     "Explicit provider required",
   );
   insist(
@@ -155,11 +155,11 @@ export function validateRequest(r) {
       r.provider.payerScope === "local-cli",
     "Agent requests require local payer scope",
   );
-  if (r.provider.kind === "claude")
+  if (["claude", "codex"].includes(r.provider.kind))
     insist(
       isAbsolute(r.provider.executable ?? "") &&
         r.provider.payerScope === "local-cli",
-      "Claude requires absolute executable and local-cli scope",
+      "CLI provider requires absolute executable and local-cli scope",
     );
   else
     insist(

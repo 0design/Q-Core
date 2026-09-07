@@ -1,3 +1,5 @@
+> Update 2026-09-07: Codex support and candidate core.2 supersede the earlier CLI limitation and artifact pin below. See [Codex delivery](codex.md) and current SHA256SUMS.
+
 # Site integration handoff — contract revision 1
 
 Package candidate: qloops@0.2.0-core.1. Artifact and SHA256 are recorded in

@@ -1,4 +1,4 @@
-# Core contract revision 1 (qf.agent/v1)
+# Core contract revision 2 (qf.agent/v1)
 
 Additive to qf.loop/v1. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
@@ -9,7 +9,7 @@ needs_human/2, cancelled/130; malformed request failed/64. No implicit provider.
 
 Request: protocolVersion, requestId, loop {id,version}, intent, workspace (absolute),
 allowedPaths (exact relative files), allowedTools (verifier executable paths),
-provider {kind: claude|openrouter, model, executable? or keyRef?, payerScope},
+provider {kind: claude|codex|openrouter, model, executable? or keyRef?, payerScope},
 deadlineMs (1..300000), maxRepairAttempts (0..5), verifier {command,args},
 optional approval {hash,decision:approve|reject}, resumeRunId.
 Supported loops: sdd-pipeline@1.0.0 and synthetic-sdd@1.0.0 (test alias). Canonical SDD manifests are site-owned;
@@ -34,3 +34,13 @@ evidence (verifier outcomes), error {code,message}|null, nextAction|null,
 provider, usage. Unknown verification never means success. Repair cannot edit tests.
 
 Resource note: optional maxCostUsd requires caller-estimated maxCallCostUsd. Unknown or exceeded reported cost stops subsequent calls. This is a reservation check, not a provider billing guarantee.
+
+Revision 2 adds `codex` with absolute executable, explicit model and `local-cli`.
+Codex 0.153.4 requires ChatGPT authentication and never falls back to API billing.
+It runs read-only in an isolated cwd, accepts text only, and rejects tool events.
+Provider metadata uses `authMethod: chatgpt`, `permissionMode: read-only`,
+`acceptedTools: []`, `model: null` (CLI does not emit resolved identity).
+Direct usage includes `costKind: subscription-usage`, nullable cost, cached input
+and input/output tokens. Agent aggregate usage retains the existing shape.
+Existing revision 1 requests remain valid; consumers must accept the new provider
+and repin package 0.2.0-core.2 to use it. Other protocols and exit codes unchanged.

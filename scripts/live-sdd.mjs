@@ -1,6 +1,13 @@
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { runAgent } from "../src/agent.mjs";
+const arg = (name, fallback) => {
+  const i = process.argv.indexOf(name);
+  return i < 0 ? fallback : process.argv[i + 1];
+};
+const kind = arg("--provider", "claude");
+if (!["claude", "codex"].includes(kind))
+  throw Error("Unsupported live CLI provider");
 const approve = process.argv.includes("--approve-synthetic");
 mkdirSync(".qf", { recursive: true });
 const workspace = mkdtempSync(resolve(".qf/live-sdd-"));
@@ -19,9 +26,14 @@ const request = {
   allowedPaths: ["value.mjs"],
   allowedTools: [process.execPath],
   provider: {
-    kind: "claude",
-    model: "sonnet",
-    executable: "/usr/local/bin/claude",
+    kind,
+    model: arg("--model", kind === "codex" ? "gpt-5.4-mini" : "sonnet"),
+    executable: arg(
+      "--executable",
+      kind === "codex"
+        ? "/Applications/ChatGPT.app/Contents/Resources/codex"
+        : "/usr/local/bin/claude",
+    ),
     payerScope: "local-cli",
   },
   deadlineMs: 90000,

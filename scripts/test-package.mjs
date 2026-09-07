@@ -10,6 +10,7 @@ import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { hash } from "../src/contracts.mjs";
+const live = process.argv.includes("--live-codex");
 const root = resolve("."),
   tmp = mkdtempSync(join(tmpdir(), "qloops-clean-install-"));
 const exec = (cmd, args, opts = {}) =>
@@ -38,7 +39,7 @@ try {
     tarball,
   ]);
   const smoke =
-    "import {validateManifest,openRouter,runAgent,runContent,determined,qualityCheck} from 'qloops'; if(![validateManifest,openRouter,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
+    "import {validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck} from 'qloops'; if(![validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
   const imports = exec(process.execPath, ["--input-type=module", "-e", smoke]);
   const manifest =
     "manifest: qf.loop/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
@@ -58,7 +59,15 @@ try {
   request.workspace = tmp;
   request.allowedTools = [process.execPath];
   request.verifier.command = process.execPath;
-  request.provider.executable = join(root, "test/fixtures/claude.mjs");
+  request.provider = {
+    kind: "codex",
+    model: live ? "gpt-5.4-mini" : "fixture",
+    payerScope: "local-cli",
+    executable: live
+      ? "/Applications/ChatGPT.app/Contents/Resources/codex"
+      : join(root, "test/fixtures/codex.mjs"),
+  };
+  request.deadlineMs = live ? 90000 : 5000;
   request.allowedPaths = ["value.mjs"];
   writeFileSync(join(tmp, "value.mjs"), "export const add=()=>0;");
   writeFileSync(
@@ -96,12 +105,24 @@ try {
       imports: imports.trim(),
       validate: !!validation,
       legacyHumanGateExit: runCode,
-      installedAgentFixture: "success",
+      installedCodexAgent: "success",
+      completedResume: JSON.parse(
+        exec(process.execPath, [bin, "agent", "-"], {
+          input: JSON.stringify(request),
+        }),
+      ).status,
     },
-    evidenceKind: "clean-install + real subprocess fixture; not live inference",
+    evidenceKind: live
+      ? "clean-install + live Codex ChatGPT inference + independent verifier + cached resume"
+      : "clean-install + real Codex subprocess fixture; not live inference",
   };
   writeFileSync(
-    join(root, "docs/delivery/package-evidence.json"),
+    join(
+      root,
+      live
+        ? "docs/delivery/codex-package-live.json"
+        : "docs/delivery/package-evidence.json",
+    ),
     JSON.stringify(evidence, null, 2) + "\n",
   );
   console.log(JSON.stringify(evidence, null, 2));

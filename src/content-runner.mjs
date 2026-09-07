@@ -1,5 +1,6 @@
 import { runContent } from "./content.mjs";
 import { openRouter } from "./providers/openrouter.mjs";
+import { codex } from "./providers/codex.mjs";
 import { claude } from "./providers/claude.mjs";
 import { fetchWithRetry } from "./http.mjs";
 import { insist, resultEnvelope, hash } from "./contracts.mjs";
@@ -54,7 +55,7 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
       ? AbortSignal.any([signal, AbortSignal.timeout(r.deadlineMs)])
       : AbortSignal.timeout(r.deadlineMs);
     insist(
-      r.provider && ["claude", "openrouter"].includes(r.provider.kind),
+      r.provider && ["claude", "codex", "openrouter"].includes(r.provider.kind),
       "Explicit content provider required",
     );
     insist(
@@ -117,7 +118,9 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
           const result =
             r.provider.kind === "claude"
               ? await claude(opts)
-              : await openRouter(opts, { env });
+              : r.provider.kind === "codex"
+                ? await codex(opts)
+                : await openRouter(opts, { env });
           return { text: result.content, usage: result.usage };
         },
         check: async ({ text, sources }) => ({

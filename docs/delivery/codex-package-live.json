@@ -78,5 +78,5 @@
     "installedCodexAgent": "success",
     "completedResume": "success"
   },
-  "evidenceKind": "clean-install + real Codex subprocess fixture; not live inference"
+  "evidenceKind": "clean-install + live Codex ChatGPT inference + independent verifier + cached resume"
 }

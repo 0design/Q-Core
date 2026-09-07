@@ -16,6 +16,7 @@ import {
   applyFiles,
 } from "./workspace.mjs";
 import { subprocess, scopedEnvironment } from "./subprocess.mjs";
+import { codex } from "./providers/codex.mjs";
 import { claude } from "./providers/claude.mjs";
 import { openRouter } from "./providers/openrouter.mjs";
 const humanCodes = new Set([
@@ -152,7 +153,9 @@ export async function runAgent(
         ? await generate(opts)
         : r.provider.kind === "claude"
           ? await claude(opts)
-          : await openRouter(opts);
+          : r.provider.kind === "codex"
+            ? await codex(opts)
+            : await openRouter(opts);
       state.provider = result.provider;
       state.calls ??= [];
       state.calls.push({

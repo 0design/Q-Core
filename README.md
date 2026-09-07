@@ -1,12 +1,12 @@
 # qloops
 
 Local, dependency-free loop runtime for Node.js >=20.3. The local delivery
-candidate is `0.2.0-core.1`; it is not an npm release or production acceptance.
+candidate is `0.2.0-core.2`; it is not an npm release or production acceptance.
 
 ## Install a reviewed local package
 
 ```sh
-npm install /absolute/path/qloops-0.2.0-core.1.tgz
+npm install /absolute/path/qloops-0.2.0-core.2.tgz
 npx qloops validate ./loop.yaml
 npx qloops run ./loop.yaml
 ```
@@ -37,7 +37,7 @@ npx qloops agent - < request.json
 See `contracts/v1/fixtures.json` for a complete request and
 `contracts/v1/request.schema.json` for the structural schema. `validateRequest`
 adds path and authorization checks. Substitute real absolute workspace, Node and
-Claude paths. `sdd-pipeline@1.0.0` runs the built-in SDD capability;
+CLI paths. `sdd-pipeline@1.0.0` runs the built-in SDD capability;
 `synthetic-sdd@1.0.0` is its test alias. Canonical registry acceptance still
 requires the site to wire and pin its own manifest.
 
@@ -49,7 +49,7 @@ Approval is an assertion by the local trusted caller; Core is not an identity
 service. There is no implicit approval or “resume last chat”.
 
 Claude 2.1.156 is the initially reviewed CLI. Existing authentication is used;
-no credential copying, nesting guard removal or permissions bypass. CLI inference
+no credential copying, nesting guard removal or permissions bypass. Claude inference
 has no tools, hooks are disabled, MCP is explicitly empty, and no session is
 persisted. It proposes text. Core applies only exact approved files, then runs a
 caller-authorized executable/argument array as verifier. Tests/verifier files are
@@ -67,6 +67,45 @@ explicit. Optional `maxCostUsd` requires a caller-supplied conservative
 `maxCallCostUsd`: it gates subsequent calls and stops on unknown/exceeded usage.
 It is not a billing guarantee; provider estimates can differ from invoices.
 Site-funded reservation/settlement remains the site's responsibility.
+
+## Use your existing Codex login
+
+Codex CLI **0.153.4** is supported via a new standalone `codex exec` session.
+Set this provider in an agent or content request (choose your real absolute CLI path):
+
+```json
+{
+  "kind": "codex",
+  "executable": "/Applications/ChatGPT.app/Contents/Resources/codex",
+  "model": "gpt-5.4-mini",
+  "payerScope": "local-cli"
+}
+```
+
+The path above was verified on this Mac. A standalone installation of the exact
+reviewed CLI works too; qloops does not install or replace it. Run that executable's
+`login status` first. ChatGPT authentication is required; saved API-key auth is
+rejected, API-key environment variables are not forwarded, and API/provider/model
+fallback is disabled. A legacy CLI is rejected with `UNSUPPORTED_CLI`.
+
+Codex uses an isolated temporary working directory, read-only sandbox, no approval
+escalation, ignored user config, disabled hooks/plugins/apps/shell/browser tools,
+and bounded stdin/JSONL/output/deadline. Only text results are accepted. The CLI
+may still advertise built-in utility/apply-patch tools; attempted tool events fail
+closed and the read-only sandbox prevents file changes. Core applies approved
+file contents and runs the independent verifier. Existing policy/nesting guards
+remain active; the parent's conversation is not inherited or resumed.
+
+This uses your Codex/ChatGPT allowance, **not unlimited or zero-cost inference**.
+Cost is `null`, with `costKind: subscription-usage`; token usage is recorded when
+available. The CLI does not report resolved model identity, so `requestedModel`
+is explicit while `model` remains `null`. Dollar-capped runs stop after unknown
+cost; use deadlines and repair limits for subscription workflows.
+
+The value beyond scheduling is the reusable workflow: versioned scope, explicit
+approval, independent verification, bounded repair and resumable evidence.
+A scheduler can launch qloops; for a simple recurring prompt, a built-in scheduled
+task may already be enough. See [Codex integration details](docs/codex.md).
 
 ## Reusable providers
 
