@@ -1,0 +1,8 @@
+{
+  "baseline": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
+  "inheritedCommit": "8f47212",
+  "implementationCommit": "055c211",
+  "branch": "codex/qf-core-delivery",
+  "artifactSha256": "6b5ada4665ab0196df5003494e8967f3b5fd7dc27b42a2dd3f078862fd04f189",
+  "note": "Final documentation/evidence commit follows implementation; artifact source is 055c211."
+}

@@ -10,7 +10,7 @@ Owned repo: /Users/oleg.design/PORN/projects/QFactory.io/repo/qloops.
 Branch: codex/qf-core-delivery. Starting HEAD:
 9f6832722e8982f2e5ea51d5e112c65386062bd8.
 Initial six dirty files match the handoff. Exact initial SHA256 values are in
-inherited.sha256; tracked initial patch is in inherited.patch. All six were
+inherited.sha256; tracked initial patch is in inherited.patch.gz. All six were
 verified against staged bytes and preserved in commit **8f47212**. Baseline tests
 were 55/55. New implementation is committed separately; final revision is in Git
 and revision.json. No neighboring product or coordination file was modified.
