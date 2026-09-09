@@ -4,6 +4,7 @@ import {
   loadAindf,
   loadUnslop,
   upstreamDigest,
+  designSystemDigest,
 } from "../src/upstream-adapters.mjs";
 import { hash } from "../src/contracts.mjs";
 const [aindfRoot, dsPath, unslopRoot] = process.argv.slice(2);
@@ -19,25 +20,29 @@ const aPin = {
 const a = await loadAindf(aPin);
 const artifact = { revision: 1, sha256: hash("synthetic-composition") };
 const common = {
-  upstream: { version: a.frameworkVersion },
+  upstream: { version: a.frameworkVersion, sha256: aPin.sha256 },
   artifact,
-  designSystem: { path: resolve(dsPath) },
+  designSystem: { path: resolve(dsPath), sha256: designSystemDigest(resolve(dsPath)) },
 };
 const readiness = await a.evaluate({
   ...common,
   mode: "ds-readiness",
+  artifact: {...artifact,sha256:common.designSystem.sha256},
   requiredRules: ["AINDF-AgentReady"],
 });
 const valid = await a.evaluate({
+  // Composition identity binds both the exact DS snapshot and sections.
   ...common,
   mode: "ui-compliance",
   requiredRules: ["composition-contract"],
+  artifact: {...artifact,sha256:hash({designSystemSha256:common.designSystem.sha256,sections:[{component:"hero"}]})},
   designSystem: { ...common.designSystem, sections: [{ component: "hero" }] },
 });
 const invalid = await a.evaluate({
   ...common,
   mode: "ui-compliance",
   requiredRules: ["composition-contract"],
+  artifact: {...artifact,sha256:hash({designSystemSha256:common.designSystem.sha256,sections:[{component:"missing-component"}]})},
   designSystem: {
     ...common.designSystem,
     sections: [{ component: "missing-component" }],
@@ -62,7 +67,7 @@ for (const [name, css] of [
     ...(await u.evaluate({
       artifact: { path, revision: 1, sha256: hash(css) },
       requiredRules: ["B-1"],
-      upstream: { version: "0.1.0" },
+      upstream: { version: "0.1.0", sha256: uPin.sha256 },
     })),
   });
 }

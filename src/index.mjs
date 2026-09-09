@@ -13,7 +13,7 @@ export { runAgent } from "./agent.mjs";
 export { runContent, reconcilePublication } from "./content.mjs";
 export { determined } from "./determined.mjs";
 export { qualityCheck } from "./quality.mjs";
-export { loadAindf, loadUnslop, upstreamDigest } from "./upstream-adapters.mjs";
+export { loadAindf, loadUnslop, upstreamDigest, designSystemDigest } from "./upstream-adapters.mjs";
 export { installPinned, loadRelease } from "./registry-release.mjs";
 export { runContentRequest } from "./content-runner.mjs";
 

@@ -10,7 +10,7 @@ const request = {
   mode: "ds-readiness",
   upstream,
   artifact,
-  designSystem: { id: "synthetic" },
+  designSystem: { id: "synthetic", sha256: hash("ds") },
   requiredRules: ["rule-1"],
   browserEvidence: {
     artifactHash: artifact.sha256,
@@ -21,6 +21,8 @@ const request = {
 const report = (outcome) => ({
   evaluate: async () => ({
     upstreamVersion: upstream.version,
+    upstreamSha256: upstream.sha256,
+    designSystemHash: hash("ds"),
     artifactHash: artifact.sha256,
     revision: 1,
     findings: [
@@ -117,4 +119,35 @@ test("determined repairs real criterion, rejects stale evidence, human not done"
     ).status,
     "needs_human",
   );
+});
+
+test('quality callback cannot remove coverage or mutate pinned identity',async()=>{
+  const original=structuredClone(request);
+  const r=await qualityCheck(request,{evaluate:async input=>{
+    input.requiredRules.length=0;input.artifact.sha256=hash('forged');input.upstream.sha256=hash('forged');
+    return {upstreamVersion:input.upstream.version,upstreamSha256:input.upstream.sha256,
+      artifactHash:input.artifact.sha256,revision:1,designSystemHash:hash('ds'),findings:[]};
+  }});
+  assert.equal(r.status,'needs_human');assert.equal(r.coverage.length,1);
+  assert.deepEqual(request,original);
+});
+
+test('quality malformed, duplicate, untyped or empty-evidence reports never pass',async()=>{
+  const normal=await report('pass').evaluate();
+  for(const findings of [null,{},[null],[...normal.findings,...normal.findings],
+    [{...normal.findings[0],type:'mystery'}],[{...normal.findings[0],evidence:true}],
+    [{...normal.findings[0],evidence:{}}]]){
+    assert.equal((await qualityCheck(request,{evaluate:async()=>({...normal,findings})})).status,'needs_human');
+  }
+  for(const field of ['upstreamSha256','designSystemHash']){
+    assert.equal((await qualityCheck(request,{evaluate:async()=>({...normal,[field]:hash('wrong')})})).status,'needs_human');
+  }
+});
+
+test('quality cancellation stops recipe calls and stale canon recipes remain unknown',async()=>{
+  const ac=new AbortController();let recipes=0;
+  const r=await qualityCheck({...request,signal:ac.signal},{evaluate:async()=>{ac.abort();return report('fail').evaluate();},recipe:async()=>{recipes++;}});
+  assert.equal(r.status,'cancelled');assert.equal(recipes,0);
+  const stale=await qualityCheck(request,{...report('fail'),recipe:async({rule,version})=>({rule,version,sha256:hash('different canon'),text:'recipe'})});
+  assert.equal(stale.status,'failed');assert.equal(stale.recipes[0].status,'unknown');
 });

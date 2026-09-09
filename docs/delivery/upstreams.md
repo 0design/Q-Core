@@ -1,3 +1,11 @@
+> Revalidated 2026-09-10: actual source digests and native installed-package checks
+> are in quality-package.json. npm aindf remains E404; unslop 0D-112 remains
+> Backlog with upstream blockers. Browser checks now work on synthetic local UI:
+> browser/ contains actual captures/receipts. This supersedes the old blanket
+> browser-access blocker. AINDF rendered-composition and full canon/recipe
+> acceptance are still separate. Core now refuses absent DS input, unsupported
+> rule/file coverage, checksum drift, and preserves native severity.
+
 # Upstream provenance and limits — 2026-09-07
 
 AINDF inspected read-only at projects/oss/aindf/repo, HEAD

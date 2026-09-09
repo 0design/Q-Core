@@ -1,4 +1,4 @@
-# Core contract revision 3 (qf.agent/v1)
+# Core contract revision 4 (qf.agent/v1)
 
 Additive to qf.loop/v1. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
@@ -52,3 +52,9 @@ explicit provider configuration. Existing approved scope cannot be silently chan
 Candidate core.4 also documents the [determined callback contract](determined.md),
 including operational failure and cancellation behavior. Repin and run consumer
 tests before adopting these changes; Site currently uses revision 2/core.2.
+
+Revision 4 strengthens [quality evidence](quality.md): upstream checksum and DS
+subject binding, immutable coverage, native rule applicability and severity, and
+cooperative cancellation. Callback reports/recipes need the new checksum fields;
+old incomplete evidence yields needs_human. Adopt core.5 with explicit consumer
+repin and native adapter tests. Agent/loop protocol names are unchanged.

@@ -1,13 +1,34 @@
 # Core delivery candidate — 2026-09-10
 
-Current local package: qloops@0.2.0-core.4, contract revision 3 / qf.agent/v1.
-SHA256: `f509bcb00c7d04e22582b33d055c3ba697f08327f6f03fa00da7d0a157bcbfc2`. Zero runtime dependencies. This is a local delivery candidate;
+Current local package: qloops@0.2.0-core.5, contract revision 4 / qf.agent/v1.
+SHA256: `91a2ccf4adc1faea36c0177b4e48c2007435e5221c8925c5669d442b9157ace6`. Zero runtime dependencies. This is a local delivery candidate;
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
 
-## Verified current work
+## Quality continuation
 
-112/112 tests passed. Clean-install exports, validate, human gate, installed caller
+Core.5 installed native quality proof: AINDF readiness good→success, semantic
+bad→failed, empty/malformed→needs_human; native composition good/bad→pass/fail
+but no AINDF rendered-composition proof is claimed. Actual Codex browser captures
+of synthetic unslop CSS examples give selected B-1 good→success / bad→failed.
+Unknown rule, inapplicable HTML, missing browser evidence and checksum mismatch
+remain unknown/human. Native severity is retained; orange/white findings are soft.
+
+A report now needs exact upstream checksum and AINDF design-system digest. Native
+loaders recheck content, reject changed module roots, and bind source subjects.
+The RC's vacuous empty-DS pass and skipped-rule-count pass are explicitly blocked.
+Current npm check still returns E404 for aindf. 0D-112 remains Backlog with external
+blockers. Browser access itself is now proven on these local examples; full visual
+quality, AINDF UI evidence, upstream release and MCP recipes remain separate gates.
+
+Evidence: quality-package.json, browser/observations.json and both screenshot PNGs.
+Migration: contracts/v1/quality.md (revision 4); old callback pin omissions now
+return needs_human. Package proof: scripts/test-quality-package.mjs with explicit
+installed AINDF, synthetic DS, and Oleg canon paths. No canon source is copied.
+
+## Verified earlier runtime work
+
+119/119 tests passed. Clean-install exports, validate, human gate, installed caller
 and cached resume pass. The installed determined consumer uses real filesystem
 changes and trusted Node verifier subprocesses: two failures → one repair → two
 passes. Limit, stale evidence and human criteria remain needs_human. Adversarial
@@ -19,7 +40,7 @@ in e364d7c; live package proof and current Codex compatibility in dba7437. The r
 core.3 Codex ChatGPT proof covers clarification → revision 1→2 → stale approval
 refusal → scoped code change → 6 independent assertions → cached resume and
 import without inference. This evidence is core.3, not a claim of new live model
-inference for core.4; core.4's new determined proof uses a scripted executor.
+inference for core.4; core.4's determined proof uses a scripted executor.
 
 Codex currently works with explicit gpt-5.6-luna and CLI 0.153.4. The account now
 rejects the previously supported gpt-5.4-mini. Missing model requests explicit
@@ -41,7 +62,7 @@ statement that Site was still on core.1. Current read-only validation accepts al
 Install the candidate from this repository:
 
 ```sh
-npm install /absolute/path/to/qloops/artifacts/qloops-0.2.0-core.4.tgz
+npm install /absolute/path/to/qloops/artifacts/qloops-0.2.0-core.5.tgz
 npx qloops agent request.json
 node node_modules/qloops/examples/determined-caller.mjs
 ```

@@ -2,14 +2,16 @@
   "evidenceKind": "real upstream execution on synthetic inputs; not browser/live acceptance",
   "aindf": {
     "pin": {
-      "root": "/Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/.qf/upstream-install/node_modules/aindf",
+      "root": "/Users/oleg.design/PORN/projects/oss/aindf/repo",
       "packageVersion": "0.5.0-rc.1",
       "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
     },
     "frameworkVersion": "0.3.0-rc.1",
     "readiness": {
       "upstreamVersion": "0.3.0-rc.1",
-      "artifactHash": "79a624c42520acd79d470ca9f079c9dbf1407dd84544b9d79216d0081b7d675a",
+      "upstreamSha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93",
+      "designSystemHash": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a",
+      "artifactHash": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a",
       "revision": 1,
       "findings": [
         {
@@ -29,7 +31,9 @@
     },
     "valid": {
       "upstreamVersion": "0.3.0-rc.1",
-      "artifactHash": "79a624c42520acd79d470ca9f079c9dbf1407dd84544b9d79216d0081b7d675a",
+      "upstreamSha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93",
+      "designSystemHash": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a",
+      "artifactHash": "9529094605eb306135676b711f84082db3cda7a330bbc8bc14573db10e112f04",
       "revision": 1,
       "findings": [
         {
@@ -45,7 +49,9 @@
     },
     "invalid": {
       "upstreamVersion": "0.3.0-rc.1",
-      "artifactHash": "79a624c42520acd79d470ca9f079c9dbf1407dd84544b9d79216d0081b7d675a",
+      "upstreamSha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93",
+      "designSystemHash": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a",
+      "artifactHash": "3e687a378cbe836bed3b8af9a79436bdddcd06f8f123c3750ecd4df6c0c2d7cb",
       "revision": 1,
       "findings": [
         {
@@ -72,12 +78,13 @@
     "pin": {
       "root": "/Users/oleg.design/PORN/projects/oss/unslop",
       "packageVersion": "0.1.0",
-      "sha256": "d7db7a235068767602827d95b93b8285323c85fb481fb6b876d3fcc896dd32f6"
+      "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
     },
     "results": [
       {
         "name": "good",
         "upstreamVersion": "0.1.0",
+        "upstreamSha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7",
         "artifactHash": "e1d7a1c9a167e1ee8b8438f29bcfac7c71c3ba07253283314cd3f1b1cb7286bf",
         "revision": 1,
         "findings": [
@@ -87,7 +94,8 @@
             "outcome": "pass",
             "evidence": {
               "reportHash": "dba6a1af90724daad826c44d3f5c657ce232110d4129d873533abf0d5dba44e9",
-              "findings": []
+              "findings": [],
+              "severity": "red"
             }
           }
         ]
@@ -95,6 +103,7 @@
       {
         "name": "bad",
         "upstreamVersion": "0.1.0",
+        "upstreamSha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7",
         "artifactHash": "d5fe246ffe24cf5058f1efeb69b20cdbfb16e1a1d3faf6ff54a5b0cfad89367a",
         "revision": 1,
         "findings": [
@@ -115,7 +124,8 @@
                   "line": 1,
                   "excerpt": "button { color: #ff0000; }"
                 }
-              ]
+              ],
+              "severity": "red"
             }
           }
         ]

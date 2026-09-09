@@ -58,3 +58,16 @@ failures. 112/112 tests; installed core.4 real file/subprocess repair proof pass
 instructions added. Read-only Site check: 11/11 manifests valid, Site already
 uses core.2 with its own Sep8 live proof; core.4 repin remains pending. See updated
 core.md. This turn made concrete verified progress; full objective remains active.
+
+## Quality continuation — 2026-09-10
+
+Core.5 fixes mutable coverage/identity, report/checksum/DS pin binding, native
+file-rule applicability and hard/soft mapping, cached-module root reuse, empty DS
+vacuous pass, cancellation and malformed evidence. 119/119 tests. Clean-installed
+native AINDF good/bad readiness and composition, unslop source+actual browser
+captures, missing/stale/malformed/unsupported cases all verified. SHA 91a2ccf4adc1faea36c0177b4e48c2007435e5221c8925c5669d442b9157ace6.
+
+Browser access works now on synthetic local UI; historical policy limitation is
+not a current blanket blocker. AINDF npm recheck E404; unslop112 still blocked.
+AINDF full rendered UI, released framework, MCP recipes and canonical consumer
+acceptance remain pending. This turn made concrete verified progress.

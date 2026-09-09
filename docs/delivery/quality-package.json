@@ -1,0 +1,604 @@
+{
+  "date": "2026-09-09T22:37:57.133Z",
+  "package": "0.2.0-core.5",
+  "sha256": "91a2ccf4adc1faea36c0177b4e48c2007435e5221c8925c5669d442b9157ace6",
+  "evidenceKind": "clean installed Core with actual local native upstream execution; screenshot receipts from separately observed synthetic CSS pages; no AINDF browser/full-canon acceptance",
+  "aindf": {
+    "pin": {
+      "root": "/Users/oleg.design/PORN/projects/oss/aindf/repo",
+      "packageVersion": "0.5.0-rc.1",
+      "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+    },
+    "frameworkVersion": "0.3.0-rc.1",
+    "readiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a"
+      },
+      "hard": [
+        {
+          "rule": "AINDF-AgentReady",
+          "type": "hard",
+          "outcome": "pass",
+          "evidence": {
+            "reportHash": "0192e1847dfcbf72d462f20dc6b66a73da3e15d13d30fe368d50ec8644f57d0e",
+            "level": {
+              "pass": true,
+              "errorCount": 0,
+              "warningCount": 0
+            }
+          }
+        }
+      ],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "pass"
+        }
+      ],
+      "recipes": [],
+      "status": "success",
+      "browserEvidence": null
+    },
+    "badReadiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "a0b3c0e04596abd3ee0bd15744019e76804c586170c7411ae2ecf191955f4c97"
+      },
+      "hard": [
+        {
+          "rule": "AINDF-AgentReady",
+          "type": "hard",
+          "outcome": "fail",
+          "evidence": {
+            "reportHash": "26dbc6e04598cba60518616d47ee021baff75063925297e004027a05c24a0fb4",
+            "level": {
+              "pass": false,
+              "errorCount": 0,
+              "warningCount": 0
+            }
+          }
+        }
+      ],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "fail"
+        }
+      ],
+      "recipes": [],
+      "status": "failed",
+      "browserEvidence": null
+    },
+    "malformedReadiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "f3c6e2761696d5ba9e8cfa6113ecd8532efd6f7c8abf49709914d17df142344d"
+      },
+      "hard": [],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "unknown"
+        }
+      ],
+      "recipes": [],
+      "status": "needs_human",
+      "reason": "Upstream evaluation unavailable"
+    },
+    "emptyReadiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "4cc8fde264ba25812848e282394f39ca0e1cb2ff9ec7b8375f7795deac5b793e"
+      },
+      "hard": [],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "unknown"
+        }
+      ],
+      "recipes": [],
+      "status": "needs_human",
+      "reason": "Upstream evaluation unavailable"
+    },
+    "missing": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a"
+      },
+      "hard": [],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "unknown"
+        }
+      ],
+      "recipes": [],
+      "status": "needs_human",
+      "reason": "Missing design system"
+    },
+    "composition": [
+      {
+        "component": "hero",
+        "native": {
+          "upstreamVersion": "0.3.0-rc.1",
+          "upstreamSha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93",
+          "designSystemHash": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a",
+          "artifactHash": "9529094605eb306135676b711f84082db3cda7a330bbc8bc14573db10e112f04",
+          "revision": 1,
+          "findings": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "pass",
+              "evidence": {
+                "reportHash": "3a1d8d664f7ec93fd941b2789988f67fa926d089d8cdc830882a1d4bcbb5f481",
+                "findings": []
+              }
+            }
+          ]
+        },
+        "quality": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "aindf-check",
+          "mode": "ui-compliance",
+          "upstream": {
+            "version": "0.3.0-rc.1",
+            "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+          },
+          "artifact": {
+            "revision": 1,
+            "sha256": "9529094605eb306135676b711f84082db3cda7a330bbc8bc14573db10e112f04"
+          },
+          "hard": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "pass",
+              "evidence": {
+                "reportHash": "3a1d8d664f7ec93fd941b2789988f67fa926d089d8cdc830882a1d4bcbb5f481",
+                "findings": []
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "composition-contract",
+              "outcome": "pass"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": null
+        }
+      },
+      {
+        "component": "missing-component",
+        "native": {
+          "upstreamVersion": "0.3.0-rc.1",
+          "upstreamSha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93",
+          "designSystemHash": "f2bf9ff8b1de92bba82e4591beb6a9dc624f9dec0a85c8700b238f2cb45d616a",
+          "artifactHash": "3e687a378cbe836bed3b8af9a79436bdddcd06f8f123c3750ecd4df6c0c2d7cb",
+          "revision": 1,
+          "findings": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "fail",
+              "evidence": {
+                "reportHash": "74882468810d42ca059510ea92d474f72b4a6d75e97a345304893095d3e4eedb",
+                "findings": [
+                  {
+                    "severity": "error",
+                    "code": "missing-component",
+                    "page": "composition",
+                    "component": "missing-component",
+                    "message": "component \"missing-component\" is not in the design system"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "quality": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "aindf-check",
+          "mode": "ui-compliance",
+          "upstream": {
+            "version": "0.3.0-rc.1",
+            "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+          },
+          "artifact": {
+            "revision": 1,
+            "sha256": "3e687a378cbe836bed3b8af9a79436bdddcd06f8f123c3750ecd4df6c0c2d7cb"
+          },
+          "hard": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "fail",
+              "evidence": {
+                "reportHash": "74882468810d42ca059510ea92d474f72b4a6d75e97a345304893095d3e4eedb",
+                "findings": [
+                  {
+                    "severity": "error",
+                    "code": "missing-component",
+                    "page": "composition",
+                    "component": "missing-component",
+                    "message": "component \"missing-component\" is not in the design system"
+                  }
+                ]
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "composition-contract",
+              "outcome": "fail"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": null
+        }
+      }
+    ]
+  },
+  "unslop": {
+    "pin": {
+      "root": "/Users/oleg.design/PORN/projects/oss/unslop",
+      "packageVersion": "0.1.0",
+      "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
+    },
+    "observations": {
+      "date": "2026-09-09T22:33:18.345Z",
+      "surface": "Codex in-app browser",
+      "scope": "Rendered synthetic pages and linked CSS only; no claim of full design-canon/taste compliance",
+      "good": {
+        "url": "http://127.0.0.1:8770/good.html",
+        "buttonBackground": "rgb(23, 96, 75)",
+        "heading": "Synthetic quality fixture",
+        "stylesheet": "good.css",
+        "cssSha256": "1595be75dca1c0bda42978a672532e409ccaf43502d0199cb365f998adb14e7c",
+        "pageSha256": "0ac4331e43ec6a9b11643c201350f0857dc2499fb9e234a9c0323ed8200bdd35",
+        "screenshotSha256": "1ac61a480f12f950bc5cbaa6c55d69f6bdb351e00f1ad2a7e5a21d8d1ba76894"
+      },
+      "bad": {
+        "url": "http://127.0.0.1:8770/bad.html",
+        "buttonBackground": "rgb(255, 0, 0)",
+        "heading": "Synthetic quality fixture",
+        "stylesheet": "bad.css",
+        "cssSha256": "9bac773116357f0af0cbe43748d10f53d79bdec617eb781689a008aa61fee8cd",
+        "pageSha256": "43be905a4e48daebe16d4c35bf2c5355c47a44c55e092fb72644d1ac8eaae36d",
+        "screenshotSha256": "97222c7f10a073b070b398b261d172c58ea5f83128ca73909356158dd8bce2f9"
+      }
+    },
+    "results": [
+      {
+        "name": "good",
+        "result": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "unslop",
+          "upstream": {
+            "version": "0.1.0",
+            "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
+          },
+          "artifact": {
+            "path": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/good.css",
+            "revision": 1,
+            "sha256": "1595be75dca1c0bda42978a672532e409ccaf43502d0199cb365f998adb14e7c"
+          },
+          "hard": [
+            {
+              "rule": "B-1",
+              "type": "hard",
+              "outcome": "pass",
+              "evidence": {
+                "reportHash": "dba6a1af90724daad826c44d3f5c657ce232110d4129d873533abf0d5dba44e9",
+                "findings": [],
+                "severity": "red"
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "B-1",
+              "outcome": "pass"
+            }
+          ],
+          "recipes": [],
+          "status": "success",
+          "browserEvidence": {
+            "artifactHash": "1595be75dca1c0bda42978a672532e409ccaf43502d0199cb365f998adb14e7c",
+            "revision": 1,
+            "sha256": "1ac61a480f12f950bc5cbaa6c55d69f6bdb351e00f1ad2a7e5a21d8d1ba76894",
+            "pageSha256": "0ac4331e43ec6a9b11643c201350f0857dc2499fb9e234a9c0323ed8200bdd35",
+            "url": "http://127.0.0.1:8770/good.html"
+          }
+        },
+        "missingBrowser": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "unslop",
+          "upstream": {
+            "version": "0.1.0",
+            "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
+          },
+          "artifact": {
+            "path": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/good.css",
+            "revision": 1,
+            "sha256": "1595be75dca1c0bda42978a672532e409ccaf43502d0199cb365f998adb14e7c"
+          },
+          "hard": [
+            {
+              "rule": "B-1",
+              "type": "hard",
+              "outcome": "pass",
+              "evidence": {
+                "reportHash": "dba6a1af90724daad826c44d3f5c657ce232110d4129d873533abf0d5dba44e9",
+                "findings": [],
+                "severity": "red"
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "B-1",
+              "outcome": "pass"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": null
+        },
+        "unknownRule": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "unslop",
+          "upstream": {
+            "version": "0.1.0",
+            "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
+          },
+          "artifact": {
+            "path": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/good.css",
+            "revision": 1,
+            "sha256": "1595be75dca1c0bda42978a672532e409ccaf43502d0199cb365f998adb14e7c"
+          },
+          "hard": [
+            {
+              "rule": "nonexistent-rule",
+              "type": "hard",
+              "outcome": "unknown",
+              "evidence": null
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "nonexistent-rule",
+              "outcome": "unknown"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": {
+            "artifactHash": "1595be75dca1c0bda42978a672532e409ccaf43502d0199cb365f998adb14e7c",
+            "revision": 1,
+            "sha256": "1ac61a480f12f950bc5cbaa6c55d69f6bdb351e00f1ad2a7e5a21d8d1ba76894",
+            "pageSha256": "0ac4331e43ec6a9b11643c201350f0857dc2499fb9e234a9c0323ed8200bdd35",
+            "url": "http://127.0.0.1:8770/good.html"
+          }
+        },
+        "inapplicableHtml": {
+          "upstreamVersion": "0.1.0",
+          "upstreamSha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7",
+          "artifactHash": "0ac4331e43ec6a9b11643c201350f0857dc2499fb9e234a9c0323ed8200bdd35",
+          "revision": 1,
+          "findings": [
+            {
+              "rule": "B-1",
+              "type": "hard",
+              "outcome": "unknown",
+              "evidence": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "bad",
+        "result": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "unslop",
+          "upstream": {
+            "version": "0.1.0",
+            "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
+          },
+          "artifact": {
+            "path": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/bad.css",
+            "revision": 1,
+            "sha256": "9bac773116357f0af0cbe43748d10f53d79bdec617eb781689a008aa61fee8cd"
+          },
+          "hard": [
+            {
+              "rule": "B-1",
+              "type": "hard",
+              "outcome": "fail",
+              "evidence": {
+                "reportHash": "0356d7d50ea8dcf6bf0b6df6f9cc6ff1c80b1e2a3602c5967c04ecdb68280178",
+                "findings": [
+                  {
+                    "rule": "B-1",
+                    "severity": "red",
+                    "title": "Raw hex colour in styles",
+                    "why": "A raw hex freezes a colour outside the palette. Use the semantic token.",
+                    "file": "bad.css",
+                    "absPath": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/bad.css",
+                    "line": 1,
+                    "excerpt": "body{background:#f5f5ef;color:#173d35;font:20px system-ui;padding:64px}button{color:#ffffff;background:#ff0000;paddin…"
+                  }
+                ],
+                "severity": "red"
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "B-1",
+              "outcome": "fail"
+            }
+          ],
+          "recipes": [],
+          "status": "failed",
+          "browserEvidence": {
+            "artifactHash": "9bac773116357f0af0cbe43748d10f53d79bdec617eb781689a008aa61fee8cd",
+            "revision": 1,
+            "sha256": "97222c7f10a073b070b398b261d172c58ea5f83128ca73909356158dd8bce2f9",
+            "pageSha256": "43be905a4e48daebe16d4c35bf2c5355c47a44c55e092fb72644d1ac8eaae36d",
+            "url": "http://127.0.0.1:8770/bad.html"
+          }
+        },
+        "missingBrowser": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "unslop",
+          "upstream": {
+            "version": "0.1.0",
+            "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
+          },
+          "artifact": {
+            "path": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/bad.css",
+            "revision": 1,
+            "sha256": "9bac773116357f0af0cbe43748d10f53d79bdec617eb781689a008aa61fee8cd"
+          },
+          "hard": [
+            {
+              "rule": "B-1",
+              "type": "hard",
+              "outcome": "fail",
+              "evidence": {
+                "reportHash": "0356d7d50ea8dcf6bf0b6df6f9cc6ff1c80b1e2a3602c5967c04ecdb68280178",
+                "findings": [
+                  {
+                    "rule": "B-1",
+                    "severity": "red",
+                    "title": "Raw hex colour in styles",
+                    "why": "A raw hex freezes a colour outside the palette. Use the semantic token.",
+                    "file": "bad.css",
+                    "absPath": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/bad.css",
+                    "line": 1,
+                    "excerpt": "body{background:#f5f5ef;color:#173d35;font:20px system-ui;padding:64px}button{color:#ffffff;background:#ff0000;paddin…"
+                  }
+                ],
+                "severity": "red"
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "B-1",
+              "outcome": "fail"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": null
+        },
+        "unknownRule": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "unslop",
+          "upstream": {
+            "version": "0.1.0",
+            "sha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7"
+          },
+          "artifact": {
+            "path": "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-quality-install-v2fMeN/node_modules/qloops/examples/quality/bad.css",
+            "revision": 1,
+            "sha256": "9bac773116357f0af0cbe43748d10f53d79bdec617eb781689a008aa61fee8cd"
+          },
+          "hard": [
+            {
+              "rule": "nonexistent-rule",
+              "type": "hard",
+              "outcome": "unknown",
+              "evidence": null
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "nonexistent-rule",
+              "outcome": "unknown"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": {
+            "artifactHash": "9bac773116357f0af0cbe43748d10f53d79bdec617eb781689a008aa61fee8cd",
+            "revision": 1,
+            "sha256": "97222c7f10a073b070b398b261d172c58ea5f83128ca73909356158dd8bce2f9",
+            "pageSha256": "43be905a4e48daebe16d4c35bf2c5355c47a44c55e092fb72644d1ac8eaae36d",
+            "url": "http://127.0.0.1:8770/bad.html"
+          }
+        },
+        "inapplicableHtml": {
+          "upstreamVersion": "0.1.0",
+          "upstreamSha256": "71e50be806bd4e31c5b0514c1ded6db81bf489dfd155656ca39d97bf580e86d7",
+          "artifactHash": "43be905a4e48daebe16d4c35bf2c5355c47a44c55e092fb72644d1ac8eaae36d",
+          "revision": 1,
+          "findings": [
+            {
+              "rule": "B-1",
+              "type": "hard",
+              "outcome": "unknown",
+              "evidence": null
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
