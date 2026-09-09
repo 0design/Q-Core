@@ -1,11 +1,11 @@
 {
   "baseline": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
   "inheritedCommit": "8f47212",
-  "implementationCommit": "8ba4200",
+  "implementationCommit": "92f1d99",
   "branch": "codex/qf-core-delivery",
-  "artifactSha256": "91a2ccf4adc1faea36c0177b4e48c2007435e5221c8925c5669d442b9157ace6",
-  "note": "119 tests and installed native quality+browser CSS proof. Earlier live specification and determined evidence remain bound to their recorded package hashes. Cross-track and upstream release/MCP acceptance pending.",
-  "previousImplementationCommit": "f4f72e3",
-  "packageVersion": "0.2.0-core.5",
+  "artifactSha256": "3b9958e08c78b9f98411b95f1069a4ed0a094b1b0127c70c1ea66516a084aaf9",
+  "note": "120 tests; exact Site export on retained core.2 and separate current synthetic registry pass installed HTTP download/validate/run. Full scope audit and external gate rechecks recorded.",
+  "previousImplementationCommit": "8ba4200",
+  "packageVersion": "0.2.0-core.6",
   "contractRevision": 4
 }
