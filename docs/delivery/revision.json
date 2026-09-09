@@ -1,11 +1,11 @@
 {
   "baseline": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
   "inheritedCommit": "8f47212",
-  "implementationCommit": "f895083",
+  "implementationCommit": "f4f72e3",
   "branch": "codex/qf-core-delivery",
-  "artifactSha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2",
-  "note": "Codex subscription provider source and live evidence in f895083; final handoff references follow in documentation-only commit.",
-  "previousImplementationCommit": "055c211",
-  "packageVersion": "0.2.0-core.2",
-  "contractRevision": 2
+  "artifactSha256": "f509bcb00c7d04e22582b33d055c3ba697f08327f6f03fa00da7d0a157bcbfc2",
+  "note": "Core.4 installed determined repair proof and 112 tests; live specification proof records its exact core.3 artifact separately. Cross-track acceptance remains pending.",
+  "previousImplementationCommit": "f895083",
+  "packageVersion": "0.2.0-core.4",
+  "contractRevision": 3
 }
