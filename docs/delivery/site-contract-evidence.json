@@ -1,29 +1,34 @@
 {
   "evidenceKind": "read-only site export + Core validator; consumer integration NOT accepted",
-  "catalogSha256": "03847ec2704b36c757eb33ca41ef72f8172ae29362d73e1ddc13e5f716e73e5b",
-  "release": "2026.09.07-site.1",
+  "catalogSha256": "7e6f4e1a575bcb5f75eb00802b5a2a02ac17f63615e4f33054745e45d8ea490a",
+  "release": "2026.09.08-site.1",
   "consumerPin": {
     "package": "qloops",
-    "version": "0.2.0-core.1",
+    "version": "0.2.0-core.2",
     "manifest": "qf.loop/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 1,
-    "artifact": "vendor/qloops-0.2.0-core.1.tgz",
-    "artifactSha256": "b5a346c6eebddb05f1c62380b94ef4e2c4d4bb69a28024a8e7303fa3c0b78eb6",
-    "integrity": "sha512-8IG4YBK2OomG30UmRsOsr9V6uwo0I5xUK+YFvDKg63R6LM4/LYppVKAUoDqIg2lT6/WfK14CMkfe8eweLEOWTg==",
+    "contractRevision": 2,
+    "artifact": "vendor/qloops-0.2.0-core.2.tgz",
+    "artifactSha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2",
+    "integrity": "sha512-CDsORI7asdH6cTYfa6/gw/QP2A7rcfOGezqZ0rDjLszxR7WmmiHSAhOCP1ATj3GzkRSz81WKsLPgzS5tMb+UtA==",
     "schemaSha256": "83e5ef6bd729ab029fe5f57f56baecd296a65310f1f2fa5b9b12dca2c0d9a897",
-    "requestSchemaSha256": "480496d5c83bdce95f2298044f1ac32f531c23b70705e6a2d3e0ce7d21db0a45",
+    "requestSchemaSha256": "ef7adb15455ec1fac4dc78fe6abf90900d8594402a8439acf03f876ec249102e",
     "status": "consumer-integration-candidate",
-    "source": "Site-packed read-only Core snapshot; differs from earlier Core package-evidence hash",
+    "source": "Retained Core handoff artifact; verified against Core SHA256SUMS and package-evidence.json",
     "pending": [
-      "Core final handoff acceptance",
-      "canonical SDD ID runtime support",
-      "controlled real model evidence",
-      "Content-factory Telegram receipts",
-      "upstream quality release/browser acceptance"
-    ]
+      "Canonical registry publication and final coordinator acknowledgment",
+      "Content-factory owner sources and Telegram receipts",
+      "upstream quality release/browser acceptance",
+      "coordinator release acceptance"
+    ],
+    "consumerEvidence": {
+      "date": "2026-09-08",
+      "controlledHttp": "docs/delivery/evidence/night-2026-09-08/acceptance.json",
+      "liveSdd": "docs/delivery/evidence/night-2026-09-08/live-sdd-result.json",
+      "scope": "Local Codex SDD change and verifier; cached resume; failures covered by fixture-model tests, not live failure inference"
+    }
   },
-  "installedCore": "0.2.0-core.2",
+  "installedCore": "0.2.0-core.4",
   "manifests": [
     {
       "id": "brand-mentions",
@@ -73,7 +78,7 @@
     {
       "id": "webhook-relay",
       "status": "valid",
-      "sha256": "c9b8fb7d28490d648d918fb8b8cfc4b59117eb27aa0354ed3fb9dbf687bd4637"
+      "sha256": "fcfef0dedca7d769ebb21124a3ec9658e4576758277235b7a5549a8c15aba4a6"
     },
     {
       "id": "wide-fanout",
@@ -81,6 +86,6 @@
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485"
     }
   ],
-  "coreArtifactSha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2",
+  "coreArtifactSha256": "f509bcb00c7d04e22582b33d055c3ba697f08327f6f03fa00da7d0a157bcbfc2",
   "integrationStatus": "pending-consumer-repin"
 }

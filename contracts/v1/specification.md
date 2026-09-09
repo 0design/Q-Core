@@ -69,5 +69,6 @@ human outcomes is 2; malformed requests keep exit 64.
 
 Existing request fields and provider contracts remain supported. New fields must
 be understood by a consumer before adoption; previous tarballs do not implement
-this extension. Packaging, live proof and final revision/hash handoff are pending
-until the full autonomous delivery is checked.
+this extension. The core.3 installed-package live proof is recorded in
+`docs/delivery/specification-live.json` in the source repository. Consumer repin
+and cross-track acceptance remain separate gates.

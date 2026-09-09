@@ -48,3 +48,13 @@ This completes the Core spec-workflow candidate proof, not the full autonomous
 objective. Shared Core work and external release/integration gates listed above
 remain to be audited and completed. Existing core.2 artifact and architecture maps
 are preserved. No publish, push, Site or donor edits performed.
+
+## determined continuation — 2026-09-10
+
+Fixed mixed-revision evidence from mutable artifact readers, mutable previous
+history passed to repairs, last-verifier cancellation and operational callback
+failures. 112/112 tests; installed core.4 real file/subprocess repair proof passes
+(1,1 → 0,0). Package SHA f509bcb00c7d04e22582b33d055c3ba697f08327f6f03fa00da7d0a157bcbfc2. Shipped callback contract and A2D successor
+instructions added. Read-only Site check: 11/11 manifests valid, Site already
+uses core.2 with its own Sep8 live proof; core.4 repin remains pending. See updated
+core.md. This turn made concrete verified progress; full objective remains active.

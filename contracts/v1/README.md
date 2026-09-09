@@ -1,4 +1,4 @@
-# Core contract revision 2 (qf.agent/v1)
+# Core contract revision 3 (qf.agent/v1)
 
 Additive to qf.loop/v1. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
@@ -44,3 +44,11 @@ Direct usage includes `costKind: subscription-usage`, nullable cost, cached inpu
 and input/output tokens. Agent aggregate usage retains the existing shape.
 Existing revision 1 requests remain valid; consumers must accept the new provider
 and repin package 0.2.0-core.2 to use it. Other protocols and exit codes unchanged.
+
+Revision 3 adds specification import, durable clarification and explicit revisions:
+see [specification](specification.md). Missing checker now requests human
+configuration; invalid checker remains failed/64. Unavailable Codex model requests
+explicit provider configuration. Existing approved scope cannot be silently changed.
+Candidate core.4 also documents the [determined callback contract](determined.md),
+including operational failure and cancellation behavior. Repin and run consumer
+tests before adopting these changes; Site currently uses revision 2/core.2.

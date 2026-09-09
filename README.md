@@ -172,3 +172,11 @@ CLI's own login flow before rerunning live acceptance. No live OpenRouter call w
 made without a configured key. Local release evidence is in `docs/delivery/`.
 
 MIT. No remote push, npm publish or production deployment is implied.
+
+### determined consumer
+
+The installed package exports the A2D-based execute/verify/repair reducer. See
+[its callback contract and migration notes](contracts/v1/determined.md). Run the
+synthetic file-and-test example with `node examples/determined-caller.mjs` from
+the source checkout, or copy that shipped example into your installed caller.
+It demonstrates real failing/passing subprocess checks with a scripted executor.
