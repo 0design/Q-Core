@@ -32,7 +32,10 @@
       ],
       "properties": {
         "id": {
-          "enum": ["synthetic-sdd", "sdd-pipeline"]
+          "enum": [
+            "synthetic-sdd",
+            "sdd-pipeline"
+          ]
         },
         "version": {
           "const": "1.0.0"
@@ -154,7 +157,110 @@
     "maxCallCostUsd": {
       "type": "number",
       "exclusiveMinimum": 0
+    },
+    "specification": {
+      "$ref": "#/$defs/specification"
+    },
+    "specChange": {
+      "type": "object",
+      "required": [
+        "expectedHash",
+        "expectedRevision",
+        "reason"
+      ],
+      "properties": {
+        "expectedHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "specification": {
+          "$ref": "#/$defs/specification"
+        }
+      }
+    },
+    "clarification": {
+      "type": "object",
+      "required": [
+        "hash",
+        "answers"
+      ],
+      "properties": {
+        "hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "answers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "answer"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "answer": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              }
+            }
+          }
+        }
+      }
     }
   },
-  "description": "Structural schema. validateRequest additionally enforces local path, verifier authorization, provider pairing and bound relations."
+  "description": "Structural schema. validateRequest additionally enforces local path, verifier authorization, provider pairing and bound relations.",
+  "$defs": {
+    "specification": {
+      "type": "object",
+      "required": [
+        "summary",
+        "criteria",
+        "plan"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "plan": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      }
+    }
+  }
 }

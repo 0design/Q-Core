@@ -1,3 +1,4 @@
+import { validateSpecInputs } from "./specification.mjs";
 import { createHash } from "node:crypto";
 import { isAbsolute, resolve } from "node:path";
 export const PROTOCOL = "qf.agent/v1";
@@ -54,6 +55,9 @@ export function validateRequest(r) {
     "resumeRunId",
     "maxCostUsd",
     "maxCallCostUsd",
+    "specification",
+    "clarification",
+    "specChange",
   ];
   insist(
     Object.keys(r).every((k) => keys.includes(k)),
@@ -105,6 +109,11 @@ export function validateRequest(r) {
     Array.isArray(r.allowedTools) &&
       r.allowedTools.every((p) => typeof p === "string" && isAbsolute(p)),
     "allowedTools must be absolute executable paths",
+  );
+  insist(
+    r.verifier !== undefined && r.verifier !== null,
+    "Configure an independent verifier before execution",
+    "MISSING_CHECKER",
   );
   insist(
     r.verifier &&
@@ -187,6 +196,7 @@ export function validateRequest(r) {
         ["approve", "reject"].includes(r.approval?.decision),
       "Invalid approval",
     );
+  validateSpecInputs(r);
   return r;
 }
 export function resultEnvelope(request, fields = {}) {

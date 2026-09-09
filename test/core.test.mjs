@@ -348,5 +348,20 @@ test("aborted subprocess terminates descendant process group", async (t) => {
     { code: "TIMEOUT" },
   );
   const pid = Number(readFileSync(pidFile, "utf8"));
-  assert.throws(() => process.kill(pid, 0));
+  // Signal delivery/reaping is asynchronous even after the direct child closes.
+  const until = Date.now() + 1500;
+  let alive = true;
+  while (alive && Date.now() < until) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      alive = false;
+    }
+    if (alive) await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  assert.equal(
+    alive,
+    false,
+    "Descendant must exit within the termination bound",
+  );
 });

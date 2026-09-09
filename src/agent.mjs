@@ -1,3 +1,4 @@
+import { specification, questions, recordSpec } from "./specification.mjs";
 import { randomUUID } from "node:crypto";
 import { readFileSync, existsSync, lstatSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -21,6 +22,8 @@ import { claude } from "./providers/claude.mjs";
 import { openRouter } from "./providers/openrouter.mjs";
 const humanCodes = new Set([
   "SCOPE_DENIED",
+  "MISSING_CHECKER",
+  "TIMEOUT",
   "WORKSPACE_CHANGED",
   "WORKSPACE_LOCKED",
   "UNSUPPORTED_NESTING",
@@ -70,7 +73,8 @@ export async function runAgent(
     lock,
     state,
     file,
-    deadline;
+    deadline,
+    stateWritable = false;
   try {
     r = validateRequest(r);
     if (process.env.CLAUDECODE || Number(process.env.QLOOPS_DEPTH || 0) > 0)
@@ -79,7 +83,7 @@ export async function runAgent(
         "Active nesting guard; use an explicit caller-owned broker",
       );
     lock = lockWorkspace(r.workspace);
-    const { approval, resumeRunId, ...identity } = r;
+    const { approval, resumeRunId, clarification, specChange, ...identity } = r;
     const identityHash = hash(identity);
     const runId = resumeRunId ?? randomUUID();
     file = join(lock.dir, `agent-${runId}.json`);
@@ -90,6 +94,39 @@ export async function runAgent(
         "INVALID_REQUEST",
       );
       state = JSON.parse(readFileSync(file, "utf8"));
+      const repeatedChange =
+        specChange &&
+        state.lastSpecChange === hash(specChange) &&
+        state.identityHash === identityHash;
+      if (specChange && !repeatedChange) {
+        insist(
+          ["approval", "clarification"].includes(state.phase) &&
+            specChange.expectedHash === state.approvalHash &&
+            specChange.expectedRevision === (state.specRevision ?? 1),
+          "Specification changed or execution already started",
+          "WORKSPACE_CHANGED",
+        );
+        insist(
+          hash(snapshot(r.workspace, Object.keys(state.before))) ===
+            hash(state.before),
+          "Workspace changed before spec revision",
+          "WORKSPACE_CHANGED",
+        );
+        state.identityHash = identityHash;
+        state.before = snapshot(r.workspace, r.allowedPaths);
+        state.verifierSources = verifierSources(r);
+        state.lastSpecChange = hash(specChange);
+        state.phase = "spec";
+        state.pendingSpec = specChange.specification
+          ? specification(specChange.specification)
+          : null;
+        state.specOrigin = { kind: "revision", reason: specChange.reason };
+        state.clarifications = [];
+        delete state.questions;
+        delete state.questionHash;
+        delete state.lastClarification;
+        delete state.result;
+      }
       insist(
         state.identityHash === identityHash &&
           hash(state.verifierSources ?? {}) === hash(verifierSources(r)),
@@ -114,6 +151,8 @@ export async function runAgent(
         runId,
         identityHash,
         phase: "spec",
+        pendingSpec: r.specification ? specification(r.specification) : null,
+        specOrigin: { kind: r.specification ? "import" : "intent" },
         revision: 0,
         repairs: 0,
         evidence: [],
@@ -121,6 +160,7 @@ export async function runAgent(
         before: snapshot(r.workspace, r.allowedPaths),
         verifierSources: verifierSources(r),
       };
+    stateWritable = true;
     const save = () => atomicJson(file, state);
     deadline = AbortSignal.timeout(r.deadlineMs);
     const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
@@ -200,32 +240,79 @@ export async function runAgent(
       return state.result;
     };
     save();
-    if (state.phase === "spec") {
-      const spec = await call(
-        "Return JSON {summary:string,criteria:string[],plan:string[]}. Create a bounded specification from intent. Criteria must be verifiable by the caller-provided verifier. Do not propose changing tests, verifier, permissions or deployment.",
-        {
-          intent: r.intent,
-          files: contextFiles(r.workspace, r.allowedPaths),
-          verifier: r.verifier,
-        },
+    if (clarification && state.lastClarification !== hash(clarification)) {
+      insist(
+        state.phase === "clarification" &&
+          clarification.hash === state.questionHash,
+        "Clarification belongs to another question set",
+        "WORKSPACE_CHANGED",
+      );
+      const ids = clarification.answers.map((a) => a.id);
+      insist(
+        new Set(ids).size === ids.length &&
+          ids.length === state.questions.length &&
+          state.questions.every((q) => ids.includes(q.id)),
+        "Answer each current question exactly once",
       );
       insist(
-        typeof spec.summary === "string" &&
-          spec.summary.trim() &&
-          Array.isArray(spec.criteria) &&
-          spec.criteria.length > 0 &&
-          spec.criteria.every((c) => typeof c === "string" && c.trim()) &&
-          Array.isArray(spec.plan) &&
-          spec.plan.length > 0 &&
-          spec.plan.every((p) => typeof p === "string"),
-        "Spec requires summary, criteria and plan",
-        "INVALID_RESPONSE",
+        (state.clarifications?.length ?? 0) < 5,
+        "Clarification round limit reached; review the requirements",
+        "BUDGET_EXHAUSTED",
       );
-      state.spec = spec;
-      state.approvalHash = hash({ spec, identity, before: state.before });
-      state.phase = "approval";
+      state.clarifications ??= [];
+      state.clarifications.push({
+        questions: state.questions,
+        answers: clarification.answers,
+      });
+      state.lastClarification = hash(clarification);
+      state.phase = "spec";
       save();
     }
+    if (state.phase === "spec") {
+      const generated =
+        state.pendingSpec ??
+        (await call(
+          "Return JSON {summary:string,criteria:string[],plan:string[]} when intent is sufficiently clear. If requirements are ambiguous, return ONLY {questions:[{id:string,question:string}]} instead. Ask only material unanswered questions, never invent user decisions. Use prior answers. Criteria must be verifiable by the caller-provided verifier. Do not propose changing tests, verifier, permissions or deployment.",
+          {
+            intent: r.intent,
+            files: contextFiles(r.workspace, r.allowedPaths),
+            verifier: r.verifier,
+            clarifications: state.clarifications ?? [],
+            previousSpec: state.spec ?? null,
+            change: state.specOrigin ?? null,
+          },
+        ));
+      if (generated.questions !== undefined) {
+        state.questions = questions(generated.questions);
+        state.questionHash = hash({
+          questions: state.questions,
+          identityHash,
+          round: state.clarifications?.length ?? 0,
+        });
+        state.phase = "clarification";
+      } else {
+        recordSpec(
+          state,
+          generated,
+          identity,
+          state.specOrigin ?? { kind: "intent" },
+        );
+        delete state.pendingSpec;
+      }
+      save();
+    }
+    if (state.phase === "clarification")
+      return finish(
+        "needs_human",
+        "Clarify the requirements before specification approval",
+        null,
+        {
+          type: "clarify_spec",
+          runId,
+          hash: state.questionHash,
+          questions: state.questions,
+        },
+      );
     if (state.phase === "approval") {
       if (r.approval?.decision === "reject") {
         state.phase = "rejected";
@@ -241,6 +328,7 @@ export async function runAgent(
             runId,
             hash: state.approvalHash,
             spec: state.spec,
+            specRevision: state.specRevision ?? 1,
           },
         );
       insist(
@@ -361,12 +449,18 @@ export async function runAgent(
       status,
       summary: e instanceof CoreError ? e.message : code,
       error: { code, message: e instanceof CoreError ? e.message : code },
+      nextAction:
+        code === "MISSING_CHECKER"
+          ? { type: "configure_verifier" }
+          : ["TIMEOUT", "BUDGET_EXHAUSTED"].includes(code)
+            ? { type: "review_limits" }
+            : null,
       artifacts: state?.artifacts ?? [],
       evidence: state?.evidence ?? [],
       provider: state?.provider ?? null,
       usage: state?.usage ?? null,
     });
-    if (state && file) {
+    if (stateWritable && state && file) {
       state.result = result;
       atomicJson(file, state);
     }
