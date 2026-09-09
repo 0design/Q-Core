@@ -1,8 +1,8 @@
 {
   "package": "qloops",
-  "version": "0.2.0-core.6",
-  "sha256": "3b9958e08c78b9f98411b95f1069a4ed0a094b1b0127c70c1ea66516a084aaf9",
-  "integrity": "sha512-rAUTmhR0zeB+tqFJI+cmiBAGtJ/EH9NcU3I7YHhj/BjNvXeHVZ4cu4EgHxECGfqljuu8EHiQQ/2rwBARsAnf4Q==",
+  "version": "0.2.0-core.7",
+  "sha256": "d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573",
+  "integrity": "sha512-DP8i8EIjKjAanoo6nSpuELXTesT5HMDcRllV0w5og10qgeBBsTJ70Qbm/Pv9pOaV761Z6nT6u3RsYUK1ScMafQ==",
   "files": [
     "CONTRIBUTING.md",
     "LICENSE",

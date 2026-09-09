@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, lstatSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { hash, insist, resultEnvelope } from "./contracts.mjs";
+import { hash, insist, resultEnvelope, CoreError } from "./contracts.mjs";
 import { lockWorkspace, atomicJson } from "./workspace.mjs";
 /** Reusable editorial pipeline. Caller supplies explicit provider, checker and
  * receiver adapters. Receipt storage is durable; ambiguous sends are never retried.
@@ -17,10 +17,12 @@ export async function runContent(
     approval,
     maxItems = 10,
   },
-  { generate, check, publish } = {},
+  { generate, check, publish, signal } = {},
 ) {
   let lock, state, file;
+  const cancelled = () => { if (signal?.aborted) throw new CoreError("CANCELLED", "Content operation cancelled"); };
   try {
+    cancelled();
     insist(
       typeof requestId === "string" &&
         Array.isArray(sources) &&
@@ -49,6 +51,7 @@ export async function runContent(
         typeof publish === "function",
       "Content requires provider, checker and publisher",
     );
+    [sources, profile, provider, receiver] = structuredClone([sources, profile, provider, receiver]);
     const seen = new Set();
     const normalized = [];
     for (const source of sources) {
@@ -146,7 +149,8 @@ export async function runContent(
       );
     if (run.phase === "rejected") return out("cancelled", "Draft rejected");
     if (run.phase === "draft") {
-      const draft = await generate({ sources: selected, profile });
+      const draft = await generate({ ...structuredClone({sources: selected, profile}), signal });
+      cancelled();
       insist(
         typeof draft?.text === "string" &&
           draft.text.trim() &&
@@ -168,9 +172,10 @@ export async function runContent(
     if (run.phase === "check") {
       const findings = await check({
         text: run.text,
-        sources: selected,
-        profile,
+        ...structuredClone({sources: selected, profile}),
+        signal,
       });
+      cancelled();
       insist(
         findings && ["pass", "fail", "unknown"].includes(findings.outcome),
         "Invalid content checker result",
@@ -183,7 +188,7 @@ export async function runContent(
       return out("needs_human", "Editorial checks did not pass", {
         evidence: [run.check],
       });
-    if (approval?.decision === "reject") {
+    if (approval?.hash === run.approvalHash && approval?.decision === "reject") {
       run.phase = "rejected";
       save();
       return out("cancelled", "Draft rejected");
@@ -198,6 +203,7 @@ export async function runContent(
         },
         evidence: [run.check],
       });
+    cancelled();
     run.idempotencyKey = hash({
       runId: run.runId,
       approvalHash: run.approvalHash,
@@ -208,7 +214,8 @@ export async function runContent(
     try {
       receipt = await publish({
         text: run.text,
-        receiver,
+        receiver: structuredClone(receiver),
+        signal,
         idempotencyKey: run.idempotencyKey,
       });
     } catch {
@@ -251,11 +258,11 @@ export async function runContent(
       { requestId },
       {
         protocolVersion: "qf.content/v1",
-        status: "failed",
+        status: signal?.aborted || e.code === "CANCELLED" ? "cancelled" : "failed",
         summary: "Content pipeline failed",
         error: {
-          code: e.code ?? "CONTENT_FAILED",
-          message: e.code ? e.message : "Provider or checker failed",
+          code: e instanceof CoreError ? e.code : "CONTENT_FAILED",
+          message: e instanceof CoreError ? e.message : "Provider or checker failed",
         },
       },
     );

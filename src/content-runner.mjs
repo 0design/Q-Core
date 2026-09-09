@@ -3,7 +3,7 @@ import { openRouter } from "./providers/openrouter.mjs";
 import { codex } from "./providers/codex.mjs";
 import { claude } from "./providers/claude.mjs";
 import { fetchWithRetry } from "./http.mjs";
-import { insist, resultEnvelope, hash } from "./contracts.mjs";
+import { insist, resultEnvelope, hash, CoreError } from "./contracts.mjs";
 async function boundedText(response) {
   const reader = response.body.getReader();
   const parts = [];
@@ -35,6 +35,7 @@ function allowedUrl(raw, origins) {
 /** Concrete source/model/check/webhook adapters. Receiver must implement the
  * documented receipt contract; Telegram is not inferred from a file sink. */
 export async function runContentRequest(r, { env = process.env, signal } = {}) {
+  let combined;
   try {
     insist(
       r?.protocolVersion === "qf.content-request/v1",
@@ -51,7 +52,7 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
         r.deadlineMs <= 300000,
       "Invalid deadline",
     );
-    const combined = signal
+    combined = signal
       ? AbortSignal.any([signal, AbortSignal.timeout(r.deadlineMs)])
       : AbortSignal.timeout(r.deadlineMs);
     insist(
@@ -89,7 +90,7 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
       insist(response.ok, `Source HTTP ${response.status}`);
       sources.push({ id: s.id, url, text: await boundedText(response) });
     }
-    return await runContent(
+    const result = await runContent(
       {
         ...r,
         sources,
@@ -97,6 +98,7 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
         receiver: { ...r.receiver, id: r.receiver.id ?? target, version: "1" },
       },
       {
+        signal: combined,
         generate: async ({ sources, profile }) => {
           const messages = [
             {
@@ -149,14 +151,19 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
         },
       },
     );
+    if (combined.aborted && !signal?.aborted && result.status === "cancelled")
+      return {...result,status:"needs_human",summary:"Content deadline exceeded",error:{code:"TIMEOUT",message:"Content deadline exceeded"},nextAction:{type:"review_limits"}};
+    return result;
   } catch (e) {
+    const code=signal?.aborted ? "CANCELLED" : combined?.aborted ? "TIMEOUT" : e instanceof CoreError ? e.code : "CONTENT_FAILED";
     return resultEnvelope(r, {
       protocolVersion: "qf.content/v1",
-      status: signal?.aborted ? "cancelled" : "failed",
+      status: code === "CANCELLED" ? "cancelled" : code === "TIMEOUT" ? "needs_human" : "failed",
+      nextAction: code === "TIMEOUT" ? {type:"review_limits"} : null,
       summary: "Content request failed",
       error: {
-        code: e.code ?? "CONTENT_FAILED",
-        message: e.code ? e.message : "Source/provider/receiver unavailable",
+        code,
+        message: e instanceof CoreError ? e.message : "Source/provider/receiver unavailable",
       },
     });
   }

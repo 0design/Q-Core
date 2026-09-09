@@ -80,3 +80,14 @@ for (const kind of ["claude", "codex"])
     assert.equal((await runContentRequest(approved)).status, "needs_human");
     assert.equal(sends, 4);
   });
+
+test('content deadline bounds response bodies and emits a typed human stop',async t=>{
+  const workspace=mkdtempSync(join(tmpdir(),'qloops-content-deadline-'));t.after(()=>rmSync(workspace,{recursive:true,force:true}));
+  const server=createServer((req,res)=>{res.writeHead(200,{'Content-Type':'text/plain'});res.write('partial');});
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  t.after(()=>{server.closeAllConnections();return new Promise(r=>server.close(r));});
+  const origin=`http://127.0.0.1:${server.address().port}`;
+  const result=await runContentRequest({protocolVersion:'qf.content-request/v1',requestId:'deadline',workspace,allowedOrigins:[origin],deadlineMs:50,
+    sources:[{id:'one',url:origin+'/source'}],profile:{tone:'test'},provider:{kind:'codex'},receiver:{kind:'webhook',url:origin+'/receiver'}});
+  assert.equal(result.status,'needs_human');assert.equal(result.error.code,'TIMEOUT');assert.equal(result.nextAction.type,'review_limits');
+});

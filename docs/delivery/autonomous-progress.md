@@ -80,3 +80,11 @@ malformed/mismatched metadata now fail before writes. Core.6 SHA 3b9958e08c78b9f
 Public Site registry route404; Linear74 provisioning/licenses still gated. Old npm
 0.1.0/.1 metadata lacks deprecation; OR key and own .env absent. Full requirements
 audit added; no completed/blocked goal claim, since this turn made progress.
+
+## Content live continuation — 2026-09-10
+
+123/123 tests; core.7 clean-installed actual Codex creates three synthetic drafts,
+explicit test-harness approvals deliver exact text to localhost, replay gives no
+duplicates. SHA d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573. Stale rejection and pre-send cancellation/body deadline
+behavior fixed and tested. Owner135/channel acceptance still external. This is
+concrete progress; no unfinished command sessions remain for this continuation.

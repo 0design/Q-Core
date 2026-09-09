@@ -1,9 +1,19 @@
 # Core delivery candidate — 2026-09-10
 
-Current local package: qloops@0.2.0-core.6, contract revision 4 / qf.agent/v1.
-SHA256: `3b9958e08c78b9f98411b95f1069a4ed0a094b1b0127c70c1ea66516a084aaf9`. Zero runtime dependencies. This is a local delivery candidate;
+Current local package: qloops@0.2.0-core.7, contract revision 4 / qf.agent/v1.
+SHA256: `d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573`. Zero runtime dependencies. This is a local delivery candidate;
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
+
+## Content live continuation
+
+Core.7 clean installed live Codex drafts: three authored sources, exact-text test
+approvals, three real localhost receipts, no duplicates on replay. Evidence:
+content-package-live.json; reproduction and limits in content.md. This fills the
+previous fixture-only Content inference gap without pretending to be owner sources
+or Telegram/LinkedIn acceptance. Rejected approval is now hash-bound; pre-send
+cancellation and partial-response deadlines are tested. Ambiguous sends still
+require reconciliation, with no automatic retry.
 
 ## Registry continuation
 
@@ -44,7 +54,7 @@ installed AINDF, synthetic DS, and Oleg canon paths. No canon source is copied.
 
 ## Verified earlier runtime work
 
-120/120 tests passed. Clean-install exports, validate, human gate, installed caller
+123/123 tests passed. Clean-install exports, validate, human gate, installed caller
 and cached resume pass. The installed determined consumer uses real filesystem
 changes and trusted Node verifier subprocesses: two failures → one repair → two
 passes. Limit, stale evidence and human criteria remain needs_human. Adversarial
@@ -78,7 +88,7 @@ statement that Site was still on core.1. Current read-only validation accepts al
 Install the candidate from this repository:
 
 ```sh
-npm install /absolute/path/to/qloops/artifacts/qloops-0.2.0-core.6.tgz
+npm install /absolute/path/to/qloops/artifacts/qloops-0.2.0-core.7.tgz
 npx qloops agent request.json
 node node_modules/qloops/examples/determined-caller.mjs
 ```

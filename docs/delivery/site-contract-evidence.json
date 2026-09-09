@@ -28,7 +28,7 @@
       "scope": "Local Codex SDD change and verifier; cached resume; failures covered by fixture-model tests, not live failure inference"
     }
   },
-  "installedCore": "0.2.0-core.6",
+  "installedCore": "0.2.0-core.7",
   "manifests": [
     {
       "id": "brand-mentions",
@@ -86,6 +86,6 @@
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485"
     }
   ],
-  "coreArtifactSha256": "3b9958e08c78b9f98411b95f1069a4ed0a094b1b0127c70c1ea66516a084aaf9",
+  "coreArtifactSha256": "d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573",
   "integrationStatus": "pending-consumer-repin"
 }

@@ -163,3 +163,21 @@ test("receiver reconciliation advances dedup without resending", async (t) => {
   assert.equal(result.status, "success");
   assert.equal((await runContent(r, a)).nextAction.type, "no_new_sources");
 });
+
+test('stale rejection cannot cancel a new draft',async t=>{
+  const r=setup(t),first=await runContent(r,adapters);
+  const changed={...r,profile:{tone:'changed'},approval:{hash:first.nextAction.hash,decision:'reject'}};
+  const result=await runContent(changed,adapters);
+  assert.equal(result.status,'needs_human');assert.equal(result.nextAction.type,'approve_publication');
+  assert.notEqual(result.nextAction.hash,first.nextAction.hash);
+});
+test('cancellation after checker prevents send and callback mutation cannot rewrite receiver',async t=>{
+  const r=setup(t),first=await runContent(r,adapters);let sends=0;
+  const ac=new AbortController();ac.abort();
+  const stopped=await runContent({...r,approval:{hash:first.nextAction.hash,decision:'approve'}},{...adapters,signal:ac.signal,publish:async()=>{sends++;}});
+  assert.equal(stopped.status,'cancelled');assert.equal(sends,0);
+  const other={...r,profile:{tone:'another'}};const next=new AbortController();
+  const result=await runContent(other,{...adapters,signal:next.signal,
+    check:async input=>{input.profile.tone='tampered';next.abort();return {outcome:'pass'};},publish:async()=>{sends++;}});
+  assert.equal(result.status,'cancelled');assert.equal(other.profile.tone,'another');assert.equal(sends,0);
+});
