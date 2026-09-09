@@ -1,11 +1,11 @@
 {
   "baseline": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
   "inheritedCommit": "8f47212",
-  "implementationCommit": "f4f72e3",
+  "implementationCommit": "8ba4200",
   "branch": "codex/qf-core-delivery",
-  "artifactSha256": "f509bcb00c7d04e22582b33d055c3ba697f08327f6f03fa00da7d0a157bcbfc2",
-  "note": "Core.4 installed determined repair proof and 112 tests; live specification proof records its exact core.3 artifact separately. Cross-track acceptance remains pending.",
-  "previousImplementationCommit": "f895083",
-  "packageVersion": "0.2.0-core.4",
-  "contractRevision": 3
+  "artifactSha256": "91a2ccf4adc1faea36c0177b4e48c2007435e5221c8925c5669d442b9157ace6",
+  "note": "119 tests and installed native quality+browser CSS proof. Earlier live specification and determined evidence remain bound to their recorded package hashes. Cross-track and upstream release/MCP acceptance pending.",
+  "previousImplementationCommit": "f4f72e3",
+  "packageVersion": "0.2.0-core.5",
+  "contractRevision": 4
 }
