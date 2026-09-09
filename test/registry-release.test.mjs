@@ -80,3 +80,30 @@ test("localhost catalog transport verifies exact bytes and refuses remote plaint
   );
   await assert.rejects(readAsset("http://127.0.0.1", "../secret"), /Unsafe/);
 });
+
+test('dependency graph rejects ambiguity, cycles, malformed sections and mismatched paths before writing',async t=>{
+  const {existsSync}=await import('node:fs');
+  const dir=mkdtempSync(join(tmpdir(),'qloops-graph-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  mkdirSync(join(dir,'loops'));mkdirSync(join(dir,'components'));
+  const body='manifest: qf.loop/v1\nid: target\nversion: 1.0.0\nsteps:\n  - id: gate\n    kind: approval-gate\n    config: { reviewer: human }\n';
+  writeFileSync(join(dir,'loops/target.yaml'),body);
+  const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
+  const loop={id:'target',version:'1.0.0',file:'loops/target.yaml',sha256:hash(body),dependencies:[]};
+  const base={releaseVersion:'test.1',core:{package:'qloops',version:pkg.version,manifest:'qf.loop/v1'},loops:[loop],components:[]};
+  const cases=[
+    [{...base,loops:[{...loop,dependencies:[{id:'target',version:'1.0.0'}]}]},/cycle/],
+    [{...base,loops:[{...loop,dependencies:[{id:'target',version:'1.0.0'}]}],components:[{...loop,file:'components/target.json'}]},/Ambiguous/],
+    [{...base,loops:[{...loop,dependencies:[{id:'missing',version:'1.0.0'}]}]},/Unresolved/],
+    [{...base,components:{}},/section/],
+    [{...base,loops:[{...loop,dependencies:{}}]},/Dependencies/],
+    [{...base,loops:[{...loop,dependencies:[{id:'missing',version:'latest'}]}]},/Dependencies/],
+    [{...base,loops:[{...loop,file:'components/target.json'}]},/section and identity/],
+    [{...base,loops:[{...loop,engine:{...base.core,version:'different'}}]},/engine differs/],
+  ];
+  for(const [catalog,error] of cases){
+    const bytes=JSON.stringify(catalog);writeFileSync(join(dir,'catalog.json'),bytes);
+    const destination=join(dir,'result.yaml');
+    await assert.rejects(installPinned({base:dir,catalogSha256:hash(bytes),id:'target',version:'1.0.0',destination}),error);
+    assert.equal(existsSync(destination),false);assert.equal(existsSync(destination+'.lock.json'),false);
+  }
+});

@@ -64,8 +64,9 @@ export async function loadRelease(base, sha256) {
     "CHECKSUM_MISMATCH",
   );
   const catalog = JSON.parse(bytes.toString("utf8"));
+  insist(catalog && typeof catalog === "object" && !Array.isArray(catalog), "Invalid catalog");
   insist(
-    typeof catalog.releaseVersion === "string" && Array.isArray(catalog.loops),
+    typeof catalog.releaseVersion === "string" && catalog.releaseVersion.trim() && Array.isArray(catalog.loops),
     "Versioned release required",
   );
   insist(
@@ -82,17 +83,28 @@ export async function loadRelease(base, sha256) {
     "ENGINE_INCOMPATIBLE",
   );
   const seen = new Set();
-  for (const section of ["loops", "components", "demos"])
+  for (const section of ["loops", "components", "demos"]) {
+    insist(catalog[section] === undefined || (Array.isArray(catalog[section]) && catalog[section].length <= 1000), "Invalid registry section");
     for (const e of catalog[section] ?? []) {
+      insist(e && typeof e === "object" && !Array.isArray(e), "Invalid registry entry");
+      insist(e.dependencies === undefined || (Array.isArray(e.dependencies) && e.dependencies.length <= 100 &&
+        e.dependencies.every(d => d && typeof d.id === "string" && /^[a-z0-9-]+$/.test(d.id) &&
+          /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(d.version ?? ""))), "Dependencies require exact identities");
+      if (e.file !== undefined)
+        insist(e.file === `${section}/${e.id}.${section === "loops" ? "yaml" : "json"}`, "Registry file must match its section and identity");
       insist(
-        /^[a-z0-9-]+$/.test(e.id) &&
+        typeof e.id === "string" && /^[a-z0-9-]+$/.test(e.id) &&
           /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(e.version ?? ""),
         "Invalid registry identity",
       );
       insist(!seen.has(`${section}/${e.id}`), "Duplicate registry identity");
       seen.add(`${section}/${e.id}`);
-      insist(/^[a-f0-9]{64}$/.test(e.sha256), "Missing artifact checksum");
+      insist(typeof e.sha256 === "string" && /^[a-f0-9]{64}$/.test(e.sha256), "Missing artifact checksum");
+      if (e.engine !== undefined)
+        insist(e.engine?.package === catalog.core.package && e.engine?.version === catalog.core.version &&
+          e.engine?.manifest === catalog.core.manifest, "Entry engine differs from release pin", "ENGINE_INCOMPATIBLE");
     }
+  }
   return catalog;
 }
 export async function installPinned({
@@ -112,7 +124,7 @@ export async function installPinned({
     if (resolved.some((x) => x.key === key)) return;
     insist(!visiting.has(key), "Dependency cycle");
     visiting.add(key);
-    const path = e.file ?? `${section}/${e.id}.json`;
+    const path = e.file ?? `${section}/${e.id}.${section === "loops" ? "yaml" : "json"}`;
     const bytes = await readAsset(base, path);
     insist(
       hash(bytes) === e.sha256,
@@ -120,16 +132,17 @@ export async function installPinned({
       "CHECKSUM_MISMATCH",
     );
     for (const dep of e.dependencies ?? []) {
-      const match = [
+      const matches = [
         ...(catalog.components ?? []).map((e) => [e, "components"]),
         ...catalog.loops.map((e) => [e, "loops"]),
-      ].find(([x]) => x.id === dep.id && x.version === dep.version);
+      ].filter(([x]) => x.id === dep.id && x.version === dep.version);
       insist(
-        match,
+        matches.length > 0,
         `Unresolved pinned dependency: ${dep.id}`,
         "VERSION_NOT_FOUND",
       );
-      await verify(...match);
+      insist(matches.length === 1, `Ambiguous pinned dependency: ${dep.id}`, "AMBIGUOUS_DEPENDENCY");
+      await verify(...matches[0]);
     }
     visiting.delete(key);
     resolved.push({ key, path, sha256: e.sha256 });

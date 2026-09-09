@@ -58,3 +58,7 @@ subject binding, immutable coverage, native rule applicability and severity, and
 cooperative cancellation. Callback reports/recipes need the new checksum fields;
 old incomplete evidence yields needs_human. Adopt core.5 with explicit consumer
 repin and native adapter tests. Agent/loop protocol names are unchanged.
+
+Core.6 tightens [registry validation](registry.md): ambiguous/malformed dependencies,
+section/file identity and per-entry engine drift are refused. Exact release pins
+are preserved; stricter rejection is documented without changing agent protocol.

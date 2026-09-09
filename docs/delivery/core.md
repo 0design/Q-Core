@@ -1,9 +1,25 @@
 # Core delivery candidate — 2026-09-10
 
-Current local package: qloops@0.2.0-core.5, contract revision 4 / qf.agent/v1.
-SHA256: `91a2ccf4adc1faea36c0177b4e48c2007435e5221c8925c5669d442b9157ace6`. Zero runtime dependencies. This is a local delivery candidate;
+Current local package: qloops@0.2.0-core.6, contract revision 4 / qf.agent/v1.
+SHA256: `3b9958e08c78b9f98411b95f1069a4ed0a094b1b0127c70c1ea66516a084aaf9`. Zero runtime dependencies. This is a local delivery candidate;
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
+
+## Registry continuation
+
+Installed-package HTTP proof in registry-package.json: exact read-only Site export
+on retained core.2 → download → validate → real webhook-relay run; new engine
+rejects the old pin. A separately labeled synthetic metadata-repin catalog tests
+current core.6 download/validate/run, overwrite refusal and checksum failures.
+Two requests reached only the controlled localhost receiver; no model or external
+publication. Malformed/ambiguous dependencies, file identities and per-entry engine
+drift are rejected before destination writes. See contracts/v1/registry.md.
+
+Public Site API route /api/registry currently HTTP404. Linear74 confirms public
+provisioning/licenses are pending. Old npm0.1.0/.1 metadata still lacks deprecation;
+no mutation authorization is inferred. Refreshed evidence: public-registry-current,
+legacy-metadata-current and provider-availability JSON. requirements-audit.md keeps
+the full original scope and separates current local proofs from missing acceptance.
 
 ## Quality continuation
 
@@ -28,7 +44,7 @@ installed AINDF, synthetic DS, and Oleg canon paths. No canon source is copied.
 
 ## Verified earlier runtime work
 
-119/119 tests passed. Clean-install exports, validate, human gate, installed caller
+120/120 tests passed. Clean-install exports, validate, human gate, installed caller
 and cached resume pass. The installed determined consumer uses real filesystem
 changes and trusted Node verifier subprocesses: two failures → one repair → two
 passes. Limit, stale evidence and human criteria remain needs_human. Adversarial
@@ -62,7 +78,7 @@ statement that Site was still on core.1. Current read-only validation accepts al
 Install the candidate from this repository:
 
 ```sh
-npm install /absolute/path/to/qloops/artifacts/qloops-0.2.0-core.5.tgz
+npm install /absolute/path/to/qloops/artifacts/qloops-0.2.0-core.6.tgz
 npx qloops agent request.json
 node node_modules/qloops/examples/determined-caller.mjs
 ```

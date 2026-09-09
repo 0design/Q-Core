@@ -71,3 +71,12 @@ Browser access works now on synthetic local UI; historical policy limitation is
 not a current blanket blocker. AINDF npm recheck E404; unslop112 still blocked.
 AINDF full rendered UI, released framework, MCP recipes and canonical consumer
 acceptance remain pending. This turn made concrete verified progress.
+
+## Registry continuation — 2026-09-10
+
+120/120 tests; exact Site export on retained engine plus current synthetic catalog
+pass clean-installed HTTP download/validate/run. Ambiguous dependencies and
+malformed/mismatched metadata now fail before writes. Core.6 SHA 3b9958e08c78b9f98411b95f1069a4ed0a094b1b0127c70c1ea66516a084aaf9.
+Public Site registry route404; Linear74 provisioning/licenses still gated. Old npm
+0.1.0/.1 metadata lacks deprecation; OR key and own .env absent. Full requirements
+audit added; no completed/blocked goal claim, since this turn made progress.

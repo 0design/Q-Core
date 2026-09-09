@@ -1,0 +1,228 @@
+{
+  "date": "2026-09-09T22:45:12.177Z",
+  "evidenceKind": "clean installed CLI over real localhost HTTP; exact read-only Site export on retained engine, separate synthetic engine-repin catalog on current candidate; no public-registry or product live acceptance",
+  "package": "0.2.0-core.6",
+  "sha256": "3b9958e08c78b9f98411b95f1069a4ed0a094b1b0127c70c1ea66516a084aaf9",
+  "site": {
+    "release": "2026.09.08-site.1",
+    "catalogSha256": "7e6f4e1a575bcb5f75eb00802b5a2a02ac17f63615e4f33054745e45d8ea490a",
+    "core": "0.2.0-core.2",
+    "coreSha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2"
+  },
+  "syntheticCatalogSha256": "75d4199ecba9e05fe9d8c367947a348ecfcd492b82efe87baf111f2467b596ec",
+  "checks": {
+    "retainedDownloadValidateRun": true,
+    "currentExactPinMismatchRejected": true,
+    "currentSyntheticDownloadValidateRun": true,
+    "overwriteRejected": true,
+    "checksumRejected": true,
+    "received": 2
+  },
+  "commands": [
+    {
+      "args": [
+        "install",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "/Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/artifacts/qloops-0.2.0-core.2.tgz"
+      ],
+      "exit": 0,
+      "stdoutHash": "b5f8e6c8ddccfe90bff256aa3af3b13647ce319fe1f9ca344ca3b07f762a5211",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "pack",
+        "/Users/oleg.design/PORN/projects/QFactory.io/repo/qloops",
+        "--ignore-scripts",
+        "--json"
+      ],
+      "exit": 0,
+      "stdoutHash": "debfde24cf644fdc7f1d874cd5e132e8a1635a0bda49fa29b44eb4e905920483",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "install",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/qloops-0.2.0-core.6.tgz"
+      ],
+      "exit": 0,
+      "stdoutHash": "14405cfb4bd7e96baa1937899f43f2d4d56388c847d5c15343a5d086e663b94d",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/retained/node_modules/qloops/bin/qloops.mjs",
+        "install",
+        "http://127.0.0.1:57323/registry",
+        "7e6f4e1a575bcb5f75eb00802b5a2a02ac17f63615e4f33054745e45d8ea490a",
+        "webhook-relay",
+        "1.0.0",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/retained/relay.yaml"
+      ],
+      "exit": 0,
+      "stdoutHash": "0ecfc7a03c2df2224ce70583ec6d658337714c628cb3279769663ecab132e82c",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/retained/node_modules/qloops/bin/qloops.mjs",
+        "validate",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/retained/relay.yaml"
+      ],
+      "exit": 0,
+      "stdoutHash": "827a1c253ea1ad29c67d8d12f4bc7e9aa0717fb986976902647dbf7cf8f6b5ce",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/retained/node_modules/qloops/bin/qloops.mjs",
+        "run",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/retained/relay.yaml"
+      ],
+      "exit": 0,
+      "stdoutHash": "9c66fadda90da6ed589261b21f169bd711e25919ed7d032e11893cf0e395ca43",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/node_modules/qloops/bin/qloops.mjs",
+        "install",
+        "http://127.0.0.1:57323/registry",
+        "7e6f4e1a575bcb5f75eb00802b5a2a02ac17f63615e4f33054745e45d8ea490a",
+        "webhook-relay",
+        "1.0.0",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/mismatch.yaml"
+      ],
+      "exit": 1,
+      "stdoutHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrHash": "cdbec866478f836b36036683be4dea8d78ec26e1de62ab85eff868a90aa2b2fc"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/node_modules/qloops/bin/qloops.mjs",
+        "install",
+        "http://127.0.0.1:57323/candidate",
+        "75d4199ecba9e05fe9d8c367947a348ecfcd492b82efe87baf111f2467b596ec",
+        "webhook-relay",
+        "1.0.0",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/relay.yaml"
+      ],
+      "exit": 0,
+      "stdoutHash": "d5af7c53482aa842807c7afa0030bd65c8b427ce66ad8cba7e09bb8caefecf5d",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/node_modules/qloops/bin/qloops.mjs",
+        "validate",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/relay.yaml"
+      ],
+      "exit": 0,
+      "stdoutHash": "dd0e82684b173dfdaf5cb912c1e1ced98e404aba285f2aa694aeebda2def9b1e",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/node_modules/qloops/bin/qloops.mjs",
+        "run",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/relay.yaml"
+      ],
+      "exit": 0,
+      "stdoutHash": "6feb04f064816989f5cdc2fd977919126fdf67d78182292d5aa39d88b2fbcdbf",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/node_modules/qloops/bin/qloops.mjs",
+        "install",
+        "http://127.0.0.1:57323/candidate",
+        "75d4199ecba9e05fe9d8c367947a348ecfcd492b82efe87baf111f2467b596ec",
+        "webhook-relay",
+        "1.0.0",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/relay.yaml"
+      ],
+      "exit": 1,
+      "stdoutHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrHash": "81e7d73b41d2ba811e1f4c1b50ddb79cba9a3277a041289ccdd1a95017afc384"
+    },
+    {
+      "args": [
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/node_modules/qloops/bin/qloops.mjs",
+        "install",
+        "http://127.0.0.1:57323/candidate",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "webhook-relay",
+        "1.0.0",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-1EuEWt/candidate/corrupt.yaml"
+      ],
+      "exit": 1,
+      "stdoutHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrHash": "dbab7b9b3855209868b39fcd9b5b337920b32ca78eafd358b1b263b18053566a"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/registry/catalog.json"
+    },
+    {
+      "method": "GET",
+      "path": "/registry/loops/webhook-relay.yaml"
+    },
+    {
+      "method": "GET",
+      "path": "/source"
+    },
+    {
+      "method": "POST",
+      "path": "/sink"
+    },
+    {
+      "method": "GET",
+      "path": "/registry/catalog.json"
+    },
+    {
+      "method": "GET",
+      "path": "/candidate/catalog.json"
+    },
+    {
+      "method": "GET",
+      "path": "/candidate/loops/webhook-relay.yaml"
+    },
+    {
+      "method": "GET",
+      "path": "/source"
+    },
+    {
+      "method": "POST",
+      "path": "/sink"
+    },
+    {
+      "method": "GET",
+      "path": "/candidate/catalog.json"
+    },
+    {
+      "method": "GET",
+      "path": "/candidate/loops/webhook-relay.yaml"
+    },
+    {
+      "method": "GET",
+      "path": "/candidate/catalog.json"
+    }
+  ],
+  "received": [
+    {
+      "forwarded": "{\"message\":\"synthetic registry delivery\"}",
+      "run": "3215f993-a16d-4f69-8674-ba43c62c4595"
+    },
+    {
+      "forwarded": "{\"message\":\"synthetic registry delivery\"}",
+      "run": "bb4c0eac-c5fa-48d0-a427-d47d32c6a74d"
+    }
+  ]
+}
