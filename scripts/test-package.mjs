@@ -11,6 +11,9 @@ import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { hash } from "../src/contracts.mjs";
 const live = process.argv.includes("--live-codex");
+const modelIndex = process.argv.indexOf("--model");
+const liveModel = modelIndex >= 0 ? process.argv[modelIndex + 1] : null;
+if (live) assert.ok(liveModel && !liveModel.startsWith("--"), "Live checks require --model MODEL");
 const root = resolve("."),
   tmp = mkdtempSync(join(tmpdir(), "qloops-clean-install-"));
 const exec = (cmd, args, opts = {}) =>
@@ -26,6 +29,7 @@ const exec = (cmd, args, opts = {}) =>
     ...opts,
   });
 try {
+  writeFileSync(join(tmp, "package.json"), JSON.stringify({name:"qloops-proof-caller",private:true,type:"module"}));
   const packed = JSON.parse(
     exec("npm", ["pack", root, "--ignore-scripts", "--json"]),
   )[0];
@@ -61,7 +65,7 @@ try {
   request.verifier.command = process.execPath;
   request.provider = {
     kind: "codex",
-    model: live ? "gpt-5.4-mini" : "fixture",
+    model: live ? liveModel : "fixture",
     payerScope: "local-cli",
     executable: live
       ? "/Applications/ChatGPT.app/Contents/Resources/codex"

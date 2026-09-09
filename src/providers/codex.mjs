@@ -67,6 +67,8 @@ export function codexArgs(model) {
     "-",
   ];
 }
+// Reviewed CLI emits this diagnostic when its tool host is intentionally disabled.
+const disabledCodeModeDiagnostic = "Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`.";
 const metric = (x) =>
   typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : null;
 export function parseCodexResponse(response, model) {
@@ -86,12 +88,14 @@ export function parseCodexResponse(response, model) {
     response.code !== 0 ||
     events.some((e) => ["error", "turn.failed"].includes(e?.type))
   ) {
-    const text = JSON.stringify(events);
+    const text = JSON.stringify(events.filter(e => ["error", "turn.failed"].includes(e?.type)));
     const code = /auth|login|credential|401/i.test(text)
       ? "AUTH_REQUIRED"
       : /rate.limit|usage.limit|quota|429/i.test(text)
         ? "RATE_LIMITED"
-        : /permission|denied/i.test(text)
+        : /model.{0,200}(?:not supported|unsupported|not available|does not exist)|(?:unsupported|unknown|invalid) model/i.test(text)
+          ? "MODEL_UNAVAILABLE"
+          : /permission|denied/i.test(text)
           ? "PERMISSION_DENIED"
           : "CLI_FAILED";
     throw new CoreError(
@@ -104,6 +108,7 @@ export function parseCodexResponse(response, model) {
     completed = false,
     usage,
     content;
+  let codeModeDisabled = false;
   for (const event of events) {
     if (!event || typeof event !== "object" || completed)
       throw new CoreError(
@@ -117,6 +122,11 @@ export function parseCodexResponse(response, model) {
       typeof event.thread_id === "string"
     )
       thread = event.thread_id;
+    else if (
+      event.type === "item.completed" && thread && !started &&
+      !codeModeDisabled && event.item?.type === "error" &&
+      event.item.message === disabledCodeModeDiagnostic
+    ) codeModeDisabled = true;
     else if (event.type === "turn.started" && thread && !started)
       started = true;
     else if (event.type === "turn.completed" && started) {
@@ -159,6 +169,7 @@ export function parseCodexResponse(response, model) {
       authMethod: "chatgpt",
       permissionMode: "read-only",
       acceptedTools: [],
+      diagnostics: codeModeDisabled ? ["CODE_MODE_DISABLED"] : [],
     },
     usage: {
       tokensIn: metric(usage?.input_tokens),

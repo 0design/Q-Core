@@ -25,7 +25,7 @@ The direct text adapter is also exported:
 import { codex } from 'qloops';
 const result = await codex({
   executable: '/absolute/path/to/codex',
-  model: 'gpt-5.4-mini',
+  model: 'gpt-5.6-luna',
   messages: [{ role: 'user', content: 'Summarize this supplied text: ...' }],
   timeoutMs: 60000,
 });
@@ -35,6 +35,13 @@ console.log(result.content);
 For Content-factory use the same provider descriptor in a
 `qf.content-request/v1` request. Draft approval and receiver receipts remain
 required; selecting Codex does not authorize publication.
+
+Candidate `0.2.0-core.3` adds imported specifications, clarification questions,
+and explicit specification revisions. See [the workflow contract](../contracts/v1/specification.md).
+The model in the example is an explicit selection, not an automatic fallback.
+The previously tested `gpt-5.4-mini` was rejected by this ChatGPT account on
+2026-09-10. An unavailable model returns `MODEL_UNAVAILABLE`; the agent requests
+`configure_provider`. Choose a supported model explicitly for a new run.
 
 ## Execution boundary
 
@@ -57,7 +64,7 @@ returned text can reach Core's approved file executor. Run this local integratio
 only with a trusted CLI installation and workspace/verifier.
 
 Missing executable, unsupported version, expired/API auth, permission/tool events,
-malformed/incomplete output, quota failure, timeout and cancellation are typed
+unavailable models, malformed/incomplete output, quota failure, timeout and cancellation are typed
 failures. Cancellation terminates the process group. `QLOOPS_DEPTH` and existing
 Claude nesting guards are retained. No retries of failed inference are hidden
 inside qloops; the pinned CLI can perform bounded internal transport retries.
@@ -84,8 +91,9 @@ that workflow; a second paid inference account is not a prerequisite.
 ```sh
 npm test
 npm run test:package
-node scripts/test-package.mjs --live-codex
-node scripts/live-sdd.mjs --provider codex --approve-synthetic
+node scripts/test-package.mjs --live-codex --model gpt-5.6-luna
+node scripts/live-sdd.mjs --provider codex --model gpt-5.6-luna --approve-synthetic
+node scripts/live-specification.mjs gpt-5.6-luna
 ```
 
 Live checks consume existing Codex allowance and use synthetic workspaces only.

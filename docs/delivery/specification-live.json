@@ -1,0 +1,373 @@
+{
+  "date": "2026-09-09T22:20:09.712Z",
+  "evidenceKind": "clean installed package; real Codex ChatGPT clarification and execution; trusted caller approves only this synthetic task",
+  "package": "0.2.0-core.3",
+  "artifactSha256": "69a50ecc136ca90344f5f5e0204e51277d647572fe99f059b8fae01bfbed3851",
+  "workspace": "/Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/.qf/installed-spec-proof-uV0ppO/workspace",
+  "assertions": 6,
+  "outputs": [
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.agent/v1",
+        "requestId": "live-spec-tags",
+        "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+        "status": "needs_human",
+        "summary": "Clarify the requirements before specification approval",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "clarify_spec",
+          "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+          "hash": "0d0691b8b7306a77d87307341f30a8cdeb2724d28711317d76fda3e719f1f5ef",
+          "questions": [
+            {
+              "id": "caseNormalization",
+              "question": "Should tags be normalized to lowercase, uppercase, or preserve their original casing?"
+            },
+            {
+              "id": "outputOrdering",
+              "question": "Should normalized tags preserve input order, be sorted alphabetically, or use another ordering?"
+            }
+          ]
+        },
+        "provider": {
+          "kind": "codex",
+          "version": "0.153.4",
+          "requestedModel": "gpt-5.6-luna",
+          "model": null,
+          "payerScope": "local-cli",
+          "authMethod": "chatgpt",
+          "permissionMode": "read-only",
+          "acceptedTools": [],
+          "diagnostics": [
+            "CODE_MODE_DISABLED"
+          ]
+        },
+        "usage": {
+          "tokensIn": 5287,
+          "tokensOut": 88,
+          "costUsd": null
+        }
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.agent/v1",
+        "requestId": "live-spec-tags",
+        "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+        "status": "needs_human",
+        "summary": "Approve the exact specification and policy before execution",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "approve_spec",
+          "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+          "hash": "380c3db2673b592b18a8465937d1c16bb0bb09d356c988712c3ebe7f5b3ef905",
+          "spec": {
+            "summary": "Implement normalizeTags(input) in tags.mjs to return trimmed, lowercase, non-empty string tags, deduplicated after normalization while preserving first-occurrence order and ignoring non-string values.",
+            "criteria": [
+              "String values are trimmed of leading and trailing whitespace.",
+              "Trimmed empty strings are excluded.",
+              "Non-string input values are ignored.",
+              "Remaining tags are converted to lowercase using JavaScript toLowerCase().",
+              "Duplicate tags after lowercasing are removed.",
+              "The first occurrence of each normalized tag determines its output position.",
+              "Input order is preserved for distinct normalized tags.",
+              "normalizeTags is exported from tags.mjs and returns the normalized tag list."
+            ],
+            "plan": [
+              "Update normalizeTags in tags.mjs to handle the input collection and filter non-string values.",
+              "Trim and lowercase each string, excluding empty results.",
+              "Deduplicate normalized tags while preserving first-occurrence order.",
+              "Return the resulting array."
+            ]
+          },
+          "specRevision": 1
+        },
+        "provider": {
+          "kind": "codex",
+          "version": "0.153.4",
+          "requestedModel": "gpt-5.6-luna",
+          "model": null,
+          "payerScope": "local-cli",
+          "authMethod": "chatgpt",
+          "permissionMode": "read-only",
+          "acceptedTools": [],
+          "diagnostics": [
+            "CODE_MODE_DISABLED"
+          ]
+        },
+        "usage": {
+          "tokensIn": 10718,
+          "tokensOut": 301,
+          "costUsd": null
+        }
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.agent/v1",
+        "requestId": "live-spec-tags",
+        "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+        "status": "needs_human",
+        "summary": "Approve the exact specification and policy before execution",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "approve_spec",
+          "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+          "hash": "e805dd9a5fdcd7ab81de52cd7452afd015e5430458b5b780c7104955df3aa31f",
+          "spec": {
+            "summary": "Implement normalizeTags(input) in tags.mjs to return trimmed, lowercase, non-empty string tags, deduplicated after normalization while preserving first-occurrence order and ignoring non-string values.",
+            "criteria": [
+              "String values are trimmed of leading and trailing whitespace.",
+              "Trimmed empty strings are excluded.",
+              "Non-string input values are ignored.",
+              "Remaining tags are converted to lowercase using JavaScript toLowerCase().",
+              "Duplicate tags after lowercasing are removed.",
+              "The first occurrence of each normalized tag determines its output position.",
+              "Input order is preserved for distinct normalized tags.",
+              "normalizeTags is exported from tags.mjs and returns the normalized tag list.",
+              "Do not mutate the input array. Support Unicode lowercasing, including Ukrainian tags."
+            ],
+            "plan": [
+              "Update normalizeTags in tags.mjs to handle the input collection and filter non-string values.",
+              "Trim and lowercase each string, excluding empty results.",
+              "Deduplicate normalized tags while preserving first-occurrence order.",
+              "Return the resulting array."
+            ]
+          },
+          "specRevision": 2
+        },
+        "provider": {
+          "kind": "codex",
+          "version": "0.153.4",
+          "requestedModel": "gpt-5.6-luna",
+          "model": null,
+          "payerScope": "local-cli",
+          "authMethod": "chatgpt",
+          "permissionMode": "read-only",
+          "acceptedTools": [],
+          "diagnostics": [
+            "CODE_MODE_DISABLED"
+          ]
+        },
+        "usage": {
+          "tokensIn": 10718,
+          "tokensOut": 301,
+          "costUsd": null
+        }
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.agent/v1",
+        "requestId": "live-spec-tags",
+        "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+        "status": "needs_human",
+        "summary": "Approve the exact specification and policy before execution",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "approve_spec",
+          "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+          "hash": "e805dd9a5fdcd7ab81de52cd7452afd015e5430458b5b780c7104955df3aa31f",
+          "spec": {
+            "summary": "Implement normalizeTags(input) in tags.mjs to return trimmed, lowercase, non-empty string tags, deduplicated after normalization while preserving first-occurrence order and ignoring non-string values.",
+            "criteria": [
+              "String values are trimmed of leading and trailing whitespace.",
+              "Trimmed empty strings are excluded.",
+              "Non-string input values are ignored.",
+              "Remaining tags are converted to lowercase using JavaScript toLowerCase().",
+              "Duplicate tags after lowercasing are removed.",
+              "The first occurrence of each normalized tag determines its output position.",
+              "Input order is preserved for distinct normalized tags.",
+              "normalizeTags is exported from tags.mjs and returns the normalized tag list.",
+              "Do not mutate the input array. Support Unicode lowercasing, including Ukrainian tags."
+            ],
+            "plan": [
+              "Update normalizeTags in tags.mjs to handle the input collection and filter non-string values.",
+              "Trim and lowercase each string, excluding empty results.",
+              "Deduplicate normalized tags while preserving first-occurrence order.",
+              "Return the resulting array."
+            ]
+          },
+          "specRevision": 2
+        },
+        "provider": {
+          "kind": "codex",
+          "version": "0.153.4",
+          "requestedModel": "gpt-5.6-luna",
+          "model": null,
+          "payerScope": "local-cli",
+          "authMethod": "chatgpt",
+          "permissionMode": "read-only",
+          "acceptedTools": [],
+          "diagnostics": [
+            "CODE_MODE_DISABLED"
+          ]
+        },
+        "usage": {
+          "tokensIn": 10718,
+          "tokensOut": 301,
+          "costUsd": null
+        }
+      }
+    },
+    {
+      "exit": 0,
+      "result": {
+        "protocolVersion": "qf.agent/v1",
+        "requestId": "live-spec-tags",
+        "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+        "status": "success",
+        "summary": "Approved change passed the caller-authorized verifier",
+        "artifacts": [
+          {
+            "path": "tags.mjs",
+            "sha256": "4bfdabd0581efcde773dc224cde90d71384b699934b3e80c9d3640d50a70d408",
+            "revision": 1
+          }
+        ],
+        "evidence": [
+          {
+            "verifier": {
+              "command": "/usr/local/bin/node",
+              "args": [
+                "verify.mjs"
+              ]
+            },
+            "artifactHash": "e9a7f09452878f07692929def0a9e85e4e913ba3f4f4acf7c6221e69101dc2f2",
+            "revision": 1,
+            "outcome": "pass",
+            "exitCode": 0,
+            "stdoutHash": "01e3fa739179336194205dc519d98c5ffaba46d4cfbcba0f9d9deb5d66a9dadb",
+            "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "error": null,
+        "nextAction": null,
+        "provider": {
+          "kind": "codex",
+          "version": "0.153.4",
+          "requestedModel": "gpt-5.6-luna",
+          "model": null,
+          "payerScope": "local-cli",
+          "authMethod": "chatgpt",
+          "permissionMode": "read-only",
+          "acceptedTools": [],
+          "diagnostics": [
+            "CODE_MODE_DISABLED"
+          ]
+        },
+        "usage": {
+          "tokensIn": 16100,
+          "tokensOut": 538,
+          "costUsd": null
+        }
+      }
+    },
+    {
+      "exit": 0,
+      "result": {
+        "protocolVersion": "qf.agent/v1",
+        "requestId": "live-spec-tags",
+        "runId": "4b97fc9d-7c39-4568-b014-40d6e2290cbd",
+        "status": "success",
+        "summary": "Approved change passed the caller-authorized verifier",
+        "artifacts": [
+          {
+            "path": "tags.mjs",
+            "sha256": "4bfdabd0581efcde773dc224cde90d71384b699934b3e80c9d3640d50a70d408",
+            "revision": 1
+          }
+        ],
+        "evidence": [
+          {
+            "verifier": {
+              "command": "/usr/local/bin/node",
+              "args": [
+                "verify.mjs"
+              ]
+            },
+            "artifactHash": "e9a7f09452878f07692929def0a9e85e4e913ba3f4f4acf7c6221e69101dc2f2",
+            "revision": 1,
+            "outcome": "pass",
+            "exitCode": 0,
+            "stdoutHash": "01e3fa739179336194205dc519d98c5ffaba46d4cfbcba0f9d9deb5d66a9dadb",
+            "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "error": null,
+        "nextAction": null,
+        "provider": {
+          "kind": "codex",
+          "version": "0.153.4",
+          "requestedModel": "gpt-5.6-luna",
+          "model": null,
+          "payerScope": "local-cli",
+          "authMethod": "chatgpt",
+          "permissionMode": "read-only",
+          "acceptedTools": [],
+          "diagnostics": [
+            "CODE_MODE_DISABLED"
+          ]
+        },
+        "usage": {
+          "tokensIn": 16100,
+          "tokensOut": 538,
+          "costUsd": null
+        }
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.agent/v1",
+        "requestId": "import-existing-spec",
+        "runId": "9c51a19c-6f23-40c1-aa69-a61f8e06970b",
+        "status": "needs_human",
+        "summary": "Approve the exact specification and policy before execution",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "approve_spec",
+          "runId": "9c51a19c-6f23-40c1-aa69-a61f8e06970b",
+          "hash": "0ce1fe605a6331bf13521ceb49bb614b717937c5d77a1aed210c2fcfaeb9c336",
+          "spec": {
+            "summary": "Implement normalizeTags(input) in tags.mjs to return trimmed, lowercase, non-empty string tags, deduplicated after normalization while preserving first-occurrence order and ignoring non-string values.",
+            "criteria": [
+              "String values are trimmed of leading and trailing whitespace.",
+              "Trimmed empty strings are excluded.",
+              "Non-string input values are ignored.",
+              "Remaining tags are converted to lowercase using JavaScript toLowerCase().",
+              "Duplicate tags after lowercasing are removed.",
+              "The first occurrence of each normalized tag determines its output position.",
+              "Input order is preserved for distinct normalized tags.",
+              "normalizeTags is exported from tags.mjs and returns the normalized tag list.",
+              "Do not mutate the input array. Support Unicode lowercasing, including Ukrainian tags."
+            ],
+            "plan": [
+              "Update normalizeTags in tags.mjs to handle the input collection and filter non-string values.",
+              "Trim and lowercase each string, excluding empty results.",
+              "Deduplicate normalized tags while preserving first-occurrence order.",
+              "Return the resulting array."
+            ]
+          },
+          "specRevision": 1
+        },
+        "provider": null,
+        "usage": null
+      }
+    }
+  ]
+}

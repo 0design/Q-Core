@@ -30,6 +30,7 @@ const humanCodes = new Set([
   "UNSUPPORTED_CLI",
   "PERMISSION_DENIED",
   "AUTH_REQUIRED",
+  "MODEL_UNAVAILABLE",
   "RECONCILE_REQUIRED",
   "BUDGET_EXHAUSTED",
 ]);
@@ -450,7 +451,9 @@ export async function runAgent(
       summary: e instanceof CoreError ? e.message : code,
       error: { code, message: e instanceof CoreError ? e.message : code },
       nextAction:
-        code === "MISSING_CHECKER"
+        code === "MODEL_UNAVAILABLE"
+          ? { type: "configure_provider", requestedModel: r.provider?.model ?? null }
+          : code === "MISSING_CHECKER"
           ? { type: "configure_verifier" }
           : ["TIMEOUT", "BUDGET_EXHAUSTED"].includes(code)
             ? { type: "review_limits" }

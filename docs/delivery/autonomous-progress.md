@@ -27,3 +27,24 @@ Do not publish npm, mutate donor/Site repos, push or deploy under this autonomy.
 Current source is a candidate; do not mark 0D-137 Done until all acceptance evidence
 including real CLI and package paths is recorded. Existing core.2 artifact remains
 untouched and identifies the earlier implementation only.
+
+## Verified continuation — 2026-09-10
+
+Candidate core.3 now passes all 108 tests and the clean-install package check.
+The installed-package live specification proof passed on explicit gpt-5.6-luna:
+clarification, spec revision 1→2, stale approval rejection, actual code execution,
+6 independent checks, cached success, and import without model generation.
+Evidence: specification-live.json; local artifacts/qloops-0.2.0-core.3.tgz
+SHA256: 69a50ecc136ca90344f5f5e0204e51277d647572fe99f059b8fae01bfbed3851.
+
+Current account rejects the formerly supported gpt-5.4-mini. No provider fallback
+was added. MODEL_UNAVAILABLE now requests explicit provider configuration. The
+pinned CLI emits a pre-turn error item for its intentionally disabled code-mode
+host; only that exact reviewed diagnostic is accepted and recorded. Unknown
+diagnostics, tool use, duplicate/reordered events still fail closed. New adversarial
+tests cover classification, diagnostic handling and no-write provider human gate.
+
+This completes the Core spec-workflow candidate proof, not the full autonomous
+objective. Shared Core work and external release/integration gates listed above
+remain to be audited and completed. Existing core.2 artifact and architecture maps
+are preserved. No publish, push, Site or donor edits performed.

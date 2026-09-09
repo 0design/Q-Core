@@ -1,8 +1,8 @@
 {
   "package": "qloops",
-  "version": "0.2.0-core.2",
-  "sha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2",
-  "integrity": "sha512-CDsORI7asdH6cTYfa6/gw/QP2A7rcfOGezqZ0rDjLszxR7WmmiHSAhOCP1ATj3GzkRSz81WKsLPgzS5tMb+UtA==",
+  "version": "0.2.0-core.3",
+  "sha256": "69a50ecc136ca90344f5f5e0204e51277d647572fe99f059b8fae01bfbed3851",
+  "integrity": "sha512-MXYoBGqDTbutABFSjPMaJc11nqM2Mmb1Qs4caWfoFXhA2Ug6xbrANg12itkHByBjcvmfBV4yzppXFSZiCSjr9w==",
   "files": [
     "CONTRIBUTING.md",
     "LICENSE",
@@ -17,6 +17,7 @@
     "contracts/v1/README.md",
     "contracts/v1/request.schema.json",
     "contracts/v1/result.schema.json",
+    "contracts/v1/specification.md",
     "docs/codex.md",
     "examples/brand-mentions.run.json",
     "examples/brand-mentions.txt",
@@ -62,6 +63,7 @@
     "src/registry.mjs",
     "src/run.d.mts",
     "src/run.mjs",
+    "src/specification.mjs",
     "src/state.mjs",
     "src/steps.mjs",
     "src/subprocess.mjs",

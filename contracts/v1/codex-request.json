@@ -15,7 +15,7 @@
   ],
   "provider": {
     "kind": "codex",
-    "model": "gpt-5.4-mini",
+    "model": "gpt-5.6-luna",
     "executable": "/absolute/path/to/codex",
     "payerScope": "local-cli"
   },

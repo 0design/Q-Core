@@ -198,3 +198,30 @@ test("Codex rejects invalid limits and oversized messages before launching", asy
     });
   assert.equal(calls, 0);
 });
+
+test("unsupported account model has a redacted typed error", () => {
+  for (const message of [
+    "The 'gpt-5.4-mini' model is not supported when using Codex with a ChatGPT account. secret-do-not-expose",
+    "The model does not exist",
+    "Unknown model requested",
+  ]) {
+    assert.throws(() => parseCodexResponse({code:1,stdout:JSON.stringify({type:'error',error:{message}})},'requested'),
+      e => e.code === 'MODEL_UNAVAILABLE' && !e.message.includes('secret-do-not-expose'));
+  }
+  assert.throws(() => parseCodexResponse({code:1,stdout:[
+    {type:'item.completed',item:{type:'agent_message',text:'Unknown model'}},
+    {type:'error',message:'Internal server error'},
+  ].map(JSON.stringify).join('\n')},'requested'),{code:'CLI_FAILED'});
+});
+
+test("only the exact pre-turn disabled code-mode diagnostic is accepted", () => {
+  const warning = {type:'item.completed',item:{type:'error',message:'Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`.'}};
+  const thread={type:'thread.started',thread_id:'test'},start={type:'turn.started'},message={type:'item.completed',item:{type:'agent_message',text:'ok'}},done={type:'turn.completed'};
+  const parse=events=>parseCodexResponse({code:0,stdout:events.map(JSON.stringify).join('\n')},'test');
+  assert.deepEqual(parse([thread,warning,start,message,done]).provider.diagnostics,['CODE_MODE_DISABLED']);
+  for(const events of [
+    [thread,warning,warning,start,message,done],
+    [thread,start,warning,message,done],
+    [thread,{...warning,item:{...warning.item,message:'Permission denied'}},start,message,done],
+  ]) assert.throws(()=>parse(events));
+});

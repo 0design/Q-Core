@@ -77,7 +77,7 @@ Set this provider in an agent or content request (choose your real absolute CLI 
 {
   "kind": "codex",
   "executable": "/Applications/ChatGPT.app/Contents/Resources/codex",
-  "model": "gpt-5.4-mini",
+  "model": "gpt-5.6-luna",
   "payerScope": "local-cli"
 }
 ```

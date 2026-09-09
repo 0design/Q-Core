@@ -196,3 +196,15 @@ test("missing verifier requests configuration without inference or writes", asyn
   assert.equal(out.nextAction.type, "configure_verifier");
   assert.equal(called, false);
 });
+
+test("unavailable model requests explicit provider configuration without writing artifacts", async (t) => {
+  const r = setup(t);
+  let calls = 0;
+  const {CoreError} = await import('../src/contracts.mjs');
+  const result = await runAgent(r,{generate:async()=>{calls++;throw new CoreError('MODEL_UNAVAILABLE','Model unavailable');}});
+  assert.equal(result.status,'needs_human');
+  assert.equal(result.nextAction.type,'configure_provider');
+  assert.equal(result.nextAction.requestedModel,r.provider.model);
+  assert.equal(calls,1);
+  assert.equal(readFileSync(join(r.workspace,'value.mjs'),'utf8'),'export const add=()=>0;');
+});
