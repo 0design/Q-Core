@@ -1,4 +1,4 @@
-# Core contract revision 4 (qf.agent/v1)
+# Core contract revision 5 (qf.agent/v1)
 
 Additive to qf.loop/v1. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
@@ -62,3 +62,16 @@ repin and native adapter tests. Agent/loop protocol names are unchanged.
 Core.6 tightens [registry validation](registry.md): ambiguous/malformed dependencies,
 section/file identity and per-entry engine drift are refused. Exact release pins
 are preserved; stricter rejection is documented without changing agent protocol.
+
+Revision 5 / core.8 adds actionable local recovery to SDD and Content results:
+AUTH_REQUIRED → configure_access; MISSING_EXECUTABLE/UNSUPPORTED_CLI →
+configure_provider; UNSUPPORTED_NESTING → configure_caller;
+PERMISSION_DENIED/SCOPE_DENIED → review_permissions. All these errors return
+needs_human/exit2. Content previously returned failed for these recoverable errors;
+missing SDD executable previously returned failed. Consumers must handle these
+actions, display their message in the same conversation, and explicitly repin.
+After local authentication is restored, retry the same SDD request with its runId;
+Content retries the same request. Neither grants approval or sends automatically.
+Changing provider/scope requires a new request or the documented approved revision.
+configure_caller is an instruction, not an implemented broker. Claude nesting
+guards remain enforced; four-entry golden-path support is not inferred from this.

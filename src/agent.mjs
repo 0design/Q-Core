@@ -20,6 +20,7 @@ import { subprocess, scopedEnvironment } from "./subprocess.mjs";
 import { codex } from "./providers/codex.mjs";
 import { claude } from "./providers/claude.mjs";
 import { openRouter } from "./providers/openrouter.mjs";
+import { recoveryAction } from "./recovery.mjs";
 const humanCodes = new Set([
   "SCOPE_DENIED",
   "MISSING_CHECKER",
@@ -30,6 +31,7 @@ const humanCodes = new Set([
   "UNSUPPORTED_CLI",
   "PERMISSION_DENIED",
   "AUTH_REQUIRED",
+  "MISSING_EXECUTABLE",
   "MODEL_UNAVAILABLE",
   "RECONCILE_REQUIRED",
   "BUDGET_EXHAUSTED",
@@ -457,7 +459,7 @@ export async function runAgent(
           ? { type: "configure_verifier" }
           : ["TIMEOUT", "BUDGET_EXHAUSTED"].includes(code)
             ? { type: "review_limits" }
-            : null,
+            : recoveryAction(code),
       artifacts: state?.artifacts ?? [],
       evidence: state?.evidence ?? [],
       provider: state?.provider ?? null,

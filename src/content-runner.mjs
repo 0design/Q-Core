@@ -4,6 +4,7 @@ import { codex } from "./providers/codex.mjs";
 import { claude } from "./providers/claude.mjs";
 import { fetchWithRetry } from "./http.mjs";
 import { insist, resultEnvelope, hash, CoreError } from "./contracts.mjs";
+import { recoveryAction } from "./recovery.mjs";
 async function boundedText(response) {
   const reader = response.body.getReader();
   const parts = [];
@@ -156,10 +157,11 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
     return result;
   } catch (e) {
     const code=signal?.aborted ? "CANCELLED" : combined?.aborted ? "TIMEOUT" : e instanceof CoreError ? e.code : "CONTENT_FAILED";
+    const nextAction = code === "TIMEOUT" ? {type:"review_limits"} : recoveryAction(code);
     return resultEnvelope(r, {
       protocolVersion: "qf.content/v1",
-      status: code === "CANCELLED" ? "cancelled" : code === "TIMEOUT" ? "needs_human" : "failed",
-      nextAction: code === "TIMEOUT" ? {type:"review_limits"} : null,
+      status: code === "CANCELLED" ? "cancelled" : nextAction ? "needs_human" : "failed",
+      nextAction,
       summary: "Content request failed",
       error: {
         code,

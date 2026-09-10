@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { runContentRequest } from "../src/content-runner.mjs";
@@ -48,6 +48,18 @@ for (const kind of ["claude", "codex"])
       },
       receiver: { kind: "webhook", url: origin + "/receiver" },
     };
+    const recoveryRequest = {...base, sources: [{id:"1", url:origin+"/source/1"}]};
+    const missingKey = await runContentRequest({...recoveryRequest, receiver:{...base.receiver,keyRef:"QF_TEST_RECEIVER_KEY"}}, {env:{}});
+    assert.equal(missingKey.status, "needs_human");
+    assert.equal(missingKey.nextAction.type, "configure_access");
+    if (kind === "claude") {
+      writeFileSync(join(workspace,"fixture-mode.txt"),"auth");
+      const missingAuth = await runContentRequest(recoveryRequest);
+      assert.equal(missingAuth.status,"needs_human");
+      assert.equal(missingAuth.nextAction.type,"configure_access");
+      writeFileSync(join(workspace,"fixture-mode.txt"),"success");
+    }
+    assert.equal(sends,0);
     for (let i = 1; i <= 3; i++) {
       const r = {
         ...base,

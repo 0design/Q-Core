@@ -5,6 +5,7 @@ import {
   realpathSync,
   writeFileSync,
   readFileSync,
+  existsSync,
   rmSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
@@ -97,4 +98,43 @@ test("changed verifier bytes invalidate approved resume", async (t) => {
     approval: { hash: first.result.nextAction.hash, decision: "approve" },
   });
   assert.equal(result.result.error.code, "WORKSPACE_CHANGED");
+});
+
+test("auth failure gives a local recovery step and resumes the same run without implicit approval", async (t) => {
+  const r = setup(t);
+  writeFileSync(join(r.workspace, "fixture-mode.txt"), "auth");
+  const stopped = await caller(r);
+  assert.equal(stopped.code, 2);
+  assert.equal(stopped.result.nextAction.type, "configure_access");
+  assert.equal(readFileSync(join(r.workspace, "value.mjs"), "utf8"), "export const add=()=>0;");
+  writeFileSync(join(r.workspace, "fixture-mode.txt"), "success");
+  const resumed = await caller({...r, resumeRunId: stopped.result.runId});
+  assert.equal(resumed.result.runId, stopped.result.runId);
+  assert.equal(resumed.result.nextAction.type, "approve_spec");
+  assert.equal(readFileSync(join(r.workspace, "value.mjs"), "utf8"), "export const add=()=>0;");
+  const done = await caller({...r, resumeRunId: stopped.result.runId, approval: {hash: resumed.result.nextAction.hash, decision: "approve"}});
+  assert.equal(done.result.status, "success");
+});
+
+test("missing CLI is actionable before any file changes", async (t) => {
+  const r = setup(t);
+  r.provider.executable = join(r.workspace, "absent-cli");
+  const stopped = await caller(r);
+  assert.equal(stopped.code, 2);
+  assert.equal(stopped.result.error.code, "MISSING_EXECUTABLE");
+  assert.equal(stopped.result.nextAction.type, "configure_provider");
+  assert.equal(readFileSync(join(r.workspace, "value.mjs"), "utf8"), "export const add=()=>0;");
+});
+
+test("active Claude caller gets a handoff instruction without launching a child or removing guard", async (t) => {
+  const r = setup(t);
+  const p = await subprocess(process.execPath, [resolve("bin/qloops.mjs"), "agent", "-"], {
+    input: JSON.stringify(r), env: scopedEnvironment({CLAUDECODE:"fixture-active-session"}), timeoutMs: 5000,
+  });
+  const result = JSON.parse(p.stdout);
+  assert.equal(p.code,2);
+  assert.equal(result.error.code,"UNSUPPORTED_NESTING");
+  assert.equal(result.nextAction.type,"configure_caller");
+  assert.equal(existsSync(join(r.workspace,"fixture-invocation.json")),false);
+  assert.equal(readFileSync(join(r.workspace,"value.mjs"),"utf8"),"export const add=()=>0;");
 });

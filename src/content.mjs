@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { hash, insist, resultEnvelope, CoreError } from "./contracts.mjs";
 import { lockWorkspace, atomicJson } from "./workspace.mjs";
+import { recoveryAction } from "./recovery.mjs";
 /** Reusable editorial pipeline. Caller supplies explicit provider, checker and
  * receiver adapters. Receipt storage is durable; ambiguous sends are never retried.
  * Callbacks are trusted host capabilities, never executable manifest strings. */
@@ -254,11 +255,14 @@ export async function runContent(
       usage: run.usage,
     });
   } catch (e) {
+    const cancelled = signal?.aborted || e.code === "CANCELLED";
+    const nextAction = cancelled ? null : recoveryAction(e.code);
     return resultEnvelope(
       { requestId },
       {
         protocolVersion: "qf.content/v1",
-        status: signal?.aborted || e.code === "CANCELLED" ? "cancelled" : "failed",
+        status: cancelled ? "cancelled" : nextAction ? "needs_human" : "failed",
+        nextAction,
         summary: "Content pipeline failed",
         error: {
           code: e instanceof CoreError ? e.code : "CONTENT_FAILED",
