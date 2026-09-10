@@ -1,5 +1,9 @@
 # Core contract revision 5 (qf.agent/v1)
 
+Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
+and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships
+these discoverability additions without changing revision5 runtime semantics.
+
 Additive to qf.loop/v1. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
 

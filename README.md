@@ -134,6 +134,11 @@ for publication. Retry is never exactly-once delivery.
 
 ## Content and quality capabilities
 
+For Content, start with the shipped [exact request/approval/receiver contract](contracts/v1/content.md)
+and [synthetic request example](examples/content-request.json). They describe local
+configuration, exact-text approval, repeat/dedup and uncertain-delivery recovery
+without requiring a source checkout. The SDD request schema is not a Content schema.
+
 `qloops content request.json` uses `qf.content-request/v1`: explicit sources,
 allowedOrigins, profile, provider, receipt-aware webhook receiver and deadline.
 `runContent` exports the same orchestration with caller-injected capabilities.
