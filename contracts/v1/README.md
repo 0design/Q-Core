@@ -86,3 +86,5 @@ than a generic invalid JSONL failure. Raw stderr is not exposed and no permissio
 change/retry is made. Content errors retain an existing runId for correlation;
 resume still uses the same request/workspace, not an SDD resumeRunId field.
 This makes the environment blocker actionable; it does not solve or bypass it.
+
+Explicit current-agent inference for SDD and Content: [caller protocol](caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.

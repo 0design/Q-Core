@@ -1,4 +1,5 @@
 import { validateSpecInputs } from "./specification.mjs";
+import { validateCallerInput } from "./caller-inference.mjs";
 import { createHash } from "node:crypto";
 import { isAbsolute, resolve } from "node:path";
 export const PROTOCOL = "qf.agent/v1";
@@ -58,6 +59,10 @@ export function validateRequest(r) {
     "specification",
     "clarification",
     "specChange",
+    "inferenceReply",
+    "cancelInference",
+    "maxInferenceJobs",
+    "inferenceTtlMs",
   ];
   insist(
     Object.keys(r).every((k) => keys.includes(k)),
@@ -150,7 +155,7 @@ export function validateRequest(r) {
     );
   }
   insist(
-    r.provider && ["claude", "codex", "openrouter"].includes(r.provider.kind),
+    r.provider && ["claude", "codex", "openrouter", "caller"].includes(r.provider.kind),
     "Explicit provider required",
   );
   insist(
@@ -170,7 +175,7 @@ export function validateRequest(r) {
         r.provider.payerScope === "local-cli",
       "CLI provider requires absolute executable and local-cli scope",
     );
-  else
+  else if (r.provider.kind === "openrouter")
     insist(
       /^[A-Z_][A-Z0-9_]*$/.test(r.provider.keyRef ?? "") &&
         r.provider.payerScope === "local-byok",
@@ -197,6 +202,7 @@ export function validateRequest(r) {
       "Invalid approval",
     );
   validateSpecInputs(r);
+  validateCallerInput(r);
   return r;
 }
 export function resultEnvelope(request, fields = {}) {

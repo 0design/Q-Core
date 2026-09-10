@@ -190,3 +190,5 @@ The installed package exports the A2D-based execute/verify/repair reducer. See
 synthetic file-and-test example with `node examples/determined-caller.mjs` from
 the source checkout, or copy that shipped example into your installed caller.
 It demonstrates real failing/passing subprocess checks with a scripted executor.
+
+Explicit current-agent inference for SDD and Content: [caller protocol](contracts/v1/caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.

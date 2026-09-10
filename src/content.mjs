@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { hash, insist, resultEnvelope, CoreError } from "./contracts.mjs";
 import { lockWorkspace, atomicJson } from "./workspace.mjs";
 import { recoveryAction } from "./recovery.mjs";
+import { validateCallerInput, callerInference, assertInferenceReply, invalidateInference, contentMessages } from "./caller-inference.mjs";
 /** Reusable editorial pipeline. Caller supplies explicit provider, checker and
  * receiver adapters. Receipt storage is durable; ambiguous sends are never retried.
  * Callbacks are trusted host capabilities, never executable manifest strings. */
@@ -17,13 +18,17 @@ export async function runContent(
     receiver,
     approval,
     maxItems = 10,
+    inferenceReply,
+    cancelInference,
+    maxInferenceJobs,
+    inferenceTtlMs,
   },
-  { generate, check, publish, signal } = {},
+  { generate, check, publish, signal, callerRequestHash } = {},
 ) {
   let lock, state, file, run;
   const cancelled = () => { if (signal?.aborted) throw new CoreError("CANCELLED", "Content operation cancelled"); };
   try {
-    cancelled();
+    validateCallerInput({provider,inferenceReply,cancelInference,maxInferenceJobs,inferenceTtlMs});
     insist(
       typeof requestId === "string" &&
         Array.isArray(sources) &&
@@ -47,7 +52,7 @@ export async function runContent(
       "maxItems must be 1..50",
     );
     insist(
-      typeof generate === "function" &&
+      (typeof generate === "function" || provider?.kind === "caller") &&
         typeof check === "function" &&
         typeof publish === "function",
       "Content requires provider, checker and publisher",
@@ -88,8 +93,12 @@ export async function runContent(
     const selected = normalized
       .filter((s) => !delivered.has(s.key))
       .slice(0, maxItems);
-    const key = hash({ sources: selected, profile, provider, receiver });
+    const key = hash({ sources: selected, profile, provider, receiver,
+      ...(provider.kind==="caller"?{callerPolicy:{maxInferenceJobs:maxInferenceJobs??12,inferenceTtlMs:inferenceTtlMs??900000,maxItems,callerRequestHash:callerRequestHash??null}}:{}) });
     run = state.publications[key];
+    assertInferenceReply(run,inferenceReply??cancelInference);
+    if(cancelInference) throw new CoreError("CANCELLED","Pending inference cancelled by its caller");
+    cancelled();
     const selectedKeys = new Set(selected.map((s) => s.key));
     const unresolved = Object.entries(state.publications).find(
       ([k, p]) =>
@@ -133,6 +142,7 @@ export async function runContent(
         phase: "draft",
         sourceKeys: selected.map((s) => s.key),
         receiver,
+        ...(provider.kind==="caller"?{callerRequestHash:callerRequestHash??null}:{}),
       };
       state.publications[key] = run;
       save();
@@ -150,7 +160,12 @@ export async function runContent(
       );
     if (run.phase === "rejected") return out("cancelled", "Draft rejected");
     if (run.phase === "draft") {
-      const draft = await generate({ ...structuredClone({sources: selected, profile}), signal });
+      let draft;
+      if (provider.kind === "caller") {
+        const result=callerInference(run,{messages:contentMessages(selected,profile),phase:"content-draft",outputKind:"content",binding:{key},provider,maxInferenceJobs,inferenceTtlMs,reply:inferenceReply,save});
+        draft={text:JSON.parse(result.content).text,usage:result.usage};
+        run.provider=result.provider;
+      } else draft = await generate({ ...structuredClone({sources: selected, profile}), signal });
       cancelled();
       insist(
         typeof draft?.text === "string" &&
@@ -256,7 +271,11 @@ export async function runContent(
     });
   } catch (e) {
     const cancelled = signal?.aborted || e.code === "CANCELLED";
-    const nextAction = cancelled ? null : recoveryAction(e.code);
+    const nextAction = cancelled ? null : e.code === "INFERENCE_REQUIRED" ? e.nextAction : recoveryAction(e.code);
+    if (run && state && file) {
+      if (cancelled) invalidateInference(run);
+      atomicJson(file,state);
+    }
     return resultEnvelope(
       { requestId },
       {
@@ -274,6 +293,22 @@ export async function runContent(
   } finally {
     lock?.release();
   }
+}
+
+// HTTP cancellation needs no source fetch or provider/receiver credentials. The
+// immutable request identity binds it to the persisted job before invalidation.
+export function cancelContentInference({workspace,requestId,cancelInference},callerRequestHash) {
+  const lock=lockWorkspace(workspace);
+  try {
+    const file=join(lock.dir,"content-state.json");
+    insist(existsSync(file)&&!lstatSync(file).isSymbolicLink(),"No pending Content inference","STALE_INFERENCE");
+    const state=JSON.parse(readFileSync(file,"utf8"));
+    const run=Object.values(state.publications).find(p=>p.pendingInference?.jobId===cancelInference.jobId);
+    assertInferenceReply(run,cancelInference);
+    insist(run.callerRequestHash===callerRequestHash,"Content cancellation request changed","STALE_INFERENCE");
+    invalidateInference(run);atomicJson(file,state);
+    return resultEnvelope({requestId},{protocolVersion:"qf.content/v1",runId:run.runId,status:"cancelled",summary:"Pending inference cancelled by its caller"});
+  } finally {lock.release();}
 }
 
 /** Reconcile by asking the configured receiver; never fabricate a receipt from

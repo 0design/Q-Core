@@ -21,6 +21,7 @@ import { codex } from "./providers/codex.mjs";
 import { claude } from "./providers/claude.mjs";
 import { openRouter } from "./providers/openrouter.mjs";
 import { recoveryAction } from "./recovery.mjs";
+import { callerInference, assertInferenceReply, invalidateInference } from "./caller-inference.mjs";
 const humanCodes = new Set([
   "SCOPE_DENIED",
   "MISSING_CHECKER",
@@ -36,6 +37,9 @@ const humanCodes = new Set([
   "MODEL_UNAVAILABLE",
   "RECONCILE_REQUIRED",
   "BUDGET_EXHAUSTED",
+  "INFERENCE_REQUIRED",
+  "INFERENCE_EXPIRED",
+  "STALE_INFERENCE",
 ]);
 function parseObject(text) {
   const clean = text
@@ -81,13 +85,14 @@ export async function runAgent(
     stateWritable = false;
   try {
     r = validateRequest(r);
-    if (process.env.CLAUDECODE || Number(process.env.QLOOPS_DEPTH || 0) > 0)
+    if ((process.env.CLAUDECODE && r.provider.kind !== "caller") || Number(process.env.QLOOPS_DEPTH || 0) > 0)
       throw new CoreError(
         "UNSUPPORTED_NESTING",
         "Active nesting guard; use an explicit caller-owned broker",
       );
     lock = lockWorkspace(r.workspace);
-    const { approval, resumeRunId, clarification, specChange, ...identity } = r;
+    const { approval, resumeRunId, clarification, specChange, inferenceReply, cancelInference, ...identity } = r;
+    let reply = inferenceReply;
     const identityHash = hash(identity);
     const runId = resumeRunId ?? randomUUID();
     file = join(lock.dir, `agent-${runId}.json`);
@@ -137,6 +142,7 @@ export async function runAgent(
         "Resume request changed policy, intent, provider or scope",
         "WORKSPACE_CHANGED",
       );
+      assertInferenceReply(state, reply??cancelInference);
       if (state.phase === "applying")
         throw new CoreError(
           "RECONCILE_REQUIRED",
@@ -165,6 +171,8 @@ export async function runAgent(
         verifierSources: verifierSources(r),
       };
     stateWritable = true;
+    assertInferenceReply(state, reply??cancelInference);
+    if(cancelInference) throw new CoreError("CANCELLED","Pending inference cancelled by its caller");
     const save = () => atomicJson(file, state);
     deadline = AbortSignal.timeout(r.deadlineMs);
     const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
@@ -193,13 +201,18 @@ export async function runAgent(
       };
       state.costUnknown = r.maxCostUsd !== undefined;
       save(); // An interrupted billed call cannot free its reservation on resume.
-      const result = generate
+      const result = r.provider.kind === "caller"
+        ? callerInference(state,{messages,phase:state.phase,outputKind:state.phase==="spec"?"specification":"files",
+            binding:{identityHash,specRevision:state.specRevision??0,artifactRevision:state.revision,files:hash(snapshot(r.workspace,r.allowedPaths)),verifier:hash(state.verifierSources)},
+            provider:r.provider,maxInferenceJobs:r.maxInferenceJobs,inferenceTtlMs:r.inferenceTtlMs,reply,save})
+        : generate
         ? await generate(opts)
         : r.provider.kind === "claude"
           ? await claude(opts)
           : r.provider.kind === "codex"
             ? await codex(opts)
             : await openRouter(opts);
+      reply = undefined;
       state.provider = result.provider;
       state.calls ??= [];
       state.calls.push({
@@ -454,7 +467,8 @@ export async function runAgent(
       summary: e instanceof CoreError ? e.message : code,
       error: { code, message: e instanceof CoreError ? e.message : code },
       nextAction:
-        code === "MODEL_UNAVAILABLE"
+        code === "INFERENCE_REQUIRED" ? e.nextAction
+        : code === "MODEL_UNAVAILABLE"
           ? { type: "configure_provider", requestedModel: r.provider?.model ?? null }
           : code === "MISSING_CHECKER"
           ? { type: "configure_verifier" }
@@ -467,6 +481,7 @@ export async function runAgent(
       usage: state?.usage ?? null,
     });
     if (stateWritable && state && file) {
+      if (code === "CANCELLED") invalidateInference(state);
       state.result = result;
       atomicJson(file, state);
     }
