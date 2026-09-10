@@ -1,0 +1,312 @@
+{
+  "date": "2026-09-10T10:48:07.531Z",
+  "package": "0.2.0-core.9",
+  "artifactSha256": "e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461",
+  "evidenceKind": "clean-installed shipped Content request example; Codex subprocess fixture; real localhost HTTP only; not live inference or owner acceptance",
+  "contractSha256": "c8c6d5063f03219b15e8818adfbe720ba46ae30ac71d0fdfcc0889dc611f0787",
+  "exampleSha256": "0be14b4d702667e4827b2490454e8e44f14e685c5fdee885e3bfb71df4ab11be",
+  "checks": {
+    "exactText": true,
+    "approvalRequired": true,
+    "receipt": true,
+    "dedup": true,
+    "staleApprovalRejected": true,
+    "rejection": true,
+    "missingKey": true,
+    "uncertainReplayNoResend": true
+  },
+  "outputs": [
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": null,
+        "status": "needs_human",
+        "summary": "Content request failed",
+        "artifacts": [],
+        "evidence": [],
+        "error": {
+          "code": "AUTH_REQUIRED",
+          "message": "Receiver key missing"
+        },
+        "nextAction": {
+          "type": "configure_access",
+          "message": "Restore the configured provider or receiver's local authorization, then retry the explicit run. Keep credentials out of prompts and result files."
+        },
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "9eb063be-d8b3-4390-9c69-926dcc54ea8c",
+        "status": "needs_human",
+        "summary": "Approve this exact draft and receiver",
+        "artifacts": [],
+        "evidence": [
+          {
+            "outcome": "pass",
+            "rule": "source-attribution/v1",
+            "textHash": "16f90e5ab9d1712fd70f69f6b3ba6ecd85679493349cb612e48a66bc22296c9a",
+            "coverage": [
+              {
+                "id": "synthetic-source-1",
+                "attributed": true
+              }
+            ]
+          }
+        ],
+        "error": null,
+        "nextAction": {
+          "type": "approve_publication",
+          "hash": "b546021a22669ed85abf68c470475905cb634fbe9047101007352c1d3e74473f",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:53835/source/1",
+          "receiver": {
+            "kind": "webhook",
+            "id": "synthetic-local-receiver",
+            "url": "http://127.0.0.1:53835/receipt",
+            "version": "1"
+          }
+        },
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 0,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "9eb063be-d8b3-4390-9c69-926dcc54ea8c",
+        "status": "success",
+        "summary": "Publication confirmed by receiver",
+        "artifacts": [
+          {
+            "revision": 1,
+            "sha256": "16f90e5ab9d1712fd70f69f6b3ba6ecd85679493349cb612e48a66bc22296c9a"
+          }
+        ],
+        "evidence": [
+          {
+            "outcome": "pass",
+            "rule": "source-attribution/v1",
+            "textHash": "16f90e5ab9d1712fd70f69f6b3ba6ecd85679493349cb612e48a66bc22296c9a",
+            "coverage": [
+              {
+                "id": "synthetic-source-1",
+                "attributed": true
+              }
+            ]
+          },
+          {
+            "outcome": "pass",
+            "receipt": {
+              "id": "receipt-1",
+              "delivered": true
+            }
+          }
+        ],
+        "error": null,
+        "nextAction": null,
+        "provider": null,
+        "usage": {
+          "tokensIn": 10,
+          "tokensOut": 5,
+          "cachedTokensIn": 2,
+          "costUsd": null,
+          "costKind": "subscription-usage"
+        }
+      }
+    },
+    {
+      "exit": 0,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": null,
+        "status": "success",
+        "summary": "No new sources; no publication attempted",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "no_new_sources"
+        },
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "39bda4ac-c9f2-4f10-95f9-8ca098df2d84",
+        "status": "needs_human",
+        "summary": "Approve this exact draft and receiver",
+        "artifacts": [],
+        "evidence": [
+          {
+            "outcome": "pass",
+            "rule": "source-attribution/v1",
+            "textHash": "4a959cb23f288a58debfbafa61c8f354bde715ce66b16d9e2d9c137fc1a27108",
+            "coverage": [
+              {
+                "id": "synthetic-source-2",
+                "attributed": true
+              }
+            ]
+          }
+        ],
+        "error": null,
+        "nextAction": {
+          "type": "approve_publication",
+          "hash": "95a363f98c69197d6a3d4ac6d71129074b589de3c3138ef2c106609d730920cd",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:53835/source/2",
+          "receiver": {
+            "kind": "webhook",
+            "id": "synthetic-local-receiver",
+            "url": "http://127.0.0.1:53835/receipt",
+            "version": "1"
+          }
+        },
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "39bda4ac-c9f2-4f10-95f9-8ca098df2d84",
+        "status": "needs_human",
+        "summary": "Approve this exact draft and receiver",
+        "artifacts": [],
+        "evidence": [
+          {
+            "outcome": "pass",
+            "rule": "source-attribution/v1",
+            "textHash": "4a959cb23f288a58debfbafa61c8f354bde715ce66b16d9e2d9c137fc1a27108",
+            "coverage": [
+              {
+                "id": "synthetic-source-2",
+                "attributed": true
+              }
+            ]
+          }
+        ],
+        "error": null,
+        "nextAction": {
+          "type": "approve_publication",
+          "hash": "95a363f98c69197d6a3d4ac6d71129074b589de3c3138ef2c106609d730920cd",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:53835/source/2",
+          "receiver": {
+            "kind": "webhook",
+            "id": "synthetic-local-receiver",
+            "url": "http://127.0.0.1:53835/receipt",
+            "version": "1"
+          }
+        },
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 130,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "39bda4ac-c9f2-4f10-95f9-8ca098df2d84",
+        "status": "cancelled",
+        "summary": "Draft rejected",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": null,
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "ea8de143-b9d4-4ea5-83f3-9173d2e8efc5",
+        "status": "needs_human",
+        "summary": "Approve this exact draft and receiver",
+        "artifacts": [],
+        "evidence": [
+          {
+            "outcome": "pass",
+            "rule": "source-attribution/v1",
+            "textHash": "973563fcda66bbe4c0e54120818b10e18278f8509a5b3c9ff8cba6a71870a208",
+            "coverage": [
+              {
+                "id": "synthetic-source-3",
+                "attributed": true
+              }
+            ]
+          }
+        ],
+        "error": null,
+        "nextAction": {
+          "type": "approve_publication",
+          "hash": "6f0fdc2ba6c1440cd42b6f7af0595fe004bd7154b154e610a232529138887fe8",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:53835/source/3",
+          "receiver": {
+            "kind": "webhook",
+            "id": "synthetic-local-receiver",
+            "url": "http://127.0.0.1:53835/receipt",
+            "version": "1"
+          }
+        },
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "ea8de143-b9d4-4ea5-83f3-9173d2e8efc5",
+        "status": "needs_human",
+        "summary": "Receiver failed after send began; delivery unconfirmed",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "reconcile_receipt",
+          "idempotencyKey": "acddbe4e179930e0b0f3d966639e13e56c95713314c5ea7e47cf976d9fd08487"
+        },
+        "provider": null,
+        "usage": null
+      }
+    },
+    {
+      "exit": 2,
+      "result": {
+        "protocolVersion": "qf.content/v1",
+        "requestId": "synthetic-content-example",
+        "runId": "ea8de143-b9d4-4ea5-83f3-9173d2e8efc5",
+        "status": "needs_human",
+        "summary": "Publication outcome uncertain; reconcile receiver receipt before any retry",
+        "artifacts": [],
+        "evidence": [],
+        "error": null,
+        "nextAction": {
+          "type": "reconcile_receipt",
+          "idempotencyKey": "acddbe4e179930e0b0f3d966639e13e56c95713314c5ea7e47cf976d9fd08487"
+        },
+        "provider": null,
+        "usage": null
+      }
+    }
+  ]
+}

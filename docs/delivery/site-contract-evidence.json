@@ -1,20 +1,20 @@
 {
   "evidenceKind": "read-only site export + Core validator; consumer integration NOT accepted",
-  "catalogSha256": "7e6f4e1a575bcb5f75eb00802b5a2a02ac17f63615e4f33054745e45d8ea490a",
-  "release": "2026.09.08-site.1",
+  "catalogSha256": "656d896d2d238e41b709adec1ebeb0d4453369acf3cd4b93b073fec029b63987",
+  "release": "2026.09.10-site.2",
   "consumerPin": {
     "package": "qloops",
-    "version": "0.2.0-core.2",
+    "version": "0.2.0-core.8",
     "manifest": "qf.loop/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 2,
-    "artifact": "vendor/qloops-0.2.0-core.2.tgz",
-    "artifactSha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2",
-    "integrity": "sha512-CDsORI7asdH6cTYfa6/gw/QP2A7rcfOGezqZ0rDjLszxR7WmmiHSAhOCP1ATj3GzkRSz81WKsLPgzS5tMb+UtA==",
+    "contractRevision": 5,
+    "artifact": "vendor/qloops-0.2.0-core.8.tgz",
+    "artifactSha256": "4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea",
+    "integrity": "sha512-BRQJcIhXCppQsvG/W+r3J12KiAjibWAj+CLDZFAUkDKFBwCSymCNBGWotnNBGqsy4zg1DpCrGaFFPE2uS4YA6g==",
     "schemaSha256": "83e5ef6bd729ab029fe5f57f56baecd296a65310f1f2fa5b9b12dca2c0d9a897",
-    "requestSchemaSha256": "ef7adb15455ec1fac4dc78fe6abf90900d8594402a8439acf03f876ec249102e",
+    "requestSchemaSha256": "1fdc0336cc1192c6dc728928940c05661c0ea6ecff1b571c8698630a7bb1cf43",
     "status": "consumer-integration-candidate",
-    "source": "Retained Core handoff artifact; verified against Core SHA256SUMS and package-evidence.json",
+    "source": "Core handoff core.8 / revision5; immutable tarball checksum verified before consumer install",
     "pending": [
       "Canonical registry publication and final coordinator acknowledgment",
       "Content-factory owner sources and Telegram receipts",
@@ -22,13 +22,12 @@
       "coordinator release acceptance"
     ],
     "consumerEvidence": {
-      "date": "2026-09-08",
-      "controlledHttp": "docs/delivery/evidence/night-2026-09-08/acceptance.json",
-      "liveSdd": "docs/delivery/evidence/night-2026-09-08/live-sdd-result.json",
-      "scope": "Local Codex SDD change and verifier; cached resume; failures covered by fixture-model tests, not live failure inference"
+      "date": "2026-09-10",
+      "status": "pending",
+      "scope": "New revision5 consumer tests and four-entry agent proof required. Historical core.2 evidence does not cover this repin."
     }
   },
-  "installedCore": "0.2.0-core.8",
+  "installedCore": "0.2.0-core.9",
   "manifests": [
     {
       "id": "brand-mentions",
@@ -86,6 +85,6 @@
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485"
     }
   ],
-  "coreArtifactSha256": "4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea",
+  "coreArtifactSha256": "e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461",
   "integrationStatus": "pending-consumer-repin"
 }

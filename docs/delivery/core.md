@@ -1,9 +1,30 @@
 # Core delivery candidate — 2026-09-10
 
-Current local package: qloops@0.2.0-core.8, contract revision 5 / qf.agent/v1.
-SHA256: `4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea`. Zero runtime dependencies. This is a local delivery candidate;
+Current local package: qloops@0.2.0-core.9, contract revision 5 / qf.agent/v1.
+SHA256: `e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461`. Zero runtime dependencies. This is a local delivery candidate;
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
+
+## Content discoverability delivery
+
+Implementation fe0d774 / core.9 ships contracts/v1/content.md and
+examples/content-request.json, linked from README and contracts index. Exact
+request/approval/repeat/receiver/reconciliation behavior is available to installed
+consumers without private source access. No Content JSON schema is claimed; the
+document and executable installed-example proof define this delivery. No runtime
+change; contract revision5 and earlier 126-test runtime verification remain.
+
+npm run test:package now also verifies the shipped Content example from a clean
+tarball install: fixture Codex inference + real localhost HTTP, exact-text receipt,
+approval required, dedup, stale approval/rejection, missing key and uncertain-send
+replay without another POST. All passed; content-contract-package.json records
+artifact/doc/example hashes and outputs. Fresh live Codex evidence remains bound to
+core.8; the new fixture proof is not owner Content or golden-path acceptance.
+Read-only Site now pins core.8, 11/11 manifests valid; core.9 repin is still pending.
+
+For Site engine discovery export both the contract and the example, preserving or
+rewriting the relative link between them. Do not present synthetic localhost data
+as configured owner sources, a connected channel or a confirmed publication.
 
 ## Golden-path audit and recovery continuation
 

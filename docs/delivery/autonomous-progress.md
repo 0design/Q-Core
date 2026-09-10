@@ -94,3 +94,7 @@ concrete progress; no unfinished command sessions remain for this continuation.
 Implementation ceb84ee, core.8/revision5. 126/126 tests, installed fixture proof, real installed Claude AUTH_REQUIRED with source unchanged; explicit auth/CLI/caller/permission recovery added. Four-entry matrix, owner inputs and conditional estimates are in golden-path-audit.md. Previous blocked conclusion was for the earlier scope; new requirements add unproven Claude parent and one-prompt integration work. Site/shared files untouched; no public release.
 
 Owner clarified order: stabilize Codex now, Claude final testing last; not a final scope reduction. Fresh core.8 Codex package live proof passed with one recorded clarification, approval, independent check and cached resume. Initial proof-harness immediate-approval assumption fixed with bounded clarification handling. Linear199 In Progress;38,138,104 updated.
+
+## Content discoverability follow-up
+
+core.9 / fe0d774 ships the exact Content request/approval/repeat/receiver contract and synthetic JSON example. npm run test:package includes clean installed example proof: fixture model, real localhost exact-text/receipt, missing-key/reject/stale/dedup/uncertain no-resend all passed. No runtime change; revision5 unchanged. Site received artifact/hash; current read-only pin8, 11 manifests valid. Real owner Content remains pending.

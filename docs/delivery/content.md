@@ -1,5 +1,11 @@
 # Content Core live proof — 2026-09-10
 
+Current discoverability addition: core.9 ships contracts/v1/content.md and
+examples/content-request.json. The installed-example proof is
+content-contract-package.json; model inference there is fixture, real transport is
+localhost only. Runtime unchanged from core.8. Historical live proof below remains
+bound to core.7, not silently re-labelled as core.9 or owner acceptance.
+
 Candidate core.7 closes the local live-inference gap: clean installed CLI → actual
 Codex ChatGPT draft → source-attribution check → explicit test-harness approval →
 exact-text localhost receiver receipt. Three authored synthetic sources produce

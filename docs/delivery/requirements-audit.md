@@ -1,5 +1,10 @@
 # Core requirement audit — 2026-09-10
 
+core.9 follow-up: public-package Content discoverability gap closed with shipped
+contract and synthetic JSON example, verified via clean installed package. Runtime
+unchanged; revision5. Site now pins core.8; core.9 consumer repin still pending.
+No owner Content/golden-path acceptance follows from the fixture model/local HTTP proof.
+
 **Superseding scope audit:** see [golden-path-audit.md](golden-path-audit.md).
 Latest owner sequence is Codex stabilization first, Claude final testing last;
 Claude is deferred for this stage, not removed from final acceptance.

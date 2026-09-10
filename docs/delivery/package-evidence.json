@@ -1,8 +1,8 @@
 {
   "package": "qloops",
-  "version": "0.2.0-core.8",
-  "sha256": "4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea",
-  "integrity": "sha512-BRQJcIhXCppQsvG/W+r3J12KiAjibWAj+CLDZFAUkDKFBwCSymCNBGWotnNBGqsy4zg1DpCrGaFFPE2uS4YA6g==",
+  "version": "0.2.0-core.9",
+  "sha256": "e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461",
+  "integrity": "sha512-9i4K5qcEZXBl+0F8XkmHbDTzPwCqYrDeV3a4RClQvnRRiTX4o1gQ79H8ukUuBK86IOjL5KTBMRAkE5iMk/F7UA==",
   "files": [
     "CONTRIBUTING.md",
     "LICENSE",
@@ -13,6 +13,7 @@
     "bin/qloop.mjs",
     "bin/qloops.mjs",
     "contracts/v1/codex-request.json",
+    "contracts/v1/content.md",
     "contracts/v1/determined.md",
     "contracts/v1/fixtures.json",
     "contracts/v1/quality.md",
@@ -28,6 +29,7 @@
     "examples/content-factory.txt",
     "examples/content-feed.run.json",
     "examples/content-feed.txt",
+    "examples/content-request.json",
     "examples/determined-caller.mjs",
     "examples/feed-fanout.run.json",
     "examples/feed-fanout.txt",
