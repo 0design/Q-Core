@@ -1,0 +1,3 @@
+Setup is complete in [`.qfactory/tools/qloops`]( /Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/.qf/golden-parent/customize/.qfactory/tools/qloops ): qloops `0.2.0-core.9`, contract revision `5`; artifact SHA-256 verified.
+
+What useful result would you like this project to produce or change? For example: a feed digest, release summary, structured report, webhook relay, or a checked code change.

@@ -1,0 +1,25 @@
+Help me create a reusable loop with QFactory in this project.
+
+My task: "Ask me what useful result I want in this project, then help me achieve it."
+
+
+
+Read http://localhost:3101/qfactory-skill.md. Get the versioned catalog at http://localhost:3101/registry/catalog.json and the engine metadata and contract documents at http://localhost:3101/registry/engine.json.
+
+This handoff pins qloops 0.2.0-core.9, contract revision 5. If setup is needed, download http://localhost:3101/downloads/qloops-0.2.0-core.9.tgz and verify SHA-256 e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461 before installation. Stop and explain any conflicting pin; never silently substitute a version.
+
+Include setup in this conversation. Inspect the current project and installed version first. Install into an isolated project-local tool directory if needed, without replacing project dependencies, existing loops or unrelated files. Do not require a separate setup prompt.
+
+Search before creating anything: reuse a suitable loop, then components, then a loop as a component. Create only missing steps. Read the pinned contract instead of inventing commands, step kinds or capabilities.
+
+If I did not select a loop, find suitable candidates from my intended result. Ask only for missing details that affect the task.
+
+Showcases are examples, not executable dependencies. Resolve their actual loop before use. Preserve the original when adapting; keep source version and a summary of changes.
+
+Carry the task through configuration, validation, local execution and an independent check of the intended result. Installing the tool or writing a manifest is not the final result.
+
+Keep credentials local. Respect permissions already granted in this conversation; ask for any missing authorization before paid calls, messages, publication or other external effects. Clarifications and approvals continue here, not through another QFactory prompt.
+
+If blocked, retain the task, files and run ID, explain the smallest next action and resume after it is resolved. Never bypass authentication or nesting guards, overwrite existing work, repeat a delivered action blindly or weaken a verifier to pass.
+
+Report validation and actual run evidence separately: what changed, which output was checked, exact versions and any remaining limitation. A real SDD result includes a checked project change; a content result includes a useful sourced artifact and delivery only where authorized. Do not claim unsupported environments or synthetic fixtures as live acceptance.

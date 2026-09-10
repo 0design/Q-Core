@@ -98,3 +98,7 @@ Owner clarified order: stabilize Codex now, Claude final testing last; not a fin
 ## Content discoverability follow-up
 
 core.9 / fe0d774 ships the exact Content request/approval/repeat/receiver contract and synthetic JSON example. npm run test:package includes clean installed example proof: fixture model, real localhost exact-text/receipt, missing-key/reject/stale/dedup/uncertain no-resend all passed. No runtime change; revision5 unchanged. Site received artifact/hash; current read-only pin8, 11 manifests valid. Real owner Content remains pending.
+
+## Fresh parent acceptance and core.10
+
+Five fresh parent sessions via HTTP: initial start SHA transcription fail; fresh updated-skill start recovered without hints. Actual customize/create outputs and repeats verified; Content/SDD blocked at nested Codex client IPC/startup permission. 0eec745 adds actionable error/runId preservation;128 tests and installed consumers pass. Full report golden-parent/report.md. Coordinator authorized two-phase caller mode next; no sandbox/broker workaround.

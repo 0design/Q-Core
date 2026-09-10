@@ -1,0 +1,22 @@
+manifest: qf.loop/v1
+
+id: service-readiness-negative
+name: "Service readiness negative case"
+version: 1.0.0
+description: >
+  Intentionally fetches the local service failure endpoint. HTTP 422 must make
+  this separate run fail visibly.
+owner: synthetic-test-owner
+enabled: true
+
+triggers:
+  - kind: manual
+
+steps:
+  - id: fail
+    kind: fetch
+    config:
+      name: "Read intentional failure"
+      url: "http://127.0.0.1:54423/fail"
+      format: json
+      timeoutSec: 20

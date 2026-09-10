@@ -1,11 +1,11 @@
 {
   "baseline": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
   "inheritedCommit": "8f47212",
-  "implementationCommit": "fe0d774",
+  "implementationCommit": "0eec745",
   "branch": "codex/qf-core-delivery",
-  "artifactSha256": "e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461",
-  "note": "Content contract and synthetic request shipped; installed example proves approval, exact-text receipt, dedup, stale rejection, missing key and uncertain replay with fixture model and real localhost HTTP. Runtime unchanged from core.8 (126 tests/live Codex proof); contract revision5 unchanged. Codex golden paths active, Claude final test deferred.",
-  "previousImplementationCommit": "ceb84ee",
-  "packageVersion": "0.2.0-core.9",
-  "contractRevision": 5
+  "artifactSha256": "537a3fbbfde3f4da019af8529f4ad6ea2c0659cc1a58bdc72a6ae81cd4ddee07",
+  "note": "128 tests; observed nested Codex startup denial is actionable and Content runId retained. Fresh core.9 parent customize/create verified, SDD/Content blocked in workspace-write environment. Caller protocol implementation authorized next; no bypass.",
+  "previousImplementationCommit": "fe0d774",
+  "packageVersion": "0.2.0-core.10",
+  "contractRevision": 6
 }

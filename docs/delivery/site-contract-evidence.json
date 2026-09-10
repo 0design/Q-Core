@@ -1,20 +1,20 @@
 {
   "evidenceKind": "read-only site export + Core validator; consumer integration NOT accepted",
-  "catalogSha256": "656d896d2d238e41b709adec1ebeb0d4453369acf3cd4b93b073fec029b63987",
-  "release": "2026.09.10-site.2",
+  "catalogSha256": "cab74b5b14f8bf93bb1e4903a832b565f63d95781094ef54f686cd9dc1d3f70c",
+  "release": "2026.09.10-site.3",
   "consumerPin": {
     "package": "qloops",
-    "version": "0.2.0-core.8",
+    "version": "0.2.0-core.9",
     "manifest": "qf.loop/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 5,
-    "artifact": "vendor/qloops-0.2.0-core.8.tgz",
-    "artifactSha256": "4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea",
-    "integrity": "sha512-BRQJcIhXCppQsvG/W+r3J12KiAjibWAj+CLDZFAUkDKFBwCSymCNBGWotnNBGqsy4zg1DpCrGaFFPE2uS4YA6g==",
+    "artifact": "vendor/qloops-0.2.0-core.9.tgz",
+    "artifactSha256": "e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461",
+    "integrity": "sha512-9i4K5qcEZXBl+0F8XkmHbDTzPwCqYrDeV3a4RClQvnRRiTX4o1gQ79H8ukUuBK86IOjL5KTBMRAkE5iMk/F7UA==",
     "schemaSha256": "83e5ef6bd729ab029fe5f57f56baecd296a65310f1f2fa5b9b12dca2c0d9a897",
     "requestSchemaSha256": "1fdc0336cc1192c6dc728928940c05661c0ea6ecff1b571c8698630a7bb1cf43",
     "status": "consumer-integration-candidate",
-    "source": "Core handoff core.8 / revision5; immutable tarball checksum verified before consumer install",
+    "source": "Core handoff core.9 / revision5 with shipped Content contract and example; immutable checksum verified before consumer install",
     "pending": [
       "Canonical registry publication and final coordinator acknowledgment",
       "Content-factory owner sources and Telegram receipts",
@@ -27,7 +27,7 @@
       "scope": "New revision5 consumer tests and four-entry agent proof required. Historical core.2 evidence does not cover this repin."
     }
   },
-  "installedCore": "0.2.0-core.9",
+  "installedCore": "0.2.0-core.10",
   "manifests": [
     {
       "id": "brand-mentions",
@@ -85,6 +85,6 @@
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485"
     }
   ],
-  "coreArtifactSha256": "e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461",
+  "coreArtifactSha256": "537a3fbbfde3f4da019af8529f4ad6ea2c0659cc1a58bdc72a6ae81cd4ddee07",
   "integrationStatus": "pending-consumer-repin"
 }

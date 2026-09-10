@@ -1,9 +1,20 @@
 # Core delivery candidate — 2026-09-10
 
-Current local package: qloops@0.2.0-core.9, contract revision 5 / qf.agent/v1.
-SHA256: `e29bd27088fb478574074a44d373a3031284de12c6c1da5fa38b26956c28e461`. Zero runtime dependencies. This is a local delivery candidate;
+Current local package: qloops@0.2.0-core.10, contract revision 6 / qf.agent/v1.
+SHA256: `537a3fbbfde3f4da019af8529f4ad6ea2c0659cc1a58bdc72a6ae81cd4ddee07`. Zero runtime dependencies. This is a local delivery candidate;
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
+
+## Fresh parent proof and core.10
+
+128/128 tests, installed SDD/Content fixture consumers pass. Real core.9 parent
+Codex sessions fetched HTTP skill/artifact and completed simple customize/create
+with verified actual outputs and repeats. SDD and Content hit a nested Codex
+client permission boundary. core.10 reports CLI_ENVIRONMENT_DENIED with a caller
+recovery action, preserves Content runId and never changes permissions. See
+[full parent report](golden-parent/report.md) and [caller design](caller-arrangement.md).
+No 4/4, owner Content or current nested-CLI support claimed. Next: coordinator
+authorized explicit caller-inference protocol; it is not yet implemented here.
 
 ## Content discoverability delivery
 

@@ -1,0 +1,30 @@
+manifest: qf.loop/v1
+
+id: service-readiness
+name: "Service readiness: health and data"
+version: 1.0.0
+description: >
+  Fetches and retains the JSON health and data responses from the local service.
+  Independent verification checks health.status=ready and data.total=6.
+owner: synthetic-test-owner
+enabled: true
+
+triggers:
+  - kind: manual
+
+steps:
+  - id: health
+    kind: fetch
+    config:
+      name: "Read health"
+      url: "http://127.0.0.1:54423/health"
+      format: json
+      timeoutSec: 20
+
+  - id: data
+    kind: fetch
+    config:
+      name: "Read data"
+      url: "http://127.0.0.1:54423/data"
+      format: json
+      timeoutSec: 20
