@@ -1,8 +1,8 @@
 {
   "package": "qloops",
-  "version": "0.2.0-core.2",
-  "sha256": "eca09fc168d46aeba50bc1a915914082b25751fae1d926a335c06676713e59d2",
-  "integrity": "sha512-CDsORI7asdH6cTYfa6/gw/QP2A7rcfOGezqZ0rDjLszxR7WmmiHSAhOCP1ATj3GzkRSz81WKsLPgzS5tMb+UtA==",
+  "version": "0.2.0-core.8",
+  "sha256": "4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea",
+  "integrity": "sha512-BRQJcIhXCppQsvG/W+r3J12KiAjibWAj+CLDZFAUkDKFBwCSymCNBGWotnNBGqsy4zg1DpCrGaFFPE2uS4YA6g==",
   "files": [
     "CONTRIBUTING.md",
     "LICENSE",
@@ -13,10 +13,14 @@
     "bin/qloop.mjs",
     "bin/qloops.mjs",
     "contracts/v1/codex-request.json",
+    "contracts/v1/determined.md",
     "contracts/v1/fixtures.json",
+    "contracts/v1/quality.md",
     "contracts/v1/README.md",
+    "contracts/v1/registry.md",
     "contracts/v1/request.schema.json",
     "contracts/v1/result.schema.json",
+    "contracts/v1/specification.md",
     "docs/codex.md",
     "examples/brand-mentions.run.json",
     "examples/brand-mentions.txt",
@@ -24,12 +28,17 @@
     "examples/content-factory.txt",
     "examples/content-feed.run.json",
     "examples/content-feed.txt",
+    "examples/determined-caller.mjs",
     "examples/feed-fanout.run.json",
     "examples/feed-fanout.txt",
     "examples/json-digest.run.json",
     "examples/json-digest.txt",
     "examples/price-watch.run.json",
     "examples/price-watch.txt",
+    "examples/quality/bad.css",
+    "examples/quality/bad.html",
+    "examples/quality/good.css",
+    "examples/quality/good.html",
     "examples/release-watch.run.json",
     "examples/release-watch.txt",
     "examples/strict-gate.run.json",
@@ -58,10 +67,12 @@
     "src/providers/codex.mjs",
     "src/providers/openrouter.mjs",
     "src/quality.mjs",
+    "src/recovery.mjs",
     "src/registry-release.mjs",
     "src/registry.mjs",
     "src/run.d.mts",
     "src/run.mjs",
+    "src/specification.mjs",
     "src/state.mjs",
     "src/steps.mjs",
     "src/subprocess.mjs",
@@ -78,5 +89,21 @@
     "installedCodexAgent": "success",
     "completedResume": "success"
   },
+  "clarifications": [
+    {
+      "questions": [
+        {
+          "id": "addition_behavior",
+          "question": "What should `add` accept and return—for example, two numeric arguments whose sum it returns?"
+        }
+      ],
+      "answers": [
+        {
+          "id": "addition_behavior",
+          "answer": "Synthetic test-owner decision: implement named export add(a,b) in value.mjs using JavaScript addition for numeric inputs, including positive, negative and zero numbers. Only value.mjs may change; verify.mjs is the existing independent checker. No UI, dependencies, credentials, external calls or publication. Out-of-scope requirements must remain unresolved."
+        }
+      ]
+    }
+  ],
   "evidenceKind": "clean-install + live Codex ChatGPT inference + independent verifier + cached resume"
 }

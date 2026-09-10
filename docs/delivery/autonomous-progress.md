@@ -88,3 +88,9 @@ explicit test-harness approvals deliver exact text to localhost, replay gives no
 duplicates. SHA d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573. Stale rejection and pre-send cancellation/body deadline
 behavior fixed and tested. Owner135/channel acceptance still external. This is
 concrete progress; no unfinished command sessions remain for this continuation.
+
+## 2026-09-10: new golden-path scope audit
+
+Implementation ceb84ee, core.8/revision5. 126/126 tests, installed fixture proof, real installed Claude AUTH_REQUIRED with source unchanged; explicit auth/CLI/caller/permission recovery added. Four-entry matrix, owner inputs and conditional estimates are in golden-path-audit.md. Previous blocked conclusion was for the earlier scope; new requirements add unproven Claude parent and one-prompt integration work. Site/shared files untouched; no public release.
+
+Owner clarified order: stabilize Codex now, Claude final testing last; not a final scope reduction. Fresh core.8 Codex package live proof passed with one recorded clarification, approval, independent check and cached resume. Initial proof-harness immediate-approval assumption fixed with bounded clarification handling. Linear199 In Progress;38,138,104 updated.

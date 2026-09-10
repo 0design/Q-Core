@@ -1,8 +1,8 @@
 {
   "package": "qloops",
-  "version": "0.2.0-core.7",
-  "sha256": "d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573",
-  "integrity": "sha512-DP8i8EIjKjAanoo6nSpuELXTesT5HMDcRllV0w5og10qgeBBsTJ70Qbm/Pv9pOaV761Z6nT6u3RsYUK1ScMafQ==",
+  "version": "0.2.0-core.8",
+  "sha256": "4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea",
+  "integrity": "sha512-BRQJcIhXCppQsvG/W+r3J12KiAjibWAj+CLDZFAUkDKFBwCSymCNBGWotnNBGqsy4zg1DpCrGaFFPE2uS4YA6g==",
   "files": [
     "CONTRIBUTING.md",
     "LICENSE",
@@ -67,6 +67,7 @@
     "src/providers/codex.mjs",
     "src/providers/openrouter.mjs",
     "src/quality.mjs",
+    "src/recovery.mjs",
     "src/registry-release.mjs",
     "src/registry.mjs",
     "src/run.d.mts",
@@ -88,5 +89,6 @@
     "installedCodexAgent": "success",
     "completedResume": "success"
   },
+  "clarifications": [],
   "evidenceKind": "clean-install + real Codex subprocess fixture; not live inference"
 }

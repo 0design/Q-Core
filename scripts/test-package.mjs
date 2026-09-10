@@ -79,6 +79,7 @@ try {
     "import {add} from './value.mjs';if(add(2,3)!==5)process.exit(1);",
   );
   let first;
+  const clarifications = [];
   try {
     exec(process.execPath, [bin, "agent", "-"], {
       input: JSON.stringify(request),
@@ -87,7 +88,28 @@ try {
     assert.equal(e.status, 2);
     first = JSON.parse(e.stdout);
   }
+  // A live model may legitimately ask questions; do not mistake the supported
+  // clarification phase for a runtime failure or silently approve an unknown spec.
+  for (let attempt = 0; live && first?.nextAction?.type === "clarify_spec" && attempt < 3; attempt++) {
+    request.resumeRunId = first.runId;
+    request.clarification = {
+      hash: first.nextAction.hash,
+      answers: first.nextAction.questions.map(q => ({
+        id: q.id,
+        answer: "Synthetic test-owner decision: implement named export add(a,b) in value.mjs using JavaScript addition for numeric inputs, including positive, negative and zero numbers. Only value.mjs may change; verify.mjs is the existing independent checker. No UI, dependencies, credentials, external calls or publication. Out-of-scope requirements must remain unresolved.",
+      })),
+    };
+    clarifications.push({questions: first.nextAction.questions, answers: request.clarification.answers});
+    try {
+      const output = exec(process.execPath, [bin, "agent", "-"], {input: JSON.stringify(request)});
+      first = JSON.parse(output);
+    } catch (e) {
+      assert.equal(e.status, 2);
+      first = JSON.parse(e.stdout);
+    }
+  }
   assert.equal(first.nextAction.type, "approve_spec");
+  delete request.clarification;
   request.resumeRunId = first.runId;
   request.approval = { hash: first.nextAction.hash, decision: "approve" };
   assert.equal(
@@ -116,6 +138,7 @@ try {
         }),
       ).status,
     },
+    clarifications,
     evidenceKind: live
       ? "clean-install + live Codex ChatGPT inference + independent verifier + cached resume"
       : "clean-install + real Codex subprocess fixture; not live inference",

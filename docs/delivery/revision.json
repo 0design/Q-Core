@@ -1,11 +1,11 @@
 {
   "baseline": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
   "inheritedCommit": "8f47212",
-  "implementationCommit": "5725311",
+  "implementationCommit": "ceb84ee",
   "branch": "codex/qf-core-delivery",
-  "artifactSha256": "d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573",
-  "note": "123 tests; installed live Codex content drafting with three synthetic-source/local-receiver exact-text receipts and dedup. Owner source/channel, OpenRouter, upstream release/MCP and consumer/release gates remain.",
-  "previousImplementationCommit": "92f1d99",
-  "packageVersion": "0.2.0-core.7",
-  "contractRevision": 4
+  "artifactSha256": "4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea",
+  "note": "126 tests; actionable recovery; fresh core.8 installed live Codex clarification, approval, change, independent verifier and cached resume pass. Codex golden paths next; Claude final testing last (current AUTH_REQUIRED). See golden-path-audit.md.",
+  "previousImplementationCommit": "5725311",
+  "packageVersion": "0.2.0-core.8",
+  "contractRevision": 5
 }

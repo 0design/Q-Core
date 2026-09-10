@@ -1,5 +1,15 @@
 # Core requirement audit — 2026-09-10
 
+**Superseding scope audit:** see [golden-path-audit.md](golden-path-audit.md).
+Latest owner sequence is Codex stabilization first, Claude final testing last;
+Claude is deferred for this stage, not removed from final acceptance.
+The owner now requires both Codex and Claude Code plus setup/use/customize/create
+from a clean agent session. Prior conclusions below predate this clarification.
+Core.8 / revision5 adds actionable recovery; 126/126 tests and installed fixture
+consumer pass, but live Claude remains AUTH_REQUIRED and parent nesting remains
+unsupported. Four-entry product acceptance is not proven. There is remaining
+engineering work as well as owner/upstream/release dependencies.
+
 Previous continuation was concrete progress (native quality fixes, proofs, package,
 commits and Linear changes). This continuation also made progress: registry graph
 validation and installed-package download/validate/run proof. The full goal is not

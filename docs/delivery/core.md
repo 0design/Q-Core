@@ -1,9 +1,39 @@
 # Core delivery candidate — 2026-09-10
 
-Current local package: qloops@0.2.0-core.7, contract revision 4 / qf.agent/v1.
-SHA256: `d23fa0f35d921894b89ffe51caf44be65a40f7aa00fc358c9db6356a75f8a573`. Zero runtime dependencies. This is a local delivery candidate;
+Current local package: qloops@0.2.0-core.8, contract revision 5 / qf.agent/v1.
+SHA256: `4e1900cbfd4ca68927543bc9e6d80929f41d9a8578ea8c8f36cd2d5296fabfea`. Zero runtime dependencies. This is a local delivery candidate;
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
+
+## Golden-path audit and recovery continuation
+
+Latest owner sequence: stabilize Codex first, test Claude Code at the end. Claude
+is retained for final acceptance but does not block active Codex work. See the
+current sequence and conditional stage estimate in golden-path-audit.md.
+
+Implementation ceb84ee; 126/126 tests pass and clean-installed package smoke/caller
+proof passes with fixture inference. Actual installed Claude2.1.156 invocation
+returns AUTH_REQUIRED with source unchanged; new configure_access action makes the
+next step explicit. SDD auth recovery requires approval, missing CLI requests
+configuration and guarded nesting requests a supported caller handoff without a
+bypass. Content local access failures now also request human configuration.
+
+Fresh core.8 live Codex installed proof also passes separately: one clarification,
+recorded synthetic answer, exact approval, real addition file, independent verifier
+and cached resume. codex-package-live.json records the current package SHA256 and
+clarification. The initial harness incorrectly assumed immediate approve_spec;
+it now supports bounded clarification rounds. This is not four-entry acceptance.
+
+The revised MVP explicitly requires Codex + Claude Code and four clean agent entry
+points. These are not accepted by existing component proofs. See
+[golden-path-audit.md](golden-path-audit.md) for the eight-case matrix, genuine owner
+inputs, engineering dependencies and conditional MVP/MLP estimates. This audit
+supersedes earlier claims that all remaining work is exclusively external: Claude
+caller integration and four-entry acceptance remain substantive engineering work.
+No whole-product release date or Done follows from 126 tests. Site remains on
+core.2; read-only 11/11 manifest validation does not count as consumer acceptance.
+
+The sections below retain historical evidence at each named package version.
 
 ## Content live continuation
 
