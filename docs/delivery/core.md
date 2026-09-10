@@ -5,6 +5,14 @@ SHA256: `2a5a38b29594a4a8eef2d928ae35548f042f200816176a549a30af1efb5851d6`. Zero
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
 
+## Current Claude authentication check
+
+Claude2.1.156 auth status reports saved claude.ai Max login, but two actual fresh
+Start/Use invocations exit1 before inference with 401 expired OAuth token.
+No login launched. Owner action: /usr/local/bin/claude auth login --claudeai.
+Matrix remains pending; no additional providers or permission bypass used.
+Evidence: claude-auth-current.json and caller-results/claude-status.md.
+
 ## Existing project / generated specification proof
 
 Fresh start-existing-caller uses specOrigin=intent, no imported specification,
