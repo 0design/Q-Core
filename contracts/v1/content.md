@@ -1,6 +1,6 @@
 # Content request, approval and receipt contract
 
-Available in qloops@0.2.0-core.9; contract revision 5. This publishes the existing
+Available since qloops@0.2.0-core.9; current contract revision 6. This publishes the existing
 Content interface without a runtime/schema change. Use the installed package's
 [synthetic request](../../examples/content-request.json); no private source checkout
 is required. This document is the field contract; the SDD request schema does not
@@ -142,6 +142,10 @@ after a negative/missing lookup. Never fabricate a receipt or reset uncertain st
 configure_access means restore the configured local provider/receiver access;
 configure_provider means configure a reviewed executable/model;
 configure_caller means use a supported caller arrangement without stripping guards;
+CLI_ENVIRONMENT_DENIED specifically means the Codex local app-server client could
+not initialize under the parent execution environment. It is not an invalid model
+answer or permission to disable sandboxing. Existing Content runId is retained
+when the failure occurs after draft state creation.
 review_permissions means resolve denied scope with the user; review_limits means
 inspect a deadline/cap. These are instructions, not automatic permission changes.
 An attribution check failure can return needs_human with evidence and no action:

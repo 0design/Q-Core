@@ -72,6 +72,11 @@ const disabledCodeModeDiagnostic = "Code Mode is unavailable because code-mode h
 const metric = (x) =>
   typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : null;
 export function parseCodexResponse(response, model) {
+  // Recognize the observed startup boundary without returning arbitrary stderr
+  // (which can contain credentials), changing sandbox flags or retrying it.
+  if (response.code !== 0 && !response.stdout.trim() &&
+      /failed to initialize in-process app-server client: (?:Operation not permitted|Permission denied) \(os error (?:1|13)\)/.test(response.stderr ?? ""))
+    throw new CoreError("CLI_ENVIRONMENT_DENIED", "Codex local client startup was denied by the execution environment; use a supported caller arrangement without bypassing permissions");
   let events;
   try {
     events = response.stdout

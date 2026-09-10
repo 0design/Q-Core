@@ -14,6 +14,10 @@ const emit = (e) => console.log(JSON.stringify(e));
 if (model === "timeout") {
   setInterval(() => {}, 1000);
 } else if (model === "invalid") console.log("not JSONL");
+else if (model === "environment-denied") {
+  console.error("Error: failed to initialize in-process app-server client: Operation not permitted (os error 1)\nsecret-do-not-expose");
+  process.exitCode = 1;
+}
 else if (model === "auth") {
   emit({
     type: "error",

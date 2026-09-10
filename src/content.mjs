@@ -20,7 +20,7 @@ export async function runContent(
   },
   { generate, check, publish, signal } = {},
 ) {
-  let lock, state, file;
+  let lock, state, file, run;
   const cancelled = () => { if (signal?.aborted) throw new CoreError("CANCELLED", "Content operation cancelled"); };
   try {
     cancelled();
@@ -89,7 +89,7 @@ export async function runContent(
       .filter((s) => !delivered.has(s.key))
       .slice(0, maxItems);
     const key = hash({ sources: selected, profile, provider, receiver });
-    let run = state.publications[key];
+    run = state.publications[key];
     const selectedKeys = new Set(selected.map((s) => s.key));
     const unresolved = Object.entries(state.publications).find(
       ([k, p]) =>
@@ -262,6 +262,7 @@ export async function runContent(
       {
         protocolVersion: "qf.content/v1",
         status: cancelled ? "cancelled" : nextAction ? "needs_human" : "failed",
+        runId: run?.runId ?? null,
         nextAction,
         summary: "Content pipeline failed",
         error: {

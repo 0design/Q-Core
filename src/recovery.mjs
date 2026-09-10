@@ -8,6 +8,7 @@ export function recoveryAction(code) {
     case "UNSUPPORTED_CLI":
       return { type: "configure_provider", message: "Configure an installed, reviewed CLI version. A provider change requires a new request and approval; no fallback is automatic." };
     case "UNSUPPORTED_NESTING":
+    case "CLI_ENVIRONMENT_DENIED":
       return { type: "configure_caller", message: "Use an explicitly supported caller-owned handoff outside the active CLI session. Do not remove nesting guards. This result does not provision a broker." };
     case "PERMISSION_DENIED":
     case "SCOPE_DENIED":

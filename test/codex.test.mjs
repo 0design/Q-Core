@@ -46,6 +46,7 @@ for (const [model, code] of [
   ["invalid", "INVALID_RESPONSE"],
   ["auth", "AUTH_REQUIRED"],
   ["denied", "PERMISSION_DENIED"],
+  ["environment-denied", "CLI_ENVIRONMENT_DENIED"],
   ["timeout", "TIMEOUT"],
 ])
   test(`Codex ${model} fails without fallback`, async () =>

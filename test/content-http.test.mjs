@@ -59,6 +59,14 @@ for (const kind of ["claude", "codex"])
       assert.equal(missingAuth.nextAction.type,"configure_access");
       writeFileSync(join(workspace,"fixture-mode.txt"),"success");
     }
+    if (kind === "codex") {
+      const stopped = await runContentRequest({...recoveryRequest,provider:{...base.provider,model:"environment-denied"}});
+      assert.equal(stopped.status,"needs_human");
+      assert.equal(stopped.error.code,"CLI_ENVIRONMENT_DENIED");
+      assert.equal(stopped.nextAction.type,"configure_caller");
+      assert.match(stopped.runId,/^[a-f0-9-]{36}$/);
+      assert.equal(JSON.stringify(stopped).includes("secret-do-not-expose"),false);
+    }
     assert.equal(sends,0);
     for (let i = 1; i <= 3; i++) {
       const r = {

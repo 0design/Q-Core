@@ -126,6 +126,18 @@ test("missing CLI is actionable before any file changes", async (t) => {
   assert.equal(readFileSync(join(r.workspace, "value.mjs"), "utf8"), "export const add=()=>0;");
 });
 
+test("Codex local client denial is an actionable stop with no lost run or file change", async (t) => {
+  const r = setup(t);
+  r.provider = {...r.provider, kind:"codex", model:"environment-denied", executable:resolve("test/fixtures/codex.mjs")};
+  const stopped = await caller(r);
+  assert.equal(stopped.code,2);
+  assert.equal(stopped.result.error.code,"CLI_ENVIRONMENT_DENIED");
+  assert.equal(stopped.result.nextAction.type,"configure_caller");
+  assert.match(stopped.result.runId,/^[a-f0-9-]{36}$/);
+  assert.equal(JSON.stringify(stopped.result).includes("secret-do-not-expose"),false);
+  assert.equal(readFileSync(join(r.workspace,"value.mjs"),"utf8"),"export const add=()=>0;");
+});
+
 test("active Claude caller gets a handoff instruction without launching a child or removing guard", async (t) => {
   const r = setup(t);
   const p = await subprocess(process.execPath, [resolve("bin/qloops.mjs"), "agent", "-"], {

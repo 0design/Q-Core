@@ -1,4 +1,4 @@
-# Core contract revision 5 (qf.agent/v1)
+# Core contract revision 6 (qf.agent/v1)
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
 and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships
@@ -79,3 +79,10 @@ Content retries the same request. Neither grants approval or sends automatically
 Changing provider/scope requires a new request or the documented approved revision.
 configure_caller is an instruction, not an implemented broker. Claude nesting
 guards remain enforced; four-entry golden-path support is not inferred from this.
+
+Revision6 / core.10 recognizes the observed Codex app-server client startup
+permission denial as CLI_ENVIRONMENT_DENIED → needs_human/configure_caller rather
+than a generic invalid JSONL failure. Raw stderr is not exposed and no permission
+change/retry is made. Content errors retain an existing runId for correlation;
+resume still uses the same request/workspace, not an SDD resumeRunId field.
+This makes the environment blocker actionable; it does not solve or bypass it.

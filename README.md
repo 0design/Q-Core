@@ -139,6 +139,11 @@ and [synthetic request example](examples/content-request.json). They describe lo
 configuration, exact-text approval, repeat/dedup and uncertain-delivery recovery
 without requiring a source checkout. The SDD request schema is not a Content schema.
 
+Parent-agent limitation: the tested Codex workspace-write shell currently denies
+its nested CLI's local app-server initialization. `CLI_ENVIRONMENT_DENIED` asks for
+a supported caller arrangement, without bypassing the sandbox. Standalone Core
+proofs do not imply this parent environment works; see [Codex execution boundaries](docs/codex.md#execution-boundary).
+
 `qloops content request.json` uses `qf.content-request/v1`: explicit sources,
 allowedOrigins, profile, provider, receipt-aware webhook receiver and deadline.
 `runContent` exports the same orchestration with caller-injected capabilities.

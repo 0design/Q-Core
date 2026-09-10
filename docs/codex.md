@@ -45,6 +45,16 @@ The previously tested `gpt-5.4-mini` was rejected by this ChatGPT account on
 
 ## Execution boundary
 
+Fresh parent-agent testing on 2026-09-10 found that a Codex workspace-write shell
+can deny the nested CLI's in-process app-server initialization before inference.
+Version and ChatGPT login can pass while execution still fails. core.10 returns
+CLI_ENVIRONMENT_DENIED / needs_human / configure_caller for the observed startup
+denial and preserves run correlation. This environment is not accepted for the
+complete parent→qloops→Codex path. Do not remove sandbox/nesting guards, copy
+credentials, silently switch payer/provider or claim the earlier standalone
+proof establishes this nested environment. A supported caller arrangement remains
+an integration dependency; no broker is provisioned by the error action.
+
 The adapter checks the exact CLI version and ChatGPT authentication before
 inference. It supplies bounded messages through stdin and parses bounded JSONL;
 there is no shell interpolation or automatic API/model/provider fallback.
