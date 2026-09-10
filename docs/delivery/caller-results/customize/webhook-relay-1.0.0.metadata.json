@@ -1,0 +1,19 @@
+{
+  "sourceUrl": "http://localhost:3101/registry/loops/webhook-relay.yaml",
+  "sourceFile": "loops/webhook-relay.yaml",
+  "id": "webhook-relay",
+  "version": "1.0.0",
+  "sha256": "fcfef0dedca7d769ebb21124a3ec9658e4576758277235b7a5549a8c15aba4a6",
+  "catalogVersion": 2,
+  "releaseVersion": "2026.09.10-site.4",
+  "engine": {
+    "package": "qloops",
+    "version": "0.2.0-core.11",
+    "manifest": "qf.loop/v1"
+  },
+  "origin": {
+    "repository": "0design/QFactory.io",
+    "path": "content/registry/loops/webhook-relay.yaml",
+    "revision": "e453b57"
+  }
+}

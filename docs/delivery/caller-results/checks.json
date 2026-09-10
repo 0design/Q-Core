@@ -1,0 +1,117 @@
+{
+  "synthetic": true,
+  "version": "0.2.0-core.11",
+  "verifierUnchanged": true,
+  "independentVerifierExit": 0,
+  "sddRunId": "cb766880-ad53-4873-a500-d608873a7422",
+  "cachedResume": {
+    "protocolVersion": "qf.agent/v1",
+    "requestId": "normalize-tags",
+    "runId": "cb766880-ad53-4873-a500-d608873a7422",
+    "status": "success",
+    "summary": "Approved change passed the caller-authorized verifier",
+    "artifacts": [
+      {
+        "path": "tags.mjs",
+        "sha256": "cf62223bbfabc48db8da41aeaf34f61d86b1e942710231beaf85f8a2ac128f32",
+        "revision": 1
+      }
+    ],
+    "evidence": [
+      {
+        "verifier": {
+          "command": "/usr/local/bin/node",
+          "args": [
+            "verify-tags.mjs"
+          ]
+        },
+        "artifactHash": "24007270e9d0ede299cfdaea1345367dc3dbaf7cd11a7345049f1b036d6a5170",
+        "revision": 1,
+        "outcome": "pass",
+        "exitCode": 0,
+        "stdoutHash": "c97e46ff158586b30baa8ac4d93870b12a4ef8311c37f18a8446681f5da4c905",
+        "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "error": null,
+    "nextAction": null,
+    "provider": {
+      "kind": "caller",
+      "agent": "codex",
+      "requestedModel": "current-session",
+      "model": null,
+      "payerScope": "local-cli",
+      "evidenceKind": "caller-supplied-inference"
+    },
+    "usage": {
+      "tokensIn": null,
+      "tokensOut": null,
+      "costUsd": null
+    }
+  },
+  "receiverPOSTCount": 1,
+  "deliveredTextMatchesSavedDraft": true,
+  "source": "http://127.0.0.1:58415/source/1",
+  "files": {
+    "tags.mjs": "cf62223bbfabc48db8da41aeaf34f61d86b1e942710231beaf85f8a2ac128f32",
+    "verify-tags.mjs": "d48e78e5e1375548beae96bc50087ba1b95cca4faed9dcc9392f6f82e16b7f79",
+    "repair-state.json": "95802731fbda4017420e5a7df7238fc89614702612e6317156016d970a1320af",
+    "digest.txt": "ebbc5a7204f19b04fc519e8846d178ca2a9c4674599eb5fe9a116e7977e6ff76",
+    "repeat.json": "6c649c0d46568f8a1b76686473ab254d1191ea0af2b448daa5276151c8ace71f",
+    "receipt.json": "18acf0bc3f15e1cf95d72b5ba7fb091ba189ad4575a2678a9a8b9796f9593a6c",
+    "create/success-run-record.json": "f4946ea45a23771239409a673ce6e5e187d6da332cc78f8b3acbeab90dea9853",
+    "create/repeat-manifest-hash-comparison.txt": "b1f2b2b642f51b6fa708b90f806b7c384564ac6d3b50300cced6904a11bafbd4",
+    "create/service-readiness.yaml": "91efe09dbe8062047b9943e13cf7eba661716f7823f868e34210c760b7a83402",
+    "create/service-readiness-negative.yaml": "02b37d0a619afd0fd869fa0a05ecc41332d6dfdf1418fc66ad64070da104084d",
+    "create/verify-service-readiness.mjs": "ba8aee3245cab479a0ea250fc1957c593e695fe11acea77efa4215bf14631fee",
+    "create/negative-run-record.json": "7cecafb667d63fdd834d82a6e67fa3cfcbe210972575bd249c41017575b37b03",
+    "create/repeat-run-record.json": "136996da50ae858b3cc456bbc46d76905e677d6464072ef3232aa372f5b85d20",
+    "customize/b606fc01-a964-4fd8-9275-4ac3d038f8c1.json": "434fb099974ba96a875270e2845a54f21927b14b15479cb90ae05bca893d0367",
+    "customize/54661885-1159-499b-9bc7-831ecd1b050b.json": "8c357ec246b4e7081432b38256379a28fdce63d719864f02408342e489526f43",
+    "customize/webhook-relay-1.0.0.metadata.json": "f699dc6a6019a54b2f77f1a035fdc395b37d277d629982fbe88911c30d5b2669",
+    "customize/webhook-relay-1.0.0.yaml": "fcfef0dedca7d769ebb21124a3ec9658e4576758277235b7a5549a8c15aba4a6",
+    "customize/webhook-relay-local-probe.yaml": "6dedf349ad12e2df405c992d754b97a273c672ff48bbfb9b9677c4888e49ec8d"
+  },
+  "assistedRepair": {
+    "runId": "fa84f935-9542-4e7d-91a3-db6df510d317",
+    "verifierExits": [
+      1,
+      0
+    ],
+    "consumedJobs": [
+      {
+        "jobId": "d0eb5c72-3724-49ba-97aa-1cfd475c8a49",
+        "hash": "4f43f65d67f4fd8ca3b7cb88240607b4492c7a597d8dbbbdcf15ae3379d7de07",
+        "status": "consumed",
+        "outputHash": "88e34bcf6013bbff8260354c8be98dbbaa534bd6c3696faef0c09f73c568d061"
+      },
+      {
+        "jobId": "a780b3a4-3414-4bde-9636-937173c645be",
+        "hash": "aca6292cd2aa94191fd6beec435c4604940b1ed2f056743f0954e6fa86701473",
+        "status": "consumed",
+        "outputHash": "390a063f4575cbc4e9a0fb2a843f06f2e706e941c8b2241b8b07887bd5cfd9b3"
+      }
+    ],
+    "verifierUnchanged": true,
+    "faultInjection": "Explicit synthetic test-owner requested deliberately wrong first proposal; parent answered actual Core repair job."
+  },
+  "customize": {
+    "runIds": [
+      "54661885-1159-499b-9bc7-831ecd1b050b",
+      "b606fc01-a964-4fd8-9275-4ac3d038f8c1"
+    ],
+    "actualJSONMatches": true,
+    "durableOriginal": true,
+    "originalHash": "fcfef0dedca7d769ebb21124a3ec9658e4576758277235b7a5549a8c15aba4a6",
+    "adaptedHash": "6dedf349ad12e2df405c992d754b97a273c672ff48bbfb9b9677c4888e49ec8d"
+  },
+  "create": {
+    "successRunId": "4a171c35-2ede-40d1-b12e-f306804eb695",
+    "negativeRunId": "ba199aa3-e0ff-4a7b-a395-37854b0a7903",
+    "actualJSONMatches": true,
+    "negativeHTTP422": true,
+    "repeatPending": false,
+    "repeatRunId": "edae85fb-2e0d-4713-aa85-f6eefde6a2d4",
+    "manifestSha256": "91efe09dbe8062047b9943e13cf7eba661716f7823f868e34210c760b7a83402"
+  }
+}

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, join } from 'node:path';
-const dir=resolve('docs/delivery/golden-parent/receiver');mkdirSync(dir,{recursive:true});
+const dir=resolve(process.env.QF_RECEIVER_EVIDENCE??'docs/delivery/golden-parent/receiver');mkdirSync(dir,{recursive:true});
 const events=[],receipts=new Map();
 const save=()=>writeFileSync(join(dir,'events.json'),JSON.stringify(events,null,2)+'\n');
 const server=createServer(async(req,res)=>{

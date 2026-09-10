@@ -1,0 +1,1 @@
+The project directory currently has no visible project files, and the required local HTTP origin on port 3101 is not reachable, so I cannot safely read the pinned contract or inspect/install qloops yet. I’ll retain this task context and need the origin available before proceeding.

@@ -1,0 +1,95 @@
+[
+  {
+    "method": "GET",
+    "url": "/source/1",
+    "date": "2026-09-10T12:32:18.767Z"
+  },
+  {
+    "method": "GET",
+    "url": "/source/1",
+    "date": "2026-09-10T12:33:05.616Z"
+  },
+  {
+    "method": "GET",
+    "url": "/source/1",
+    "date": "2026-09-10T12:33:19.111Z"
+  },
+  {
+    "method": "GET",
+    "url": "/source/1",
+    "date": "2026-09-10T12:34:18.782Z"
+  },
+  {
+    "method": "POST",
+    "url": "/receipt",
+    "date": "2026-09-10T12:34:18.789Z",
+    "delivery": {
+      "text": "Синтетичний тест: вигадана команда Orchard додала три незалежні перевірки до локального процесу релізу, що посилює контроль його якості. Джерело: http://127.0.0.1:58415/source/1",
+      "idempotencyKey": "7540faee929613e8a702f6989c339c165f38b2b90529d7398bb273600f2b3c10",
+      "receipt": {
+        "id": "synthetic-1",
+        "delivered": true
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "url": "/source/1",
+    "date": "2026-09-10T12:34:34.757Z"
+  },
+  {
+    "method": "GET",
+    "url": "/receipt",
+    "date": "2026-09-10T12:34:43.125Z"
+  },
+  {
+    "method": "GET",
+    "url": "/health",
+    "date": "2026-09-10T12:37:19.436Z"
+  },
+  {
+    "method": "GET",
+    "url": "/data",
+    "date": "2026-09-10T12:37:19.448Z"
+  },
+  {
+    "method": "GET",
+    "url": "/fail",
+    "date": "2026-09-10T12:37:19.459Z"
+  },
+  {
+    "method": "GET",
+    "url": "/health",
+    "date": "2026-09-10T12:37:59.035Z"
+  },
+  {
+    "method": "GET",
+    "url": "/data",
+    "date": "2026-09-10T12:37:59.041Z"
+  },
+  {
+    "method": "GET",
+    "url": "/data",
+    "date": "2026-09-10T12:38:02.522Z"
+  },
+  {
+    "method": "GET",
+    "url": "/fail",
+    "date": "2026-09-10T12:38:34.925Z"
+  },
+  {
+    "method": "GET",
+    "url": "/data",
+    "date": "2026-09-10T12:39:09.592Z"
+  },
+  {
+    "method": "GET",
+    "url": "/health",
+    "date": "2026-09-10T12:40:00.193Z"
+  },
+  {
+    "method": "GET",
+    "url": "/data",
+    "date": "2026-09-10T12:40:00.199Z"
+  }
+]

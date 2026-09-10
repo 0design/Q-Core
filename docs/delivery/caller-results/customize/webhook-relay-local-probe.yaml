@@ -1,0 +1,25 @@
+manifest: qf.loop/v1
+
+id: webhook-relay-local-probe
+name: "Local JSON probe: read only"
+version: 1.0.0-adapted
+description: >
+  Reads the local synthetic JSON endpoint and retains the fetched result for
+  inspection. Adapted from webhook-relay; it has no sending step.
+owner: synthetic-test-owner
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  budgetUsd: 0.05
+
+steps:
+  - id: wr-fetch
+    kind: fetch
+    config:
+      name: "Read local JSON"
+      url: "http://127.0.0.1:58415/data"
+      format: json
+      timeoutSec: "20"

@@ -5,6 +5,23 @@ SHA256: `2a5a38b29594a4a8eef2d928ae35548f042f200816176a549a30af1efb5851d6`. Zero
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
 
+## Fresh HTTP caller proof — core.11
+
+Four fresh Codex parent entry paths now produced checked results via Site HTTP
+core.11/contract7: Start actual normalizeTags file + unchanged verifier/cached
+resume; Use caller draft + exact synthetic approval + one real localhost receipt
+and no duplicate; Customize durable original/provenance + read-only adaptation
+and repeat; Create two actual JSON reads, HTTP422 negative case and unchanged
+repeat. A separate openly assisted fault-injection regression records actual
+verifier exit1 → caller repair → exit0 with the same checker.
+
+Owner-readable files, inputs/outputs and limitations: caller-results/README.md.
+Independent checks: caller-results/checks.json. Raw exact prompts and sessions:
+golden-parent/*-caller*/. Initial start-caller was interrupted when Site corrected
+HTTP readiness; preserved separately, superseded by fresh start-caller-ready.
+The controlled receiver is stopped. No owner editorial/channel, Claude, broad
+existing-project preservation or public release acceptance is claimed.
+
 ## Explicit caller candidate — core.11
 
 Implementation 492c698 adds persisted one-use caller inference to SDD and Content.

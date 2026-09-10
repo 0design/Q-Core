@@ -1,0 +1,1 @@
+Synthetic repeat acceptance: repeat the successful loop unchanged. Verify the same actual outputs again, preserve original and adapted manifests and all prior evidence, and compare manifest hashes before/after. Do not rebuild, overwrite or substitute any steps. Retain the new run ID. No POST or external writes.

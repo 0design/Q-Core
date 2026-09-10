@@ -1,0 +1,83 @@
+{
+  "runId": "edae85fb-2e0d-4713-aa85-f6eefde6a2d4",
+  "loopId": "service-readiness",
+  "loopName": "Service readiness",
+  "manifestFile": ".qf/service-readiness/service-readiness.yaml",
+  "trigger": "manual",
+  "status": "success",
+  "summary": "Completed 2/2 steps.",
+  "startedAt": "2026-09-10T12:40:00.178Z",
+  "finishedAt": "2026-09-10T12:40:00.200Z",
+  "costUsd": 0,
+  "tokensIn": 0,
+  "tokensOut": 0,
+  "steps": [
+    {
+      "seq": 0,
+      "stepId": "health",
+      "kind": "fetch",
+      "name": "fetch",
+      "depth": 0,
+      "laneOf": null,
+      "config": {
+        "url": "http://127.0.0.1:58415/health",
+        "format": "json"
+      },
+      "then": null,
+      "status": "success",
+      "decision": null,
+      "gateReason": null,
+      "output": {
+        "status": 200,
+        "url": "http://127.0.0.1:58415/health",
+        "json": {
+          "status": "ready",
+          "synthetic": true
+        }
+      },
+      "errorText": null,
+      "tokensIn": 0,
+      "tokensOut": 0,
+      "costUsd": 0,
+      "itemIndex": null,
+      "startedAt": "2026-09-10T12:40:00.180Z",
+      "finishedAt": "2026-09-10T12:40:00.197Z"
+    },
+    {
+      "seq": 1000,
+      "stepId": "data",
+      "kind": "fetch",
+      "name": "fetch",
+      "depth": 0,
+      "laneOf": null,
+      "config": {
+        "url": "http://127.0.0.1:58415/data",
+        "format": "json"
+      },
+      "then": null,
+      "status": "success",
+      "decision": null,
+      "gateReason": null,
+      "output": {
+        "status": 200,
+        "url": "http://127.0.0.1:58415/data",
+        "json": {
+          "project": "synthetic-qf",
+          "items": [
+            1,
+            2,
+            3
+          ],
+          "total": 6
+        }
+      },
+      "errorText": null,
+      "tokensIn": 0,
+      "tokensOut": 0,
+      "costUsd": 0,
+      "itemIndex": null,
+      "startedAt": "2026-09-10T12:40:00.198Z",
+      "finishedAt": "2026-09-10T12:40:00.200Z"
+    }
+  ]
+}

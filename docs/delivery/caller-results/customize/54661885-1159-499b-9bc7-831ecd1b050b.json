@@ -1,0 +1,54 @@
+{
+  "runId": "54661885-1159-499b-9bc7-831ecd1b050b",
+  "loopId": "webhook-relay-local-probe",
+  "loopName": "Local JSON probe: read only",
+  "manifestFile": "loops/webhook-relay-local-probe.yaml",
+  "trigger": "manual",
+  "status": "success",
+  "summary": "Completed 1/1 steps.",
+  "startedAt": "2026-09-10T12:38:02.507Z",
+  "finishedAt": "2026-09-10T12:38:02.525Z",
+  "costUsd": 0,
+  "tokensIn": 0,
+  "tokensOut": 0,
+  "steps": [
+    {
+      "seq": 0,
+      "stepId": "wr-fetch",
+      "kind": "fetch",
+      "name": "Read local JSON",
+      "depth": 0,
+      "laneOf": null,
+      "config": {
+        "name": "Read local JSON",
+        "url": "http://127.0.0.1:58415/data",
+        "format": "json",
+        "timeoutSec": "20"
+      },
+      "then": null,
+      "status": "success",
+      "decision": null,
+      "gateReason": null,
+      "output": {
+        "status": 200,
+        "url": "http://127.0.0.1:58415/data",
+        "json": {
+          "project": "synthetic-qf",
+          "items": [
+            1,
+            2,
+            3
+          ],
+          "total": 6
+        }
+      },
+      "errorText": null,
+      "tokensIn": 0,
+      "tokensOut": 0,
+      "costUsd": 0,
+      "itemIndex": null,
+      "startedAt": "2026-09-10T12:38:02.509Z",
+      "finishedAt": "2026-09-10T12:38:02.525Z"
+    }
+  ]
+}

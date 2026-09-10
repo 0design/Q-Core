@@ -1,0 +1,13 @@
+{
+  "mode": "start",
+  "turn": 0,
+  "threadId": "01a08b4b-67a0-7ef0-8fc3-c8ef35ef9412",
+  "workspace": "/Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/.qf/golden-parent/start-caller",
+  "date": "2026-09-10T12:29:45.860Z",
+  "exit": null,
+  "timedOut": false,
+  "promptSha256": "e9b7707dfe78457cb3bb001fdeb36cd5eefc5fc0f1e36dd48b1a2573ee4194ee",
+  "initialPromptSha256": "e9b7707dfe78457cb3bb001fdeb36cd5eefc5fc0f1e36dd48b1a2573ee4194ee",
+  "environment": "Codex CLI0.153.4; workspace-write + local/network access, no user config/hooks/apps; existing ChatGPT auth, gpt-5.6-luna; ordinary policy rules retained",
+  "interruption": "Coordinator corrected HTTP readiness after dispatch; parent process stopped before install/inference. Not caller protocol acceptance."
+}

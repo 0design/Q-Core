@@ -1,0 +1,8 @@
+{
+  "receiptId": "synthetic-1",
+  "delivered": true,
+  "receiver": "http://127.0.0.1:58415/receipt",
+  "stableId": "synthetic-parent-use",
+  "approvalHash": "7804ee953efdf99a2871350e9d94457fcec2c37e31107c9973998f3a384ac7fe",
+  "runId": "dca18a57-cd2d-44a9-87c9-b420ddc923e1"
+}
