@@ -5,6 +5,21 @@ SHA256: `2a5a38b29594a4a8eef2d928ae35548f042f200816176a549a30af1efb5851d6`. Zero
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
 
+## Existing project / generated specification proof
+
+Fresh start-existing-caller uses specOrigin=intent, no imported specification,
+two consumed caller jobs (spec/files), exact approval and actual unchanged verifier.
+Supervisor compared seeded dirty README, settings, staged-plan, untracked notes,
+verifier, helper/comment, Git HEAD and staged diff: all preserved; only intended
+normalizeTags function changed. Cached repeat preserved artifact/evidence and job
+count. Parent first omitted resumeRunId and recovered unaided after Core refused
+STALE_INFERENCE; failed empty run is retained. Site later clarified its skill,
+which does not retroactively change this proof.
+
+Readable before/after: caller-results/existing-project/README.md and checks.json.
+This closes the concrete controlled existing-project/generated-spec gap, not
+arbitrary-project, Claude, owner editorial or public release acceptance.
+
 ## Fresh HTTP caller proof — core.11
 
 Four fresh Codex parent entry paths now produced checked results via Site HTTP

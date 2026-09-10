@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "runId": "ee004554-d629-43b3-b550-040dea16c398",
+  "specOrigin": {
+    "kind": "intent"
+  },
+  "noImportedSpecification": true,
+  "inferenceHistory": [
+    {
+      "jobId": "ad3388eb-de91-48cd-8aa8-48198941a483",
+      "hash": "8ee49832f6d970ec22dc70e4fcec9353d2f11a5375eec24d5acec16be54a07d7",
+      "status": "consumed",
+      "outputHash": "6221fbaea7ff69fec610e9faa6db5b206e1d4d44a72b2f1db21393389be98c59"
+    },
+    {
+      "jobId": "3ab1adf6-75bf-45e2-b33b-c5621003bffc",
+      "hash": "7e86412142c53df754a508840ee0cdd480a4f84f7b80a5b61f163d25edbcf8ed",
+      "status": "consumed",
+      "outputHash": "8de0d7a1116f0dba82dc6ad20a89e7bd69356f1ad244de158dd6987ac1af1ef8"
+    }
+  ],
+  "approvalHash": "a8b9d3a3b4728dac17168801d02abc655f06aca432ee9b95607a171bc2ba0531",
+  "preservedFiles": {
+    "settings.json": true,
+    "verify-tags.mjs": true,
+    "staged-plan.txt": true,
+    "README.md": true,
+    "private-notes.txt": true
+  },
+  "helperAndUserCommentPreserved": true,
+  "headUnchanged": true,
+  "indexDiffUnchanged": true,
+  "statusAfter": " M README.md\nA  staged-plan.txt\n M tags.mjs\n?? .qf/\n?? private-notes.txt\n",
+  "independentVerifier": {
+    "exitCode": 0,
+    "stdout": "Existing project checks passed\n"
+  },
+  "repeatSameArtifactsAndEvidence": true,
+  "repeatNoNewInference": true,
+  "extraFiles": "Untracked .qf contains installed tool and Core state; existing files preserved.",
+  "recovery": "Parent omitted resumeRunId in first reply; Core refused STALE_INFERENCE; parent recovered original job unaided before approval. Extra failed empty run retained."
+}

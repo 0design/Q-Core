@@ -43,3 +43,7 @@
 [Loop перевірки сервісу](create/service-readiness.yaml) читає два endpoints: `status=ready` та `total=6` підтверджені в реальному результаті. [Негативний варіант](create/service-readiness-negative.yaml) отримав HTTP422 і завершився failed. [Успішний результат](create/success-run-record.json), [помилка](create/negative-run-record.json).
 
 Повторний Create також пройшов: [результат](create/repeat-run-record.json), [незмінність manifest](create/repeat-manifest-hash-comparison.txt).
+
+## Наявний проєкт і генерація специфікації
+
+[Окремий свіжий прохід](existing-project/README.md) закрив генерацію специфікації без імпорту та збереження tracked dirty, staged і untracked файлів, Git HEAD/index, helper/comment і незміненого verifier. Є точний before/after та повтор без нового inference.

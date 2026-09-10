@@ -1,0 +1,45 @@
+{
+  "protocolVersion": "qf.agent/v1",
+  "requestId": "tags-sdd-20260910",
+  "runId": "ee004554-d629-43b3-b550-040dea16c398",
+  "status": "success",
+  "summary": "Approved change passed the caller-authorized verifier",
+  "artifacts": [
+    {
+      "path": "tags.mjs",
+      "sha256": "642c595605388adb5dc38e026cff5abbd59528fa9c020365a8139868040a5606",
+      "revision": 1
+    }
+  ],
+  "evidence": [
+    {
+      "verifier": {
+        "command": "/usr/local/bin/node",
+        "args": [
+          "verify-tags.mjs"
+        ]
+      },
+      "artifactHash": "87a4fbc97227908093f008222f3c98dbd7742e95cccfc520b38befad7a844033",
+      "revision": 1,
+      "outcome": "pass",
+      "exitCode": 0,
+      "stdoutHash": "681c343d29bf9ae200ca06215b0839b942932d37d0d0ff92442b25d08e275907",
+      "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "error": null,
+  "nextAction": null,
+  "provider": {
+    "kind": "caller",
+    "agent": "codex",
+    "requestedModel": "current-session",
+    "model": null,
+    "payerScope": "local-cli",
+    "evidenceKind": "caller-supplied-inference"
+  },
+  "usage": {
+    "tokensIn": null,
+    "tokensOut": null,
+    "costUsd": null
+  }
+}

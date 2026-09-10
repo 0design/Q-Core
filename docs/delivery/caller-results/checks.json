@@ -56,6 +56,7 @@
     "tags.mjs": "cf62223bbfabc48db8da41aeaf34f61d86b1e942710231beaf85f8a2ac128f32",
     "verify-tags.mjs": "d48e78e5e1375548beae96bc50087ba1b95cca4faed9dcc9392f6f82e16b7f79",
     "repair-state.json": "95802731fbda4017420e5a7df7238fc89614702612e6317156016d970a1320af",
+    "README.md": "88e26dc67c9874287603a8bcd96896aa228557f1d9df88300f8e254cdffb34a9",
     "digest.txt": "ebbc5a7204f19b04fc519e8846d178ca2a9c4674599eb5fe9a116e7977e6ff76",
     "repeat.json": "6c649c0d46568f8a1b76686473ab254d1191ea0af2b448daa5276151c8ace71f",
     "receipt.json": "18acf0bc3f15e1cf95d72b5ba7fb091ba189ad4575a2678a9a8b9796f9593a6c",
@@ -66,6 +67,15 @@
     "create/verify-service-readiness.mjs": "ba8aee3245cab479a0ea250fc1957c593e695fe11acea77efa4215bf14631fee",
     "create/negative-run-record.json": "7cecafb667d63fdd834d82a6e67fa3cfcbe210972575bd249c41017575b37b03",
     "create/repeat-run-record.json": "136996da50ae858b3cc456bbc46d76905e677d6464072ef3232aa372f5b85d20",
+    "existing-project/before.json": "98b51e7235185bd54cb21ab321cf75073406ab466a0e05363b6b9e27de81f460",
+    "existing-project/run-state.json": "48ff36d17d1a889945a64e2b6d86fdf9eb7407afeb2448485c13cd7fe2ce03a8",
+    "existing-project/change.diff": "194d7b341dfb965c31aabeda8ae4df7b4657925a923d54f132ace9d2ef6ed6f6",
+    "existing-project/verify-tags.mjs": "52e092b93eaa5f2071c37fc2f79416ef77fe8c88779205ebf2e6664854f76956",
+    "existing-project/checks.json": "e1c310711fffe485799dcde1544bdfef66e12fb18fdd9f87597903f02c659610",
+    "existing-project/tags-after.mjs": "642c595605388adb5dc38e026cff5abbd59528fa9c020365a8139868040a5606",
+    "existing-project/README.md": "909daad77af2f0fcec7985fb6b1ed54c1c6ae2d7353b2de55b04b98fbbd78bdf",
+    "existing-project/repeat.json": "fab2a5ea6a82e157ea3a9a45ec3c06c5dd3ddc0612a59de6eb759eacb808c316",
+    "existing-project/tags-before.mjs": "0eb28333e8d1a553e6ec669d14978288f46066ee816def3d2a88d3066d5eaf2f",
     "customize/b606fc01-a964-4fd8-9275-4ac3d038f8c1.json": "434fb099974ba96a875270e2845a54f21927b14b15479cb90ae05bca893d0367",
     "customize/54661885-1159-499b-9bc7-831ecd1b050b.json": "8c357ec246b4e7081432b38256379a28fdce63d719864f02408342e489526f43",
     "customize/webhook-relay-1.0.0.metadata.json": "f699dc6a6019a54b2f77f1a035fdc395b37d277d629982fbe88911c30d5b2669",
@@ -113,5 +123,6 @@
     "repeatPending": false,
     "repeatRunId": "edae85fb-2e0d-4713-aa85-f6eefde6a2d4",
     "manifestSha256": "91efe09dbe8062047b9943e13cf7eba661716f7823f868e34210c760b7a83402"
-  }
+  },
+  "existingProject": "existing-project/checks.json"
 }
