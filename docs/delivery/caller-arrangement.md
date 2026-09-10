@@ -1,5 +1,9 @@
 # Caller arrangement after fresh parent proof — 2026-09-10
 
+## Current implementation — core.11
+
+Coordinator authorized this protocol as internal MVP implementation. The historical proposal below is retained for rationale, not a new approval gate. Explicit caller mode is now implemented and passes 134/134 runtime tests and six clean-installed caller scenarios with scripted replies and real verifier/HTTP effects. Fresh parent HTTP proof remains pending. See ../../contracts/v1/caller-inference.md and caller-package.json.
+
 ## Finding
 
 The configured Codex0.153.4 authenticates and runs as the fresh parent. Under its
@@ -85,7 +89,7 @@ days plus deployment/acceptance; not the recommended next experiment.
 Proposed caller protocol: roughly 2–4 working days Core implementation/tests plus
 1–2 working days Site skill integration and fresh SDD/Content parent proofs;
 overlap is possible. This is incremental scope beyond the typed-error fix and
-needs explicit coordination before implementation. Keep existing CLI-provider mode
+was explicitly authorized by the coordinator for implementation. Keep existing CLI-provider mode
 for environments where it is actually supported; never switch to caller mode
 without an explicit request/approval identity change.
 
@@ -96,7 +100,4 @@ Content exact-text approval→localhost receipt→dedup; operator decisions disc
 Then repeat the four entry paths and finally Claude. Owner editorial/channel
 acceptance and public release are still separate.
 
-Immediate next step for coordinator: agree the explicit caller-inference mode,
-its status/correlation fields and revised delivery estimate with the owner; then
-assign its implementation in Core and the matching Site skill consumption. This
-document is a concrete proposal, not a declaration that the protocol is built.
+Next: Site consumes the immutable caller package and exposes the protocol through its public skill, followed by fresh parent acceptance. No new owner approval is needed for this internal implementation.

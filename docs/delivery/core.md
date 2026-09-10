@@ -1,9 +1,25 @@
 # Core delivery candidate — 2026-09-10
 
-Current local package: qloops@0.2.0-core.10, contract revision 6 / qf.agent/v1.
-SHA256: `537a3fbbfde3f4da019af8529f4ad6ea2c0659cc1a58bdc72a6ae81cd4ddee07`. Zero runtime dependencies. This is a local delivery candidate;
+Current local package: qloops@0.2.0-core.11, contract revision 7 / qf.agent/v1.
+SHA256: `2a5a38b29594a4a8eef2d928ae35548f042f200816176a549a30af1efb5851d6`. Zero runtime dependencies. This is a local delivery candidate;
 full MVP/MLP and cross-track acceptance remain open. No push/npm publication,
 deployment, donor or Site mutation occurred.
+
+## Explicit caller candidate — core.11
+
+Implementation 492c698 adds persisted one-use caller inference to SDD and Content.
+134/134 full runtime tests passed. Legacy clean-installed SDD/Content consumers
+and six clean-installed caller scenarios passed. Caller package proof uses scripted
+answers with actual independent verifier failure/repair/pass and actual localhost
+receipts; it is not live parent inference. Evidence: caller-package.json.
+
+Migration: contracts/v1/caller-inference.md; select kind caller explicitly, agent
+codex, model current-session when unknown. Actual model/usage remain null.
+Retain the run identity and submit each jobId/hash/output once; remove the reply
+after consumption. Core retains file application, verifier and publication approval.
+Existing CLI behavior is preserved with no fallback or permission bypass.
+Site has received the immutable candidate; repin and fresh HTTP parent proof are
+still pending. No claim of four-entry, Claude or owner editorial acceptance.
 
 ## Fresh parent proof and core.10
 

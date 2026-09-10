@@ -1,11 +1,11 @@
 {
   "baseline": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
   "inheritedCommit": "8f47212",
-  "implementationCommit": "0eec745",
+  "implementationCommit": "492c698",
   "branch": "codex/qf-core-delivery",
-  "artifactSha256": "537a3fbbfde3f4da019af8529f4ad6ea2c0659cc1a58bdc72a6ae81cd4ddee07",
-  "note": "128 tests; observed nested Codex startup denial is actionable and Content runId retained. Fresh core.9 parent customize/create verified, SDD/Content blocked in workspace-write environment. Caller protocol implementation authorized next; no bypass.",
-  "previousImplementationCommit": "fe0d774",
-  "packageVersion": "0.2.0-core.10",
-  "contractRevision": 6
+  "artifactSha256": "2a5a38b29594a4a8eef2d928ae35548f042f200816176a549a30af1efb5851d6",
+  "note": "134/134 runtime tests; installed legacy SDD/Content and six caller scenarios pass. Caller replies are scripted in installed proof; fresh HTTP parent acceptance pending.",
+  "previousImplementationCommit": "0eec745",
+  "packageVersion": "0.2.0-core.11",
+  "contractRevision": 7
 }

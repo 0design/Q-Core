@@ -1,7 +1,7 @@
 {
-  "date": "2026-09-10T11:03:37.216Z",
-  "package": "0.2.0-core.10",
-  "artifactSha256": "537a3fbbfde3f4da019af8529f4ad6ea2c0659cc1a58bdc72a6ae81cd4ddee07",
+  "date": "2026-09-10T12:26:47.522Z",
+  "package": "0.2.0-core.11",
+  "artifactSha256": "2a5a38b29594a4a8eef2d928ae35548f042f200816176a549a30af1efb5851d6",
   "evidenceKind": "clean-installed shipped Content request example; Codex subprocess fixture; real localhost HTTP only; not live inference or owner acceptance",
   "contractSha256": "5a0a9ac80a114d8b7b24298edbf2c4ab4a709022778643c605c6884c0fb33c9e",
   "exampleSha256": "0be14b4d702667e4827b2490454e8e44f14e685c5fdee885e3bfb71df4ab11be",
@@ -43,7 +43,7 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "d18ae675-eb90-45f4-815c-fe043f598cb0",
+        "runId": "579c06b7-cfc4-4f87-b746-2eca6f41b4e0",
         "status": "needs_human",
         "summary": "Approve this exact draft and receiver",
         "artifacts": [],
@@ -51,7 +51,7 @@
           {
             "outcome": "pass",
             "rule": "source-attribution/v1",
-            "textHash": "0e631859459b5018bb113f788c48515c3d438d67e64cbf0e7dc018e56155398d",
+            "textHash": "457529088c97bad31a034c671208cf9a7399e3da462027625c93cecbc6a9c47c",
             "coverage": [
               {
                 "id": "synthetic-source-1",
@@ -63,12 +63,12 @@
         "error": null,
         "nextAction": {
           "type": "approve_publication",
-          "hash": "9154032bfbf66fbb4f77d92a13a8d35f2d751e689f07c363855fa1eda0e1db4a",
-          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:55063/source/1",
+          "hash": "b9264c2091562f23f0bbd0f8e39e44f8b6e6ce3c7560da3a4a8fa2132c8f15bd",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:58261/source/1",
           "receiver": {
             "kind": "webhook",
             "id": "synthetic-local-receiver",
-            "url": "http://127.0.0.1:55063/receipt",
+            "url": "http://127.0.0.1:58261/receipt",
             "version": "1"
           }
         },
@@ -81,20 +81,20 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "d18ae675-eb90-45f4-815c-fe043f598cb0",
+        "runId": "579c06b7-cfc4-4f87-b746-2eca6f41b4e0",
         "status": "success",
         "summary": "Publication confirmed by receiver",
         "artifacts": [
           {
             "revision": 1,
-            "sha256": "0e631859459b5018bb113f788c48515c3d438d67e64cbf0e7dc018e56155398d"
+            "sha256": "457529088c97bad31a034c671208cf9a7399e3da462027625c93cecbc6a9c47c"
           }
         ],
         "evidence": [
           {
             "outcome": "pass",
             "rule": "source-attribution/v1",
-            "textHash": "0e631859459b5018bb113f788c48515c3d438d67e64cbf0e7dc018e56155398d",
+            "textHash": "457529088c97bad31a034c671208cf9a7399e3da462027625c93cecbc6a9c47c",
             "coverage": [
               {
                 "id": "synthetic-source-1",
@@ -145,7 +145,7 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "de38dccd-c63a-4103-9ce7-0f567675f9b3",
+        "runId": "c3ccd169-5215-49dc-9123-50114e04dba1",
         "status": "needs_human",
         "summary": "Approve this exact draft and receiver",
         "artifacts": [],
@@ -153,7 +153,7 @@
           {
             "outcome": "pass",
             "rule": "source-attribution/v1",
-            "textHash": "19559c9612dfa1ab8569a0869db9b924cc0a44ab2b98402bf5239c3512016e16",
+            "textHash": "3660ecba37e35cfee13d83a2321a36cae87de3cc1462ed568b2984648c9f102c",
             "coverage": [
               {
                 "id": "synthetic-source-2",
@@ -165,12 +165,12 @@
         "error": null,
         "nextAction": {
           "type": "approve_publication",
-          "hash": "88e568699a1861b2636391664c3c962511eca574ae302c05e1d9d4b943526300",
-          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:55063/source/2",
+          "hash": "72efd51a5c2346e8f369d4f290968688981d269f73a192538c93d6976815131f",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:58261/source/2",
           "receiver": {
             "kind": "webhook",
             "id": "synthetic-local-receiver",
-            "url": "http://127.0.0.1:55063/receipt",
+            "url": "http://127.0.0.1:58261/receipt",
             "version": "1"
           }
         },
@@ -183,7 +183,7 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "de38dccd-c63a-4103-9ce7-0f567675f9b3",
+        "runId": "c3ccd169-5215-49dc-9123-50114e04dba1",
         "status": "needs_human",
         "summary": "Approve this exact draft and receiver",
         "artifacts": [],
@@ -191,7 +191,7 @@
           {
             "outcome": "pass",
             "rule": "source-attribution/v1",
-            "textHash": "19559c9612dfa1ab8569a0869db9b924cc0a44ab2b98402bf5239c3512016e16",
+            "textHash": "3660ecba37e35cfee13d83a2321a36cae87de3cc1462ed568b2984648c9f102c",
             "coverage": [
               {
                 "id": "synthetic-source-2",
@@ -203,12 +203,12 @@
         "error": null,
         "nextAction": {
           "type": "approve_publication",
-          "hash": "88e568699a1861b2636391664c3c962511eca574ae302c05e1d9d4b943526300",
-          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:55063/source/2",
+          "hash": "72efd51a5c2346e8f369d4f290968688981d269f73a192538c93d6976815131f",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:58261/source/2",
           "receiver": {
             "kind": "webhook",
             "id": "synthetic-local-receiver",
-            "url": "http://127.0.0.1:55063/receipt",
+            "url": "http://127.0.0.1:58261/receipt",
             "version": "1"
           }
         },
@@ -221,7 +221,7 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "de38dccd-c63a-4103-9ce7-0f567675f9b3",
+        "runId": "c3ccd169-5215-49dc-9123-50114e04dba1",
         "status": "cancelled",
         "summary": "Draft rejected",
         "artifacts": [],
@@ -237,7 +237,7 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "3c2ca8e2-8479-42e9-b9e3-d6b4ba7b5a2d",
+        "runId": "3cbe482b-ec3a-4454-88e2-a7af3eca02e6",
         "status": "needs_human",
         "summary": "Approve this exact draft and receiver",
         "artifacts": [],
@@ -245,7 +245,7 @@
           {
             "outcome": "pass",
             "rule": "source-attribution/v1",
-            "textHash": "3be055c9e57c9bc4c8d193697871651fd48180a422dcf6527474f433205a6ea3",
+            "textHash": "e1eb79d48b25c847dd28f1c9583bccf07def456ed3cbf0c50bbd2093d9598a8f",
             "coverage": [
               {
                 "id": "synthetic-source-3",
@@ -257,12 +257,12 @@
         "error": null,
         "nextAction": {
           "type": "approve_publication",
-          "hash": "e57e988986d150511b96401481671fcc431a069cd5ef23b1bafbe704fb22db71",
-          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:55063/source/3",
+          "hash": "ac9e26b4051f9cbca0442f42660f8b829d93e8c59879bee0725179843bb0eda5",
+          "text": "SYNTHETIC source: a local sample release improved checks. http://127.0.0.1:58261/source/3",
           "receiver": {
             "kind": "webhook",
             "id": "synthetic-local-receiver",
-            "url": "http://127.0.0.1:55063/receipt",
+            "url": "http://127.0.0.1:58261/receipt",
             "version": "1"
           }
         },
@@ -275,7 +275,7 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "3c2ca8e2-8479-42e9-b9e3-d6b4ba7b5a2d",
+        "runId": "3cbe482b-ec3a-4454-88e2-a7af3eca02e6",
         "status": "needs_human",
         "summary": "Receiver failed after send began; delivery unconfirmed",
         "artifacts": [],
@@ -283,7 +283,7 @@
         "error": null,
         "nextAction": {
           "type": "reconcile_receipt",
-          "idempotencyKey": "84cf3faf64dd36d1670f92d9b19f7d0d78ae8af8841a90034f1a1df81de2fb12"
+          "idempotencyKey": "c96342e9bd3dea1a3a797035c52eb27d8b2aed073428510f7f84af8f9ac920df"
         },
         "provider": null,
         "usage": null
@@ -294,7 +294,7 @@
       "result": {
         "protocolVersion": "qf.content/v1",
         "requestId": "synthetic-content-example",
-        "runId": "3c2ca8e2-8479-42e9-b9e3-d6b4ba7b5a2d",
+        "runId": "3cbe482b-ec3a-4454-88e2-a7af3eca02e6",
         "status": "needs_human",
         "summary": "Publication outcome uncertain; reconcile receiver receipt before any retry",
         "artifacts": [],
@@ -302,7 +302,7 @@
         "error": null,
         "nextAction": {
           "type": "reconcile_receipt",
-          "idempotencyKey": "84cf3faf64dd36d1670f92d9b19f7d0d78ae8af8841a90034f1a1df81de2fb12"
+          "idempotencyKey": "c96342e9bd3dea1a3a797035c52eb27d8b2aed073428510f7f84af8f9ac920df"
         },
         "provider": null,
         "usage": null
