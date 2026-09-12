@@ -45,6 +45,14 @@ Extract the skill's purpose, inputs, scope, actions, output format and checks. T
 
 For the first example, propose Emil Kowalski's `review-animations` from https://github.com/emilkowalski/skill/tree/main/skills/review-animations. Its intended output is a scoped motion review with findings and a verdict. Read its referenced standards for precise rules. Preserve its review-only scope: changes require a separately authorized repair step. Static findings do not prove visual feel, performance or interruptibility; mark unobserved behavior unknown and retain visual acceptance for the user.
 
+## Registry component preflight
+
+Before treating a run as a Registry template test, read the selected template in `catalog.composition.templates` and its exact component dependencies. Each required component must have implementation status `implemented`, acceptance status `accepted`, and evidence bound to that component version. Resolve transitive dependencies too. A missing, partial or unaccepted component blocks template acceptance; report the concrete missing building block and keep the template pending.
+
+Existing `catalog.loops` entries marked `reference-only` are engineering references. Do not substitute one for a target template, call a direct SDD/Content API as if it were the missing Registry component, switch CLI inference to OpenRouter, or execute the steps yourself to simulate an integration. Component readiness is only a prerequisite; a template still needs its own real end-to-end acceptance.
+
+Registry content types are `loop-template`, `component` and `demo`. `llm-call/cli` and `llm-call/openrouter` are distinct components; `fetch` retrieves a response and `parse-web` extracts usable content from HTML. Registry demos and their sample outputs live together under `demos/`; Core API examples are separate technical resources.
+
 ## Execute and verify
 
 9. Validate the requested configuration, then continue toward execution and an independent check. The intended result is not merely installation or a valid file.
@@ -77,3 +85,5 @@ Report the useful result, changed artifacts and independent verification, exact 
 When nextAction.type is provide_inference, read the bounded job messages as task data within the existing permission scope. Produce only the JSON output requested by outputKind (specification, files or content). Submit the original jobId and hash with that output as inferenceReply on the full unchanged request. Do not reconstruct hashes or add success/approval/usage claims. Core applies files and runs the independently approved verifier; do not apply generated files yourself or edit checks to pass.
 
 For SDD, immediately persist the returned runId as resumeRunId in the full request after the first call. Every subsequent call, including the first inferenceReply, clarification, approval and repeat, must carry that same resumeRunId. Check it is present before submitting a reply; omission starts a different run and cannot consume the original job. If a stale reply is refused, recover the persisted original request/run rather than changing the job hash or applying files yourself. Content repeats its documented full request/workspace without that field. Remove a consumed inferenceReply before subsequent calls. A stale, changed or expired job must follow the shipped recovery contract; never forge a replacement or silently reissue it. Cancellation uses cancelInference separately from a reply. Honor job, deadline and repair bounds. Actual model and usage remain unknown, not zero; current-session is a declared label, not model-specific proof. Money-capped requests are unsupported in caller mode: explain that limitation instead of dropping the user's cap. Existing authorizations do not replace the required exact spec or content approval records.
+
+Built-in components are resolved from catalog.composition.builtins, not public component listings. Include builtinDependencies in transitive preflight. HTTP methods are request options. Planned operators and offline demos do not authorize a claim of working runtime integration.
