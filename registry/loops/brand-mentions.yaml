@@ -1,0 +1,71 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# brand-mentions — every morning, who mentioned you.
+#
+# This is the loop a stranger wrote from the SPECIFICATION ALONE, with no access
+# to any of this code, as the portability test of the format. It is in the
+# catalogue because it earned its place: if the spec is good enough to produce
+# this without help, the format is a format and not a private convention.
+#
+# fetch → llm-call → api-request. No human gate.
+# =============================================================================
+
+id: brand-mentions
+name: "Brand mentions: who talked about you today"
+version: 1.0.0
+description: >
+  Searches a news feed for your brand and keeps only the real mentions.
+  Reports zero when there are none, instead of padding.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: schedule
+    cron: "30 6 * * *"
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  budgetUsd: 0.10
+
+steps:
+  - id: bm-fetch
+    kind: fetch
+    config:
+      name: "Search the feed"
+      # Google News RSS takes a query. Replace `q=` with your own brand.
+      # Any search engine or service that emits RSS works the same way.
+      url: "{{env.QLOOP_SOURCE_URL}}"
+      format: rss
+      limit: "10"
+      timeoutSec: "30"
+
+  - id: bm-filter
+    kind: llm-call
+    config:
+      name: "Keep the real ones"
+      role: analyst
+      maxTokens: "800"
+      instructions: |
+        The `entries` array holds search results. Some genuinely discuss the
+        brand; others merely contain the words.
+
+        Keep only the real mentions. For each, write one line:
+          "<publication> · <one sentence on what they said> · <link>"
+
+        Then a final line: "TONE: positive / neutral / negative / mixed".
+
+        If none of the results are real mentions, reply with exactly:
+        "No mentions today." and nothing else — an empty morning is a result,
+        not a failure, and padding it would train the reader to skim.
+
+  - id: bm-send
+    kind: api-request
+    config:
+      name: "Send the summary"
+      method: POST
+      url: "{{env.QLOOP_WEBHOOK_URL}}"
+      expect: "2xx"
+      timeoutSec: "30"
+      body: '{"text":"{{steps.Keep the real ones.output.text}}"}'

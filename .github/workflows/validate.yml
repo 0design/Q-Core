@@ -14,7 +14,7 @@ name: validate
 
 on:
   pull_request:
-    paths: ["loops/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json"]
+    paths: ["loops/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json", "scripts/build-registry.mjs", ".github/workflows/validate.yml"]
   push:
     branches: [main]
 
@@ -45,38 +45,10 @@ jobs:
       - name: tests
         run: node --test test/*.test.mjs
 
-      - name: every manifest validates
-        run: |
-          fail=0
-          for f in loops/*.yaml; do
-            if node bin/qloop.mjs validate "$f" > /dev/null 2>/tmp/err; then
-              echo "  ok   $f"
-            else
-              echo "  FAIL $f"; sed 's/^/       /' /tmp/err; fail=1
-            fi
-          done
-          exit $fail
-
-      # The catalogue is generated. If a pull request hand-edits it — or adds a
-      # loop without regenerating — the two disagree, and the site would start
-      # describing loops that are not what it says they are.
-      - name: catalog.json is in sync with loops/ and registry/
-        run: |
-          cp catalog.json /tmp/catalog.committed.json
-          npm run --silent catalog
-          if ! diff -q /tmp/catalog.committed.json catalog.json > /dev/null; then
-            echo "::error::catalog.json does not match loops/ and registry/. Run: npm run catalog"
-            diff -u /tmp/catalog.committed.json catalog.json | head -60
-            exit 1
-          fi
-          node -e "
-            const c = JSON.parse(require('fs').readFileSync('catalog.json','utf8'));
-            if (!Array.isArray(c.loops) || !c.loops.length) { console.error('catalog.json missing loops'); process.exit(1); }
-            if (!Array.isArray(c.components) || !c.components.length) { console.error('catalog.json missing components'); process.exit(1); }
-            if (!Array.isArray(c.demos) || !c.demos.length) { console.error('catalog.json missing demos'); process.exit(1); }
-            if (c.catalogVersion !== 2) { console.error('catalogVersion must be 2'); process.exit(1); }
-            console.log('  in sync ·', c.loops.length, 'loops ·', c.components.length, 'components ·', c.demos.length, 'demos');
-          "
+      # The standalone Registry builder validates every manifest, metadata and
+      # generated catalog without executing contributed loops or using secrets.
+      - name: Registry manifests and generated catalog
+        run: node scripts/build-registry.mjs --check
 
       # A manifest is meant to reference secrets, never to contain them.
       - name: no secrets committed

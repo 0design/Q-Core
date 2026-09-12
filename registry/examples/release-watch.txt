@@ -1,0 +1,5 @@
+2026-07-29, Version 26.5.1 (Current) · This is a security release with fixes for high, medium, and low severity issues.
+2026-07-29, Version 24.18.1 'Krypton' (LTS) · This is a security release with fixes for high, medium, and low severity issues.
+2026-07-29, Version 22.23.2 'Jod' (LTS) · This is a security release with fixes for high, medium, and low severity issues.
+
+WATCH: There are several high severity issues fixed in these releases, including CVE-2026-56848, CVE-2026-58043, and CVE-2026-56850.

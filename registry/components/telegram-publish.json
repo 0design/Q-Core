@@ -1,0 +1,31 @@
+{
+  "id": "telegram-publish",
+  "name": "Telegram publish",
+  "kind": "composite",
+  "builtFrom": [
+    "api-request"
+  ],
+  "description": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md §5.3). Unset env vars do not fire a URL with braces in it — the runner writes to .qf/out/ and says so (SPEC §9).",
+  "input": {
+    "text": {
+      "type": "string",
+      "required": true,
+      "notes": "Message body. In shipped loops this is a prior step's output, templated into api-request body."
+    }
+  },
+  "output": {
+    "sent": {
+      "type": "boolean",
+      "notes": "Recipe surface, not an engine field. True when the api-request completed; false when the file sink was used instead."
+    },
+    "chatId": {
+      "type": "string",
+      "notes": "Optional. The chat that was addressed. Not an engine field — the request body carries chat_id."
+    }
+  },
+  "needsEnv": [
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_CHAT_ID"
+  ],
+  "usedBy": []
+}
