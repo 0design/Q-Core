@@ -1,0 +1,23 @@
+name: Verify release access
+on:
+  push:
+    branches: ["codex/verify-release-access-20260912"]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check service access without publishing
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token=process.env.NPM_TOKEN;
+          if(!token) throw new Error('NPM_TOKEN missing');
+          const r=await fetch('https://registry.npmjs.org/-/whoami',{headers:{Authorization:'Bearer '+token}});
+          if(!r.ok) throw new Error('npm authentication failed HTTP '+r.status);
+          const b=await r.json(); console.log('npm authentication verified for '+b.username);
+          console.log('Publish permission not exercised.');
+          NODE
