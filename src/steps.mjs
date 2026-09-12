@@ -7,7 +7,7 @@
  *   api-request    → API-Request      — an outgoing request; A LOOP MAY END HERE
  *   fan-out        → handled by the driver, not here (it creates rows, not output)
  *
- * `schedule` is a TRIGGER, not a runner. `qf run` performs one pass; whether it
+ * `schedule` is a TRIGGER, not a runner. `qloops run` performs one pass; whether it
  * is time for that pass is decided by launchd/cron, which is the honest place
  * for it — see README §Scheduling.
  *
@@ -161,6 +161,8 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     );
   }
 
+  if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override. This YAML route is not CLI caller inference.");
+
   const system =
     (role ? `You are the ${role} agent in an autonomous factory. ` : "") +
     instructions +
@@ -233,6 +235,8 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
       waitingHuman: true,
     };
   }
+
+  if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override.");
 
   const { content, usage } = await chatOnce({
     apiKey: ctx.apiKey,

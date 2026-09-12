@@ -36,6 +36,11 @@ for(const component of ['hero','missing-component']){
 }
 await assert.rejects(a.evaluate({...aRequest,designSystem:{...ds,sha256:hash('stale DS')}}));
 await assert.rejects(a.evaluate({...aRequest,artifact:{revision:1,sha256:hash('unrelated subject')}}));
+if (config.aindfOnly) {
+  console.log(JSON.stringify({evidenceKind:'clean installed Core with local native AINDF on controlled DS fixtures; no browser or full design-system acceptance',
+    aindf:{pin:aPin,frameworkVersion:a.frameworkVersion,readiness,badReadiness,malformedReadiness,emptyReadiness,missing,composition}}));
+  process.exit(0);
+}
 const uPin={root:config.unslopRoot,packageVersion:'0.1.0',sha256:upstreamDigest(config.unslopRoot,['scripts','references','package.json'])};
 const u=await loadUnslop(uPin),observations=JSON.parse(readFileSync(join(config.browserRoot,'observations.json')));
 const unslop=[];

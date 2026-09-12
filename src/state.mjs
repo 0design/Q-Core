@@ -12,7 +12,7 @@
  * copy of it, it is a different thing with a different job.
  *
  * WRITES ARE ATOMIC (tmp + rename). A run interrupted mid-write must not leave a
- * half-written JSON that the next `qf status` then refuses to parse — that turns
+ * half-written JSON that the next `qloops status` then refuses to parse — that turns
  * one failed run into a permanently broken directory.
  */
 import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync, existsSync } from "node:fs";
@@ -91,7 +91,7 @@ export class RunStore {
     return readJson(join(this.dir, "last-run.json"));
   }
 
-  /** Newest first. Used by `qf status`. */
+  /** Newest first. Used by `qloops status`. */
   listRuns(limit = 20) {
     if (!existsSync(this.runsDir)) return [];
     return readdirSync(this.runsDir)

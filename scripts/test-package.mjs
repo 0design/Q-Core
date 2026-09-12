@@ -46,7 +46,7 @@ try {
     "import {validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck} from 'qloops'; if(![validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
   const imports = exec(process.execPath, ["--input-type=module", "-e", smoke]);
   const manifest =
-    "manifest: qf.loop/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
+    "manifest: qloops.loop/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
   writeFileSync(join(tmp, "clean.yaml"), manifest);
   const bin = join(tmp, "node_modules/qloops/bin/qloops.mjs");
   const validation = exec(process.execPath, [bin, "validate", "clean.yaml"]);

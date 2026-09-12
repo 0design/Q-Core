@@ -70,7 +70,7 @@ export async function loadRelease(base, sha256) {
     "Versioned release required",
   );
   insist(
-    catalog.core?.manifest === "qf.loop/v1",
+    catalog.core?.manifest === "qloops.loop/v1",
     "Incompatible manifest contract",
     "ENGINE_INCOMPATIBLE",
   );

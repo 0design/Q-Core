@@ -7,7 +7,7 @@ and loops/components/demos subdirectories. HTTP is allowed only on localhost for
 controlled development. The Site /api/registry route is a different API layout;
 it is not automatically treated as a static export base.
 
-The catalog must pin the installed qloops version exactly and qf.loop/v1. A newer
+The catalog must pin the installed qloops version exactly and qloops.loop/v1. A newer
 local engine must not rewrite a downloaded catalog or silently accept the old pin.
 Use the retained engine artifact for an existing release; only the registry owner
 can publish a new accepted pin. Catalog and every resolved asset need SHA256

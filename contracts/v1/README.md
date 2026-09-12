@@ -1,10 +1,10 @@
-# Core contract revision 6 (qf.agent/v1)
+# Core contract revision 8 (qf.agent/v1)
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
 and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships
 these discoverability additions without changing revision5 runtime semantics.
 
-Additive to qf.loop/v1. Consumers pin the package tarball SHA256 and this directory.
+Core.12 uses `qloops.loop/v1` for YAML manifests. Older manifest namespaces are rejected. Migrate a copy of the manifest and revalidate it with the new package; do not resume old runs or rewrite historical evidence. The agent and content request protocols are unchanged. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
 
 `qloops agent request.json` (or `-` for bounded stdin) emits exactly one JSON

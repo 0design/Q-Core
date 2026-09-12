@@ -52,7 +52,7 @@ try {
   incompatibleBytes=Buffer.from(JSON.stringify(incompatible));
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const host=`http://127.0.0.1:${server.address().port}`;
   const bin=cwd=>join(cwd,'node_modules/qloops/bin/qloops.mjs');
-  const installArgs=(base,sha,dest)=>['install',base,sha,'webhook-relay','1.0.0',dest];
+  const installArgs=(base,sha,dest)=>['install',base,sha,'webhook-relay','1.1.0',dest];
   const originalHash=hash(catalogBytes),dest=join(old,'relay.yaml');
   assert.equal((await run(process.execPath,[bin(old),...installArgs(host+'/registry',originalHash,dest)],old)).code,0);
   assert.equal(hash(readFileSync(dest)),catalog.loops.find(e=>e.id==='webhook-relay').sha256);

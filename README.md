@@ -162,7 +162,7 @@ See delivery documentation for upstream/version and acceptance limitations.
 ## Legacy YAML commands
 
 `qloop validate`, `run [--dry-run]`, `status`, `approve [--reject]`, `catalog`,
-`init` and `doctor` remain available for `qf.loop/v1`. Step kinds and fields are in
+`init` and `doctor` remain available for `qloops.loop/v1`. Step kinds and fields are in
 [SPEC-MANIFEST.md](./SPEC-MANIFEST.md). Legacy JSON is not the new agent envelope.
 `run` performs one pass; scheduling belongs to the caller/launchd. State is local
 in `.qf/`; no server/database is required. Legacy YAML agent-call and check mode

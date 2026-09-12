@@ -16,7 +16,7 @@ test("independent pinned catalog -> checksum -> validate -> install; corruption 
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   mkdirSync(join(dir, "loops"));
   const body =
-    "manifest: qf.loop/v1\nid: synthetic\nversion: 1.0.0\nsteps:\n  - id: gate\n    kind: approval-gate\n    config: { reviewer: human }\n";
+    "manifest: qloops.loop/v1\nid: synthetic\nversion: 1.0.0\nsteps:\n  - id: gate\n    kind: approval-gate\n    config: { reviewer: human }\n";
   writeFileSync(join(dir, "loops/synthetic.yaml"), body);
   const catalog = JSON.stringify({
     releaseVersion: "fixture.1",
@@ -25,7 +25,7 @@ test("independent pinned catalog -> checksum -> validate -> install; corruption 
       version: JSON.parse(
         readFileSync(new URL("../package.json", import.meta.url)),
       ).version,
-      manifest: "qf.loop/v1",
+      manifest: "qloops.loop/v1",
     },
     loops: [
       {
@@ -85,11 +85,11 @@ test('dependency graph rejects ambiguity, cycles, malformed sections and mismatc
   const {existsSync}=await import('node:fs');
   const dir=mkdtempSync(join(tmpdir(),'qloops-graph-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
   mkdirSync(join(dir,'loops'));mkdirSync(join(dir,'components'));
-  const body='manifest: qf.loop/v1\nid: target\nversion: 1.0.0\nsteps:\n  - id: gate\n    kind: approval-gate\n    config: { reviewer: human }\n';
+  const body='manifest: qloops.loop/v1\nid: target\nversion: 1.0.0\nsteps:\n  - id: gate\n    kind: approval-gate\n    config: { reviewer: human }\n';
   writeFileSync(join(dir,'loops/target.yaml'),body);
   const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
   const loop={id:'target',version:'1.0.0',file:'loops/target.yaml',sha256:hash(body),dependencies:[]};
-  const base={releaseVersion:'test.1',core:{package:'qloops',version:pkg.version,manifest:'qf.loop/v1'},loops:[loop],components:[]};
+  const base={releaseVersion:'test.1',core:{package:'qloops',version:pkg.version,manifest:'qloops.loop/v1'},loops:[loop],components:[]};
   const cases=[
     [{...base,loops:[{...loop,dependencies:[{id:'target',version:'1.0.0'}]}]},/cycle/],
     [{...base,loops:[{...loop,dependencies:[{id:'target',version:'1.0.0'}]}],components:[{...loop,file:'components/target.json'}]},/Ambiguous/],

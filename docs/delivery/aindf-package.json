@@ -1,0 +1,290 @@
+{
+  "date": "2026-09-12T19:59:27.835Z",
+  "package": "0.2.0-core.12",
+  "sha256": "8a6d088a8b5fbf159a3374bd314c1f86e6a997a7a6a8fe0ac3ef03c407474890",
+  "evidenceKind": "clean installed Core with local native AINDF on controlled DS fixtures; no browser or full design-system acceptance",
+  "aindf": {
+    "pin": {
+      "root": "/Users/oleg.design/PORN/projects/oss/aindf/repo",
+      "packageVersion": "0.5.0-rc.1",
+      "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+    },
+    "frameworkVersion": "0.3.0-rc.1",
+    "readiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "30bad1a008d2cc1486bea339f4dc10291f585ef16c8d6c15d2805d045fc5a9e4"
+      },
+      "hard": [
+        {
+          "rule": "AINDF-AgentReady",
+          "type": "hard",
+          "outcome": "pass",
+          "evidence": {
+            "reportHash": "25b05a32fc9b256ebd39197cdec69b9ff9a9c331359d5b3facbb681a5a2778af",
+            "level": {
+              "pass": true,
+              "errorCount": 0,
+              "warningCount": 1
+            }
+          }
+        }
+      ],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "pass"
+        }
+      ],
+      "recipes": [],
+      "status": "success",
+      "browserEvidence": null
+    },
+    "badReadiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "78147b04796caec49478db0f76aaf9abcdf6e9f80d89a03bbfdd6e294cd52189"
+      },
+      "hard": [
+        {
+          "rule": "AINDF-AgentReady",
+          "type": "hard",
+          "outcome": "fail",
+          "evidence": {
+            "reportHash": "5628ff96662fe9c6e0b7282678e6846f103e50556fcd3fb5eae0796585114f8b",
+            "level": {
+              "pass": false,
+              "errorCount": 0,
+              "warningCount": 1
+            }
+          }
+        }
+      ],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "fail"
+        }
+      ],
+      "recipes": [],
+      "status": "failed",
+      "browserEvidence": null
+    },
+    "malformedReadiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "014ecffdb0bd65eb36d4f94239d383463a5a26cca6424156b85e7365ad17e769"
+      },
+      "hard": [],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "unknown"
+        }
+      ],
+      "recipes": [],
+      "status": "needs_human",
+      "reason": "Upstream evaluation unavailable"
+    },
+    "emptyReadiness": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "4cc8fde264ba25812848e282394f39ca0e1cb2ff9ec7b8375f7795deac5b793e"
+      },
+      "hard": [],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "unknown"
+        }
+      ],
+      "recipes": [],
+      "status": "needs_human",
+      "reason": "Upstream evaluation unavailable"
+    },
+    "missing": {
+      "protocolVersion": "qf.quality/v1",
+      "kind": "aindf-check",
+      "mode": "ds-readiness",
+      "upstream": {
+        "version": "0.3.0-rc.1",
+        "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+      },
+      "artifact": {
+        "revision": 1,
+        "sha256": "30bad1a008d2cc1486bea339f4dc10291f585ef16c8d6c15d2805d045fc5a9e4"
+      },
+      "hard": [],
+      "soft": [],
+      "coverage": [
+        {
+          "rule": "AINDF-AgentReady",
+          "outcome": "unknown"
+        }
+      ],
+      "recipes": [],
+      "status": "needs_human",
+      "reason": "Missing design system"
+    },
+    "composition": [
+      {
+        "component": "hero",
+        "native": {
+          "upstreamVersion": "0.3.0-rc.1",
+          "upstreamSha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93",
+          "designSystemHash": "30bad1a008d2cc1486bea339f4dc10291f585ef16c8d6c15d2805d045fc5a9e4",
+          "artifactHash": "df98425d228f6ec43a2cb7ee3ec251fe17a83184ed34e87af5f2bf033a856cff",
+          "revision": 1,
+          "findings": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "pass",
+              "evidence": {
+                "reportHash": "3a1d8d664f7ec93fd941b2789988f67fa926d089d8cdc830882a1d4bcbb5f481",
+                "findings": []
+              }
+            }
+          ]
+        },
+        "quality": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "aindf-check",
+          "mode": "ui-compliance",
+          "upstream": {
+            "version": "0.3.0-rc.1",
+            "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+          },
+          "artifact": {
+            "revision": 1,
+            "sha256": "df98425d228f6ec43a2cb7ee3ec251fe17a83184ed34e87af5f2bf033a856cff"
+          },
+          "hard": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "pass",
+              "evidence": {
+                "reportHash": "3a1d8d664f7ec93fd941b2789988f67fa926d089d8cdc830882a1d4bcbb5f481",
+                "findings": []
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "composition-contract",
+              "outcome": "pass"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": null
+        }
+      },
+      {
+        "component": "missing-component",
+        "native": {
+          "upstreamVersion": "0.3.0-rc.1",
+          "upstreamSha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93",
+          "designSystemHash": "30bad1a008d2cc1486bea339f4dc10291f585ef16c8d6c15d2805d045fc5a9e4",
+          "artifactHash": "656045bcbbea8cb72cc17bbabad2fcba4ae2ec95e02f60df6a68b4ee891a7fc8",
+          "revision": 1,
+          "findings": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "fail",
+              "evidence": {
+                "reportHash": "74882468810d42ca059510ea92d474f72b4a6d75e97a345304893095d3e4eedb",
+                "findings": [
+                  {
+                    "severity": "error",
+                    "code": "missing-component",
+                    "page": "composition",
+                    "component": "missing-component",
+                    "message": "component \"missing-component\" is not in the design system"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "quality": {
+          "protocolVersion": "qf.quality/v1",
+          "kind": "aindf-check",
+          "mode": "ui-compliance",
+          "upstream": {
+            "version": "0.3.0-rc.1",
+            "sha256": "c2e490b5bc199aa2c0c0465a1c2bee99a6147b09a0512842b22d648faac58f93"
+          },
+          "artifact": {
+            "revision": 1,
+            "sha256": "656045bcbbea8cb72cc17bbabad2fcba4ae2ec95e02f60df6a68b4ee891a7fc8"
+          },
+          "hard": [
+            {
+              "rule": "composition-contract",
+              "type": "hard",
+              "outcome": "fail",
+              "evidence": {
+                "reportHash": "74882468810d42ca059510ea92d474f72b4a6d75e97a345304893095d3e4eedb",
+                "findings": [
+                  {
+                    "severity": "error",
+                    "code": "missing-component",
+                    "page": "composition",
+                    "component": "missing-component",
+                    "message": "component \"missing-component\" is not in the design system"
+                  }
+                ]
+              }
+            }
+          ],
+          "soft": [],
+          "coverage": [
+            {
+              "rule": "composition-contract",
+              "outcome": "fail"
+            }
+          ],
+          "recipes": [],
+          "status": "needs_human",
+          "browserEvidence": null
+        }
+      }
+    ]
+  }
+}

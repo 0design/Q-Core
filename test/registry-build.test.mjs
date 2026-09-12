@@ -16,9 +16,14 @@ test('shared registry export installs through Core and rejects unreviewed metada
   assert.ok([...catalog.loops, ...catalog.components, ...catalog.demos].every(entry => entry.license === 'MIT'));
   const bytes = JSON.stringify(catalog);
   writeFileSync(join(dir, 'catalog.json'), bytes);
-  await installPinned({ base: dir, catalogSha256: hash(bytes), id: 'webhook-relay', version: '1.0.0', destination: join(dir, 'installed.yaml') });
+  await installPinned({ base: dir, catalogSha256: hash(bytes), id: 'webhook-relay', version: '1.1.0', destination: join(dir, 'installed.yaml') });
   const sourcePath = join(dir, 'catalog.source.json');
   const source = JSON.parse(readFileSync(sourcePath));
+  const value = source.loops[0].value;
+  delete source.loops[0].value;
+  writeFileSync(sourcePath, JSON.stringify(source));
+  assert.throws(() => buildRegistry(dir), /Loop value/);
+  source.loops[0].value = value;
   source.loops[0].license = 'LicenseRef-Pending';
   writeFileSync(sourcePath, JSON.stringify(source));
   assert.throws(() => buildRegistry(dir), /license/);
