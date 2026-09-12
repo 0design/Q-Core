@@ -23,7 +23,10 @@
       "role": "action",
       "variant": "primary",
       "presentation": "inline",
-      "content": "Save changes"
+      "content": "Save changes",
+      "style": {
+        "background": "#e00000"
+      }
     }
   ]
 }
