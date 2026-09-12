@@ -1,7 +1,7 @@
 {
-  "date": "2026-09-12T19:59:27.835Z",
-  "package": "0.2.0-core.12",
-  "sha256": "8a6d088a8b5fbf159a3374bd314c1f86e6a997a7a6a8fe0ac3ef03c407474890",
+  "date": "2026-09-12T20:05:08.057Z",
+  "package": "0.2.0-core.13",
+  "sha256": "bb8b449e68e1657bd96ecde32722256f44529f271984d7780480ace12f0b7ae1",
   "evidenceKind": "clean installed Core with local native AINDF on controlled DS fixtures; no browser or full design-system acceptance",
   "aindf": {
     "pin": {

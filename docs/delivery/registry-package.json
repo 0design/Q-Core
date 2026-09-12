@@ -1,15 +1,15 @@
 {
-  "date": "2026-09-12T19:59:27.302Z",
+  "date": "2026-09-12T20:05:07.531Z",
   "evidenceKind": "clean installed CLI over real localhost HTTP; exact read-only Site export on retained engine, separate synthetic engine-repin catalog on current candidate; no public-registry or product live acceptance",
-  "package": "0.2.0-core.12",
-  "sha256": "8a6d088a8b5fbf159a3374bd314c1f86e6a997a7a6a8fe0ac3ef03c407474890",
+  "package": "0.2.0-core.13",
+  "sha256": "bb8b449e68e1657bd96ecde32722256f44529f271984d7780480ace12f0b7ae1",
   "site": {
     "release": "2026.09.12-registry.2",
-    "catalogSha256": "1b86664b377f9f8b9d19fd647116c8bd3c14d7a611178ec02358cc5bc809ad4b",
-    "core": "0.2.0-core.12",
-    "coreSha256": "8a6d088a8b5fbf159a3374bd314c1f86e6a997a7a6a8fe0ac3ef03c407474890"
+    "catalogSha256": "8e74eafa293b74379cfaa1f28dbc625cc9c0935d0d00c72d3b99156e77fc9c47",
+    "core": "0.2.0-core.13",
+    "coreSha256": "bb8b449e68e1657bd96ecde32722256f44529f271984d7780480ace12f0b7ae1"
   },
-  "syntheticCatalogSha256": "b50cbbd76f2dcfd2fbab85e086a29f8c053a4e2ec5b6ccc6576722d4cf839e93",
+  "syntheticCatalogSha256": "e1ee0db49861c51e04e731c50e9a78d70011a23159a197bd28c8192108474c5e",
   "checks": {
     "retainedDownloadValidateRun": true,
     "currentExactPinMismatchRejected": true,
@@ -25,10 +25,10 @@
         "--ignore-scripts",
         "--no-audit",
         "--no-fund",
-        "/Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/artifacts/qloops-0.2.0-core.12.tgz"
+        "/Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/artifacts/qloops-0.2.0-core.13.tgz"
       ],
       "exit": 0,
-      "stdoutHash": "70cece813e31e3120f32d2501ddf0ec9257d225f62e99e2f2a0b61c6c3f03700",
+      "stdoutHash": "e4cf3d2f0d015b4def2f1957d5c39256ee109230a436dd511be21456de80ef46",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -39,7 +39,7 @@
         "--json"
       ],
       "exit": 0,
-      "stdoutHash": "9196c64b037718d2c49b7bcdb236b6f2136d1ddc4228a6c62e211a434c878ff7",
+      "stdoutHash": "3b3c65f6390edac1aa4f2c2a44c4883cf0512e51616484ed43461392ea046946",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
@@ -48,55 +48,55 @@
         "--ignore-scripts",
         "--no-audit",
         "--no-fund",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/qloops-0.2.0-core.12.tgz"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/qloops-0.2.0-core.13.tgz"
       ],
       "exit": 0,
-      "stdoutHash": "a663e89354641fe45e6400ff6532286e09f28f133e1852419081cb64233ef941",
+      "stdoutHash": "14405cfb4bd7e96baa1937899f43f2d4d56388c847d5c15343a5d086e663b94d",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/retained/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/retained/node_modules/qloops/bin/qloops.mjs",
         "install",
-        "http://127.0.0.1:58586/registry",
-        "1b86664b377f9f8b9d19fd647116c8bd3c14d7a611178ec02358cc5bc809ad4b",
+        "http://127.0.0.1:58768/registry",
+        "8e74eafa293b74379cfaa1f28dbc625cc9c0935d0d00c72d3b99156e77fc9c47",
         "webhook-relay",
         "1.1.0",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/retained/relay.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/retained/relay.yaml"
       ],
       "exit": 0,
-      "stdoutHash": "e3c10e46bbb87735bb487016f4c9e64409b91b6272f231174b51e41e45c48139",
+      "stdoutHash": "00cb83f5e4e27f145671ef2b4160df5003db3062c49ba7efd735f7e6d8231c96",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/retained/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/retained/node_modules/qloops/bin/qloops.mjs",
         "validate",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/retained/relay.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/retained/relay.yaml"
       ],
       "exit": 0,
-      "stdoutHash": "c8b81dd86b0207e1bb6f591c09707586b028b38b410cd9734770ca48b0bb80f5",
+      "stdoutHash": "a15d601092ffa5bd3ecec5a163b52a2398fa46a34cc758db3a1541a7a432ffb2",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/retained/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/retained/node_modules/qloops/bin/qloops.mjs",
         "run",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/retained/relay.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/retained/relay.yaml"
       ],
       "exit": 0,
-      "stdoutHash": "d349dff9f56871910e50ef72dba4d563a822a2dc0d9b59cb82ae1476f5aad197",
+      "stdoutHash": "ba7e914c6d3554b4d8f66ac52c111155e7b4079e694f60b26ecefed8c8eeb67c",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/node_modules/qloops/bin/qloops.mjs",
         "install",
-        "http://127.0.0.1:58586/incompatible",
-        "88430dbbdde146020418df589426b4b241214cdfb6f74368094331deed9fe1c6",
+        "http://127.0.0.1:58768/incompatible",
+        "8a5de1b48cdb6bd35ce828208725fdf83d90d692371143e4b04d5f243d61ab85",
         "webhook-relay",
         "1.1.0",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/mismatch.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/mismatch.yaml"
       ],
       "exit": 1,
       "stdoutHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -104,47 +104,47 @@
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/node_modules/qloops/bin/qloops.mjs",
         "install",
-        "http://127.0.0.1:58586/candidate",
-        "b50cbbd76f2dcfd2fbab85e086a29f8c053a4e2ec5b6ccc6576722d4cf839e93",
+        "http://127.0.0.1:58768/candidate",
+        "e1ee0db49861c51e04e731c50e9a78d70011a23159a197bd28c8192108474c5e",
         "webhook-relay",
         "1.1.0",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/relay.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/relay.yaml"
       ],
       "exit": 0,
-      "stdoutHash": "a5508aa667ed15a451ce7930f69e5f6ca2c66e1f30189d5983d59baceef8d823",
+      "stdoutHash": "b21e767d8135812440be4d34407edce4279c2867df8adc2bed67e160a816ef32",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/node_modules/qloops/bin/qloops.mjs",
         "validate",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/relay.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/relay.yaml"
       ],
       "exit": 0,
-      "stdoutHash": "e5d48da1f1aaa593ce082ec39a988bc4f62ecb2c6193280d91b69158ddc5cd8d",
+      "stdoutHash": "6e19c39dace993a134fd9d454cb649136ba823b38c012597bf2bd9327d50f2a6",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/node_modules/qloops/bin/qloops.mjs",
         "run",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/relay.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/relay.yaml"
       ],
       "exit": 0,
-      "stdoutHash": "c259663bcbf280f7cf9401f5af798c0ca75a343cd5efeeeacb37c2f90a2b5eb4",
+      "stdoutHash": "dda7668822cbbf4fb1084d871bcee1a6d66fff8db1f9f99ea952d0b353b3f55f",
       "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/node_modules/qloops/bin/qloops.mjs",
         "install",
-        "http://127.0.0.1:58586/candidate",
-        "b50cbbd76f2dcfd2fbab85e086a29f8c053a4e2ec5b6ccc6576722d4cf839e93",
+        "http://127.0.0.1:58768/candidate",
+        "e1ee0db49861c51e04e731c50e9a78d70011a23159a197bd28c8192108474c5e",
         "webhook-relay",
         "1.1.0",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/relay.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/relay.yaml"
       ],
       "exit": 1,
       "stdoutHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -152,13 +152,13 @@
     },
     {
       "args": [
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/node_modules/qloops/bin/qloops.mjs",
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/node_modules/qloops/bin/qloops.mjs",
         "install",
-        "http://127.0.0.1:58586/candidate",
+        "http://127.0.0.1:58768/candidate",
         "0000000000000000000000000000000000000000000000000000000000000000",
         "webhook-relay",
         "1.1.0",
-        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-09Piva/candidate/corrupt.yaml"
+        "/var/folders/r9/ztbqmrxj0y3_hktztybsdlmw0000gn/T/qloops-registry-caller-LlHDXz/candidate/corrupt.yaml"
       ],
       "exit": 1,
       "stdoutHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -218,11 +218,11 @@
   "received": [
     {
       "forwarded": "{\"message\":\"synthetic registry delivery\"}",
-      "run": "60cd9d0f-b57e-4108-846e-c13ba7e2f79c"
+      "run": "876be5d3-8d3e-4f08-b799-5d90439a69f3"
     },
     {
       "forwarded": "{\"message\":\"synthetic registry delivery\"}",
-      "run": "b2203725-6d11-4f25-94c4-67b8e2b6b89f"
+      "run": "f1d09ea9-8f04-44f5-9e14-6bdd4b6b6f24"
     }
   ]
 }
