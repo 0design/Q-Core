@@ -23,7 +23,8 @@
       "role": "action",
       "variant": "primary",
       "presentation": "inline",
-      "content": "Save changes"
+      "content": "Save changes",
+      "extension": "project-emphasis"
     }
   ]
 }
