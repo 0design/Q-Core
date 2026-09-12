@@ -16,7 +16,7 @@ const run=async(exe,args,cwd,env={})=>{
   const r=await subprocess(exe,args,{cwd,env:{...scopedEnvironment(),QF_NO_UPDATE_CHECK:'1',QFACTORY_REGISTRY:'',QLOOP_CATALOG_URL:'',...env},timeoutMs:30000});
   commands.push({args,exit:r.code,stdoutHash:hash(r.stdout),stderrHash:hash(r.stderr)});return r;
 };
-let candidateBytes;
+let candidateBytes, incompatibleBytes;
 const assets=new Map([['catalog.json',catalogBytes]]);
 for(const section of ['loops','components','demos'])for(const e of catalog[section]??[]){
   const file=e.file??`${section}/${e.id}.json`;assert.match(file,/^(loops|components|demos)\/[a-z0-9-]+\.(yaml|json)$/);
@@ -29,8 +29,8 @@ const server=createServer(async(req,res)=>{
     let body='';for await(const chunk of req)body+=chunk;
     received.push(JSON.parse(body));res.setHeader('Content-Type','application/json');return res.end('{"received":true}');
   }
-  const match=/^\/(registry|candidate)\/(.+)$/.exec(req.url);
-  const bytes=match && (match[1]==='candidate' && match[2]==='catalog.json' ? candidateBytes : assets.get(match[2]));
+  const match=/^\/(registry|candidate|incompatible)\/(.+)$/.exec(req.url);
+  const bytes=match && (match[1]==='incompatible' && match[2]==='catalog.json' ? incompatibleBytes : match[1]==='candidate' && match[2]==='catalog.json' ? candidateBytes : assets.get(match[2]));
   if(!bytes){res.writeHead(404);return res.end();}res.end(bytes);
 });
 try {
@@ -45,6 +45,11 @@ try {
   const synthetic=structuredClone(catalog);synthetic.releaseVersion='synthetic-core-compatibility';synthetic.core.version=pack.version;
   for(const section of ['loops','components','demos'])for(const e of synthetic[section]??[])if(e.engine)e.engine.version=pack.version;
   candidateBytes=Buffer.from(JSON.stringify(synthetic));
+  // A rejection test must not depend on the Site pin being out of date.
+  const incompatible=structuredClone(synthetic);
+  incompatible.core.version=pack.version+'-incompatible';
+  for(const section of ['loops','components','demos'])for(const e of incompatible[section]??[])if(e.engine)e.engine.version=incompatible.core.version;
+  incompatibleBytes=Buffer.from(JSON.stringify(incompatible));
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const host=`http://127.0.0.1:${server.address().port}`;
   const bin=cwd=>join(cwd,'node_modules/qloops/bin/qloops.mjs');
   const installArgs=(base,sha,dest)=>['install',base,sha,'webhook-relay','1.0.0',dest];
@@ -55,7 +60,7 @@ try {
   const env={QLOOP_SOURCE_URL:host+'/source',QLOOP_WEBHOOK_URL:host+'/sink'};
   assert.equal((await run(process.execPath,[bin(old),'run',dest],old,env)).code,0);
   assert.equal(received.length,1);
-  const mismatch=await run(process.execPath,[bin(current),...installArgs(host+'/registry',originalHash,join(current,'mismatch.yaml'))],current);
+  const mismatch=await run(process.execPath,[bin(current),...installArgs(host+'/incompatible',hash(incompatibleBytes),join(current,'mismatch.yaml'))],current);
   assert.equal(mismatch.code,1);assert.match(mismatch.stderr,/installed engine version/);
   const fresh=join(current,'relay.yaml');
   assert.equal((await run(process.execPath,[bin(current),...installArgs(host+'/candidate',hash(candidateBytes),fresh)],current)).code,0);
