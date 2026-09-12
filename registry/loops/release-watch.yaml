@@ -1,0 +1,71 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# release-watch — what shipped in the tools you depend on.
+#
+# The cheapest loop in the catalogue to try: it needs ONE credential (a model
+# key) and no account anywhere. GitHub publishes an Atom feed of releases for
+# every public repository, so this works on any project you name.
+#
+# fetch → llm-call → api-request. No human gate: nothing here is irreversible.
+# =============================================================================
+
+id: release-watch
+name: "Release watch: what shipped in your dependencies"
+version: 1.0.0
+description: >
+  Reads a project's GitHub releases feed and writes a short note on what changed
+  and whether it matters to you. Works on any public repository.
+owner: oleg
+enabled: true
+
+triggers:
+  # Weekly, Monday. Releases are not a daily event; a daily run would mostly
+  # tell you nothing happened, and a digest that usually says nothing stops
+  # being read.
+  - kind: schedule
+    cron: "0 7 * * 1"
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  budgetUsd: 0.10
+
+steps:
+  - id: rw-fetch
+    kind: fetch
+    config:
+      name: "Fetch releases"
+      # Swap the owner/repo for the project you actually depend on.
+      url: "{{env.QLOOP_SOURCE_URL}}"
+      format: rss
+      limit: "5"
+      timeoutSec: "30"
+
+  - id: rw-note
+    kind: llm-call
+    config:
+      name: "Write the note"
+      role: editor
+      maxTokens: "600"
+      instructions: |
+        The `entries` array holds recent releases of one project: a version in
+        the title and the release notes in the summary.
+
+        Write, in plain text:
+          • one line per release — "<version> · <one sentence on what changed>";
+          • then a single line starting "WATCH:" naming anything that looks
+            like a breaking change, a deprecation or a security fix.
+
+        If nothing in the batch is worth acting on, say exactly that in one
+        line and stop. Do not pad.
+
+  - id: rw-send
+    kind: api-request
+    config:
+      name: "Send the note"
+      method: POST
+      url: "{{env.QLOOP_WEBHOOK_URL}}"
+      expect: "2xx"
+      timeoutSec: "30"
+      body: '{"text":"{{steps.Write the note.output.text}}"}'

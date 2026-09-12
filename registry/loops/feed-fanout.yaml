@@ -1,0 +1,77 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# feed-fanout — one lane per item, not one summary of everything.
+#
+# The demo of `fan-out`. The difference it shows is worth stating: a loop that
+# summarises a feed in ONE model call gets one blended paragraph. This one opens
+# a lane per entry, so each item is handled on its own and arrives as its own
+# message — which is what you want when the items go to different places, or
+# when you want to act on one without re-reading the rest.
+#
+# The cap is deliberate and honest: `maxItems: 5` on a feed of 20 reports the
+# truncation out loud rather than quietly processing the first five.
+#
+# ⚠️ COST SCALES WITH ITEMS. Five lanes = five model calls. That is the point of
+# fan-out and the reason the budget knob exists — it cuts BEFORE the call that
+# would cross the ceiling, not after.
+# =============================================================================
+
+id: feed-fanout
+name: "Feed fan-out — a lane per entry"
+version: 1.0.0
+description: >
+  Reads a feed and handles each entry separately: its own model call, its own
+  outgoing message. Truncation is reported, never silent.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  # Five lanes on a cheap model. Raise this if you raise maxItems, or the run
+  # stops halfway — visibly, at the step that would have crossed the line.
+  budgetUsd: 0.15
+
+steps:
+  - id: ff-fetch
+    kind: fetch
+    config:
+      name: "Fetch feed"
+      url: "{{env.QLOOP_SOURCE_URL}}"
+      format: rss
+      limit: "20"
+      timeoutSec: "30"
+
+  - id: ff-lane
+    kind: fan-out
+    config:
+      name: "Per entry"
+      over: "{{steps.Fetch feed.output.entries}}"
+      maxItems: "5"
+    then:
+      # Each lane step sees ITS OWN item through {{item.*}} and {{index}}.
+      # Without those, this would be the same prompt five times.
+      - id: ff-take
+        kind: llm-call
+        config:
+          name: "Take on this one"
+          maxTokens: "200"
+          instructions: |
+            One item from a feed:
+              title: {{item.title}}
+              link:  {{item.link}}
+
+            Write ONE sentence: what it is, and who would care. No preamble.
+
+      - id: ff-send
+        kind: api-request
+        config:
+          name: "Send this one"
+          method: POST
+          url: "{{env.QLOOP_WEBHOOK_URL}}"
+          expect: "2xx"
+          timeoutSec: "30"
+          body: '{"i":"{{index}}","title":"{{item.title}}","link":"{{item.link}}","take":"{{steps.Take on this one.output.text}}"}'
