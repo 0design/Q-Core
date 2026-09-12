@@ -1,0 +1,82 @@
+{
+  "schema": "qgate.ds/v1",
+  "id": "synthetic-core",
+  "version": "1.0.0",
+  "tokens": {
+    "foundations": {
+      "ink": "#16202a",
+      "paper": "#ffffff",
+      "accent": "#164dce",
+      "gap": "16px",
+      "radius": "8px"
+    },
+    "semantic": {
+      "text": "ink",
+      "surface": "paper",
+      "action": "accent",
+      "space": "gap",
+      "shape": "radius"
+    },
+    "component": {
+      "button.background": "action",
+      "button.radius": "shape",
+      "panel.gap": "space"
+    }
+  },
+  "components": {
+    "Heading": {
+      "role": "info",
+      "level": "element",
+      "variants": [
+        "default"
+      ],
+      "presentations": [
+        "inline"
+      ],
+      "tag": "h1"
+    },
+    "Text": {
+      "role": "info",
+      "level": "element",
+      "variants": [
+        "default"
+      ],
+      "presentations": [
+        "inline"
+      ],
+      "tag": "p"
+    },
+    "Button": {
+      "role": "action",
+      "level": "element",
+      "variants": [
+        "primary",
+        "secondary"
+      ],
+      "presentations": [
+        "inline"
+      ],
+      "tag": "button"
+    }
+  },
+  "instance": {
+    "id": "synthetic-project",
+    "coreVersion": "1.0.0",
+    "extensions": {
+      "project-emphasis": {
+        "components": [
+          "Button"
+        ],
+        "presentations": [
+          "inline"
+        ],
+        "tokens": {
+          "outline": "action"
+        },
+        "scope": "synthetic-project",
+        "application": "Emphasize the single primary task action.",
+        "contract": "Synthetic registered capability. No runtime style values are accepted."
+      }
+    }
+  }
+}

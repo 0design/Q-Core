@@ -1,0 +1,29 @@
+{
+  "instance": "synthetic-project",
+  "nodes": [
+    {
+      "id": "heading",
+      "component": "Heading",
+      "role": "info",
+      "variant": "default",
+      "presentation": "inline",
+      "content": "Account settings"
+    },
+    {
+      "id": "description",
+      "component": "Text",
+      "role": "info",
+      "variant": "default",
+      "presentation": "inline",
+      "content": "Changes apply to this demonstration only."
+    },
+    {
+      "id": "save",
+      "component": "Button",
+      "role": "action",
+      "variant": "primary",
+      "presentation": "inline",
+      "content": "Save changes"
+    }
+  ]
+}

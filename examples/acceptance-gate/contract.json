@@ -1,0 +1,34 @@
+{
+  "schema": "qgate.task/v1",
+  "id": "synthetic-settings-task",
+  "version": 1,
+  "detectorMode": "observe",
+  "allowedFiles": [
+    "examples/acceptance-gate/screen.json"
+  ],
+  "instance": "synthetic-project",
+  "requiredNodes": {
+    "heading": {
+      "component": "Heading",
+      "role": "info"
+    },
+    "description": {
+      "component": "Text",
+      "role": "info"
+    },
+    "save": {
+      "component": "Button",
+      "role": "action",
+      "variant": "primary"
+    }
+  },
+  "requirements": [
+    "Use registered components and their role mappings.",
+    "No application style literals, replacement HTML tags, token overrides or waivers.",
+    "Custom capabilities use registered instance extensions.",
+    "Save action uses the primary Button and the exact label Save changes.",
+    "The independent reviewer must explicitly resolve each applicable requirement."
+  ],
+  "requiredSaveLabel": "Save changes",
+  "receiptMaxAgeSeconds": 86400
+}

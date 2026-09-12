@@ -1,0 +1,5 @@
+{
+  "schema": "qgate.trust/v1",
+  "review": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA+nvFjoGLT07AuRoWMqeI/H2TfPzDNokhcyVb6guIDjk=\n-----END PUBLIC KEY-----\n",
+  "linearSync": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA8WrLfk3ooEHcGgKagFdLQ/gjBjiSsI3MXjpL8cdNNp4=\n-----END PUBLIC KEY-----\n"
+}
