@@ -1,12 +1,12 @@
 # qloops
 
 Local, dependency-free loop runtime for Node.js >=20.3. The local delivery
-candidate is `0.2.0-core.2`; it is not an npm release or production acceptance.
+candidate is `0.2.0-core.13`; it is not an npm release or production acceptance.
 
 ## Install a reviewed local package
 
 ```sh
-npm install /absolute/path/qloops-0.2.0-core.2.tgz
+npm install /absolute/path/qloops-0.2.0-core.13.tgz
 npx qloops validate ./loop.yaml
 npx qloops run ./loop.yaml
 ```

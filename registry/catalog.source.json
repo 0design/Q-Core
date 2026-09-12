@@ -48,7 +48,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -113,7 +113,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -185,7 +185,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -257,7 +257,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -329,7 +329,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -399,7 +399,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -468,7 +468,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -538,7 +538,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -608,7 +608,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -676,7 +676,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -742,7 +742,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -833,7 +833,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -908,7 +908,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -976,7 +976,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1066,7 +1066,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1152,7 +1152,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1201,7 +1201,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1257,7 +1257,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1297,7 +1297,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1335,7 +1335,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.12",
+        "version": "0.2.0-core.13",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1352,13 +1352,13 @@
   "releaseVersion": "2026.09.12-registry.2",
   "core": {
     "package": "qloops",
-    "version": "0.2.0-core.12",
+    "version": "0.2.0-core.13",
     "manifest": "qloops.loop/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 8,
-    "artifact": "vendor/qloops-0.2.0-core.12.tgz",
-    "artifactSha256": "8a6d088a8b5fbf159a3374bd314c1f86e6a997a7a6a8fe0ac3ef03c407474890",
-    "integrity": "sha512-B1nWmmlk88QfYGCvFFXx9U8PIN0u+sX2kgPIPLbWU1C/izK4JFtCb07L5v3f0UI3VEiKDdlAQFZrpjev6lTqfg==",
+    "artifact": "vendor/qloops-0.2.0-core.13.tgz",
+    "artifactSha256": "bb8b449e68e1657bd96ecde32722256f44529f271984d7780480ace12f0b7ae1",
+    "integrity": "sha512-zqP61x2f6f8MYVx4d6OyuLM5gROy0ucInhjcvKsUiqrAWPBULmGJGhoNnTHseZla0eaKjas6oP4Osyze5kIfRQ==",
     "schemaSha256": "e0f8a20ea4706f1623124cf703d7312731b5f7bbd5985e4bf5bcde64371a709f",
     "requestSchemaSha256": "c57f982da1dfe61e050e9395f194e0d80da953155ce5858917ee438155c80b21",
     "status": "consumer-integration-candidate",
