@@ -1,0 +1,26 @@
+{
+  "body": {
+    "schema": "qgate.receipt/v1",
+    "kind": "linear-sync",
+    "binding": {
+      "schema": "qgate.binding/v1",
+      "baseSha": "6f6098e4d44be70fdc36ded6c3a9fa1f0ba3f904",
+      "headSha": "9130b71b9128f52549fee14ccd905dca9f5d8c4a",
+      "contractDigest": "75710ab402a3207e70361dc0315ed25a6713b73e2a71fe4dc0ee848b97c9ac77",
+      "dsDigest": "6e41dc448a166df0321de13b0a06f41f72965744d27a3537c4689fd86b9fb6be",
+      "verifierDigest": "3515359f4a12fe9f12ead365ab227e9255890de6c040f34304389e465cc7d2d2",
+      "files": [
+        {
+          "path": "examples/acceptance-gate/screen.json",
+          "sha256": "df8e4afcef895048dd2736efb24081a5e71f0d405ddccc07511772d1c9158b71"
+        }
+      ]
+    },
+    "receiptId": "9ef3d09c-c667-427b-bfb4-da9371e63e65",
+    "confirmed": true,
+    "issuedAt": "2026-09-12T00:12:22.328Z",
+    "expiresAt": "2026-09-13T00:12:22.328Z",
+    "evidenceDigest": "c3e08e1acbdf58f060a4a30cd24e3f6a0bbc54aab82f1baa74120cc7021298cd"
+  },
+  "signature": "XJVuIi6rOiuZAQ82uPyGqjg0aeXwRLLIvPkHSaBip1KbTR6EN8IGYh7yQqh5MryQS3GuMjIPdCK8y78bOuxFAw=="
+}

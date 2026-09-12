@@ -1,0 +1,46 @@
+{
+  "verifiedAt": "2026-09-12T00:12:57.779655+00:00",
+  "mainSha": "9f6832722e8982f2e5ea51d5e112c65386062bd8",
+  "pr": {
+    "baseRefOid": "6f6098e4d44be70fdc36ded6c3a9fa1f0ba3f904",
+    "headRefOid": "9130b71b9128f52549fee14ccd905dca9f5d8c4a",
+    "mergeStateStatus": "CLEAN",
+    "mergeable": "MERGEABLE",
+    "statusCheckRollup": [
+      {
+        "__typename": "StatusContext",
+        "context": "qgate/contract",
+        "startedAt": "2026-09-12T00:12:23Z",
+        "state": "SUCCESS",
+        "targetUrl": "https://github.com/0design/qloops/pull/1"
+      },
+      {
+        "__typename": "StatusContext",
+        "context": "qgate/linear-sync",
+        "startedAt": "2026-09-12T00:12:25Z",
+        "state": "SUCCESS",
+        "targetUrl": "https://github.com/0design/qloops/pull/1"
+      },
+      {
+        "__typename": "StatusContext",
+        "context": "qgate/observations",
+        "startedAt": "2026-09-12T00:12:26Z",
+        "state": "SUCCESS",
+        "targetUrl": "https://github.com/0design/qloops/pull/1"
+      },
+      {
+        "__typename": "StatusContext",
+        "context": "qgate/review",
+        "startedAt": "2026-09-12T00:12:24Z",
+        "state": "SUCCESS",
+        "targetUrl": "https://github.com/0design/qloops/pull/1"
+      }
+    ],
+    "url": "https://github.com/0design/qloops/pull/1"
+  },
+  "testCounts": {
+    "pilot": 38,
+    "existing": 35
+  },
+  "scope": "Synthetic Core/Instance task; new DS detectors observe; no merge or cloud runner"
+}

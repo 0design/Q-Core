@@ -1,0 +1,49 @@
+{
+  "schema": "qgate.acceptance/v1",
+  "binding": {
+    "schema": "qgate.binding/v1",
+    "baseSha": "6f6098e4d44be70fdc36ded6c3a9fa1f0ba3f904",
+    "headSha": "9130b71b9128f52549fee14ccd905dca9f5d8c4a",
+    "contractDigest": "75710ab402a3207e70361dc0315ed25a6713b73e2a71fe4dc0ee848b97c9ac77",
+    "dsDigest": "6e41dc448a166df0321de13b0a06f41f72965744d27a3537c4689fd86b9fb6be",
+    "verifierDigest": "3515359f4a12fe9f12ead365ab227e9255890de6c040f34304389e465cc7d2d2",
+    "files": [
+      {
+        "path": "examples/acceptance-gate/screen.json",
+        "sha256": "df8e4afcef895048dd2736efb24081a5e71f0d405ddccc07511772d1c9158b71"
+      }
+    ]
+  },
+  "detectorMode": "observe",
+  "checks": {
+    "contract": {
+      "state": "success",
+      "reason": "Only approved candidate files changed"
+    },
+    "review": {
+      "state": "success",
+      "reason": "Independent review approved this exact candidate"
+    },
+    "linearSync": {
+      "state": "pending",
+      "reason": "Missing linear-sync receipt"
+    }
+  },
+  "state": "pending",
+  "observation": {
+    "mode": "observe",
+    "findings": []
+  },
+  "sourceDigests": {
+    "gate.mjs": "25540207b9be0a05a955ccefe80fb3319b1fb300c584872175c4d754eb54157f",
+    "controller.mjs": "90d09c1f3ffbf3271b870c45fb90647751ebe887b8e5f5254ab469db71b26c81",
+    "render.mjs": "2426b2f2fdaa710909d3106b0cff3f4e27be5e15ea092985d36650b8995e91f1",
+    "publish-github.mjs": "d0be6ad68be0ef001311611aa750287dd1243d24e108b6ae762d8cad488a8492",
+    "trust.json": "d4f4c7aff96f735cdf41f428e441a7d7d60bb27fe18efc4fbc22fccd7d9e4bba"
+  },
+  "previewDigest": "bc3bf07b2ec45760c54550ebc5e7f86d1b9d63287c07391dd1d42ec62a2d7021",
+  "coverage": {
+    "scope": "Synthetic task and registered Core/Instance mappings only",
+    "system": "incomplete"
+  }
+}

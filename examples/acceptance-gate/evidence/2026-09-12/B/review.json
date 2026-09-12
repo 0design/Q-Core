@@ -1,0 +1,27 @@
+{
+  "body": {
+    "schema": "qgate.receipt/v1",
+    "binding": {
+      "schema": "qgate.binding/v1",
+      "baseSha": "6f6098e4d44be70fdc36ded6c3a9fa1f0ba3f904",
+      "headSha": "9130b71b9128f52549fee14ccd905dca9f5d8c4a",
+      "contractDigest": "75710ab402a3207e70361dc0315ed25a6713b73e2a71fe4dc0ee848b97c9ac77",
+      "dsDigest": "6e41dc448a166df0321de13b0a06f41f72965744d27a3537c4689fd86b9fb6be",
+      "verifierDigest": "3515359f4a12fe9f12ead365ab227e9255890de6c040f34304389e465cc7d2d2",
+      "files": [
+        {
+          "path": "examples/acceptance-gate/screen.json",
+          "sha256": "df8e4afcef895048dd2736efb24081a5e71f0d405ddccc07511772d1c9158b71"
+        }
+      ]
+    },
+    "issuedAt": "2026-09-12T00:10:14.854Z",
+    "expiresAt": "2026-09-13T00:10:14.854Z",
+    "kind": "review",
+    "receiptId": "8c2e0a6a-06b5-4cc4-b9e1-cfc94ad7b5f9",
+    "decision": "approved",
+    "independent": true,
+    "evidenceDigest": "f2b0fb69e776d6cac89532adc4937873d53e868c49c2c9ad8f696e820782cb13"
+  },
+  "signature": "M8zi3t8t3BkayfaIaYIVtSmjtp9N5L3Xag4AfG4wC2I6bt1QRdOhwsuyGYmEwHgfRw6EUbeVqdcclESVM2t3Bw=="
+}

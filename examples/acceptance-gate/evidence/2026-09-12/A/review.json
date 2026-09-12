@@ -1,0 +1,27 @@
+{
+  "body": {
+    "schema": "qgate.receipt/v1",
+    "binding": {
+      "schema": "qgate.binding/v1",
+      "baseSha": "6f6098e4d44be70fdc36ded6c3a9fa1f0ba3f904",
+      "headSha": "e13b5bf201f33aac8fef9f02f65d4a828d2598ee",
+      "contractDigest": "75710ab402a3207e70361dc0315ed25a6713b73e2a71fe4dc0ee848b97c9ac77",
+      "dsDigest": "6e41dc448a166df0321de13b0a06f41f72965744d27a3537c4689fd86b9fb6be",
+      "verifierDigest": "3515359f4a12fe9f12ead365ab227e9255890de6c040f34304389e465cc7d2d2",
+      "files": [
+        {
+          "path": "examples/acceptance-gate/screen.json",
+          "sha256": "f8902cd84511cf6628e2223dff5817f05e7b79327abe55fa8cf4de50e424f7aa"
+        }
+      ]
+    },
+    "issuedAt": "2026-09-12T00:10:14.854Z",
+    "expiresAt": "2026-09-13T00:10:14.854Z",
+    "kind": "review",
+    "receiptId": "588fb077-bdb9-4c2c-991a-351d3db4473e",
+    "decision": "rejected",
+    "independent": true,
+    "evidenceDigest": "f2b0fb69e776d6cac89532adc4937873d53e868c49c2c9ad8f696e820782cb13"
+  },
+  "signature": "vREOiygRBWrBMFizEOioxJ/T/iu/Y/KFqPhbdBEQyU0HqSxY5gBCPuUP2jKLvCaLal9706T6Co/D+49EUJLDCA=="
+}

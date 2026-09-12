@@ -1,0 +1,111 @@
+{
+  "candidates": [
+    {
+      "id": "A",
+      "headSha": "e13b5bf201f33aac8fef9f02f65d4a828d2598ee",
+      "screenSha256": "f8902cd84511cf6628e2223dff5817f05e7b79327abe55fa8cf4de50e424f7aa",
+      "decision": "rejected",
+      "requirements": [
+        {
+          "requirement": "Use registered components and their role mappings.",
+          "verdict": "pass",
+          "evidence": "Heading/info, Text/info, Button/action match Core registry"
+        },
+        {
+          "requirement": "role/variant/presentation mapping",
+          "verdict": "pass",
+          "evidence": "default/inline for Heading and Text; primary/inline for Button"
+        },
+        {
+          "requirement": "No application style literals, replacement HTML tags, token overrides or waivers.",
+          "verdict": "fail",
+          "evidence": "save.style.background=\"#e00000\" is an application style literal"
+        },
+        {
+          "requirement": "component replacement",
+          "verdict": "pass",
+          "evidence": "No tag or HTML replacement fields"
+        },
+        {
+          "requirement": "waivers",
+          "verdict": "pass",
+          "evidence": "No waiver/allow/ds-allow keys"
+        },
+        {
+          "requirement": "Custom capabilities use registered instance extensions.",
+          "verdict": "fail",
+          "evidence": "Customization via raw style instead of a registered Instance extension"
+        },
+        {
+          "requirement": "extension registration/scope",
+          "verdict": "n/a",
+          "evidence": "No extension claimed"
+        },
+        {
+          "requirement": "required nodes",
+          "verdict": "pass",
+          "evidence": "heading, description, save present with contract component/role/variant"
+        },
+        {
+          "requirement": "Save action uses the primary Button and the exact label Save changes.",
+          "verdict": "pass",
+          "evidence": "save is Button primary with content \"Save changes\""
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "headSha": "9130b71b9128f52549fee14ccd905dca9f5d8c4a",
+      "screenSha256": "df8e4afcef895048dd2736efb24081a5e71f0d405ddccc07511772d1c9158b71",
+      "decision": "approved",
+      "requirements": [
+        {
+          "requirement": "Use registered components and their role mappings.",
+          "verdict": "pass",
+          "evidence": "Heading/info, Text/info, Button/action match Core registry"
+        },
+        {
+          "requirement": "role/variant/presentation mapping",
+          "verdict": "pass",
+          "evidence": "All variants and presentations are registered"
+        },
+        {
+          "requirement": "No application style literals, replacement HTML tags, token overrides or waivers.",
+          "verdict": "pass",
+          "evidence": "Only id/component/role/variant/presentation/content/extension fields"
+        },
+        {
+          "requirement": "component replacement",
+          "verdict": "pass",
+          "evidence": "No tag or HTML replacement fields"
+        },
+        {
+          "requirement": "waivers",
+          "verdict": "pass",
+          "evidence": "No waiver/allow/ds-allow keys"
+        },
+        {
+          "requirement": "Custom capabilities use registered instance extensions.",
+          "verdict": "pass",
+          "evidence": "Uses registered extension project-emphasis"
+        },
+        {
+          "requirement": "extension registration/scope",
+          "verdict": "pass",
+          "evidence": "project-emphasis allows Button+inline and scope synthetic-project matches screen.instance"
+        },
+        {
+          "requirement": "required nodes",
+          "verdict": "pass",
+          "evidence": "heading, description, save present with contract mappings"
+        },
+        {
+          "requirement": "Save action uses the primary Button and the exact label Save changes.",
+          "verdict": "pass",
+          "evidence": "save is Button primary with content \"Save changes\""
+        }
+      ]
+    }
+  ],
+  "verifierFindings": "none found"
+}
