@@ -24,9 +24,7 @@
       "variant": "primary",
       "presentation": "inline",
       "content": "Save changes",
-      "style": {
-        "background": "#e00000"
-      }
+      "extension": "project-emphasis"
     }
   ]
 }
