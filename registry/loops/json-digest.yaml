@@ -1,0 +1,56 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# json-digest — модель, яка мусить віддати JSON, а не прозу.
+#
+# `format: json` на llm-call — окремий шлях у двигуні: відповідь парситься, і
+# якщо це не JSON, крок ПАДАЄ, а не їде далі з текстом. Жоден інший луп у
+# каталозі цього шляху не проходить, тож без нього він не перевірявся ніколи.
+# =============================================================================
+
+id: json-digest
+name: "JSON digest: structured output or nothing"
+version: 1.0.0
+description: >
+  Asks the model for strict JSON and refuses the step when it gets prose.
+  Covers the format:json path, where a wrong answer fails instead of leaking on.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  budgetUsd: 0.10
+
+steps:
+  - id: jd-fetch
+    kind: fetch
+    config:
+      name: "Read feed"
+      url: "{{env.QLOOP_SOURCE_URL}}"
+      format: rss
+      limit: "5"
+      timeoutSec: "20"
+
+  - id: jd-shape
+    kind: llm-call
+    config:
+      name: "Shape it"
+      format: json
+      maxTokens: "600"
+      instructions: |
+        Return STRICTLY this JSON and nothing else — no fences, no prose:
+        { "count": <integer>, "titles": ["<title>", …] }
+        `count` is the number of entries you were given.
+
+  - id: jd-send
+    kind: api-request
+    config:
+      name: "Send the shape"
+      method: POST
+      url: "{{env.QLOOP_WEBHOOK_URL}}"
+      expect: "2xx"
+      timeoutSec: "20"
+      body: '{"count":"{{steps.Shape it.output.count}}","run":"{{run.id}}","cost":"{{run.costUsd}}"}'

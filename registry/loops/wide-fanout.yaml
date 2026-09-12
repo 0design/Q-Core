@@ -1,0 +1,57 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# wide-fanout — обрізання, яке має бути гучним.
+#
+# Джерело віддає 60 записів, стеля — 12. feed-fanout перевіряє, що смуга
+# розгортається; цей перевіряє протилежне: що вона ЗУПИНЯЄТЬСЯ там, де сказано,
+# і каже про це вголос у виході вузла (`itemsFound` 60 → `itemsTaken` 12).
+#
+# Тихе обрізання читається як «ми обробили стрічку», коли обробили п'яту її
+# частину. Тому воно тут окремим лупом, а не приміткою.
+#
+# ⚠️ Без llm-call у смузі навмисно: 12 смуг × модель — дорого, а перевіряється
+# тут механіка розгортання, не якість тексту.
+# =============================================================================
+
+id: wide-fanout
+name: "Wide fan-out: truncation that says so"
+version: 1.0.0
+description: >
+  Sixty entries against a cap of twelve. Checks that the lane stops where it was
+  told and reports how many it skipped, instead of quietly processing a slice.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  budgetUsd: 0.05
+
+steps:
+  - id: wf-fetch
+    kind: fetch
+    config:
+      name: "Read feed"
+      url: "{{env.QLOOP_SOURCE_URL}}"
+      format: rss
+      limit: "60"
+      timeoutSec: "20"
+
+  - id: wf-lane
+    kind: fan-out
+    config:
+      name: "Per entry"
+      over: "{{steps.Read feed.output.entries}}"
+      maxItems: "12"
+    then:
+      - id: wf-post
+        kind: api-request
+        config:
+          name: "Post entry"
+          method: POST
+          url: "{{env.QLOOP_WEBHOOK_URL}}"
+          expect: "2xx"
+          timeoutSec: "20"
+          body: '{"i":"{{index}}","title":"{{item.title}}"}'

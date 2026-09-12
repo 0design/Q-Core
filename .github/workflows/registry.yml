@@ -1,0 +1,23 @@
+name: Registry
+on:
+  pull_request:
+    paths: ['registry/**', 'scripts/build-registry.mjs', '.github/workflows/registry.yml']
+  push:
+    branches: [main, codex/shared-registry]
+    paths: ['registry/**', 'scripts/build-registry.mjs', '.github/workflows/registry.yml']
+permissions:
+  contents: read
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/build-registry.mjs --check
+      - run: node scripts/build-registry.mjs --export /tmp/registry
+      - uses: actions/upload-artifact@v4
+        with:
+          name: registry-candidate
+          path: /tmp/registry

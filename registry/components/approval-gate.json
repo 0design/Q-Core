@@ -1,0 +1,49 @@
+{
+  "id": "approval-gate",
+  "name": "Approval gate",
+  "kind": "step",
+  "description": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
+  "input": {
+    "reviewer": {
+      "type": "string",
+      "required": false,
+      "notes": "human | agent. Default human."
+    },
+    "anchor": {
+      "type": "string",
+      "required": false,
+      "notes": "what is being decided about."
+    },
+    "rubric": {
+      "type": "string",
+      "required": false,
+      "notes": "REQUIRED when reviewer: agent."
+    },
+    "escalateOn": {
+      "type": "string",
+      "required": false,
+      "notes": "objection hands a failed check to a person. Default objection."
+    },
+    "mode": {
+      "type": "string",
+      "required": false,
+      "notes": "check is RESERVED — refused."
+    }
+  },
+  "output": {
+    "pass": {
+      "type": "boolean",
+      "notes": "reviewer: agent — the verdict."
+    },
+    "reason": {
+      "type": "string",
+      "notes": "reviewer: agent — why."
+    },
+    "status": {
+      "type": "string",
+      "notes": "reviewer: human — the run is waiting_human until qloop approve continues it or --reject fails it."
+    }
+  },
+  "needsEnv": [],
+  "usedBy": []
+}

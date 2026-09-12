@@ -1,0 +1,9 @@
+{
+  "id": "content-feed",
+  "loopId": "content-feed",
+  "name": "Morning digest",
+  "description": "Reads a feed, writes a short digest, sends it. Proof is the recorded run in the repo, not a hosted playback.",
+  "proof": "examples/content-feed.txt",
+  "resultUrl": null,
+  "live": false
+}

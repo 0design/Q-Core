@@ -1,0 +1,54 @@
+manifest: qf.loop/v1
+
+# =============================================================================
+# budget-guard — стеля, яка ріже.
+#
+# `budgetUsd: 0` з платним кроком посередині. Ран мусить упасти НА llm-call,
+# назвати причиною бюджет і НЕ надіслати нічого. Це не приклад для копіювання —
+# це виконуваний доказ, що стеля перевіряється ПЕРЕД витратою, а не після.
+#
+# Тримати такий луп у каталозі корисно: він ламається за визначенням, і якщо
+# колись перестане ламатись — щось поїхало в бюджетній ручці.
+# =============================================================================
+
+id: budget-guard
+name: "Budget guard: proof the ceiling cuts first"
+version: 1.0.0
+description: >
+  Deliberately impossible: a zero ceiling in front of a paid step. The run must
+  stop at the model call, name the budget, and send nothing.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  model: "anthropic/claude-3-haiku"
+  budgetUsd: 0
+
+steps:
+  - id: bg-fetch
+    kind: fetch
+    config:
+      name: "Read feed"
+      url: "{{env.QLOOP_SOURCE_URL}}"
+      format: rss
+      limit: "3"
+      timeoutSec: "20"
+
+  - id: bg-think
+    kind: llm-call
+    config:
+      name: "Summarise"
+      maxTokens: "200"
+      instructions: "One sentence about the entries."
+
+  - id: bg-send
+    kind: api-request
+    config:
+      name: "Send"
+      method: POST
+      url: "{{env.QLOOP_WEBHOOK_URL}}"
+      expect: "2xx"
+      body: '{"note":"a stopped run must never send this"}'
