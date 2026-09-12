@@ -25,6 +25,7 @@ export function buildRegistry(sourceRoot = root) {
       const file = entry.file ?? `${key}.json`;
       entry.sha256 = sha(asset(file));
       if (section === 'loops') {
+        if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Loop value is required');
         const manifest = loadManifest(resolve(sourceRoot, file));
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
       }

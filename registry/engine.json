@@ -1,25 +1,25 @@
 {
   "package": "qloops",
-  "version": "0.2.0-core.11",
-  "contractRevision": 7,
-  "download": "downloads/qloops-0.2.0-core.11.tgz",
-  "sha256": "2a5a38b29594a4a8eef2d928ae35548f042f200816176a549a30af1efb5851d6",
+  "version": "0.2.0-core.12",
+  "contractRevision": 8,
+  "download": "downloads/qloops-0.2.0-core.12.tgz",
+  "sha256": "8a6d088a8b5fbf159a3374bd314c1f86e6a997a7a6a8fe0ac3ef03c407474890",
   "status": "consumer-integration-candidate",
   "documents": [
     {
       "file": "README.md",
       "url": "registry/core/README.md",
-      "sha256": "b303a158705c26e9e9f67d97b1278814b7f6cc373e1d122af3a2ad0513d5bcef"
+      "sha256": "7fb2b2c979586cb8d183c432a9a6a6c83a61b31bc90a2b6a552e90569c13659a"
     },
     {
       "file": "SPEC-MANIFEST.md",
       "url": "registry/core/SPEC-MANIFEST.md",
-      "sha256": "83e5ef6bd729ab029fe5f57f56baecd296a65310f1f2fa5b9b12dca2c0d9a897"
+      "sha256": "e0f8a20ea4706f1623124cf703d7312731b5f7bbd5985e4bf5bcde64371a709f"
     },
     {
       "file": "contracts/v1/README.md",
       "url": "registry/core/contracts/v1/README.md",
-      "sha256": "22904b6630ae6934be940c6c06978093e2197351abe0babb42241d5e7228cc9b"
+      "sha256": "14cf6be112e39407e3adde8f96ebc0372e38c9cadee9f3fcbed6a9a3be7133f0"
     },
     {
       "file": "contracts/v1/request.schema.json",
@@ -44,7 +44,7 @@
     {
       "file": "contracts/v1/registry.md",
       "url": "registry/core/contracts/v1/registry.md",
-      "sha256": "38eb87bdca61a87e6ac5ad2efa29b15e8dd5e5081c6da8d8189d9291ecbd0833"
+      "sha256": "c197125328e6ce2e822770897c11627bdc07b0ea38ab6822b64ef493ab98751b"
     },
     {
       "file": "contracts/v1/determined.md",

@@ -1,4 +1,4 @@
-# SPEC-MANIFEST — `qf.loop/v1`
+# SPEC-MANIFEST — `qloops.loop/v1`
 
 The file format a loop is written in, and exactly what the runner does with each
 field.
@@ -31,7 +31,7 @@ than one document per file, tab indentation, duplicate keys.
 ## 2. Top level
 
 ```yaml
-manifest: qf.loop/v1      # REQUIRED, verbatim
+manifest: qloops.loop/v1      # REQUIRED, verbatim
 id: content-feed          # REQUIRED — names the loop in state and logs
 name: "Morning digest"    # defaults to id
 version: 1.0.0            # free-form
@@ -88,8 +88,9 @@ settings:
 ### 4.1 Model (knob 2)
 
 Precedence, strongest first: a step's own `config.model` → `settings.model` →
-`OPENROUTER_MODEL` → `anthropic/claude-3-haiku`. `qloop validate` prints which one
-won.
+`OPENROUTER_MODEL`. No model is selected implicitly. A model-backed YAML step
+requires an explicit OpenRouter model; it does not use CLI caller inference.
+`qloop validate` reports the selected model or an unconfigured value.
 
 ### 4.2 Budget (knob 3)
 
@@ -324,7 +325,7 @@ ledger locally). The product enforces both.
 
 ## 10. Versioning
 
-`manifest: qf.loop/v1` is the contract. Within `v1`, fields may be **added**;
+`manifest: qloops.loop/v1` is the contract. Within `v1`, fields may be **added**;
 nothing that exists is repurposed or removed. A runner meeting a version it does
 not read says so by name instead of trying its luck.
 
