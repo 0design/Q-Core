@@ -36,3 +36,13 @@ test('missing provider and oversized input fail without fallback', () => {
   assert.throws(() => registryCliStep(state, { ...args, provider: { ...provider, token: 'must-not-be-stored' } }));
   assert.equal(state.pendingInference, undefined);
 });
+test('expired jobs remain unconsumed and require an explicit new decision', async () => {
+  const { state, args } = setup();
+  const bounded = { ...args, inferenceTtlMs: 1 };
+  assert.throws(() => registryCliStep(state, bounded), e => ['INFERENCE_REQUIRED', 'INFERENCE_EXPIRED'].includes(e.code));
+  const job = state.pendingInference;
+  await new Promise(resolve => setTimeout(resolve, 15));
+  assert.throws(() => registryCliStep(state, { ...bounded, reply: { jobId: job.jobId, hash: job.hash, output: { text: 'Late reply' } } }), e => e.code === 'INFERENCE_EXPIRED');
+  assert.equal(state.pendingInference.jobId, job.jobId);
+  assert.equal(state.inferenceHistory, undefined);
+});

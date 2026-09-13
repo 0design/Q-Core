@@ -14,6 +14,17 @@ test('shared registry export installs through Core and rejects unreviewed metada
   const { catalog } = buildRegistry(dir);
   assert.ok(catalog.loops.length > 0);
   assert.ok([...catalog.loops, ...catalog.components, ...catalog.demos].every(entry => entry.license === 'MIT'));
+  const installedVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).version;
+  const originalBytes = JSON.stringify(catalog);
+  writeFileSync(join(dir, 'catalog.json'), originalBytes);
+  if (catalog.core.version !== installedVersion) {
+    await assert.rejects(installPinned({ base: dir, catalogSha256: hash(originalBytes), id: 'webhook-relay', version: '1.1.0', destination: join(dir, 'rejected.yaml') }), e => e.code === 'ENGINE_INCOMPATIBLE');
+  }
+  // Rebind only the temporary fixture; this does not upgrade the published catalog.
+  catalog.core.version = installedVersion;
+  for (const entry of [...catalog.loops, ...catalog.components, ...catalog.demos]) {
+    entry.engine.version = installedVersion;
+  }
   const bytes = JSON.stringify(catalog);
   writeFileSync(join(dir, 'catalog.json'), bytes);
   await installPinned({ base: dir, catalogSha256: hash(bytes), id: 'webhook-relay', version: '1.1.0', destination: join(dir, 'installed.yaml') });
