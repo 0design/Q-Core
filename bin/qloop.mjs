@@ -5,7 +5,11 @@
  *   qloop validate <manifest>          read it, check it, say what it would do
  *   qloop run <manifest>               one pass, for real
  *   qloop run <manifest> --dry-run     one pass with no side effects at all
- *   qloop status [<manifest>]          what the last runs did
+ *   qloops run <manifest> --caller-provider <provider.json> --json
+                                    start explicit CLI caller inference
+  qloops reply <manifest> <runId> <reply.json> --json
+                                    submit the exact pending job response
+  qloop status [<manifest>]          what the last runs did
  *   qloop approve <manifest> [runId]   continue a run parked at a human gate
  *
  * `qloop run` performs ONE PASS. It is not a scheduler and does not pretend to be
@@ -49,6 +53,10 @@ const USAGE = `qloop ${PKG.version} — run a QFactory loop from a YAML manifest
   qloop init <id> [dir]             copy one loop here, ready to edit
   qloop validate <manifest>         check the manifest and print the plan
   qloop run <manifest> [--dry-run]  execute one pass
+  qloops run <manifest> --caller-provider <provider.json> --json
+                                    start explicit CLI caller inference
+  qloops reply <manifest> <runId> <reply.json> --json
+                                    submit the exact pending job response
   qloop status [<manifest>]         show recent runs
   qloop approve <manifest> [runId]  continue a run held at a human gate
                                     (--reject to refuse it)
@@ -101,7 +109,7 @@ function fail(message, code = EXIT_FAILED) {
 /** Control-flow signal: the exit code has already been set. */
 class ExitSignal extends Error {}
 
-const VALUED_FLAGS = new Set(["section"]);
+const VALUED_FLAGS = new Set(["section", "caller-provider"]);
 
 function parseArgs(argv) {
   const flags = new Set();
@@ -139,6 +147,7 @@ function parseArgs(argv) {
 function describePlan(manifest) {
   const flat = flattenLoopSteps(manifest.steps);
   const knobs = resolveKnobs(manifest.settings);
+
   const lines = [];
   lines.push(`${c.bold(manifest.name)} ${c.dim(`(${manifest.id} v${manifest.version})`)}`);
   if (manifest.description) lines.push(`  ${manifest.description.trim().replace(/\n/g, "\n  ")}`);
@@ -209,11 +218,11 @@ function printStep(s, quiet) {
   }
 }
 
-async function cmdRun(args, flags) {
+async function cmdRun(args, flags, opts) {
   const file = args[0];
   if (!file) fail("qloop run <manifest> [--dry-run]", EXIT_USAGE);
   const dryRun = flags.has("dry-run");
-  const quiet = flags.has("quiet");
+  const quiet = flags.has("quiet") || flags.has("json");
   const manifest = loadManifest(file);
 
   if (!manifest.enabled) {
@@ -224,6 +233,14 @@ async function cmdRun(args, flags) {
   const store = new RunStore(file);
   const run = createRun(manifest, { trigger: dryRun ? "dry-run" : "manual" });
   const knobs = resolveKnobs(manifest.settings);
+  if (opts['caller-provider']) {
+    const provider = readBoundedJson(opts['caller-provider']);
+    const { validateCallerInput } = await import('../src/caller-inference.mjs');
+    if (provider.kind !== 'caller') fail('Expected a caller provider configuration');
+    validateCallerInput({ provider });
+    run.callerProvider = provider;
+  }
+  run.executionKnobs = knobs;
 
   if (!quiet) {
     process.stdout.write(`${c.bold(manifest.name)} ${c.dim(`· run ${run.runId}`)}${dryRun ? c.dim(" · DRY RUN, no side effects") : ""}\n`);
@@ -234,6 +251,7 @@ async function cmdRun(args, flags) {
     result = await driveRun(run, {
       store,
       knobs,
+      callerProvider: run.callerProvider,
       dryRun,
       apiKey: process.env.OPENROUTER_API_KEY ?? null,
       onStep: (s) => printStep(s, quiet),
@@ -257,12 +275,31 @@ async function cmdRun(args, flags) {
     process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
     if (result.costUsd) process.stdout.write(`  cost $${Number(result.costUsd).toFixed(4)} · ${result.tokensIn}+${result.tokensOut} tokens\n`);
     if (!dryRun) process.stdout.write(c.dim(`  state ${shortPath(join(store.dir, "runs", `${result.runId}.json`))}\n`));
+    if (result.status === 'waiting_inference') process.stdout.write(`\n  Continue with: qloops reply ${file} ${result.runId} <reply.json>\n`);
     if (result.status === "waiting_human") {
       process.stdout.write(`\n  Continue with:  qloop approve ${file} ${result.runId}\n`);
     }
   }
 
-  return result.status === "success" ? EXIT_OK : result.status === "waiting_human" ? EXIT_WAITING : EXIT_FAILED;
+  return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
+}
+
+/** Reply files contain bounded inference output, never credentials. */
+function readBoundedJson(file) {
+  if (statSync(file).size > 128000) fail('JSON input exceeds 128000 bytes');
+  return JSON.parse(readFileSync(file, 'utf8'));
+}
+async function cmdReply(args) {
+  const [file, runId, replyFile] = args;
+  if (!file || !runId || !replyFile) fail('qloops reply <manifest> <runId> <reply.json>', EXIT_USAGE);
+  const store = new RunStore(file);
+  const run = store.load(runId);
+  if (!run || run.status !== 'waiting_inference' || !run.pendingInference) fail('Run is not waiting for CLI inference');
+  if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
+  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
+  store.saveLastRun(result);
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
 /* ── status ─────────────────────────────────────────────────────────────── */
@@ -321,13 +358,14 @@ async function cmdApprove(args, flags) {
   const result = await resumeRun(run, {
     decision,
     store,
-    knobs: resolveKnobs(manifest.settings),
+    knobs: run.executionKnobs ?? resolveKnobs(manifest.settings),
+    callerProvider: run.callerProvider,
     apiKey: process.env.OPENROUTER_API_KEY ?? null,
     onStep: (s) => printStep(s, flags.has("quiet")),
   });
   store.saveLastRun(result);
   process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
-  return result.status === "success" ? EXIT_OK : result.status === "waiting_human" ? EXIT_WAITING : EXIT_FAILED;
+  return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
 /* ── catalog · init ─────────────────────────────────────────────────────── */
@@ -560,6 +598,7 @@ const commands = {
   init: cmdInit,
   validate: cmdValidate,
   run: cmdRun,
+  reply: cmdReply,
   status: cmdStatus,
   approve: cmdApprove,
   doctor: cmdDoctor,
