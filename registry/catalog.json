@@ -27,13 +27,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0025,
-        "tokensIn": 5994,
-        "tokensOut": 800,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/brand-mentions.txt",
       "preview": {
         "style": "applet",
@@ -211,13 +205,7 @@
         "TELEGRAM_CHAT_ID",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0002,
-        "tokensIn": 490,
-        "tokensOut": 129,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/content-factory.txt",
       "preview": {
         "style": "workflow"
@@ -312,13 +300,7 @@
         "TELEGRAM_CHAT_ID",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0007,
-        "tokensIn": 979,
-        "tokensOut": 343,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/content-feed.txt",
       "preview": {
         "style": "workflow"
@@ -409,13 +391,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.003,
-        "tokensIn": 11319,
-        "tokensOut": 177,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/feed-fanout.txt",
       "preview": {
         "style": "workflow"
@@ -504,13 +480,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0002,
-        "tokensIn": 485,
-        "tokensOut": 49,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/json-digest.txt",
       "preview": {
         "style": "workflow"
@@ -594,13 +564,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0006,
-        "tokensIn": 2417,
-        "tokensOut": 36,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/price-watch.txt",
       "preview": {
         "style": "workflow"
@@ -692,13 +656,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0027,
-        "tokensIn": 10032,
-        "tokensOut": 171,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/release-watch.txt",
       "preview": {
         "style": "applet",
@@ -788,13 +746,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0001,
-        "tokensIn": 186,
-        "tokensOut": 37,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/strict-gate.txt",
       "preview": {
         "style": "workflow"
@@ -880,13 +832,7 @@
         "QLOOP_SOURCE_URL",
         "QLOOP_WEBHOOK_URL"
       ],
-      "measured": {
-        "costUsd": 0,
-        "tokensIn": 0,
-        "tokensOut": 0,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/webhook-relay.txt",
       "preview": {
         "style": "applet",
@@ -963,13 +909,7 @@
         "QLOOP_SOURCE_URL",
         "QLOOP_WEBHOOK_URL"
       ],
-      "measured": {
-        "costUsd": 0,
-        "tokensIn": 0,
-        "tokensOut": 0,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/wide-fanout.txt",
       "preview": {
         "style": "workflow"
@@ -1696,7 +1636,7 @@
       "sha256": "e612df3657c10538cc4fe0af1718ba6dfc491a3589dd5fbde4766ed44d67375a"
     }
   ],
-  "releaseVersion": "2026.09.12-registry.3",
+  "releaseVersion": "2026.09.13-registry.4-candidate",
   "core": {
     "package": "qloops",
     "version": "0.2.0-core.13",
@@ -2552,5 +2492,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "ed9d2acf999cf75138390579250fb5ac91bda2ff7c20d00f9e8cf52464fbdbff"
+  "releaseSha256": "3acb4e2109ebbe8f52ff9cf144c38188986c66659746a913dcede59012bccf08"
 }

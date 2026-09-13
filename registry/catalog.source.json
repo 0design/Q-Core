@@ -27,13 +27,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0025,
-        "tokensIn": 5994,
-        "tokensOut": 800,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/brand-mentions.txt",
       "preview": {
         "style": "applet",
@@ -211,13 +205,7 @@
         "TELEGRAM_CHAT_ID",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0002,
-        "tokensIn": 490,
-        "tokensOut": 129,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/content-factory.txt",
       "preview": {
         "style": "workflow"
@@ -312,13 +300,7 @@
         "TELEGRAM_CHAT_ID",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0007,
-        "tokensIn": 979,
-        "tokensOut": 343,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/content-feed.txt",
       "preview": {
         "style": "workflow"
@@ -409,13 +391,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.003,
-        "tokensIn": 11319,
-        "tokensOut": 177,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/feed-fanout.txt",
       "preview": {
         "style": "workflow"
@@ -504,13 +480,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0002,
-        "tokensIn": 485,
-        "tokensOut": 49,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/json-digest.txt",
       "preview": {
         "style": "workflow"
@@ -594,13 +564,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0006,
-        "tokensIn": 2417,
-        "tokensOut": 36,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/price-watch.txt",
       "preview": {
         "style": "workflow"
@@ -692,13 +656,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0027,
-        "tokensIn": 10032,
-        "tokensOut": 171,
-        "status": "success",
-        "at": "2026-08-01"
-      },
+      "measured": null,
       "proof": "demos/release-watch.txt",
       "preview": {
         "style": "applet",
@@ -788,13 +746,7 @@
         "QLOOP_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
-      "measured": {
-        "costUsd": 0.0001,
-        "tokensIn": 186,
-        "tokensOut": 37,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/strict-gate.txt",
       "preview": {
         "style": "workflow"
@@ -880,13 +832,7 @@
         "QLOOP_SOURCE_URL",
         "QLOOP_WEBHOOK_URL"
       ],
-      "measured": {
-        "costUsd": 0,
-        "tokensIn": 0,
-        "tokensOut": 0,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/webhook-relay.txt",
       "preview": {
         "style": "applet",
@@ -963,13 +909,7 @@
         "QLOOP_SOURCE_URL",
         "QLOOP_WEBHOOK_URL"
       ],
-      "measured": {
-        "costUsd": 0,
-        "tokensIn": 0,
-        "tokensOut": 0,
-        "status": "success",
-        "at": "2026-08-02"
-      },
+      "measured": null,
       "proof": "demos/wide-fanout.txt",
       "preview": {
         "style": "workflow"
@@ -1031,7 +971,7 @@
       "id": "approval-gate",
       "name": "Approval gate",
       "kind": "step",
-      "description": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
+      "description": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
       "input": {
         "reviewer": {
           "type": "string",
@@ -1056,21 +996,21 @@
         "mode": {
           "type": "string",
           "required": false,
-          "notes": "check is RESERVED \u2014 refused."
+          "notes": "check is RESERVED — refused."
         }
       },
       "output": {
         "pass": {
           "type": "boolean",
-          "notes": "reviewer: agent \u2014 the verdict."
+          "notes": "reviewer: agent — the verdict."
         },
         "reason": {
           "type": "string",
-          "notes": "reviewer: agent \u2014 why."
+          "notes": "reviewer: agent — why."
         },
         "status": {
           "type": "string",
-          "notes": "reviewer: human \u2014 the run is waiting_human until qloop approve continues it or --reject fails it."
+          "notes": "reviewer: human — the run is waiting_human until qloop approve continues it or --reject fails it."
         }
       },
       "needsEnv": [],
@@ -1106,7 +1046,7 @@
         "status": "pending",
         "evidence": []
       },
-      "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
+      "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",
@@ -1123,7 +1063,7 @@
         "instructions": {
           "type": "string",
           "required": true,
-          "notes": "templated. SPEC-MANIFEST.md \u00a75.2."
+          "notes": "templated. SPEC-MANIFEST.md §5.2."
         },
         "format": {
           "type": "string",
@@ -1143,7 +1083,7 @@
         "role": {
           "type": "string",
           "required": false,
-          "notes": "prepended as \"You are the \u27e8role\u27e9 agent\u2026\""
+          "notes": "prepended as \"You are the ⟨role⟩ agent…\""
         },
         "model": {
           "type": "string",
@@ -1154,7 +1094,7 @@
       "output": {
         "text": {
           "type": "string",
-          "notes": "format: text \u2014 {text, model}."
+          "notes": "format: text — {text, model}."
         },
         "model": {
           "type": "string",
@@ -1218,7 +1158,7 @@
       "id": "telegram-publish",
       "name": "Telegram publish",
       "kind": "composite",
-      "description": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md \u00a75.3). Unset env vars do not fire a URL with braces in it \u2014 the runner writes to .qf/out/ and says so (SPEC \u00a79).",
+      "description": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md §5.3). Unset env vars do not fire a URL with braces in it — the runner writes to .qf/out/ and says so (SPEC §9).",
       "input": {
         "text": {
           "type": "string",
@@ -1233,7 +1173,7 @@
         },
         "chatId": {
           "type": "string",
-          "notes": "Optional. The chat that was addressed. Not an engine field \u2014 the request body carries chat_id."
+          "notes": "Optional. The chat that was addressed. Not an engine field — the request body carries chat_id."
         }
       },
       "needsEnv": [
@@ -1274,7 +1214,7 @@
         "status": "pending",
         "evidence": []
       },
-      "value": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md \u00a75.3). Unset env vars do not fire a URL with braces in it \u2014 the runner writes to .qf/out/ and says so (SPEC \u00a79).",
+      "value": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md §5.3). Unset env vars do not fire a URL with braces in it — the runner writes to .qf/out/ and says so (SPEC §9).",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",
@@ -1685,7 +1625,7 @@
       "value": "Preserve feedback identity and expose ambiguous requests before execution."
     }
   ],
-  "releaseVersion": "2026.09.12-registry.3",
+  "releaseVersion": "2026.09.13-registry.4-candidate",
   "core": {
     "package": "qloops",
     "version": "0.2.0-core.13",
