@@ -10,6 +10,7 @@ export function registryCliStep(state, { stepId, instructions, input, provider, 
   insist(typeof stepId === 'string' && stepId.length > 0 && stepId.length <= 200, 'Bounded step ID required');
   insist(typeof instructions === 'string' && instructions.trim().length > 0 && Buffer.byteLength(instructions) <= 64000, 'Bounded step instructions required');
   insist(provider?.kind === 'caller', 'Registry CLI component requires explicit caller provider');
+  insist(Object.keys(provider).every(key => ['kind', 'agent', 'model', 'payerScope'].includes(key)), 'Caller configuration cannot contain keys or extra fields');
   validateCallerInput({ provider, inferenceReply: reply, maxInferenceJobs, inferenceTtlMs });
   const payload = JSON.stringify(input ?? {});
   insist(Buffer.byteLength(payload) <= 60000, 'Registry inference input exceeds 60000 bytes');

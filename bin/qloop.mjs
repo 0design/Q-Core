@@ -237,6 +237,7 @@ async function cmdRun(args, flags, opts) {
     const provider = readBoundedJson(opts['caller-provider']);
     const { validateCallerInput } = await import('../src/caller-inference.mjs');
     if (provider.kind !== 'caller') fail('Expected a caller provider configuration');
+    if (Object.keys(provider).some(key => !['kind', 'agent', 'model', 'payerScope'].includes(key))) fail('Caller configuration accepts kind, agent, model and payerScope only; never include credentials');
     validateCallerInput({ provider });
     run.callerProvider = provider;
   }

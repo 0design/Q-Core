@@ -27,7 +27,8 @@
     "README.md",
     "SPEC-MANIFEST.md",
     "contracts/",
-    "docs/codex.md"
+    "docs/codex.md",
+    "docs/cli-registry.md"
   ],
   "dependencies": {},
   "author": "Oleg Kukharuk",

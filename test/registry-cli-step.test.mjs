@@ -33,5 +33,6 @@ test('missing provider and oversized input fail without fallback', () => {
   const { state, args } = setup();
   assert.throws(() => registryCliStep(state, { ...args, provider: undefined }));
   assert.throws(() => registryCliStep(state, { ...args, input: 'x'.repeat(60001) }));
+  assert.throws(() => registryCliStep(state, { ...args, provider: { ...provider, token: 'must-not-be-stored' } }));
   assert.equal(state.pendingInference, undefined);
 });

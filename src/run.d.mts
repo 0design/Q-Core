@@ -41,10 +41,13 @@ export interface Run {
   tokensIn: number | null;
   tokensOut: number | null;
   steps: RunStep[];
+  pendingInference?: { protocolVersion: string; jobId: string; hash: string; runId: string; phase: string; inputHash: string; expiresAt: number; messages: Array<{ role: string; content: string }>; outputKind: string };
+  callerProvider?: DriveOptions['callerProvider'];
+  executionKnobs?: Knobs;
 }
 
 export interface Knobs {
-  model: string;
+  model: string | null;
   budgetUsd: number | null;
   sensitivity: unknown;
   limits: unknown;
