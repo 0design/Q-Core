@@ -1,7 +1,7 @@
 /** Types for the driver. Hand-written — see manifest.d.mts on why. */
 import type { LoopManifest, LoopManifestSettings, LoopManifestStep } from "./manifest.d.mts";
 
-export type RunStatus = "running" | "success" | "failed" | "waiting_human";
+export type RunStatus = "running" | "success" | "failed" | "waiting_human" | "waiting_inference";
 export type StepStatus = "pending" | "running" | "success" | "failed" | "waiting_human" | "planned";
 
 export interface RunStep {
@@ -18,9 +18,9 @@ export interface RunStep {
   gateReason: string | null;
   output: unknown;
   errorText: string | null;
-  tokensIn: number;
-  tokensOut: number;
-  costUsd: number;
+  tokensIn: number | null;
+  tokensOut: number | null;
+  costUsd: number | null;
   item?: unknown;
   itemIndex: number | null;
   startedAt: string | null;
@@ -37,9 +37,9 @@ export interface Run {
   summary: string;
   startedAt: string;
   finishedAt: string | null;
-  costUsd: number;
-  tokensIn: number;
-  tokensOut: number;
+  costUsd: number | null;
+  tokensIn: number | null;
+  tokensOut: number | null;
   steps: RunStep[];
 }
 
@@ -57,6 +57,10 @@ export interface DriveOptions {
   knobs?: Knobs;
   settings?: LoopManifestSettings;
   apiKey?: string | null;
+  callerProvider?: { kind: 'caller'; agent: 'codex' | 'claude'; model: string; payerScope: 'local-cli' };
+  inferenceReply?: { jobId: string; hash: string; output: { text: string } };
+  maxInferenceJobs?: number;
+  inferenceTtlMs?: number;
   dryRun?: boolean;
   onStep?: (step: RunStep) => void;
 }

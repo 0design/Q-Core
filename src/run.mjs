@@ -20,6 +20,9 @@
  */
 import { flattenLoopSteps, isExpandingFanOut, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel } from "./steps.mjs";
+import { registryCliStep } from "./registry-cli-step.mjs";
+import { assertInferenceReply } from "./caller-inference.mjs";
+import { resolveTemplate } from "./template.mjs";
 import { num, str } from "./config.mjs";
 import { resolveTemplateValue } from "./template.mjs";
 import { usdForTokens } from "./cost.mjs";
@@ -122,6 +125,8 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
  */
 export async function driveRun(run, opts = {}) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
+  let inferenceReply = opts.inferenceReply;
+  assertInferenceReply(run, inferenceReply);
   const knobs = opts.knobs ?? resolveKnobs(opts.settings ?? {});
 
   /* SENSITIVITY IS NOT IMPLEMENTED HERE — and it is refused, not ignored.
@@ -182,7 +187,8 @@ export async function driveRun(run, opts = {}) {
 
     /* ── 1. BUDGET (knob 3), BEFORE the paid step ───────────────────────── */
     const spent = run.steps.reduce((acc, s) => acc + Number(s.costUsd ?? 0), 0);
-    const paidKind = next.kind === "llm-call" || next.kind === "approval-gate";
+    const cliStep = next.kind === "llm-call" && next.config.provider === "cli";
+    const paidKind = (next.kind === "llm-call" && !cliStep) || next.kind === "approval-gate";
     if (paidKind && knobs.budgetUsd !== null && spent >= knobs.budgetUsd) {
       next.status = "failed";
       next.gateReason = "budget";
@@ -231,19 +237,39 @@ export async function driveRun(run, opts = {}) {
     }
 
     try {
-      const result = await dispatch(step, ctx, knobs);
+      if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
+      let result;
+      if (cliStep) {
+        if (knobs.budgetUsd !== null) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null and use bounded inference jobs.');
+        const response = registryCliStep(run, {
+          stepId: `${next.seq}:${next.stepId}`,
+          instructions: resolveTemplate(str(step.config, 'instructions') ?? '', { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }),
+          input: next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
+          provider: opts.callerProvider, reply: inferenceReply, save: persist,
+          maxInferenceJobs: opts.maxInferenceJobs, inferenceTtlMs: opts.inferenceTtlMs,
+        });
+        inferenceReply = undefined;
+        const { text } = JSON.parse(response.content);
+        const format = str(step.config, 'format') ?? 'text';
+        if (!['text', 'json'].includes(format)) throw new Error('Unsupported CLI output format');
+        const output = format === 'json' ? JSON.parse(text) : { text };
+        if (format === 'json' && (!output || typeof output !== 'object')) throw new Error('CLI JSON output must be an object or array');
+        result = { output, unknownUsage: true, provider: response.provider };
+      } else result = await dispatch(step, ctx, knobs);
       const costUsd = result.costUsd ?? usdForTokens(result.tokensIn ?? 0, result.tokensOut ?? 0);
       next.status = result.waitingHuman ? "waiting_human" : "success";
       next.gateReason = result.waitingHuman ? "gate" : null;
       next.output = result.output;
       next.tokensIn = result.tokensIn ?? 0;
       next.tokensOut = result.tokensOut ?? 0;
-      next.costUsd = Number(costUsd.toFixed(4));
+      next.costUsd = result.unknownUsage ? null : Number(costUsd.toFixed(4));
+      if (result.provider) next.provider = result.provider;
+      if (result.unknownUsage) { next.tokensIn = null; next.tokensOut = null; }
       next.finishedAt = result.waitingHuman ? null : new Date().toISOString();
 
-      run.tokensIn += next.tokensIn;
-      run.tokensOut += next.tokensOut;
-      run.costUsd = Number((run.costUsd + next.costUsd).toFixed(4));
+      run.tokensIn = run.tokensIn === null || next.tokensIn === null ? null : run.tokensIn + next.tokensIn;
+      run.tokensOut = run.tokensOut === null || next.tokensOut === null ? null : run.tokensOut + next.tokensOut;
+      run.costUsd = run.costUsd === null || next.costUsd === null ? null : Number((run.costUsd + next.costUsd).toFixed(4));
       persist();
       onStep(next);
 
@@ -254,6 +280,14 @@ export async function driveRun(run, opts = {}) {
         return run;
       }
     } catch (e) {
+      if (e?.code === 'INFERENCE_REQUIRED') {
+        next.status = 'pending';
+        run.status = 'waiting_inference';
+        run.summary = 'Waiting for a reply from the selected CLI caller.';
+        run.finishedAt = null;
+        persist();
+        return run;
+      }
       next.status = "failed";
       next.errorText = e instanceof Error ? e.message : String(e);
       next.finishedAt = new Date().toISOString();
