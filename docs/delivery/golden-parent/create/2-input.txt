@@ -1,1 +1,0 @@
-Synthetic test-owner follow-up: repeat the already successful loop once without changing any manifest or verifier. Independently check the same retained output values again. Report the new run ID and verify the original successful manifest remains byte-identical. No POST or new external actions.

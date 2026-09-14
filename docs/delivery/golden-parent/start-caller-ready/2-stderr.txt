@@ -1,8 +1,0 @@
-2026-09-10T12:34:12.824245Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in /Users/oleg.design/PORN/projects/QFactory.io/repo/qloops/.qf/golden-parent/start-caller-ready/.qf/agent-request.json:
-    "decision": "approve"
-  },
-       }
-     ]
-   }
- },
-  "deadlineMs": 90000,

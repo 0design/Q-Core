@@ -1,8 +1,0 @@
-{
-  "date": "2026-09-09T22:43:15.053Z",
-  "scope": "Header-only read of the Site API route; no artifact or release acceptance",
-  "url": "https://qfactory.io/api/registry",
-  "status": 404,
-  "contentType": "text/html; charset=utf-8",
-  "catalogSha256": null
-}

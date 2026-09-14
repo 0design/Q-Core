@@ -1,7 +1,0 @@
-{
-  "status": "success",
-  "summary": "No new sources; no publication attempted",
-  "nextAction": {"type": "no_new_sources"},
-  "runId": null,
-  "independentCheck": "Repeat of the same request after confirmed delivery produced no_new_sources and no publication attempt."
-}
