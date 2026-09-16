@@ -16,6 +16,25 @@ const liveModel = modelIndex >= 0 ? process.argv[modelIndex + 1] : null;
 if (live) assert.ok(liveModel && !liveModel.startsWith("--"), "Live checks require --model MODEL");
 const root = resolve("."),
   tmp = mkdtempSync(join(tmpdir(), "qloops-clean-install-"));
+const bounded = (value, max = 400) =>
+  typeof value === "string" ? value.slice(0, max) : null;
+const unexpectedExit = (phase, error) => {
+  let result = null;
+  try {
+    result = JSON.parse(error.stdout ?? "");
+  } catch {}
+  return `Unexpected ${phase} exit: ${JSON.stringify({
+    exit: Number.isInteger(error.status) ? error.status : null,
+    status: bounded(result?.status, 80),
+    error: result?.error && typeof result.error === "object"
+      ? {
+          code: bounded(result.error.code, 80),
+          message: bounded(result.error.message),
+        }
+      : null,
+    summary: bounded(result?.summary),
+  })}`;
+};
 const exec = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, {
     cwd: tmp,
@@ -85,7 +104,7 @@ try {
       input: JSON.stringify(request),
     });
   } catch (e) {
-    assert.equal(e.status, 2);
+    assert.equal(e.status, 2, unexpectedExit("initial agent", e));
     first = JSON.parse(e.stdout);
   }
   // A live model may legitimately ask questions; do not mistake the supported
@@ -104,7 +123,7 @@ try {
       const output = exec(process.execPath, [bin, "agent", "-"], {input: JSON.stringify(request)});
       first = JSON.parse(output);
     } catch (e) {
-      assert.equal(e.status, 2);
+      assert.equal(e.status, 2, unexpectedExit("clarification agent", e));
       first = JSON.parse(e.stdout);
     }
   }
