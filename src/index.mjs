@@ -1,11 +1,13 @@
 export {
   PROTOCOL,
+  PROVIDER_KINDS,
   EXIT_CODES,
   validateRequest,
   resultEnvelope,
   CoreError,
   hash,
 } from "./contracts.mjs";
+export { coreCapabilities } from "./capabilities.mjs";
 export { loadManifest, validateManifest } from "./manifest.mjs";
 export { openRouter } from "./providers/openrouter.mjs";
 export { claude } from "./providers/claude.mjs";
@@ -18,3 +20,14 @@ export { installPinned, loadRelease } from "./registry-release.mjs";
 export { runContentRequest } from "./content-runner.mjs";
 
 export { codex } from "./providers/codex.mjs";
+export {
+  SECRET_STORE,
+  SECRET_STORE_PLATFORMS,
+  SECRET_STORE_MODES,
+  keychainIdentity,
+  getKeychainSecret,
+  hasKeychainSecret,
+  removeKeychainSecret,
+  setKeychainSecret,
+  resolveProviderSecret,
+} from "./secrets.mjs";

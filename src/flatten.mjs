@@ -21,6 +21,8 @@
 export const SEQ_STRIDE = 1000;
 
 export const isExpandingFanOut = (s) => s.kind === "fan-out" && !!String(s.config?.over ?? "").trim();
+export const CONTROL_KINDS = new Set(["if", "switch", "loop", "each"]);
+export const isControlFlow = (s) => CONTROL_KINDS.has(s.kind);
 
 export function flattenLoopSteps(steps) {
   const out = [];
@@ -28,6 +30,7 @@ export function flattenLoopSteps(steps) {
     for (const s of list) {
       out.push({ step: s, seq: out.length * SEQ_STRIDE, depth, laneOf });
       if (isExpandingFanOut(s)) continue;
+      if (isControlFlow(s)) continue;
       if (s.then?.length) walk(s.then, depth + 1, s.kind === "fan-out" ? s.id : laneOf);
     }
   };

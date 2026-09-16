@@ -1,10 +1,10 @@
-# Core contract revision 8 (qf.agent/v1)
+# Core contract revision 9 (qf.agent/v1)
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
 and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships
 these discoverability additions without changing revision5 runtime semantics.
 
-Core.13 uses `qloops.loop/v1` for YAML manifests. Older manifest namespaces are rejected. Migrate a copy of the manifest and revalidate it with the new package; do not resume old runs or rewrite historical evidence. The agent and content request protocols are unchanged. Consumers pin the package tarball SHA256 and this directory.
+Core.15 uses `qloops.loop/v1` for YAML manifests. Older manifest namespaces are rejected. Revision 9 adds bounded control expansion and explicit provider secret-source metadata; protocol namespaces remain unchanged. Migrate a copy of the manifest and revalidate it with the new package; do not resume old runs or rewrite historical evidence. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
 
 `qloops agent request.json` (or `-` for bounded stdin) emits exactly one JSON
@@ -13,7 +13,8 @@ needs_human/2, cancelled/130; malformed request failed/64. No implicit provider.
 
 Request: protocolVersion, requestId, loop {id,version}, intent, workspace (absolute),
 allowedPaths (exact relative files), allowedTools (verifier executable paths),
-provider {kind: claude|codex|openrouter, model, executable? or keyRef?, payerScope},
+provider {kind: claude|codex|openrouter, model, executable? or keyRef?, payerScope,
+secretSource? (openrouter: env|keychain)},
 deadlineMs (1..300000), maxRepairAttempts (0..5), verifier {command,args},
 optional approval {hash,decision:approve|reject}, resumeRunId.
 Supported loops: sdd-pipeline@1.0.0 and synthetic-sdd@1.0.0 (test alias). Canonical SDD manifests are site-owned;
@@ -86,5 +87,9 @@ than a generic invalid JSONL failure. Raw stderr is not exposed and no permissio
 change/retry is made. Content errors retain an existing runId for correlation;
 resume still uses the same request/workspace, not an SDD resumeRunId field.
 This makes the environment blocker actionable; it does not solve or bypass it.
+
+Core.15 introspection reports the reviewed Codex CLI versions `0.153.4` and
+`0.154.0-alpha.6.2`; consumers can read the installed values through
+`coreCapabilities()` before selecting a local CLI.
 
 Explicit current-agent inference for SDD and Content: [caller protocol](caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.

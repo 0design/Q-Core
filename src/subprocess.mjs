@@ -32,14 +32,20 @@ export function subprocess(
 ) {
   insist(
     typeof command === "string" &&
+      command.length > 0 &&
       Array.isArray(args) &&
       args.every((x) => typeof x === "string"),
     "Invalid executable/argv",
   );
+  insist(typeof input === "string", "Invalid subprocess input");
   insist(Buffer.byteLength(input) <= 128000, "Input exceeds 128000 bytes");
   insist(
     Number.isInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 300000,
     "Invalid subprocess timeout",
+  );
+  insist(
+    Number.isInteger(maxBytes) && maxBytes > 0 && maxBytes <= 2147483647,
+    "Invalid subprocess output limit",
   );
   if (signal?.aborted)
     return Promise.reject(new CoreError("CANCELLED", "Subprocess cancelled"));

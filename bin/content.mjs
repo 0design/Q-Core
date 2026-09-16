@@ -1,6 +1,6 @@
 import { readFileSync, statSync } from "node:fs";
 import { runContentRequest } from "../src/content-runner.mjs";
-import { EXIT_CODES } from "../src/contracts.mjs";
+import { EXIT_CODES, resultEnvelope } from "../src/contracts.mjs";
 export async function contentCli(file) {
   const abort = new AbortController();
   const cancel = () => abort.abort();
@@ -15,8 +15,19 @@ export async function contentCli(file) {
     );
     console.log(JSON.stringify(result));
     process.exitCode = EXIT_CODES[result.status];
-  } catch (e) {
-    console.error(e.message);
+  } catch {
+    process.stdout.write(
+      JSON.stringify(
+        resultEnvelope(null, {
+          protocolVersion: "qf.content/v1",
+          summary: "Invalid request JSON or file",
+          error: {
+            code: "INVALID_REQUEST",
+            message: "Invalid request JSON or file",
+          },
+        }),
+      ) + "\n",
+    );
     process.exitCode = 64;
   } finally {
     process.off("SIGINT", cancel);

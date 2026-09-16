@@ -1,0 +1,9 @@
+{
+  "schema": "qf.contract-metadata/v1",
+  "revision": 9,
+  "protocols": {
+    "manifest": "qloops.loop/v1",
+    "agent": "qf.agent/v1",
+    "content": "qf.content-request/v1"
+  }
+}

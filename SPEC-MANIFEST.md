@@ -250,6 +250,43 @@ See §3. Placing it in `steps:` is a validation error.
 
 ---
 
+### 5.7 Control flow — `if`, `switch`, `loop`, `each`
+
+Control nodes select or expand a bounded child tree. Their `config` remains
+scalar text, and child steps use the same `then` list as a fan-out lane.
+
+```yaml
+- id: choose
+  kind: if
+  config: {condition: "{{steps.classify.output.pass}}"}
+  then: [{id: publish, kind: api-request, config: {url: "https://example.test/ok"}}]
+  else: [{id: hold, kind: approval-gate, config: {reviewer: human}}]
+- id: route
+  kind: switch
+  config: {on: "{{steps.classify.output.route}}"}
+  cases:
+    news: [{id: news, kind: api-request, config: {url: "https://example.test/news"}}]
+  default: [{id: fallback, kind: approval-gate, config: {reviewer: human}}]
+- id: repeat
+  kind: loop
+  config: {maxIterations: 3}
+  then: [{id: check, kind: fetch, config: {url: "https://example.test/status"}}]
+- id: per-item
+  kind: each
+  config: {over: "{{steps.fetch.output.entries}}", maxItems: 20, maxConcurrency: 2}
+  then: [{id: send, kind: api-request, config: {url: "https://example.test/item"}}]
+```
+
+`if.condition`/`when` selects `then` or `else`; `switch.on`/`value` selects a
+string key in `cases` or `default`. `loop.maxIterations` is 1–50. `each.over`
+must resolve to an array, `maxItems` is 1–50 and `maxConcurrency` is 1–10.
+Expansion is capped to the sequence slot's 999 child rows; an overlarge branch
+fails before it can run. A run also has a fixed maximum of 10,000 expanded rows
+across all nested controls and fan-outs; the limit is checked before insertion
+and fails the run. `each` records the requested concurrency and currently
+executes its bounded rows in deterministic order; parallel execution remains a
+product scheduler concern.
+
 ## 6. Templates
 
 Resolved inside `url`, `body`, `headers`, `instructions` and `over`.

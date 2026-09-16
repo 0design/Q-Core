@@ -55,8 +55,10 @@ Provider descriptors:
 - Claude: same CLI fields with kind `claude`. Adapter exists; Claude acceptance is
   deferred until after Codex stabilization. Active nesting guards remain enforced.
 - OpenRouter: `{kind:"openrouter",model:"explicit-provider/model",
-  keyRef:"OPENROUTER_API_KEY",payerScope:"local-byok"}`. The key is in the process
-  environment (or JS env option), not JSON. Live proof still requires access/budget.
+  keyRef:"OPENROUTER_API_KEY",payerScope:"local-byok",secretSource:"env"}`.
+  `secretSource` may be `env` (the backwards-compatible default) or `keychain`;
+  the protected local store is resolved without putting the secret in JSON. Live
+  proof still requires access/budget.
 
 Receiver: `{kind:"webhook",url:"https://permitted.example/receive",
 id:"stable-channel-identity",keyRef:"OPTIONAL_RECEIVER_TOKEN"}`. keyRef is optional,

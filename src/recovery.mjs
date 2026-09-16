@@ -7,6 +7,10 @@ export function recoveryAction(code) {
     case "STALE_INFERENCE":
       return {type:"review_inference",message:"Discard the stale reply and inspect the current run without submitting it again. Do not change scope or replay consumed jobs."};
     case "AUTH_REQUIRED":
+    case "SECRET_MISSING":
+    case "SECRET_STORE_DENIED":
+    case "SECRET_STORE_UNSUPPORTED":
+    case "SECRET_INTERACTION_REQUIRED":
       return { type: "configure_access", message: "Restore the configured provider or receiver's local authorization, then retry the explicit run. Keep credentials out of prompts and result files." };
     case "MISSING_EXECUTABLE":
     case "UNSUPPORTED_CLI":

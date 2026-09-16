@@ -111,3 +111,15 @@ test('content deadline bounds response bodies and emits a typed human stop',asyn
     sources:[{id:'one',url:origin+'/source'}],profile:{tone:'test'},provider:{kind:'codex'},receiver:{kind:'webhook',url:origin+'/receiver'}});
   assert.equal(result.status,'needs_human');assert.equal(result.error.code,'TIMEOUT');assert.equal(result.nextAction.type,'review_limits');
 });
+
+test('content ingress rejects provider fields that could persist raw secrets', async () => {
+  const result = await runContentRequest({
+    protocolVersion: 'qf.content-request/v1', requestId: 'provider-shape', workspace: '/tmp',
+    allowedOrigins: [], deadlineMs: 1000, sources: [], profile: {},
+    provider: { kind: 'openrouter', model: 'example/model', keyRef: 'OPENROUTER_API_KEY', payerScope: 'local-byok', apiKey: 'secret-do-not-store' },
+    receiver: { kind: 'webhook', url: 'https://example.test/receiver' },
+  });
+  assert.equal(result.status, 'failed');
+  assert.equal(result.error.code, 'INVALID_REQUEST');
+  assert.equal(JSON.stringify(result).includes('secret-do-not-store'), false);
+});

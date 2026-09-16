@@ -3,6 +3,12 @@ import { validateCallerInput } from "./caller-inference.mjs";
 import { createHash } from "node:crypto";
 import { isAbsolute, resolve } from "node:path";
 export const PROTOCOL = "qf.agent/v1";
+export const PROVIDER_KINDS = Object.freeze([
+  "claude",
+  "codex",
+  "openrouter",
+  "caller",
+]);
 export const EXIT_CODES = Object.freeze({
   success: 0,
   failed: 1,
@@ -140,7 +146,8 @@ export function validateRequest(r) {
           (a) =>
             !a.startsWith("-") &&
             resolve(r.workspace, a) === resolve(r.workspace, p),
-        ),
+        ) &&
+        resolve(r.workspace, r.verifier.command) !== resolve(r.workspace, p),
       "Tests and verifier files cannot be writable",
       "SCOPE_DENIED",
     );
@@ -155,9 +162,16 @@ export function validateRequest(r) {
     );
   }
   insist(
-    r.provider && ["claude", "codex", "openrouter", "caller"].includes(r.provider.kind),
+    r.provider && PROVIDER_KINDS.includes(r.provider.kind),
     "Explicit provider required",
   );
+  const providerKeys = {
+    claude: ["kind", "model", "executable", "payerScope"],
+    codex: ["kind", "model", "executable", "payerScope"],
+    openrouter: ["kind", "model", "keyRef", "payerScope", "secretSource"],
+    caller: ["kind", "agent", "model", "payerScope"],
+  }[r.provider.kind];
+  insist(Object.keys(r.provider).every((key) => providerKeys.includes(key)), "Unknown provider field");
   insist(
     typeof r.provider.model === "string" &&
       r.provider.model.length > 0 &&
@@ -178,7 +192,8 @@ export function validateRequest(r) {
   else if (r.provider.kind === "openrouter")
     insist(
       /^[A-Z_][A-Z0-9_]*$/.test(r.provider.keyRef ?? "") &&
-        r.provider.payerScope === "local-byok",
+        r.provider.payerScope === "local-byok" &&
+        (r.provider.secretSource === undefined || ["env", "keychain"].includes(r.provider.secretSource)),
       "OpenRouter requires keyRef and local-byok scope",
     );
   insist(

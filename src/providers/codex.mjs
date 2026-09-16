@@ -4,7 +4,11 @@ import { join, isAbsolute } from "node:path";
 import { subprocess, scopedEnvironment } from "../subprocess.mjs";
 import { CoreError, insist } from "../contracts.mjs";
 
+// 0.153.4 is the retained reviewed baseline; 0.154.0-alpha.6.2 is the current
+// live preflight candidate. Both use the same isolated JSONL arguments.
 export const CODEX_VERSION = "0.153.4";
+export const CODEX_VERSIONS = Object.freeze([CODEX_VERSION, "0.154.0-alpha.6.2"]);
+const reviewedVersions = new Set(CODEX_VERSIONS);
 // Pin the reviewed CLI: a read-only sandbox remains essential because Codex
 // still advertises model-dependent apply_patch/utility tools. Tool events are
 // rejected, never accepted as an alternative to Core's workspace executor.
@@ -71,7 +75,7 @@ export function codexArgs(model) {
 const disabledCodeModeDiagnostic = "Code Mode is unavailable because code-mode host is disabled. Code mode will fail closed; enable `features.code_mode_host` and install `codex-code-mode-host`.";
 const metric = (x) =>
   typeof x === "number" && Number.isFinite(x) && x >= 0 ? x : null;
-export function parseCodexResponse(response, model) {
+export function parseCodexResponse(response, model, version = CODEX_VERSION) {
   // Recognize the observed startup boundary without returning arbitrary stderr
   // (which can contain credentials), changing sandbox flags or retrying it.
   if (response.code !== 0 && !response.stdout.trim() &&
@@ -167,7 +171,7 @@ export function parseCodexResponse(response, model) {
     requestId: thread,
     provider: {
       kind: "codex",
-      version: CODEX_VERSION,
+      version,
       requestedModel: model,
       model: null,
       payerScope: "local-cli",
@@ -238,13 +242,11 @@ export async function codex(
       signal,
       timeoutMs: Math.min(remaining(), 10000),
     });
-    if (
-      probe.code !== 0 ||
-      probe.stdout.trim() !== `codex-cli ${CODEX_VERSION}`
-    )
+    const probedVersion = probe.stdout.trim().match(/^codex-cli ([^\s]+)$/)?.[1];
+    if (probe.code !== 0 || !reviewedVersions.has(probedVersion))
       throw new CoreError(
         "UNSUPPORTED_CLI",
-        `Codex CLI version has not been reviewed (supported: ${CODEX_VERSION}); configure an explicit current executable`,
+        `Codex CLI version has not been reviewed (supported: ${CODEX_VERSIONS.join(", ")}); configure an explicit current executable`,
       );
     const auth = await launch(executable, ["login", "status"], {
       cwd,
@@ -269,6 +271,7 @@ export async function codex(
         input,
       }),
       model,
+      probedVersion,
     );
   } finally {
     await rm(cwd, { recursive: true, force: true });

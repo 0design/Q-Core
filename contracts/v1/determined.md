@@ -60,5 +60,5 @@ loop identity. `unslop` is a separate curated design-canon loop; historical
 `unslop-design` references do not alias the A2D mechanism. Canonical registry
 aliases/manifests and updates to public donor instructions belong to their owners.
 
-The source mapping is retained in `docs/delivery/upstreams.md` in the repository.
+The source mapping is retained in the canonical Linear record [0D-263](https://linear.app/0dhaus/issue/0D-263).
 No donor code, hosted product, canon, credentials or configuration is copied.

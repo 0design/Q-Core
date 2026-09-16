@@ -61,6 +61,22 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
       r.provider && ["claude", "codex", "openrouter", "caller"].includes(r.provider.kind),
       "Explicit content provider required",
     );
+    const providerKeys = {
+      claude: ["kind", "model", "executable", "payerScope"],
+      codex: ["kind", "model", "executable", "payerScope"],
+      openrouter: ["kind", "model", "keyRef", "payerScope", "secretSource"],
+      caller: ["kind", "agent", "model", "payerScope"],
+    }[r.provider.kind];
+    insist(
+      Object.keys(r.provider).every((key) => providerKeys.includes(key)),
+      "Unknown provider field",
+    );
+    if (r.provider.kind === "openrouter") {
+      insist(
+        r.provider.secretSource === undefined || ["env", "keychain"].includes(r.provider.secretSource),
+        "Invalid OpenRouter secretSource",
+      );
+    }
     validateCallerInput(r);
     const {approval,inferenceReply,cancelInference,requestId,...callerIdentity}=r;
     const callerRequestHash = r.provider.kind==="caller" ? hash(callerIdentity) : undefined;

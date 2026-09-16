@@ -1,7 +1,7 @@
 /** Types for the driver. Hand-written — see manifest.d.mts on why. */
 import type { LoopManifest, LoopManifestSettings, LoopManifestStep } from "./manifest.d.mts";
 
-export type RunStatus = "running" | "success" | "failed" | "waiting_human" | "waiting_inference";
+export type RunStatus = "running" | "success" | "failed" | "cancelled" | "waiting_human" | "waiting_inference";
 export type StepStatus = "pending" | "running" | "success" | "failed" | "waiting_human" | "planned";
 
 export interface RunStep {
@@ -13,6 +13,9 @@ export interface RunStep {
   laneOf: string | null;
   config: Record<string, string>;
   then: LoopManifestStep[] | null;
+  else?: LoopManifestStep[] | null;
+  cases?: Record<string, LoopManifestStep[]> | null;
+  default?: LoopManifestStep[] | null;
   status: StepStatus;
   decision: string | null;
   gateReason: string | null;
@@ -66,10 +69,12 @@ export interface DriveOptions {
   inferenceTtlMs?: number;
   dryRun?: boolean;
   onStep?: (step: RunStep) => void;
+  signal?: AbortSignal;
 }
 
 export declare const DEFAULT_RUN_BUDGET_USD: number;
 export declare const DEFAULT_MAX_TOKENS: number;
+export declare const MAX_EXPANDED_RUN_ROWS: number;
 
 export declare function resolveKnobs(settings?: LoopManifestSettings): Knobs;
 export declare function createRun(manifest: LoopManifest, opts?: { trigger?: string }): Run;

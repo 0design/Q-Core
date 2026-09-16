@@ -232,6 +232,10 @@ async function cmdRun(args, flags, opts) {
 
   const store = new RunStore(file);
   const run = createRun(manifest, { trigger: dryRun ? "dry-run" : "manual" });
+  const abort = new AbortController();
+  const cancel = () => abort.abort();
+  process.on("SIGINT", cancel);
+  process.on("SIGTERM", cancel);
   const knobs = resolveKnobs(manifest.settings);
   if (opts['caller-provider']) {
     const provider = readBoundedJson(opts['caller-provider']);
@@ -255,6 +259,7 @@ async function cmdRun(args, flags, opts) {
       callerProvider: run.callerProvider,
       dryRun,
       apiKey: process.env.OPENROUTER_API_KEY ?? null,
+      signal: abort.signal,
       onStep: (s) => printStep(s, quiet),
     });
   } catch (e) {
@@ -265,6 +270,8 @@ async function cmdRun(args, flags, opts) {
     run.finishedAt = new Date().toISOString();
     store.save(run);
     store.saveLastRun(run);
+    process.off("SIGINT", cancel);
+    process.off("SIGTERM", cancel);
     fail(`✗ ${run.summary}`);
   }
 
@@ -282,7 +289,9 @@ async function cmdRun(args, flags, opts) {
     }
   }
 
-  return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
+  process.off("SIGINT", cancel);
+  process.off("SIGTERM", cancel);
+  return result.status === "success" ? EXIT_OK : result.status === "cancelled" ? 130 : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
 /** Reply files contain bounded inference output, never credentials. */
@@ -314,7 +323,7 @@ async function cmdStatus(args, flags) {
 
   if (flags.has("json")) {
     process.stdout.write(`${JSON.stringify({ last, runs }, null, 2)}\n`);
-    return last?.status === "success" || last == null ? EXIT_OK : EXIT_FAILED;
+    return last?.status === "success" || last == null ? EXIT_OK : last?.status === "cancelled" ? 130 : EXIT_FAILED;
   }
 
   if (!runs.length) {
@@ -323,7 +332,7 @@ async function cmdStatus(args, flags) {
   }
   process.stdout.write(`${c.bold("last runs")} ${c.dim(shortPath(store.dir))}\n\n`);
   for (const r of runs) {
-    const mark = { success: "✓", failed: "✗", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
+    const mark = { success: "✓", failed: "✗", cancelled: "■", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
     const when = String(r.startedAt).replace("T", " ").slice(0, 19);
     process.stdout.write(`  ${mark} ${when}  ${r.status.padEnd(14)} ${r.summary ?? ""}\n`);
     if (r.status === "waiting_human") process.stdout.write(c.dim(`      qloop approve ${file} ${r.runId}\n`));
@@ -331,7 +340,7 @@ async function cmdStatus(args, flags) {
   if (last?.status === "failed") {
     process.stdout.write(`\n  ${c.bold("last run FAILED")}: ${last.reason ?? last.summary}\n`);
   }
-  return last?.status === "failed" ? EXIT_FAILED : EXIT_OK;
+  return last?.status === "cancelled" ? 130 : last?.status === "failed" ? EXIT_FAILED : EXIT_OK;
 }
 
 function findManifestNearby() {

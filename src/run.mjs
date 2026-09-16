@@ -18,7 +18,7 @@
  * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a loop
  * that ends in `api-request` is a complete loop.
  */
-import { flattenLoopSteps, isExpandingFanOut, SEQ_STRIDE } from "./flatten.mjs";
+import { flattenLoopSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
 import { assertInferenceReply } from "./caller-inference.mjs";
@@ -32,6 +32,7 @@ import { RunStore, newRunId } from "./state.mjs";
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
 export const DEFAULT_RUN_BUDGET_USD = 1;
 export const DEFAULT_MAX_TOKENS = 1200;
+export const MAX_EXPANDED_RUN_ROWS = 10_000;
 
 const ENGINE_KINDS = new Set(["fetch", "llm-call", "api-request", "approval-gate"]);
 
@@ -101,6 +102,9 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
          replay with the prompt it was created with, or its history starts lying. */
       config: step.config,
       then: step.then ?? null,
+      else: step.else ?? null,
+      cases: step.cases ?? null,
+      default: step.default ?? null,
       status: "pending",
       decision: null,
       gateReason: null,
@@ -146,6 +150,13 @@ export async function driveRun(run, opts = {}) {
   };
 
   for (;;) {
+    if (opts.signal?.aborted) {
+      run.status = "cancelled";
+      run.summary = "Run cancelled.";
+      run.finishedAt = new Date().toISOString();
+      persist();
+      return run;
+    }
     const next = run.steps.find((s) => s.status === "pending");
 
     if (!next) {
@@ -167,13 +178,41 @@ export async function driveRun(run, opts = {}) {
       if (s.status === "success" && s.output != null) priorOutputs[s.stepId] = s.output;
     }
 
-    const step = { id: next.stepId, kind: next.kind, config: next.config, then: next.then ?? undefined };
+    const step = {
+      id: next.stepId,
+      kind: next.kind,
+      config: next.config,
+      then: next.then ?? undefined,
+      else: next.else ?? undefined,
+      cases: next.cases ?? undefined,
+      default: next.default ?? undefined,
+    };
 
     /* ── 0. fan-out — rows, not output ─────────────────────────────────── */
     if (next.kind === "fan-out") {
-      expandFanOut(run, next, step, priorOutputs, priorStepNames, dryRun);
+      expandFanOut(run, next, step, priorOutputs, priorStepNames, dryRun, next.item, next.itemIndex);
       persist();
       onStep(next);
+      if (next.status === "failed") {
+        run.status = "failed";
+        run.summary = next.errorText;
+        run.finishedAt = new Date().toISOString();
+        persist();
+        return run;
+      }
+      continue;
+    }
+    if (isControlFlow(step)) {
+      expandControl(run, next, step, priorOutputs, priorStepNames, dryRun);
+      persist();
+      onStep(next);
+      if (next.status === "failed") {
+        run.status = "failed";
+        run.summary = next.errorText;
+        run.finishedAt = new Date().toISOString();
+        persist();
+        return run;
+      }
       continue;
     }
     if (!ENGINE_KINDS.has(next.kind)) {
@@ -218,6 +257,7 @@ export async function driveRun(run, opts = {}) {
       /* Only present when there is somewhere to write. Without a store there is
          no `.qf/` and no fallback — the request goes out or it does not. */
       fileSink: store ? (body) => store.writeSink(run.runId, body) : null,
+      signal: opts.signal,
     };
 
     next.status = "running";
@@ -288,6 +328,17 @@ export async function driveRun(run, opts = {}) {
         persist();
         return run;
       }
+      if (opts.signal?.aborted) {
+        next.status = "failed";
+        next.errorText = "Run cancelled.";
+        next.finishedAt = new Date().toISOString();
+        run.status = "cancelled";
+        run.summary = "Run cancelled.";
+        run.finishedAt = new Date().toISOString();
+        persist();
+        onStep(next);
+        return run;
+      }
       next.status = "failed";
       next.errorText = e instanceof Error ? e.message : String(e);
       next.finishedAt = new Date().toISOString();
@@ -343,7 +394,7 @@ function plannedOutput(step, ctx, knobs) {
  * all in the node's own output. A 500-entry feed against a cap of 50 has to say
  * so, not report success and move on.
  */
-function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun) {
+function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun, item, index) {
   const label = row.name ?? "fan-out";
   const overExpr = str(step.config, "over") ?? "";
   const lane = step.then ?? [];
@@ -371,7 +422,7 @@ function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun) {
     return;
   }
 
-  const value = resolveTemplateValue(overExpr, { priorOutputs, priorStepNames });
+  const value = resolveTemplateValue(overExpr, { priorOutputs, priorStepNames, item, index });
   if (!Array.isArray(value)) {
     if (dryRun) {
       /* Nothing has run, so no array can exist yet. Say that plainly instead of
@@ -395,7 +446,6 @@ function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun) {
 
   const rows = taken.flatMap((item, i) =>
     lane.map((laneStep, j) => ({
-      seq: row.seq + 1 + i * lane.length + j,
       stepId: laneStep.id,
       kind: laneStep.kind,
       name: stepLabel(laneStep),
@@ -403,6 +453,9 @@ function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun) {
       laneOf: step.id,
       config: laneStep.config,
       then: laneStep.then ?? null,
+      else: laneStep.else ?? null,
+      cases: laneStep.cases ?? null,
+      default: laneStep.default ?? null,
       status: "pending",
       decision: null,
       gateReason: null,
@@ -418,8 +471,7 @@ function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun) {
     })),
   );
 
-  run.steps.push(...rows);
-  run.steps.sort((a, b) => a.seq - b.seq);
+  if (!insertExpansionRows(run, row, rows)) return;
 
   row.status = "success";
   row.startedAt = row.finishedAt = now;
@@ -434,6 +486,135 @@ function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun) {
       ? { truncated: `${value.length - taken.length} item(s) skipped by the cap of ${cap}` }
       : {}),
   };
+}
+
+function controlValue(expr, priorOutputs, priorStepNames, item, index) {
+  const context = { priorOutputs, priorStepNames, item, index };
+  const value = resolveTemplateValue(expr, context);
+  if (value !== undefined) return value;
+  const resolved = resolveTemplate(expr, context);
+  if (resolved !== expr) return resolved;
+  // A literal selector/condition is useful for a static branch. Exact step and
+  // item templates remain the only forms that may be unresolved.
+  return /^\{\{/.test(expr.trim()) ? undefined : expr;
+}
+
+function branchRows(run, row, branches, items, dryRun) {
+  const lane = branches.flatMap((branch) => branch);
+  const count = lane.length * items.length;
+  const now = new Date().toISOString();
+  if (lane.length === 0) {
+    row.status = dryRun ? "planned" : "success";
+    row.startedAt = row.finishedAt = now;
+    row.output = { selected: false, stepsCreated: 0 };
+    return true;
+  }
+  if (count >= SEQ_STRIDE) {
+    row.status = "failed";
+    row.errorText = `"${row.name ?? row.kind}": bounded expansion would create ${count} steps in one control slot (maximum ${SEQ_STRIDE - 1}).`;
+    row.startedAt = row.finishedAt = now;
+    return false;
+  }
+  const rows = items.flatMap(({ item, index }) => lane.map((child, j) => ({
+    stepId: child.id,
+    kind: child.kind,
+    name: stepLabel(child),
+    depth: row.depth + 1,
+    laneOf: row.stepId,
+    config: child.config,
+    then: child.then ?? null,
+    else: child.else ?? null,
+    cases: child.cases ?? null,
+    default: child.default ?? null,
+    status: "pending",
+    decision: null,
+    gateReason: null,
+    output: null,
+    errorText: null,
+    tokensIn: 0,
+    tokensOut: 0,
+    costUsd: 0,
+    item,
+    itemIndex: index,
+    startedAt: null,
+    finishedAt: null,
+  })));
+  if (!insertExpansionRows(run, row, rows)) return false;
+  row.status = dryRun ? "planned" : "success";
+  row.startedAt = row.finishedAt = now;
+  row.output = { selected: true, itemsTaken: items.length, stepsCreated: rows.length };
+  return true;
+}
+
+/**
+ * Insert generated rows immediately after their control node. Future rows are
+ * shifted as a block, leaving a fresh integer slot of SEQ_STRIDE for every
+ * expansion. Previously completed rows are always before `row`, so their
+ * sequence and approval history remain stable. A single allocator is shared by
+ * fan-out and all control nodes, including nested mixtures.
+ */
+function insertExpansionRows(run, row, rows) {
+  if (run.steps.length + rows.length > MAX_EXPANDED_RUN_ROWS) {
+    row.status = "failed";
+    row.errorText = `"${row.name ?? row.kind}": expanded run row limit ${MAX_EXPANDED_RUN_ROWS} would be exceeded.`;
+    row.startedAt = row.finishedAt = new Date().toISOString();
+    return false;
+  }
+  for (const candidate of run.steps) {
+    if (candidate.seq > row.seq) candidate.seq += SEQ_STRIDE;
+  }
+  rows.forEach((candidate, index) => { candidate.seq = row.seq + 1 + index; });
+  run.steps.push(...rows);
+  run.steps.sort((a, b) => a.seq - b.seq);
+  return true;
+}
+
+function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
+  const label = row.name ?? row.kind;
+  const fail = (message) => {
+    row.status = "failed";
+    row.errorText = `"${label}": ${message}`;
+    row.startedAt = row.finishedAt = new Date().toISOString();
+  };
+  if (step.kind === "if") {
+    const expr = str(step.config, "condition") ?? str(step.config, "when");
+    const value = expr && controlValue(expr, priorOutputs, priorStepNames, row.item, row.itemIndex);
+    if (value === undefined) return fail(`condition "${expr}" did not resolve`);
+    const truthy = typeof value === "boolean" ? value : ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
+    if (branchRows(run, row, [truthy ? (step.then ?? []) : (step.else ?? [])], [{ item: row.item, index: row.itemIndex ?? 0 }], dryRun)) row.output.condition = truthy;
+    return;
+  }
+  if (step.kind === "switch") {
+    const expr = str(step.config, "on") ?? str(step.config, "value");
+    const value = expr && controlValue(expr, priorOutputs, priorStepNames, row.item, row.itemIndex);
+    if (value === undefined) return fail(`selector "${expr}" did not resolve`);
+    const key = String(value);
+    const hasCase = Object.prototype.hasOwnProperty.call(step.cases ?? {}, key);
+    if (!hasCase && !step.default) return fail(`no case matches "${key}" and no default branch is configured`);
+    const selected = hasCase ? step.cases[key] : step.default;
+    if (branchRows(run, row, [selected], [{ item: row.item, index: row.itemIndex ?? 0 }], dryRun)) {
+      row.output.selector = value;
+      row.output.case = hasCase ? key : "default";
+    }
+    return;
+  }
+  if (step.kind === "loop") {
+    const max = num(step.config, "maxIterations") ?? 10;
+    if (branchRows(run, row, Array.from({ length: max }, () => step.then ?? []), [{ item: row.item, index: row.itemIndex ?? 0 }], dryRun)) row.output.iterations = max;
+    return;
+  }
+  const over = str(step.config, "over");
+  const value = over && resolveTemplateValue(over, { priorOutputs, priorStepNames, item: row.item, index: row.itemIndex });
+  if (!Array.isArray(value)) return fail(`"over" (${over}) did not resolve to an array`);
+  const maxItems = num(step.config, "maxItems") ?? 50;
+  const maxConcurrency = num(step.config, "maxConcurrency") ?? 1;
+  const taken = value.slice(0, maxItems);
+  if (branchRows(run, row, [step.then ?? []], taken.map((item, index) => ({ item, index })), dryRun)) {
+    row.output.itemsFound = value.length;
+    row.output.itemsTaken = taken.length;
+    row.output.maxConcurrency = maxConcurrency;
+    if (taken.length < value.length) row.output.truncated = `${value.length - taken.length} item(s) skipped by the cap of ${maxItems}`;
+  }
 }
 
 /** Continue a run that is parked at a human gate. */

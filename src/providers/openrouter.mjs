@@ -1,7 +1,9 @@
 import { fetchWithRetry } from "../http.mjs";
 import { CoreError, insist } from "../contracts.mjs";
+import { resolveProviderSecret } from "../secrets.mjs";
 const metric = (n) =>
   typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
+const MAX_KEY_REF_LENGTH = 128;
 export async function openRouter(
   {
     messages,
@@ -14,9 +16,15 @@ export async function openRouter(
     retries = 2,
     delaysMs,
     signal,
+    secretSource,
   },
-  { env = process.env, fetcher = fetchWithRetry } = {},
+  options = {},
 ) {
+  const {
+    env = process.env,
+    fetcher = fetchWithRetry,
+    secretResolver = resolveProviderSecret,
+  } = options;
   insist(
     Number.isInteger(retries) && retries >= 0 && retries <= 10,
     "retries must be 0..10",
@@ -37,6 +45,7 @@ export async function openRouter(
     "Explicit payerScope required",
   );
   insist(typeof model === "string" && model.trim(), "model required");
+  insist(model.length < 200, "model must be shorter than 200 characters");
   insist(
     Array.isArray(messages) &&
       messages.length > 0 &&
@@ -47,7 +56,7 @@ export async function openRouter(
       ),
     "Invalid messages",
   );
-  insist(JSON.stringify(messages).length <= 128000, "Messages too large");
+  insist(Buffer.byteLength(JSON.stringify(messages)) <= 128000, "Messages too large");
   insist(
     Number.isInteger(maxTokens) && maxTokens > 0 && maxTokens <= 32000,
     "maxTokens must be 1..32000",
@@ -56,9 +65,21 @@ export async function openRouter(
     Number.isFinite(temperature) && temperature >= 0 && temperature <= 2,
     "Invalid temperature",
   );
-  insist(/^[A-Z_][A-Z0-9_]*$/.test(keyRef), "Invalid keyRef");
-  const key = env[keyRef];
-  if (!key)
+  insist(
+    typeof keyRef === "string" &&
+      Buffer.byteLength(keyRef) <= MAX_KEY_REF_LENGTH &&
+      /^[A-Z_][A-Z0-9_]*$/.test(keyRef),
+    "Invalid keyRef",
+  );
+  insist(typeof secretResolver === "function", "Invalid secret resolver");
+  // Omitted source remains environment-backed for all existing callers.
+  // Keychain access is opt-in through an explicit provider field.
+  const source = secretSource ?? "env";
+  const key = await secretResolver(
+    { provider: "openrouter", keyRef, secretSource: source, env, signal },
+    { signal, timeoutMs },
+  );
+  if (typeof key !== "string" || !key.trim())
     throw new CoreError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
   let res;
   try {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 if (process.argv.includes("--version")) {
-  console.log("codex-cli 0.153.4");
+  console.log("codex-cli 0.154.0-alpha.6.2");
   process.exit(0);
 }
 if (process.argv.includes("status")) {

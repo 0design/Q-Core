@@ -301,6 +301,57 @@ test("CLI malformed caller has one envelope and exit 64", async () => {
   assert.equal(JSON.parse(p.stdout).error.code, "INVALID_REQUEST");
   assert.equal(p.stderr, "");
 });
+test("CLI malformed content has one bounded envelope and no input leak", async () => {
+  const secret = "secret-content-fragment";
+  const dir = mkdtempSync(join(tmpdir(), "qloops-content-cli-"));
+  const file = join(dir, "request.json");
+  writeFileSync(file, `{\"source\": \"${secret}`);
+  const p = await subprocess(
+    process.execPath,
+    [resolve("bin/qloops.mjs"), "content", file],
+  );
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(p.code, 64);
+  const result = JSON.parse(p.stdout);
+  assert.equal(result.protocolVersion, "qf.content/v1");
+  assert.equal(result.error.code, "INVALID_REQUEST");
+  assert.equal(result.error.message, "Invalid request JSON or file");
+  assert.equal(p.stderr, "");
+  assert.equal(p.stdout.includes(secret), false);
+});
+test("contract rejects verifier executable overlap and provider secret fields", (t) => {
+  const r = setup(t);
+  assert.throws(
+    () => validateRequest({
+      ...r,
+      allowedPaths: ["value.txt", "verify.mjs"],
+      verifier: { ...r.verifier, command: join(r.workspace, "verify.mjs") },
+      allowedTools: [...r.allowedTools, join(r.workspace, "verify.mjs")],
+    }),
+    (e) => e.code === "SCOPE_DENIED",
+  );
+  assert.throws(
+    () => validateRequest({ ...r, provider: { ...r.provider, apiKey: "secret-do-not-store" } }),
+    (e) => e.code === "INVALID_REQUEST",
+  );
+});
+test("verifier command is bound into resume evidence", async (t) => {
+  const r = setup(t);
+  const command = join(r.workspace, "verify.mjs");
+  writeFileSync(command, "process.exit(0);\n");
+  r.verifier = { command, args: [] };
+  r.allowedTools = [...r.allowedTools, command];
+  const first = await runAgent(r, { generate });
+  assert.equal(first.status, "needs_human");
+  writeFileSync(command, "process.exit(1);\n");
+  const resumed = await runAgent({
+    ...r,
+    resumeRunId: first.runId,
+    approval: { hash: first.nextAction.hash, decision: "approve" },
+  }, { generate });
+  assert.equal(resumed.status, "needs_human");
+  assert.equal(resumed.error.code, "WORKSPACE_CHANGED");
+});
 test("contract rejects unpinned loop and unsafe request", (t) => {
   const r = setup(t);
   for (const patch of [

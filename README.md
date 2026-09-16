@@ -1,12 +1,12 @@
 # qloops
 
 Local, dependency-free loop runtime for Node.js >=20.3. The local delivery
-candidate is `0.2.0-core.14`; it is not an npm release or production acceptance.
+candidate is `0.2.0-core.15`; it is not an npm release or production acceptance.
 
 ## Install a reviewed local package
 
 ```sh
-npm install /absolute/path/qloops-0.2.0-core.14.tgz
+npm install /absolute/path/qloops-0.2.0-core.15.tgz
 npx qloops validate ./loop.yaml
 npx qloops run ./loop.yaml
 ```
@@ -70,7 +70,8 @@ Site-funded reservation/settlement remains the site's responsibility.
 
 ## Use your existing Codex login
 
-Codex CLI **0.153.4** is supported via a new standalone `codex exec` session.
+Codex CLI **0.153.4** and **0.154.0-alpha.6.2** are reviewed via a new
+standalone `codex exec` session.
 Set this provider in an agent or content request (choose your real absolute CLI path):
 
 ```json

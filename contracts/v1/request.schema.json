@@ -103,8 +103,15 @@
             "codex",
             "claude"
           ]
+        },
+        "secretSource": {
+          "enum": [
+            "env",
+            "keychain"
+          ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "deadlineMs": {
       "type": "integer",

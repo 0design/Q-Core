@@ -17,10 +17,20 @@
 import { requireStr, num, oneOf, str } from "./config.mjs";
 import { resolveTemplate, resolveTemplateDeep, missingEnvRefs } from "./template.mjs";
 import { fetchWithRetry } from "./http.mjs";
+import { CoreError } from "./contracts.mjs";
 export { fetchWithRetry } from "./http.mjs";
 
 /** Cap on a response body we hold in memory and write into state. */
 const BODY_CAP = 64_000;
+
+function boundedTimeoutSec(config, label) {
+  const raw = str(config, "timeoutSec");
+  if (raw === undefined) return 30_000;
+  const seconds = Number(raw);
+  if (!Number.isInteger(seconds) || seconds < 1 || seconds > 300)
+    throw new Error(`"${label}": timeoutSec must be an integer from 1 to 300.`);
+  return seconds * 1000;
+}
 
 import { openRouter } from "./providers/openrouter.mjs";
 
@@ -88,13 +98,13 @@ export async function runFetch(step, ctx) {
     throw new Error(`"${label}": url must start with http(s):// — got "${url}".`);
   }
   const format = oneOf(step.config, "format", ["text", "json", "rss"]) ?? "text";
-  const timeoutMs = (num(step.config, "timeoutSec") ?? 30) * 1000;
+  const timeoutMs = boundedTimeoutSec(step.config, label);
 
   let res;
   try {
     res = await fetchWithRetry(
       url,
-      { headers: { "User-Agent": "q-factory-loop-engine/1" } },
+      { headers: { "User-Agent": "q-factory-loop-engine/1" }, signal: ctx.signal },
       { timeoutMs, retries: 2 },
     );
   } catch (e) {
@@ -130,8 +140,13 @@ export async function runFetch(step, ctx) {
 /* ──────────────────────────── llm-call ──────────────────────────── */
 
 /** One model call. No canned fallback — see runLlmCall on why a mock is poison here. */
-export async function chatOnce({ apiKey, model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal }) {
-  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef:'OPENROUTER_API_KEY', payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal }, {env:{OPENROUTER_API_KEY:apiKey}});
+export async function chatOnce({ apiKey, keyRef = "OPENROUTER_API_KEY", secretSource = "env", model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal }) {
+  // `apiKey` is the legacy/default alias supplied by the CLI. A step-level
+  // alias must resolve its own environment entry; silently reusing the default
+  // key would charge/send as the wrong credential. Keychain resolution ignores
+  // this env value and remains explicitly selected by secretSource.
+  const selectedKey = keyRef === "OPENROUTER_API_KEY" ? apiKey : process.env[keyRef];
+  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal }, {env:{[keyRef]:selectedKey}});
   return { ...result, usage:{...result.usage, model:result.provider.model ?? model} };
 }
 
@@ -152,11 +167,15 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
   const instructions = resolveTemplate(requireStr(step.config, "instructions", label), tctx(ctx));
   const role = str(step.config, "role");
 
-  if (!ctx.apiKey) {
+  const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
+  const secretSource = str(step.config, "secretSource") ?? "env";
+  const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
+  if (secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
     /* NOT a mock. This output feeds the next step and possibly an outside API,
        where no "this was invented" label survives. So: failure. */
-    throw new Error(
-      `"${label}": no OpenRouter key (set OPENROUTER_API_KEY). ` +
+    throw new CoreError(
+      "AUTH_REQUIRED",
+      `"${label}": no OpenRouter key (set ${keyRef}). ` +
         `The engine will not substitute a mock inside a loop: invented text would travel down the chain as real.`,
     );
   }
@@ -174,11 +193,14 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
 
   const { content, usage } = await chatOnce({
     apiKey: ctx.apiKey,
+    keyRef,
+    secretSource,
     model,
     system,
     user,
     maxTokens,
     temperature: num(step.config, "temperature") ?? 0.3,
+    signal: ctx.signal,
   });
 
   const wantJson = (oneOf(step.config, "format", ["text", "json"]) ?? "text") === "json";
@@ -224,22 +246,33 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
         `Either set the criterion, or switch reviewer to human.`,
     );
   }
-  if (!ctx.apiKey) {
-    return {
-      output: {
-        gate: { reviewer: "agent", anchor, rubric },
-        verdict: null,
-        escalated: true,
-        reason: "No OpenRouter key — the machine check did not run. The gate was handed to a human, not waved through.",
-      },
-      waitingHuman: true,
-    };
+  const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
+  const secretSource = str(step.config, "secretSource") ?? "env";
+  const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
+  if (secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
+    if (keyRef === "OPENROUTER_API_KEY") {
+      return {
+        output: {
+          gate: { reviewer: "agent", anchor, rubric },
+          verdict: null,
+          escalated: true,
+          reason: "No OpenRouter key — the machine check did not run. The gate was handed to a human, not waved through.",
+        },
+        waitingHuman: true,
+      };
+    }
+    throw new CoreError(
+      "AUTH_REQUIRED",
+      `"${label}": no OpenRouter key (set ${keyRef}). The machine check did not run; the gate was not waved through.`,
+    );
   }
 
   if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override.");
 
   const { content, usage } = await chatOnce({
     apiKey: ctx.apiKey,
+    keyRef,
+    secretSource,
     model,
     system:
       "You are a strict validation gate in an autonomous factory. Judge the CANDIDATE against the RUBRIC. " +
@@ -248,6 +281,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     user: JSON.stringify({ rubric, candidate: lastOutput(ctx) }, null, 2).slice(0, 60_000),
     maxTokens: Math.min(maxTokens, 300),
     temperature: 0,
+    signal: ctx.signal,
   });
 
   const verdict = parseJsonObject(content);
@@ -345,10 +379,10 @@ export async function runApiRequest(step, ctx) {
   let status = 0;
   let responseText = "";
   try {
-    const init = { method, headers };
+    const init = { method, headers, signal: ctx.signal };
     if (method !== "GET") init.body = bodyString;
     const res = await fetchWithRetry(url, init, {
-      timeoutMs: (num(step.config, "timeoutSec") ?? 30) * 1000,
+      timeoutMs: boundedTimeoutSec(step.config, label),
       retries: 2,
     });
     status = res.status;

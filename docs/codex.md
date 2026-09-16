@@ -6,7 +6,8 @@ ChatGPT login. It does not re-enter the parent agent's conversation.
 
 ## Run it
 
-1. Use an absolute path to Codex CLI **0.153.4**. Verify `--version` and
+1. Use an absolute path to a reviewed Codex CLI, **0.153.4** or
+   **0.154.0-alpha.6.2**. Verify `--version` and
    `login status` using that exact executable. ChatGPT login is required.
    On the tested Mac this is `/Applications/ChatGPT.app/Contents/Resources/codex`.
    `/usr/local/bin/codex` is a legacy 2025 CLI and is intentionally rejected.

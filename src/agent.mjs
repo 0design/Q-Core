@@ -1,7 +1,7 @@
 import { specification, questions, recordSpec } from "./specification.mjs";
 import { randomUUID } from "node:crypto";
-import { readFileSync, existsSync, lstatSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync, existsSync, lstatSync, statSync } from "node:fs";
+import { join, resolve, relative } from "node:path";
 import {
   validateRequest,
   hash,
@@ -32,6 +32,10 @@ const humanCodes = new Set([
   "UNSUPPORTED_CLI",
   "PERMISSION_DENIED",
   "AUTH_REQUIRED",
+  "SECRET_MISSING",
+  "SECRET_STORE_DENIED",
+  "SECRET_STORE_UNSUPPORTED",
+  "SECRET_INTERACTION_REQUIRED",
   "CLI_ENVIRONMENT_DENIED",
   "MISSING_EXECUTABLE",
   "MODEL_UNAVAILABLE",
@@ -63,6 +67,18 @@ function parseObject(text) {
 }
 function verifierSources(request) {
   const sources = {};
+  const workspace = resolve(request.workspace);
+  const command = resolve(request.workspace, request.verifier.command);
+  const insideWorkspace = relative(workspace, command) && !relative(workspace, command).startsWith(".." + "/");
+  insist(existsSync(command), "Verifier executable is missing", "MISSING_CHECKER");
+  const commandStat = insideWorkspace ? lstatSync(command) : statSync(command);
+  insist(commandStat.isFile() && (!insideWorkspace || !commandStat.isSymbolicLink()), "Verifier executable must be a regular file", "SCOPE_DENIED");
+  // Hash small scripts and launchers, while avoiding a costly copy/hash of a
+  // system runtime binary (the executable path is still pinned in the request).
+  if (commandStat.size <= 2_000_000) sources[command] = hash(readFileSync(command));
+  if (insideWorkspace) {
+    insist(commandStat.size <= 2_000_000, "Verifier source exceeds limit");
+  }
   for (const arg of request.verifier.args) {
     const path = resolve(request.workspace, arg);
     if (!arg.startsWith("-") && existsSync(path) && lstatSync(path).isFile()) {
