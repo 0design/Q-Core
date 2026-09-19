@@ -41,7 +41,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -130,7 +130,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -216,7 +216,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -310,7 +310,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -400,7 +400,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -488,7 +488,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -571,7 +571,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -663,7 +663,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -751,7 +751,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -838,7 +838,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -914,7 +914,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -972,7 +972,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -1061,7 +1061,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -1190,7 +1190,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1298,7 +1298,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1368,7 +1368,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1406,7 +1406,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1445,7 +1445,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1484,7 +1484,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -1532,7 +1532,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1571,7 +1571,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1610,7 +1610,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1649,7 +1649,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1679,7 +1679,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1709,7 +1709,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1738,7 +1738,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1777,7 +1777,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1816,7 +1816,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1869,7 +1869,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1912,7 +1912,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1955,7 +1955,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1990,7 +1990,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -2024,7 +2024,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.16",
+        "version": "0.2.0-core.17",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -2048,17 +2048,17 @@
   "releaseVersion": "2026.09.19-registry.1-candidate",
   "core": {
     "package": "qloops",
-    "version": "0.2.0-core.16",
+    "version": "0.2.0-core.17",
     "manifest": "qloops.loop/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 10,
-    "artifact": "vendor/qloops-0.2.0-core.16.tgz",
-    "artifactSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593",
-    "integrity": "sha512-Ip5bnz/R2rNncTpiPZlpnvWIBfF/5QJ7rXg5uYwMWWjZpIKQ3DncH0f/9kUokp63lowHuTqqjmz0V9nWuF/RvA==",
+    "contractRevision": 11,
+    "artifact": "vendor/qloops-0.2.0-core.17.tgz",
+    "artifactSha256": "a4e2ac3a1b40a51437c19c44192643fd7309bcd7d28c567e95d4eed2baa11a90",
+    "integrity": "sha512-dTG4cchiEfxuzV4EWPPRIr1ze3hiXWL8iny/0lp93yxyx2Dcys8jDGETsXCAB7CpbvBWrxNasTYlDUjiPYvfFw==",
     "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
     "requestSchemaSha256": "90d30cb77c9f348cbcb0e8e20d98ba3219c6aa3466fda76d2b7a1178cc566f87",
     "status": "consumer-integration-candidate",
-    "source": "Core.16 exact package; integration candidate, public product acceptance pending",
+    "source": "Core.17 exact package with local host adapters; integration candidate, public product acceptance pending",
     "pending": [
       "Public immutable snapshot and consumer acceptance",
       "Public Registry SDD/Digest and determined acceptance",
@@ -2489,7 +2489,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.16",
+          "version": "0.2.0-core.17",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2578,7 +2578,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.16",
+          "version": "0.2.0-core.17",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2680,7 +2680,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.16",
+          "version": "0.2.0-core.17",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2750,7 +2750,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.16",
+          "version": "0.2.0-core.17",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2842,5 +2842,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "58586a6c800f90a50d885b20fc7f32fdc47913e370a848f2405bde1f97f895c3"
+  "releaseSha256": "dc49798f8d324e2c7059383f2154db2c792ebe6bc79b58e54b6bc8938cb89617"
 }
