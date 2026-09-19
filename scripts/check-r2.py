@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import time
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 import uuid
 
@@ -69,12 +69,21 @@ def check():
                     if attempt == 5:
                         raise RuntimeError('Public Registry did not serve the probe') from None
                     time.sleep(5)
+            for origin in ('https://qfactory.io', 'https://www.qfactory.io'):
+                for method in ('GET', 'HEAD'):
+                    request = Request(public + '/' + key, headers={'Origin': origin}, method=method)
+                    with urlopen(request, timeout=20) as response:
+                        if response.headers.get('Access-Control-Allow-Origin') != origin:
+                            raise RuntimeError('CORS origin mismatch: ' + origin)
+                        if method == 'GET' and response.read(len(payload) + 1) != payload:
+                            raise RuntimeError('CORS response checksum mismatch')
+                print('CORS GET/HEAD passed: ' + origin, flush=True)
         finally:
             s3('delete-object', '--bucket', bucket, '--key', key)
             print('R2 probe cleanup: passed', flush=True)
     print(json.dumps({'bucket': bucket, 'publicOrigin': public,
                       'write': 'passed', 'privateRead': 'passed',
-                      'publicRead': 'passed', 'cleanup': 'passed',
+                      'publicRead': 'passed', 'cors': 'passed', 'cleanup': 'passed',
                       'sha256': hashlib.sha256(payload).hexdigest()}))
 
 
