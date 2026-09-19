@@ -417,7 +417,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.17",
+        "version": "0.2.0-core.18",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -506,7 +506,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.17",
+        "version": "0.2.0-core.18",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -608,7 +608,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.17",
+        "version": "0.2.0-core.18",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -678,7 +678,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.17",
+        "version": "0.2.0-core.18",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
