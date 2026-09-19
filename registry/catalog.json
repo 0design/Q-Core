@@ -1980,7 +1980,7 @@
       "id": "digest-huyiks",
       "loopId": "digest",
       "name": "ХУЇКС: sourced digest",
-      "description": "Four source pages to an approved Ukrainian digest with visible source checks. Local installed candidate evidence; public release acceptance pending.",
+      "description": "Four source pages to an approved Ukrainian digest with visible source checks. Public immutable candidate accepted; current promotion pending.",
       "proof": "demos/digest-huyiks.txt",
       "resultUrl": null,
       "live": false,
@@ -2008,13 +2008,13 @@
         "status": "pending",
         "scope": "Real pinned Registry scenario and output required"
       },
-      "sha256": "686620e2e2e62e0be970aaf3ffd73b9747b43918bfedd1bac9c6f019aa0b0b62"
+      "sha256": "cf635d4a88312f4ebcc1f8f68a9961ddb3997503c961e144653bc0094c3df932"
     },
     {
       "id": "sdd-verified-change",
       "loopId": "sdd-pipeline",
       "name": "SDD: verified change",
-      "description": "A scoped change reaches an independent verifier, with bounded repair. Local installed candidate evidence; public release acceptance pending.",
+      "description": "A scoped change reaches an independent verifier, with bounded repair. Public immutable candidate accepted; current promotion pending.",
       "proof": "demos/sdd-verified-change.txt",
       "resultUrl": null,
       "live": false,
@@ -2042,10 +2042,10 @@
         "status": "pending",
         "scope": "Real pinned Registry scenario and output required"
       },
-      "sha256": "be341516ccb856a0dae949e3467f7ed05336459163941fab325fee5a672287ce"
+      "sha256": "3f651bf25f2ef517d0337105ea390c9f82bad7afedc3a15f49e93eb3d103eefe"
     }
   ],
-  "releaseVersion": "2026.09.19-registry.1-candidate",
+  "releaseVersion": "2026.09.20-registry.2-candidate",
   "core": {
     "package": "qloops",
     "version": "0.2.0-core.18",
@@ -2842,5 +2842,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "d8969585b17aba1c1d3299ac2cc9a2bae73730a7f7fc82857652f70009665c70"
+  "releaseSha256": "e6ba0c16d7023afa7864038a8aeff269c304e77e61a014e89aa2ef6e06f512f7"
 }
