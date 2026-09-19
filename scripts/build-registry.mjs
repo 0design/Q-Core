@@ -8,6 +8,12 @@ import { componentReadiness } from './registry-readiness.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../registry');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const sri = bytes => `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
+export function assertCoreArtifact(catalog, body) {
+  if (catalog.core.artifact !== `vendor/qloops-${catalog.core.version}.tgz` ||
+      sha(body) !== catalog.core.artifactSha256 || sri(body) !== catalog.core.integrity)
+    throw Error('Core artifact does not match catalog pin');
+}
 export function buildRegistry(sourceRoot = root) {
   const catalog = JSON.parse(readFileSync(resolve(sourceRoot, 'catalog.source.json')));
   const assets = {};
@@ -62,8 +68,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const corePath = resolve(process.argv[coreIndex + 1]);
     if (!lstatSync(corePath).isFile() || lstatSync(corePath).isSymbolicLink()) throw Error('Unsafe Core artifact');
     const body = readFileSync(corePath);
-    if (catalog.core.artifact !== `vendor/qloops-${catalog.core.version}.tgz` || sha(body) !== catalog.core.artifactSha256)
-      throw Error('Core artifact does not match catalog pin');
+    assertCoreArtifact(catalog, body);
     files[catalog.core.artifact] = body;
   }
   if (process.argv.includes('--check')) {

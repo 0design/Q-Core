@@ -1,17 +1,20 @@
-# Core contract revision 10 (qf.agent/v1)
+# Core contract revision 12 (qf.agent/v1)
 
-Core.16 adds generic Registry SDD/Digest composition, pinned specification and
+Core.16 added generic Registry SDD/Digest composition, pinned specification and
 approval subjects, reusable determined verification with persisted bounded
-repair, source checks and durable receiver receipts. See SPEC-MANIFEST.md §11.
-These are candidate implementations; public Registry and owner acceptance are
-separate. The historical direct `qloops agent/content` APIs below do not count
-as acceptance of a Registry template.
+repair, source checks and durable receiver receipts. Core.17 added the local
+manual/schedule/authenticated-webhook host boundary. Core.18 adds pinned authored
+skill execution with explicit required criteria. See SPEC-MANIFEST.md §11 and
+[the skill contract](skill.md). These are candidate implementations; public
+Registry and owner acceptance are separate. The historical direct
+`qloops agent/content` APIs below do not count as acceptance of a Registry
+template.
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
 and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships
 these discoverability additions without changing revision5 runtime semantics.
 
-Core.15 uses `qloops.loop/v1` for YAML manifests. Older manifest namespaces are rejected. Revision 9 adds bounded control expansion and explicit provider secret-source metadata; protocol namespaces remain unchanged. Migrate a copy of the manifest and revalidate it with the new package; do not resume old runs or rewrite historical evidence. Consumers pin the package tarball SHA256 and this directory.
+Core.18 uses `qloops.loop/v1` for YAML manifests. Older manifest namespaces are rejected. Revision 9 added bounded control expansion and explicit provider secret-source metadata; protocol namespaces remain unchanged. Migrate a copy of the manifest and revalidate it with the new package; do not resume old runs or rewrite historical evidence. Consumers pin the package tarball SHA256 and this directory.
 No sibling source imports. Contract fixtures are synthetic, not live acceptance.
 
 `qloops agent request.json` (or `-` for bounded stdin) emits exactly one JSON
@@ -54,16 +57,18 @@ Provider metadata uses `authMethod: chatgpt`, `permissionMode: read-only`,
 `acceptedTools: []`, `model: null` (CLI does not emit resolved identity).
 Direct usage includes `costKind: subscription-usage`, nullable cost, cached input
 and input/output tokens. Agent aggregate usage retains the existing shape.
-Existing revision 1 requests remain valid; consumers must accept the new provider
-and repin package 0.2.0-core.2 to use it. Other protocols and exit codes unchanged.
+Existing revision 1 requests remain valid. Consumers that adopted the provider
+at core.2 must repin the exact current package bytes before using the newer
+contracts. Other protocols and exit codes are unchanged.
 
 Revision 3 adds specification import, durable clarification and explicit revisions:
 see [specification](specification.md). Missing checker now requests human
 configuration; invalid checker remains failed/64. Unavailable Codex model requests
 explicit provider configuration. Existing approved scope cannot be silently changed.
-Candidate core.4 also documents the [determined callback contract](determined.md),
+Candidate core.4 also documented the [determined callback contract](determined.md),
 including operational failure and cancellation behavior. Repin and run consumer
-tests before adopting these changes; Site currently uses revision 2/core.2.
+tests before adopting these changes; an older Site pin does not establish
+compatibility with the current contract revision.
 
 Revision 4 strengthens [quality evidence](quality.md): upstream checksum and DS
 subject binding, immutable coverage, native rule applicability and severity, and

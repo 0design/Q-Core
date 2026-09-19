@@ -4,6 +4,7 @@ import {readFileSync, writeFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {resolve, join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createServer} from 'node:http';
+import {createHash} from 'node:crypto';
 import {hash} from '../src/contracts.mjs';
 import {subprocess, scopedEnvironment} from '../src/subprocess.mjs';
 
@@ -13,6 +14,7 @@ const catalog = JSON.parse(bytes);
 assert.match(catalog.core.artifact, /^vendor\/qloops-[a-zA-Z0-9.-]+\.tgz$/);
 const archive = join(exported, catalog.core.artifact);
 assert.equal(hash(readFileSync(archive)), catalog.core.artifactSha256);
+assert.equal(`sha512-${createHash('sha512').update(readFileSync(archive)).digest('base64')}`, catalog.core.integrity);
 const assets = new Map();
 for (const line of readFileSync(join(exported, 'SHA256SUMS'), 'utf8').trim().split('\n')) {
   const match = /^([a-f0-9]{64})  ([a-zA-Z0-9./_-]+)$/.exec(line);
