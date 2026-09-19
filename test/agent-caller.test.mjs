@@ -81,7 +81,9 @@ for (const [mode, code] of [
 ])
   test(`subprocess fixture ${mode} never success`, async (t) => {
     const r = setup(t);
-    r.deadlineMs = 150;
+    // Only the timeout fixture races the deadline. Other cases must reach the
+    // provider response even when the full suite starts many Node processes.
+    r.deadlineMs = mode === 'timeout' ? 150 : 2000;
     writeFileSync(join(r.workspace, "fixture-mode.txt"), mode);
     const p = await caller(r);
     assert.notEqual(p.code, 0);

@@ -54,6 +54,16 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const index = process.argv.indexOf('--export');
   const destination = index < 0 ? root : resolve(process.argv[index + 1]);
   const files = { 'catalog.json': JSON.stringify(catalog, null, 2) + '\n', ...assets, 'composition.json': JSON.stringify(catalog.composition, null, 2) + '\n', LICENSE: readFileSync(resolve(root, 'LICENSE')) };
+  const coreIndex = process.argv.indexOf('--core-artifact');
+  if (coreIndex >= 0) {
+    if (index < 0 || !process.argv[coreIndex + 1]) throw Error('Core artifact requires an export destination and input file');
+    const corePath = resolve(process.argv[coreIndex + 1]);
+    if (!lstatSync(corePath).isFile() || lstatSync(corePath).isSymbolicLink()) throw Error('Unsafe Core artifact');
+    const body = readFileSync(corePath);
+    if (catalog.core.artifact !== `vendor/qloops-${catalog.core.version}.tgz` || sha(body) !== catalog.core.artifactSha256)
+      throw Error('Core artifact does not match catalog pin');
+    files[catalog.core.artifact] = body;
+  }
   if (process.argv.includes('--check')) {
     if (readFileSync(resolve(root, 'catalog.json'), 'utf8') !== files['catalog.json']) throw Error('Generated catalog drift');
   } else {
