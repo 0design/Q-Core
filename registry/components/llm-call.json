@@ -1,0 +1,56 @@
+{
+  "id": "llm-call",
+  "name": "LLM call",
+  "kind": "step",
+  "description": "An isolated model request. SPEC-MANIFEST.md §5.2. The step's input is every prior successful output, as JSON, capped at 60 000 characters. Inside a fan-out lane, its own item comes first. No key means the step fails. There is no canned fallback. Isolated is the point — no memory of its own. agent-call is RESERVED.",
+  "input": {
+    "instructions": {
+      "type": "string",
+      "required": true,
+      "notes": "templated. SPEC-MANIFEST.md §5.2."
+    },
+    "format": {
+      "type": "string",
+      "required": false,
+      "notes": "text | json. Default text."
+    },
+    "maxTokens": {
+      "type": "number",
+      "required": false,
+      "notes": "Default 1200."
+    },
+    "temperature": {
+      "type": "number",
+      "required": false,
+      "notes": "Default 0.3."
+    },
+    "role": {
+      "type": "string",
+      "required": false,
+      "notes": "prepended as \"You are the ⟨role⟩ agent…\""
+    },
+    "model": {
+      "type": "string",
+      "required": false,
+      "notes": "overrides the loop's model."
+    }
+  },
+  "output": {
+    "text": {
+      "type": "string",
+      "notes": "format: text — {text, model}."
+    },
+    "model": {
+      "type": "string",
+      "notes": "The model that answered."
+    },
+    "json": {
+      "type": "object",
+      "notes": "When format: json, the output is the parsed object instead of {text, model}."
+    }
+  },
+  "needsEnv": [
+    "OPENROUTER_API_KEY"
+  ],
+  "usedBy": []
+}
