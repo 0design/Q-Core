@@ -1,0 +1,46 @@
+{
+  "id": "parse-web",
+  "name": "parse-web",
+  "kind": "step",
+  "contentType": "component",
+  "description": "Extract source-attributed main content from a fetched web page.",
+  "value": "Extract source-attributed main content from a fetched web page.",
+  "input": {
+    "source": {
+      "type": "reference",
+      "required": false,
+      "notes": "One successful fetched-text output; omitted means all prior fetched text outputs."
+    },
+    "maxChars": {
+      "type": "number",
+      "required": false,
+      "notes": "500..10000 readable characters per source; default 6000, truncation disclosed."
+    }
+  },
+  "output": {
+    "document": {
+      "type": "object",
+      "notes": "Title, main text, canonical URL and extraction diagnostics."
+    }
+  },
+  "needsEnv": [],
+  "implementation": {
+    "status": "implemented",
+    "source": "src/registry-data-steps.mjs",
+    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+  },
+  "acceptance": {
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/digest-huyiks.txt",
+        "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  },
+  "usedBy": []
+}

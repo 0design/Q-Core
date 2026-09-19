@@ -5,7 +5,11 @@
  *   qloop validate <manifest>          read it, check it, say what it would do
  *   qloop run <manifest>               one pass, for real
  *   qloop run <manifest> --dry-run     one pass with no side effects at all
- *   qloop status [<manifest>]          what the last runs did
+ *   qloops run <manifest> --caller-provider <provider.json> --json
+                                    start explicit CLI caller inference
+  qloops reply <manifest> <runId> <reply.json> --json
+                                    submit the exact pending job response
+  qloop status [<manifest>]          what the last runs did
  *   qloop approve <manifest> [runId]   continue a run parked at a human gate
  *
  * `qloop run` performs ONE PASS. It is not a scheduler and does not pretend to be
@@ -19,10 +23,10 @@
  */
 import { copyFileSync, existsSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadManifest, validateManifest, ManifestError } from "../src/manifest.mjs";
-import { createRun, driveRun, resumeRun, resolveKnobs } from "../src/run.mjs";
+import { createRun, driveRun, resumeRun, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
 import { RunStore } from "../src/state.mjs";
 import { flattenLoopSteps } from "../src/flatten.mjs";
 import { checkForUpdate, updateNotice } from "../src/update-check.mjs";
@@ -49,6 +53,10 @@ const USAGE = `qloop ${PKG.version} — run a QFactory loop from a YAML manifest
   qloop init <id> [dir]             copy one loop here, ready to edit
   qloop validate <manifest>         check the manifest and print the plan
   qloop run <manifest> [--dry-run]  execute one pass
+  qloops run <manifest> --caller-provider <provider.json> --json
+                                    start explicit CLI caller inference
+  qloops reply <manifest> <runId> <reply.json> --json
+                                    submit the exact pending job response
   qloop status [<manifest>]         show recent runs
   qloop approve <manifest> [runId]  continue a run held at a human gate
                                     (--reject to refuse it)
@@ -93,17 +101,15 @@ function shortPath(p) {
 }
 
 function fail(message, code = EXIT_FAILED) {
-  /* stderr тут короткий і вміщається в буфер, але вихід усе одно робимо через
-     exitCode + кидок: так потік керування зупиняється, а Node дописує потоки
-     сам. Кидок ловить верхній catch, який уже нічого не додає до коду. */
+  /* Set exitCode and throw to stop control flow while Node flushes streams. */
   process.stderr.write(`${message}\n`);
   process.exitCode = code;
   throw new ExitSignal();
 }
-/** Сигнал «зупинись, код виходу вже виставлено». Не помилка. */
+/** Control-flow signal: the exit code has already been set. */
 class ExitSignal extends Error {}
 
-const VALUED_FLAGS = new Set(["section"]);
+const VALUED_FLAGS = new Set(["section", "caller-provider", "approval-hash", "workspace-policy"]);
 
 function parseArgs(argv) {
   const flags = new Set();
@@ -141,6 +147,7 @@ function parseArgs(argv) {
 function describePlan(manifest) {
   const flat = flattenLoopSteps(manifest.steps);
   const knobs = resolveKnobs(manifest.settings);
+
   const lines = [];
   lines.push(`${c.bold(manifest.name)} ${c.dim(`(${manifest.id} v${manifest.version})`)}`);
   if (manifest.description) lines.push(`  ${manifest.description.trim().replace(/\n/g, "\n  ")}`);
@@ -180,7 +187,7 @@ async function cmdValidate(args, flags) {
     process.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
     return EXIT_OK;
   }
-  process.stdout.write(`✓ ${shortPath(file)} is a valid qf.loop/v1 manifest\n\n`);
+  process.stdout.write(`✓ ${shortPath(file)} is a valid qloops.loop/v1 manifest\n\n`);
   process.stdout.write(`${describePlan(manifest)}\n`);
   if (manifest.settings.sensitivity) {
     process.stdout.write(
@@ -211,11 +218,11 @@ function printStep(s, quiet) {
   }
 }
 
-async function cmdRun(args, flags) {
+async function cmdRun(args, flags, opts) {
   const file = args[0];
   if (!file) fail("qloop run <manifest> [--dry-run]", EXIT_USAGE);
   const dryRun = flags.has("dry-run");
-  const quiet = flags.has("quiet");
+  const quiet = flags.has("quiet") || flags.has("json");
   const manifest = loadManifest(file);
 
   if (!manifest.enabled) {
@@ -225,7 +232,24 @@ async function cmdRun(args, flags) {
 
   const store = new RunStore(file);
   const run = createRun(manifest, { trigger: dryRun ? "dry-run" : "manual" });
+  const abort = new AbortController();
+  const cancel = () => abort.abort();
+  process.on("SIGINT", cancel);
+  process.on("SIGTERM", cancel);
   const knobs = resolveKnobs(manifest.settings);
+  if (opts['caller-provider']) {
+    const provider = readBoundedJson(opts['caller-provider']);
+    const { validateCallerInput } = await import('../src/caller-inference.mjs');
+    if (provider.kind !== 'caller') fail('Expected a caller provider configuration');
+    if (Object.keys(provider).some(key => !['kind', 'agent', 'model', 'payerScope'].includes(key))) fail('Caller configuration accepts kind, agent, model and payerScope only; never include credentials');
+    validateCallerInput({ provider });
+    run.callerProvider = provider;
+  }
+  run.executionKnobs = knobs;
+  if (opts['workspace-policy']) {
+    const { validateWorkspacePolicy } = await import('../src/registry-workspace-steps.mjs');
+    run.workspacePolicy = validateWorkspacePolicy(readBoundedJson(opts['workspace-policy']));
+  }
 
   if (!quiet) {
     process.stdout.write(`${c.bold(manifest.name)} ${c.dim(`· run ${run.runId}`)}${dryRun ? c.dim(" · DRY RUN, no side effects") : ""}\n`);
@@ -236,8 +260,10 @@ async function cmdRun(args, flags) {
     result = await driveRun(run, {
       store,
       knobs,
+      callerProvider: run.callerProvider,
       dryRun,
       apiKey: process.env.OPENROUTER_API_KEY ?? null,
+      signal: abort.signal,
       onStep: (s) => printStep(s, quiet),
     });
   } catch (e) {
@@ -248,6 +274,8 @@ async function cmdRun(args, flags) {
     run.finishedAt = new Date().toISOString();
     store.save(run);
     store.saveLastRun(run);
+    process.off("SIGINT", cancel);
+    process.off("SIGTERM", cancel);
     fail(`✗ ${run.summary}`);
   }
 
@@ -259,12 +287,44 @@ async function cmdRun(args, flags) {
     process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
     if (result.costUsd) process.stdout.write(`  cost $${Number(result.costUsd).toFixed(4)} · ${result.tokensIn}+${result.tokensOut} tokens\n`);
     if (!dryRun) process.stdout.write(c.dim(`  state ${shortPath(join(store.dir, "runs", `${result.runId}.json`))}\n`));
+    if (result.status === 'waiting_inference') process.stdout.write(`\n  Continue with: qloops reply ${file} ${result.runId} <reply.json>\n`);
     if (result.status === "waiting_human") {
       process.stdout.write(`\n  Continue with:  qloop approve ${file} ${result.runId}\n`);
     }
   }
 
-  return result.status === "success" ? EXIT_OK : result.status === "waiting_human" ? EXIT_WAITING : EXIT_FAILED;
+  process.off("SIGINT", cancel);
+  process.off("SIGTERM", cancel);
+  return result.status === "success" ? EXIT_OK : result.status === "cancelled" ? 130 : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
+}
+
+/** Reply files contain bounded inference output, never credentials. */
+function readBoundedJson(file) {
+  if (statSync(file).size > 128000) fail('JSON input exceeds 128000 bytes');
+  return JSON.parse(readFileSync(file, 'utf8'));
+}
+async function cmdReply(args) {
+  const [file, runId, replyFile] = args;
+  if (!file || !runId || !replyFile) fail('qloops reply <manifest> <runId> <reply.json>', EXIT_USAGE);
+  const store = new RunStore(file);
+  const run = store.load(runId);
+  if (!run || run.status !== 'waiting_inference' || !run.pendingInference) fail('Run is not waiting for CLI inference');
+  if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
+  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
+  store.saveLastRun(result);
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
+}
+
+async function cmdPaused(args, action) {
+  const [file, runId] = args;
+  if (!file || !runId) fail(`qloops ${action} <manifest> <runId>`, EXIT_USAGE);
+  const store = new RunStore(file), run = store.load(runId);
+  if (!run) fail('Unknown run');
+  const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
+  const result = action === 'cancel' ? cancelWaitingRun(run, opts) : await resumeCancelledRun(run, opts);
+  store.saveLastRun(result); process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  return result.status === 'cancelled' ? 130 : result.status === 'success' ? 0 : 2;
 }
 
 /* ── status ─────────────────────────────────────────────────────────────── */
@@ -278,7 +338,7 @@ async function cmdStatus(args, flags) {
 
   if (flags.has("json")) {
     process.stdout.write(`${JSON.stringify({ last, runs }, null, 2)}\n`);
-    return last?.status === "success" || last == null ? EXIT_OK : EXIT_FAILED;
+    return last?.status === "success" || last == null ? EXIT_OK : last?.status === "cancelled" ? 130 : EXIT_FAILED;
   }
 
   if (!runs.length) {
@@ -287,7 +347,7 @@ async function cmdStatus(args, flags) {
   }
   process.stdout.write(`${c.bold("last runs")} ${c.dim(shortPath(store.dir))}\n\n`);
   for (const r of runs) {
-    const mark = { success: "✓", failed: "✗", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
+    const mark = { success: "✓", failed: "✗", cancelled: "■", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
     const when = String(r.startedAt).replace("T", " ").slice(0, 19);
     process.stdout.write(`  ${mark} ${when}  ${r.status.padEnd(14)} ${r.summary ?? ""}\n`);
     if (r.status === "waiting_human") process.stdout.write(c.dim(`      qloop approve ${file} ${r.runId}\n`));
@@ -295,7 +355,7 @@ async function cmdStatus(args, flags) {
   if (last?.status === "failed") {
     process.stdout.write(`\n  ${c.bold("last run FAILED")}: ${last.reason ?? last.summary}\n`);
   }
-  return last?.status === "failed" ? EXIT_FAILED : EXIT_OK;
+  return last?.status === "cancelled" ? 130 : last?.status === "failed" ? EXIT_FAILED : EXIT_OK;
 }
 
 function findManifestNearby() {
@@ -309,7 +369,7 @@ function findManifestNearby() {
 
 /* ── approve ────────────────────────────────────────────────────────────── */
 
-async function cmdApprove(args, flags) {
+async function cmdApprove(args, flags, opts) {
   const file = args[0];
   if (!file) fail("qloop approve <manifest> [runId] [--reject]", EXIT_USAGE);
   const store = new RunStore(file);
@@ -322,14 +382,17 @@ async function cmdApprove(args, flags) {
   const decision = flags.has("reject") ? "reject" : "approve";
   const result = await resumeRun(run, {
     decision,
+    approvalHash: opts['approval-hash'],
     store,
-    knobs: resolveKnobs(manifest.settings),
+    knobs: run.executionKnobs ?? resolveKnobs(manifest.settings),
+    callerProvider: run.callerProvider,
     apiKey: process.env.OPENROUTER_API_KEY ?? null,
-    onStep: (s) => printStep(s, flags.has("quiet")),
+    onStep: (s) => printStep(s, flags.has("quiet") || flags.has("json")),
   });
   store.saveLastRun(result);
-  process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
-  return result.status === "success" ? EXIT_OK : result.status === "waiting_human" ? EXIT_WAITING : EXIT_FAILED;
+  if (flags.has('json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  else process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
+  return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
 /* ── catalog · init ─────────────────────────────────────────────────────── */
@@ -453,7 +516,7 @@ async function cmdInit(args, flags) {
      person already edited — the manifest IS their work, not scaffolding. */
   if (existsSync(dest)) fail(`${shortPath(dest)} already exists — not overwriting it.`);
   if (remote) writeFileSync(dest, remote.text, "utf8");
-  else copyFileSync(join(HERE, "..", entry.file), dest);
+  else copyFileSync(join(LOOPS_DIR, basename(entry.file)), dest);
 
   process.stdout.write(`${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);
   if (remote) {
@@ -562,33 +625,21 @@ const commands = {
   init: cmdInit,
   validate: cmdValidate,
   run: cmdRun,
+  reply: cmdReply,
+  cancel: args => cmdPaused(args, 'cancel'),
+  resume: args => cmdPaused(args, 'resume'),
   status: cmdStatus,
   approve: cmdApprove,
   doctor: cmdDoctor,
 };
 
-/**
- * ВСЕ ДИСПЕТЧЕРУВАННЯ — В ОДНІЙ ФУНКЦІЇ, І ЦЕ НЕ СТИЛЬ.
- *
- * Раніше гілки `--version` і довідки стояли на верхньому рівні модуля, де немає
- * `return`. Вони друкували своє й **не зупинялись**: далі йшов пошук команди,
- * `commands[undefined]` давав `undefined`, і `fail()` кидав ExitSignal у точці,
- * яку не накривав жоден `try` — той стояв нижче. Тобто `qloop --version`
- * друкував версію, потім довідку, потім «unknown command "undefined"», потім
- * знову довідку, потім падав стектрейсом Node і виходив з 1.
- *
- * Спіймано смоуком щойно опублікованого пакета, не читанням коду: у репозиторії
- * ця гілка виглядала виправленою, бо попередній фікс додав перевірку ПЕРЕД
- * гілкою довідки — і не додав виходу з неї.
- */
+/** Keep dispatch inside main so help/version return before command lookup. */
 async function main() {
   if (flags.has("version")) {
     process.stdout.write(`${PKG.version}\n`);
     return EXIT_OK;
   }
-  /* Попросили довідку — це не помилка виклику: 0. Запустили без нічого — це
-     помилка виклику: 64. Раніше обидва випадки давали 64, бо гілка дивилась на
-     наявність команди, а не на те, ЩО просили. */
+  /* Explicit help succeeds; a missing command is a usage error. */
   if (!command || flags.has("help") || command === "help") {
     process.stdout.write(USAGE);
     return flags.has("help") || command === "help" ? EXIT_OK : EXIT_USAGE;
@@ -607,22 +658,12 @@ async function main() {
   return code;
 }
 
-/**
- * ЧОМУ `process.exitCode`, А НЕ `process.exit()`.
- *
- * Запис у ПАЙП асинхронний. `process.exit()` одразу після `write()` рве процес
- * до того, як буфер злився, і все понад ~8 КБ зникає. Спіймано матрицею
- * прогонів: `qloop run --json` віддавав рівно 8188 байт обрізаного JSON на
- * будь-якому fan-out лупі — тобто `qloop run --json | jq` мовчки ламався, а в
- * терміналі (де stdout — TTY, а не пайп) усе виглядало правильно.
- *
- * `exitCode` лишає Node завершитись самому, коли потік справді злився.
- */
+/** Set exitCode and let Node flush pipe output; process.exit() can truncate JSON. */
 try {
   process.exitCode = await main();
 } catch (e) {
   if (e instanceof ExitSignal) {
-    /* fail() уже все сказав і виставив код. */
+    /* fail() has already reported the error and set the exit code. */
   } else if (e instanceof ManifestError) {
     process.stderr.write(`✗ ${e.message}\n`);
     process.exitCode = EXIT_FAILED;

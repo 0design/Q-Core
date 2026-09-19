@@ -1,0 +1,46 @@
+{
+  "id": "specification",
+  "name": "Versioned specification",
+  "kind": "step",
+  "contentType": "component",
+  "description": "Persist scoped specification and plan revisions before approval.",
+  "value": "Persist scoped specification and plan revisions before approval.",
+  "input": {
+    "source": {
+      "type": "reference",
+      "required": true,
+      "notes": "Reference to caller summary/criteria/plan."
+    },
+    "workspace": {
+      "type": "reference",
+      "required": true,
+      "notes": "Reference to workspace-read output; optional imported policy.specification takes precedence."
+    }
+  },
+  "output": {
+    "result": {
+      "type": "object",
+      "notes": "Persist scoped specification and plan revisions before approval."
+    }
+  },
+  "needsEnv": [],
+  "usedBy": [],
+  "implementation": {
+    "status": "implemented",
+    "source": "src/registry-workspace-steps.mjs",
+    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+  },
+  "acceptance": {
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/sdd-verified-change.txt",
+        "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  }
+}

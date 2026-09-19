@@ -1,0 +1,1 @@
+Explorative modeling: Train on the best of K guesses is a blog post that would be of interest to data scientists and machine learning practitioners who are interested in exploring novel model training approaches.

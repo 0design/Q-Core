@@ -1,0 +1,37 @@
+{
+  "time": "2026-09-19T18:09:29.669Z",
+  "kind": "clean-installed local host candidate; actual timer and HTTP; not production or cloud acceptance",
+  "coreVersion": "0.2.0-core.17",
+  "unreleasedAdditionalChanges": true,
+  "archiveSha256": "8fab4a05812ec8c431635ca5e63f3b30930c7a91018b74367094175f21bd7abe",
+  "manual": {
+    "phase": "completed",
+    "runId": "1f4e82b0-aa76-45f9-b8ba-4c299eae7246",
+    "kind": "manual",
+    "eventId": "proof17c-1",
+    "status": "success"
+  },
+  "schedule": {
+    "phase": "completed",
+    "runId": "6fe0aad3-1b15-4236-8445-6db4d77f2824",
+    "kind": "schedule",
+    "eventId": "2026-09-19-18:09",
+    "status": "success"
+  },
+  "webhook": {
+    "phase": "completed",
+    "runId": "4c6e812e-0863-4db9-ae19-c7746ec4a999",
+    "kind": "webhook",
+    "eventId": "proof17c-3",
+    "status": "success"
+  },
+  "replay": {
+    "phase": "completed",
+    "runId": "4c6e812e-0863-4db9-ae19-c7746ec4a999",
+    "kind": "webhook",
+    "eventId": "proof17c-3",
+    "status": "success",
+    "duplicate": true
+  },
+  "actualSourceRequests": 3
+}

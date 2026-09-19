@@ -1,4 +1,4 @@
-# SPEC-MANIFEST — `qf.loop/v1`
+# SPEC-MANIFEST — `qloops.loop/v1`
 
 The file format a loop is written in, and exactly what the runner does with each
 field.
@@ -31,7 +31,7 @@ than one document per file, tab indentation, duplicate keys.
 ## 2. Top level
 
 ```yaml
-manifest: qf.loop/v1      # REQUIRED, verbatim
+manifest: qloops.loop/v1      # REQUIRED, verbatim
 id: content-feed          # REQUIRED — names the loop in state and logs
 name: "Morning digest"    # defaults to id
 version: 1.0.0            # free-form
@@ -88,8 +88,9 @@ settings:
 ### 4.1 Model (knob 2)
 
 Precedence, strongest first: a step's own `config.model` → `settings.model` →
-`OPENROUTER_MODEL` → `anthropic/claude-3-haiku`. `qloop validate` prints which one
-won.
+`OPENROUTER_MODEL`. No model is selected implicitly. A model-backed YAML step
+requires an explicit OpenRouter model; it does not use CLI caller inference.
+`qloop validate` reports the selected model or an unconfigured value.
 
 ### 4.2 Budget (knob 3)
 
@@ -249,6 +250,43 @@ See §3. Placing it in `steps:` is a validation error.
 
 ---
 
+### 5.7 Control flow — `if`, `switch`, `loop`, `each`
+
+Control nodes select or expand a bounded child tree. Their `config` remains
+scalar text, and child steps use the same `then` list as a fan-out lane.
+
+```yaml
+- id: choose
+  kind: if
+  config: {condition: "{{steps.classify.output.pass}}"}
+  then: [{id: publish, kind: api-request, config: {url: "https://example.test/ok"}}]
+  else: [{id: hold, kind: approval-gate, config: {reviewer: human}}]
+- id: route
+  kind: switch
+  config: {on: "{{steps.classify.output.route}}"}
+  cases:
+    news: [{id: news, kind: api-request, config: {url: "https://example.test/news"}}]
+  default: [{id: fallback, kind: approval-gate, config: {reviewer: human}}]
+- id: repeat
+  kind: loop
+  config: {maxIterations: 3}
+  then: [{id: check, kind: fetch, config: {url: "https://example.test/status"}}]
+- id: per-item
+  kind: each
+  config: {over: "{{steps.fetch.output.entries}}", maxItems: 20, maxConcurrency: 2}
+  then: [{id: send, kind: api-request, config: {url: "https://example.test/item"}}]
+```
+
+`if.condition`/`when` selects `then` or `else`; `switch.on`/`value` selects a
+string key in `cases` or `default`. `loop.maxIterations` is 1–50. `each.over`
+must resolve to an array, `maxItems` is 1–50 and `maxConcurrency` is 1–10.
+Expansion is capped to the sequence slot's 999 child rows; an overlarge branch
+fails before it can run. A run also has a fixed maximum of 10,000 expanded rows
+across all nested controls and fan-outs; the limit is checked before insertion
+and fails the run. `each` records the requested concurrency and currently
+executes its bounded rows in deterministic order; parallel execution remains a
+product scheduler concern.
+
 ## 6. Templates
 
 Resolved inside `url`, `body`, `headers`, `instructions` and `over`.
@@ -272,10 +310,13 @@ that goes into git — "share the loop" must not mean "share the bot token".
 
 - A failed step **stops the run**. `.qf/last-run.json` records the status, the
   reason and the failing step; the process exits non-zero.
-- **No retries.** Nothing in the format asks for one, and a retry the author did
-  not write would double outgoing requests.
-- **No idempotency key.** A re-run repeats the outgoing requests. Loops that
-  publish should be de-duplicated at the receiver.
+- **Fixed runtime retries, not manifest-configurable.** Fetch, model and API
+  requests retry transient network/timeout/429/5xx failures twice, with 1.5s/4s
+  backoff. Other 4xx fail immediately. Exhaustion remains a failure. Body parsing
+  failures are not retried. Explicit transport cancellation does not retry.
+- **No idempotency key.** A retry after an ambiguous response or a re-run can
+  repeat outgoing writes. Publishing requires receiver de-duplication; this
+  runtime does not promise exactly-once delivery.
 - **No `continue_on_error` / `optional`.** One unreachable source fails the run.
   This is a known cost, not an oversight.
 - A run parked at a gate is neither failed nor finished: it is held on disk and
@@ -321,10 +362,70 @@ ledger locally). The product enforces both.
 
 ## 10. Versioning
 
-`manifest: qf.loop/v1` is the contract. Within `v1`, fields may be **added**;
+`manifest: qloops.loop/v1` is the contract. Within `v1`, fields may be **added**;
 nothing that exists is repurposed or removed. A runner meeting a version it does
 not read says so by name instead of trying its luck.
 
 `RESERVED` fields — `agent-call`, `agent-gate mode: check` — are refused today
 precisely so that implementing them later cannot break a manifest that was
 written against this document.
+
+## 11. Registry composition additions (Core candidate)
+
+The Registry driver also executes `parse-web`, `deduplicate`, `verify-sources`,
+`workspace-read`, `specification`, `workspace-apply` and `verify-artifact`.
+These are generic components, not shortcuts to the direct SDD/content APIs.
+
+- `parse-web`: optional `source` references a successful text fetch; absent source
+  selects prior fetched text pages. `maxChars` is 500..10000 per page (default6000).
+  Static text extraction excludes scripts/navigation and reports truncation. It
+  does not execute JavaScript or assert that source statements are factual.
+- `deduplicate`: `source` references `{sources:[{url,text,...}]}`. Exact URL/text
+  duplicates are removed; `sourceHash` identifies the selected set.
+- `verify-sources`: `draft` references text or `{text}` and `sources` references
+  the selected sources. Requires every selected source URL, rejects unknown URLs
+  and enforces a 16000-character bound. Optional `language: uk` checks Ukrainian
+  markers, not linguistic quality. Facts need independent review.
+- `llm-call` with `provider: cli` may set `input` to one step-output reference to
+  bound its input instead of sending every prior raw output. Caller replies stay
+  bound to the exact pending job. No alternate provider fallback exists.
+- A human `approval-gate` with `bind: sha256` requires `qloops approve <manifest>
+  <runId> --approval-hash <hash>` (also for rejection). The displayed hash binds
+  the exact persisted subject; a mismatched/stale subject cannot be approved.
+- `api-request` may declare `receiptKey` resolving to a SHA-256 source identity.
+  Persistent receipt is claimed before sending; delivered repeats return the
+  receipt without a new request. Failure/interruption is uncertain and requires
+  reconciliation. This mode performs no automatic retry or missing-env file
+  fallback. The receiver destination must be explicitly configured.
+- Workspace components require an explicit local `--workspace-policy <json>`:
+  absolute `workspace`, `allowedPaths`, `intent`, immutable `verifier` command,
+  file `args`, `timeoutMs`, and `maxRepairAttempts` (0..5). Optional
+  `specification` imports bounded summary/criteria/plan but still needs approval.
+  Policy is persisted with the run; it cannot be supplied by generated output.
+- `workspace-read` pins files and independent verifier inputs. `specification`
+  takes `source` and `workspace` references and records a revision when spec or
+  policy changes. An ambiguous intent must be clarified before the caller replies;
+  a scope change starts a new specification revision, not a silent in-run edit.
+- `workspace-apply` takes `source` with `{files:[{path,content}]}` and `approval`
+  with the approved spec. It refuses changed source files, checker changes,
+  symlinks, out-of-scope paths and writable checker inputs. The verifier is a
+  trusted user-selected command, not an operating-system sandbox.
+- `verify-artifact` takes an applied artifact `source` and may set `repairFrom` to
+  its caller proposal step. Failed checks repeat only the declared local
+  proposal/apply/verify segment within the policy bound; missing/stale evidence
+  or changed checker stops. Limit exhaustion is `needs_human`, never success.
+  Repair evidence and revisions are retained. Interrupted applies require manual
+  reconciliation; they are never blindly repeated.
+
+These contracts describe the implementation candidate. Public release and real
+Registry acceptance require independent pinned-package evidence.
+- `determined` shares `source`, `specification` and `repairFrom` references. It
+  reuses the determined reducer's AND/freshness checks over approved criteria;
+  all criteria bind to the explicitly selected independent verifier suite. The
+  Registry driver persists pauses and bounded repair attempts around that reducer.
+- `qloops cancel <manifest> <runId>` cancels only a paused inference/approval run.
+  It invalidates the pending job. `qloops resume <manifest> <runId>` explicitly
+  resumes that paused cancellation with a new job, without repeating completed
+  steps. An interrupted active side effect cannot use this shortcut.
+- `fetch.maxBodyBytes` optionally raises the bounded response capture from 64000
+  to at most 2000000 bytes for static source pages; text output discloses truncation.

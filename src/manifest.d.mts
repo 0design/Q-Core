@@ -14,6 +14,9 @@ export interface LoopManifestStep {
   /** Always strings — the manifest loader normalises numbers and booleans. */
   config: Record<string, string>;
   then?: LoopManifestStep[];
+  else?: LoopManifestStep[];
+  cases?: Record<string, LoopManifestStep[]>;
+  default?: LoopManifestStep[];
 }
 
 export interface LoopManifestTrigger {

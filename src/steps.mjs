@@ -7,7 +7,7 @@
  *   api-request    → API-Request      — an outgoing request; A LOOP MAY END HERE
  *   fan-out        → handled by the driver, not here (it creates rows, not output)
  *
- * `schedule` is a TRIGGER, not a runner. `qf run` performs one pass; whether it
+ * `schedule` is a TRIGGER, not a runner. `qloops run` performs one pass; whether it
  * is time for that pass is decided by launchd/cron, which is the honest place
  * for it — see README §Scheduling.
  *
@@ -16,51 +16,24 @@
  */
 import { requireStr, num, oneOf, str } from "./config.mjs";
 import { resolveTemplate, resolveTemplateDeep, missingEnvRefs } from "./template.mjs";
+import { fetchWithRetry } from "./http.mjs";
+import { CoreError, hash, insist } from "./contracts.mjs";
+import { deliverOnce } from "./delivery-receipts.mjs";
+export { fetchWithRetry } from "./http.mjs";
 
 /** Cap on a response body we hold in memory and write into state. */
 const BODY_CAP = 64_000;
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const LLM_TIMEOUT_MS = 90_000;
-const RETRY_DELAYS_MS = [1_500, 4_000];
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+function boundedTimeoutSec(config, label) {
+  const raw = str(config, "timeoutSec");
+  if (raw === undefined) return 30_000;
+  const seconds = Number(raw);
+  if (!Number.isInteger(seconds) || seconds < 1 || seconds > 300)
+    throw new Error(`"${label}": timeoutSec must be an integer from 1 to 300.`);
+  return seconds * 1000;
 }
 
-function isRetryableNetwork(err) {
-  const name = err instanceof Error ? err.name : "";
-  const msg = err instanceof Error ? err.message : String(err);
-  return name === "TimeoutError" || name === "AbortError" || /fetch failed|ECONNRESET|ENOTFOUND|EAI_AGAIN|socket|network|unreachable/i.test(msg);
-}
-
-function isRetryableHttp(status) {
-  return status === 429 || status >= 500;
-}
-
-/**
- * fetch with timeout and a small retry on transient network / 429 / 5xx.
- * Permanent client errors (4xx except 429) fail immediately.
- */
-export async function fetchWithRetry(url, init = {}, { timeoutMs = 30_000, retries = 2, delaysMs = RETRY_DELAYS_MS } = {}) {
-  let lastErr;
-  const attempts = retries + 1;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
-      if (isRetryableHttp(res.status) && i < attempts - 1) {
-        await sleep(delaysMs[Math.min(i, delaysMs.length - 1)]);
-        continue;
-      }
-      return res;
-    } catch (e) {
-      lastErr = e;
-      if (!isRetryableNetwork(e) || i === attempts - 1) throw e;
-      await sleep(delaysMs[Math.min(i, delaysMs.length - 1)]);
-    }
-  }
-  throw lastErr;
-}
+import { openRouter } from "./providers/openrouter.mjs";
 
 /** Human label of a step for messages: `config.name`, else the kind. */
 export function stepLabel(step) {
@@ -126,20 +99,32 @@ export async function runFetch(step, ctx) {
     throw new Error(`"${label}": url must start with http(s):// — got "${url}".`);
   }
   const format = oneOf(step.config, "format", ["text", "json", "rss"]) ?? "text";
-  const timeoutMs = (num(step.config, "timeoutSec") ?? 30) * 1000;
+  const timeoutMs = boundedTimeoutSec(step.config, label);
 
   let res;
   try {
     res = await fetchWithRetry(
       url,
-      { headers: { "User-Agent": "q-factory-loop-engine/1" } },
+      { headers: { "User-Agent": "q-factory-loop-engine/1" }, signal: ctx.signal },
       { timeoutMs, retries: 2 },
     );
   } catch (e) {
     const why = e instanceof Error && e.name === "TimeoutError" ? `timed out after ${timeoutMs} ms` : String(e instanceof Error ? e.message : e);
     throw new Error(`"${label}": GET ${url} failed before any response — ${why}`);
   }
-  const text = (await res.text()).slice(0, BODY_CAP);
+  const maxBodyBytes = Number(step.config.maxBodyBytes ?? BODY_CAP);
+  insist(Number.isInteger(maxBodyBytes) && maxBodyBytes >= 1024 && maxBodyBytes <= 2000000, 'fetch maxBodyBytes must be 1024..2000000');
+  const reader = res.body?.getReader(), chunks = [];
+  let bytes = 0, truncated = false;
+  if (reader) for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const remaining = maxBodyBytes - bytes;
+    chunks.push(Buffer.from(value.subarray(0, remaining)));
+    bytes += Math.min(value.length, remaining);
+    if (value.length > remaining) { truncated = true; await reader.cancel(); break; }
+  }
+  const text = Buffer.concat(chunks).toString('utf8');
 
   if (!res.ok) {
     throw new Error(`"${label}": GET ${url} → HTTP ${res.status}. ${text.slice(0, 300)}`);
@@ -162,60 +147,20 @@ export async function runFetch(step, ctx) {
     }
     return { output: { status: res.status, url, count: entries.length, entries: entries.slice(0, limit) } };
   }
-  return { output: { status: res.status, url, body: text } };
+  return { output: { status: res.status, url, body: text, truncated } };
 }
 
 /* ──────────────────────────── llm-call ──────────────────────────── */
 
 /** One model call. No canned fallback — see runLlmCall on why a mock is poison here. */
-export async function chatOnce({ apiKey, model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs }) {
-  let res;
-  try {
-    res = await fetchWithRetry(
-      OPENROUTER_URL,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: user },
-          ],
-          temperature: temperature ?? 0.3,
-          max_tokens: maxTokens,
-        }),
-      },
-      { timeoutMs: timeoutMs ?? LLM_TIMEOUT_MS, retries: retries ?? 2, delaysMs },
-    );
-  } catch (e) {
-    throw new Error(`OpenRouter unreachable: ${e instanceof Error ? e.message : String(e)}`);
-  }
-  if (!res.ok) {
-    /* The reason is part of the message because the two cases need different
-       actions from a person: a revoked key means go replace it, a 5xx means
-       just run it again. */
-    const reason =
-      res.status === 401 || res.status === 403
-        ? "invalid or revoked key"
-        : res.status === 429
-          ? "rate limited"
-          : res.status >= 500
-            ? "provider error"
-            : "request rejected";
-    throw new Error(`OpenRouter ${res.status} — ${reason}`);
-  }
-  const json = await res.json();
-  const content = json?.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!content) throw new Error("OpenRouter returned an empty completion — this step has nothing to pass on.");
-  return {
-    content,
-    usage: {
-      tokensIn: json?.usage?.prompt_tokens ?? 0,
-      tokensOut: json?.usage?.completion_tokens ?? 0,
-      model,
-    },
-  };
+export async function chatOnce({ apiKey, keyRef = "OPENROUTER_API_KEY", secretSource = "env", model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal }) {
+  // `apiKey` is the legacy/default alias supplied by the CLI. A step-level
+  // alias must resolve its own environment entry; silently reusing the default
+  // key would charge/send as the wrong credential. Keychain resolution ignores
+  // this env value and remains explicitly selected by secretSource.
+  const selectedKey = keyRef === "OPENROUTER_API_KEY" ? apiKey : process.env[keyRef];
+  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal }, {env:{[keyRef]:selectedKey}});
+  return { ...result, usage:{...result.usage, model:result.provider.model ?? model} };
 }
 
 /** First JSON object in a reply, tolerating fences and prose around it. */
@@ -235,14 +180,20 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
   const instructions = resolveTemplate(requireStr(step.config, "instructions", label), tctx(ctx));
   const role = str(step.config, "role");
 
-  if (!ctx.apiKey) {
+  const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
+  const secretSource = str(step.config, "secretSource") ?? "env";
+  const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
+  if (secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
     /* NOT a mock. This output feeds the next step and possibly an outside API,
        where no "this was invented" label survives. So: failure. */
-    throw new Error(
-      `"${label}": no OpenRouter key (set OPENROUTER_API_KEY). ` +
+    throw new CoreError(
+      "AUTH_REQUIRED",
+      `"${label}": no OpenRouter key (set ${keyRef}). ` +
         `The engine will not substitute a mock inside a loop: invented text would travel down the chain as real.`,
     );
   }
+
+  if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override. This YAML route is not CLI caller inference.");
 
   const system =
     (role ? `You are the ${role} agent in an autonomous factory. ` : "") +
@@ -255,11 +206,14 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
 
   const { content, usage } = await chatOnce({
     apiKey: ctx.apiKey,
+    keyRef,
+    secretSource,
     model,
     system,
     user,
     maxTokens,
     temperature: num(step.config, "temperature") ?? 0.3,
+    signal: ctx.signal,
   });
 
   const wantJson = (oneOf(step.config, "format", ["text", "json"]) ?? "text") === "json";
@@ -289,10 +243,12 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
   const anchor = str(step.config, "anchor") ?? null;
 
   if (reviewer === "human") {
+    const subject = lastOutput(ctx);
     return {
       output: {
         gate: { reviewer: "human", anchor, mode: str(step.config, "mode") ?? "approve" },
-        subject: lastOutput(ctx),
+        subject,
+        ...(step.config.bind === 'sha256' ? { approvalHash: hash(subject) } : {}),
       },
       waitingHuman: true,
     };
@@ -305,20 +261,33 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
         `Either set the criterion, or switch reviewer to human.`,
     );
   }
-  if (!ctx.apiKey) {
-    return {
-      output: {
-        gate: { reviewer: "agent", anchor, rubric },
-        verdict: null,
-        escalated: true,
-        reason: "No OpenRouter key — the machine check did not run. The gate was handed to a human, not waved through.",
-      },
-      waitingHuman: true,
-    };
+  const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
+  const secretSource = str(step.config, "secretSource") ?? "env";
+  const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
+  if (secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
+    if (keyRef === "OPENROUTER_API_KEY") {
+      return {
+        output: {
+          gate: { reviewer: "agent", anchor, rubric },
+          verdict: null,
+          escalated: true,
+          reason: "No OpenRouter key — the machine check did not run. The gate was handed to a human, not waved through.",
+        },
+        waitingHuman: true,
+      };
+    }
+    throw new CoreError(
+      "AUTH_REQUIRED",
+      `"${label}": no OpenRouter key (set ${keyRef}). The machine check did not run; the gate was not waved through.`,
+    );
   }
+
+  if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override.");
 
   const { content, usage } = await chatOnce({
     apiKey: ctx.apiKey,
+    keyRef,
+    secretSource,
     model,
     system:
       "You are a strict validation gate in an autonomous factory. Judge the CANDIDATE against the RUBRIC. " +
@@ -327,6 +296,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     user: JSON.stringify({ rubric, candidate: lastOutput(ctx) }, null, 2).slice(0, 60_000),
     maxTokens: Math.min(maxTokens, 300),
     temperature: 0,
+    signal: ctx.signal,
   });
 
   const verdict = parseJsonObject(content);
@@ -387,6 +357,8 @@ export async function runApiRequest(step, ctx) {
      SPEC-MANIFEST.md §Divergences and in the README, not left to be discovered.
      ───────────────────────────────────────────────────────────────────────── */
   const missing = missingEnvRefs(rawUrl);
+  const receiptKey = str(step.config, "receiptKey");
+  if (receiptKey) insist(missing.length === 0, 'Idempotent delivery requires an explicit destination; no file fallback');
   if (missing.length && ctx.fileSink) {
     const payload = buildBody(step, ctx, t);
     const file = ctx.fileSink(typeof payload === "string" ? payload : JSON.stringify(payload, null, 2));
@@ -420,15 +392,15 @@ export async function runApiRequest(step, ctx) {
 
   const payload = buildBody(step, ctx, t);
   const bodyString = typeof payload === "string" ? payload : JSON.stringify(payload);
-
+  const send = async () => {
   let status = 0;
   let responseText = "";
   try {
-    const init = { method, headers };
+    const init = { method, headers, signal: ctx.signal };
     if (method !== "GET") init.body = bodyString;
     const res = await fetchWithRetry(url, init, {
-      timeoutMs: (num(step.config, "timeoutSec") ?? 30) * 1000,
-      retries: 2,
+      timeoutMs: boundedTimeoutSec(step.config, label),
+      retries: receiptKey ? 0 : 2,
     });
     status = res.status;
     responseText = (await res.text()).slice(0, 4000);
@@ -441,4 +413,7 @@ export async function runApiRequest(step, ctx) {
     throw new Error(`"${label}": ${method} ${url} → HTTP ${status}. ${responseText.slice(0, 500)}`);
   }
   return { output: { dispatched: true, method, url, status, response: responseText } };
+  };
+  if (!receiptKey) return send();
+  return deliverOnce({ store: ctx.runStore, destination: { url, method }, key: resolveTemplate(receiptKey, t), payloadHash: hash(bodyString) }, send);
 }

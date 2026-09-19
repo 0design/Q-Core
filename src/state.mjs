@@ -12,10 +12,11 @@
  * copy of it, it is a different thing with a different job.
  *
  * WRITES ARE ATOMIC (tmp + rename). A run interrupted mid-write must not leave a
- * half-written JSON that the next `qf status` then refuses to parse — that turns
+ * half-written JSON that the next `qloops status` then refuses to parse — that turns
  * one failed run into a permanently broken directory.
  */
-import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync, existsSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync, existsSync, lstatSync, unlinkSync } from "node:fs";
+import { hash, insist } from './contracts.mjs';
 import { dirname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -53,11 +54,28 @@ export class RunStore {
   }
 
   runFile(runId) {
+    if (typeof runId !== "string" || !/^[a-zA-Z0-9-]{1,100}$/.test(runId)) throw new Error("Invalid runId");
     return join(this.runsDir, `${runId}.json`);
   }
 
   save(run) {
     writeJsonAtomic(this.runFile(run.runId), run);
+  }
+
+  recordSpecification(identity, value) {
+    mkdirSync(this.dir, { recursive: true, mode: 0o700 });
+    insist(!lstatSync(this.dir).isSymbolicLink(), 'Unsafe specification directory');
+    const file = join(this.dir, `spec-${hash(identity)}.json`), lock = `${file}.lock`;
+    writeFileSync(lock, '', { flag: 'wx', mode: 0o600 });
+    try {
+      if (existsSync(file)) insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe specification file');
+      const previous = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { revision: 0, history: [] };
+      const contentHash = hash(value);
+      if (previous.contentHash === contentHash) return { revision: previous.revision, hash: previous.hash };
+      const revision = previous.revision + 1, approvalHash = hash({ identity, value, revision });
+      writeJsonAtomic(file, { revision, hash: approvalHash, contentHash, history: [...previous.history, { revision, hash: approvalHash, value }] });
+      return { revision, hash: approvalHash };
+    } finally { unlinkSync(lock); }
   }
 
   load(runId) {
@@ -81,8 +99,8 @@ export class RunStore {
       failedStep: failed ? { id: failed.stepId, name: failed.name, kind: failed.kind } : null,
       startedAt: run.startedAt,
       finishedAt: run.finishedAt,
-      costUsd: Number(run.costUsd ?? 0),
-      exitCode: run.status === "success" ? 0 : 1,
+      costUsd: run.costUsd === null ? null : Number(run.costUsd ?? 0),
+      exitCode: run.status === "success" ? 0 : run.status === "waiting_human" ? 2 : run.status === "cancelled" ? 130 : 1,
     });
   }
 
@@ -90,7 +108,7 @@ export class RunStore {
     return readJson(join(this.dir, "last-run.json"));
   }
 
-  /** Newest first. Used by `qf status`. */
+  /** Newest first. Used by `qloops status`. */
   listRuns(limit = 20) {
     if (!existsSync(this.runsDir)) return [];
     return readdirSync(this.runsDir)
@@ -103,6 +121,7 @@ export class RunStore {
 
   /** Write one file-sink delivery and return its path. */
   writeSink(runId, body) {
+    this.runFile(runId); // validate caller-provided identity before constructing an output path
     mkdirSync(this.outDir, { recursive: true });
     const file = join(this.outDir, `${runId}.txt`);
     writeFileSync(file, body, "utf8");

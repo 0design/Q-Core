@@ -1,0 +1,51 @@
+{
+  "id": "determined",
+  "name": "determined",
+  "kind": "step",
+  "contentType": "component",
+  "description": "Reach approved criteria with independent evidence and bounded repair.",
+  "value": "Reach approved criteria with independent evidence and bounded repair.",
+  "input": {
+    "source": {
+      "type": "reference",
+      "required": true,
+      "notes": "Reference to scoped applied artifact."
+    },
+    "specification": {
+      "type": "reference",
+      "required": true,
+      "notes": "Reference to approved specification binding its criteria to the pinned independent verifier suite."
+    },
+    "repairFrom": {
+      "type": "step-id",
+      "required": false,
+      "notes": "Persistent driver may repeat declared local segment within workspace policy bound."
+    }
+  },
+  "output": {
+    "result": {
+      "type": "object",
+      "notes": "Verified result or explicit human action with failed and unknown criteria."
+    }
+  },
+  "needsEnv": [],
+  "implementation": {
+    "status": "implemented",
+    "source": "src/registry-workspace-steps.mjs + src/determined.mjs",
+    "limitation": "Generic pinned checker and bounded repair; native upstream quality release still separate."
+  },
+  "acceptance": {
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/sdd-verified-change.txt",
+        "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  },
+  "usedBy": []
+}

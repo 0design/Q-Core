@@ -1,0 +1,85 @@
+name: Publish Registry
+on:
+  push:
+    branches: [main]
+    paths: ['registry/**', 'src/**', 'contracts/**', 'package.json', 'scripts/*registry*', '.github/workflows/publish-registry.yml']
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        options: [publish, promote, rollback]
+        default: publish
+        required: true
+      approved:
+        description: 'I confirm owner review and approval of this exact release or rollback target.'
+        type: boolean
+        default: false
+      descriptor:
+        description: 'For promote/rollback: releases/<releaseVersion>/<full commit>/release.json'
+        type: string
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: registry-production
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION: ${{ inputs.action || 'publish' }}
+      DESCRIPTOR: ${{ inputs.descriptor }}
+      RELEASE_APPROVED: ${{ inputs.approved }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Require reviewed merge
+        run: |
+          if [ "$ACTION" = publish ]; then
+            node scripts/check-reviewed-release.mjs "$GITHUB_SHA"
+          else
+            python3 -c 'import os,re; d=os.environ["DESCRIPTOR"]; assert re.fullmatch(r"releases/[a-zA-Z0-9.-]+/[a-f0-9]{40}/release.json",d)'
+            TARGET_COMMIT=$(python3 -c 'import os; print(os.environ["DESCRIPTOR"].split("/")[2])')
+            node scripts/check-reviewed-release.mjs "$TARGET_COMMIT"
+          fi
+      - name: Verify publisher
+        run: python3 -m unittest discover -s test -p 'test_registry_publish.py'
+      - name: Build exact release
+        if: env.ACTION == 'publish'
+        run: |
+          npm test
+          node scripts/build-registry.mjs --check
+          mkdir -p /tmp/core-package
+          npm pack --pack-destination /tmp/core-package --json > /tmp/core-package/pack.json
+          CORE_ARCHIVE=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/core-package/pack.json'))[0].filename")
+          node scripts/build-registry.mjs --export /tmp/registry --core-artifact "/tmp/core-package/$CORE_ARCHIVE"
+          node scripts/test-registry-export.mjs /tmp/registry
+      - name: Publish or repin verified release
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: 'true'
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          REGISTRY_PUBLIC_URL: ${{ vars.REGISTRY_PUBLIC_URL }}
+        run: |
+          if [ "$ACTION" = publish ]; then
+            python3 scripts/publish-registry.py publish --directory /tmp/registry --commit "$GITHUB_SHA" > /tmp/release.json
+            cat /tmp/release.json
+            # Candidate snapshots can be inspected but never become current.
+            if node -e "process.exit(JSON.parse(require('fs').readFileSync('/tmp/release.json')).releaseVersion.includes('candidate') ? 0 : 1)"; then
+              echo 'Candidate snapshot verified; current unchanged.'
+            else
+              DESCRIPTOR=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/release.json')).catalog.replace('catalog.json','release.json')")
+              python3 scripts/publish-registry.py promote --descriptor "$DESCRIPTOR"
+            fi
+          else
+            python3 scripts/publish-registry.py "$ACTION" --descriptor "$DESCRIPTOR"
+          fi

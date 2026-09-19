@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRun, driveRun } from '../src/run.mjs';
+const callerProvider = { kind: 'caller', agent: 'codex', model: 'caller-selected', payerScope: 'local-cli' };
+const manifest = { id: 'cli-test', name: 'CLI driver test', steps: [{ id: 'a', kind: 'llm-call', config: { provider: 'cli', instructions: 'Summarize input', format: 'text' } }, { id: 'b', kind: 'llm-call', config: { provider: 'cli', instructions: 'Check prior summary', format: 'text' } }] };
+const opts = { callerProvider, settings: { budgetUsd: null } };
+test('driver pauses, persists, consumes each exact caller reply and never reports unknown usage as free', async () => {
+  let run = createRun(manifest);
+  let saved;
+  const store = { save: value => { saved = structuredClone(value); } };
+  await driveRun(run, { ...opts, store });
+  assert.equal(run.status, 'waiting_inference');
+  assert.equal(run.steps[0].output, null);
+  run = saved;
+  const job = run.pendingInference;
+  await driveRun(run, { ...opts, store, inferenceReply: { jobId: job.jobId, hash: job.hash, output: { text: 'Test summary' } } });
+  assert.equal(run.steps[0].status, 'success');
+  assert.equal(run.steps[1].status, 'pending');
+  assert.equal(run.status, 'waiting_inference');
+  assert.notEqual(run.pendingInference.jobId, job.jobId);
+  assert.equal(run.costUsd, null);
+  assert.equal(run.tokensIn, null);
+  const second = run.pendingInference;
+  await driveRun(run, { ...opts, inferenceReply: { jobId: second.jobId, hash: second.hash, output: { text: 'Test check' } } });
+  assert.equal(run.status, 'success');
+  await assert.rejects(driveRun(run, { ...opts, inferenceReply: { jobId: job.jobId, hash: job.hash, output: { text: 'Replay' } } }), e => e.code === 'STALE_INFERENCE');
+});
+test('CLI does not use OpenRouter key or silently treat a dollar budget as enforceable', async () => {
+  const run = createRun(manifest);
+  await driveRun(run, { callerProvider, apiKey: 'not-used' });
+  assert.equal(run.status, 'failed');
+  assert.match(run.summary, /cost is unknown/);
+  assert.equal(run.pendingInference, undefined);
+});

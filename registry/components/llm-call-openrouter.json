@@ -1,0 +1,64 @@
+{
+  "id": "llm-call-openrouter",
+  "name": "llm-call/openrouter",
+  "kind": "step",
+  "description": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+  "input": {
+    "instructions": {
+      "type": "string",
+      "required": true,
+      "notes": "templated. SPEC-MANIFEST.md \u00a75.2."
+    },
+    "format": {
+      "type": "string",
+      "required": false,
+      "notes": "text | json. Default text."
+    },
+    "maxTokens": {
+      "type": "number",
+      "required": false,
+      "notes": "Default 1200."
+    },
+    "temperature": {
+      "type": "number",
+      "required": false,
+      "notes": "Default 0.3."
+    },
+    "role": {
+      "type": "string",
+      "required": false,
+      "notes": "prepended as \"You are the \u27e8role\u27e9 agent\u2026\""
+    },
+    "model": {
+      "type": "string",
+      "required": false,
+      "notes": "overrides the loop's model."
+    }
+  },
+  "output": {
+    "text": {
+      "type": "string",
+      "notes": "format: text \u2014 {text, model}."
+    },
+    "model": {
+      "type": "string",
+      "notes": "The model that answered."
+    },
+    "json": {
+      "type": "object",
+      "notes": "When format: json, the output is the parsed object instead of {text, model}."
+    }
+  },
+  "needsEnv": [
+    "OPENROUTER_API_KEY",
+    "OPENROUTER_MODEL"
+  ],
+  "usedBy": [],
+  "runtimeKind": "llm-call",
+  "contentType": "component",
+  "value": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+  "acceptance": {
+    "status": "pending",
+    "evidence": []
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "verify-artifact",
+  "name": "verify-artifact",
+  "kind": "step",
+  "contentType": "component",
+  "description": "Check the exact output independently of the executor.",
+  "value": "Check the exact output independently of the executor.",
+  "input": {
+    "source": {
+      "type": "reference",
+      "required": true,
+      "notes": "Reference to workspace-apply artifact identity."
+    },
+    "repairFrom": {
+      "type": "step-id",
+      "required": false,
+      "notes": "Bounded CLI proposal step; repeated segment must contain only proposal/apply/verify."
+    }
+  },
+  "output": {
+    "evidence": {
+      "type": "object",
+      "notes": "Pass, fail or unknown for each required criterion."
+    }
+  },
+  "needsEnv": [],
+  "implementation": {
+    "status": "implemented",
+    "source": "src/registry-workspace-steps.mjs",
+    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+  },
+  "acceptance": {
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/sdd-verified-change.txt",
+        "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  },
+  "usedBy": []
+}

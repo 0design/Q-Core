@@ -1,0 +1,41 @@
+{
+  "id": "workspace-read",
+  "name": "Read scoped workspace",
+  "kind": "step",
+  "contentType": "component",
+  "description": "Read explicitly allowed files and pin independent verifier sources.",
+  "value": "Read explicitly allowed files and pin independent verifier sources.",
+  "input": {
+    "workspacePolicy": {
+      "type": "external-json",
+      "required": true,
+      "notes": "Supplied only by --workspace-policy: workspace, allowedPaths, intent, verifier and maxRepairAttempts; not generated step data."
+    }
+  },
+  "output": {
+    "result": {
+      "type": "object",
+      "notes": "Read explicitly allowed files and pin independent verifier sources."
+    }
+  },
+  "needsEnv": [],
+  "usedBy": [],
+  "implementation": {
+    "status": "implemented",
+    "source": "src/registry-workspace-steps.mjs",
+    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+  },
+  "acceptance": {
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/sdd-verified-change.txt",
+        "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "schema": "qf.registry-acceptance/v1",
+  "recordedAt": "2026-09-19T17:15:38.314Z",
+  "core": {
+    "version": "0.2.0-core.16",
+    "sha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+  },
+  "testedCatalogSha256": "3705a21c88877ffee9a7bab8bd141f14b7d2c6a53a1030e12ead94c52a1f4644",
+  "registryRelease": "2026.09.19-registry.1-candidate",
+  "transport": "pinned localhost HTTP export; public R2 acceptance pending",
+  "inference": {
+    "agent": "codex",
+    "kind": "caller-supplied-inference",
+    "requestedModel": "current-session; resolved-model-unknown",
+    "resolvedModel": null,
+    "costUsd": null,
+    "tokensIn": null,
+    "tokensOut": null
+  },
+  "approval": "Agent exercised the approved controlled-test flow; not owner acceptance.",
+  "methodology": "Actual Registry manifests and exact dependency bytes were installed with the clean packed CLI. Source/receiver and verifier ran for real. Codex supplied bounded replies. Timings include local orchestration pauses and reused prepared drafts/specs; they are not fresh-chat time-to-first-result benchmarks.",
+  "limitations": [
+    "Public immutable-release rerun remains required.",
+    "This is not independent owner acceptance or Claude/OpenRouter verification.",
+    "Scheduling was not installed or tested."
+  ],
+  "loopId": "digest",
+  "loopVersion": "0.1.0",
+  "manifestSha256": "d99ac1c021f61d60e7c495404511ba0316cfa25168f9adbc57713897a7758b5d",
+  "dependencies": [
+    {
+      "key": "components/llm-call-cli@0.1.0",
+      "path": "components/llm-call-cli.json",
+      "sha256": "6a369826824eaede3ce67565f7f0d33861ef957ac4e95641989e0e5b593b89ae"
+    },
+    {
+      "key": "components/parse-web@0.1.0",
+      "path": "components/parse-web.json",
+      "sha256": "11b8fb47f64510ea77a64ef619110769f0cf63bd1aa71aec722b2b95a6936a5d"
+    },
+    {
+      "key": "components/deduplicate@0.1.0",
+      "path": "components/deduplicate.json",
+      "sha256": "d7644ab88a942001853f8f65737ebb3350da6f675824a747a5d0329c522ce56e"
+    },
+    {
+      "key": "components/verify-sources@0.1.0",
+      "path": "components/verify-sources.json",
+      "sha256": "234a041dd4d0669f6aee186d4412464a285e29efb2f3cfbe5050870cb76197af"
+    },
+    {
+      "key": "components/approval-gate@1.0.0",
+      "path": "components/approval-gate.json",
+      "sha256": "3cd400e1bac1337c211e207b34fd7591f5adf8b1e12ddd0ab7ce0070c7d3ad38"
+    },
+    {
+      "key": "loops/digest@0.1.0",
+      "path": "loops/digest.yaml",
+      "sha256": "d99ac1c021f61d60e7c495404511ba0316cfa25168f9adbc57713897a7758b5d"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://openai.com/news/rss.xml",
+      "sourceSha256": "785060af10732e6ad72f816ac05e0d4f9c94853835d69bb8fe0ec93079f61175",
+      "textTruncated": true,
+      "sourceTruncated": false
+    },
+    {
+      "url": "https://www.anthropic.com/news",
+      "sourceSha256": "9f32fecadc35771440bc51fd3e11fd39c99680703d99fab2189a296e61610d3a",
+      "textTruncated": false,
+      "sourceTruncated": false
+    },
+    {
+      "url": "https://linear.app/now",
+      "sourceSha256": "3c8dabce103aecc37789397fa34a1a181b931644a336f1e090bd98185d20ad2e",
+      "textTruncated": true,
+      "sourceTruncated": false
+    },
+    {
+      "url": "https://www.figma.com/blog/",
+      "sourceSha256": "75b3a58c1af73c12a15b2a3761eee435597dbdcf5ece003a87a7f85d8453f26e",
+      "textTruncated": false,
+      "sourceTruncated": false
+    }
+  ],
+  "runs": [
+    {
+      "runId": "3a065613-d69b-46f1-956c-99ac737e1861",
+      "status": "success",
+      "startedAt": "2026-09-19T17:09:50.269Z",
+      "finishedAt": "2026-09-19T17:11:36.579Z",
+      "wallClockMs": 106310,
+      "approvalHash": "cdfc7a98210f9ebcede0dc5ef261da4c5020e216887a1d153f67ed13bb85d6e2",
+      "receipt": {
+        "dispatched": true,
+        "method": "POST",
+        "url": "http://127.0.0.1:49968/receive",
+        "status": 200,
+        "response": "{\"received\":true,\"count\":2}",
+        "receiptKey": "791fbe31ebe3fcac2f07d7aa47793cf4da07a5b88030712ab70b4530ba4c5e5c",
+        "payloadHash": "1e5099918365589afb122a3ce05734be88e37d336082b2d7eccc211e0fad1940",
+        "duplicatePrevented": false
+      }
+    },
+    {
+      "runId": "7a44f2a4-9011-44da-a784-deaca8fd1bc7",
+      "status": "success",
+      "startedAt": "2026-09-19T17:11:37.624Z",
+      "finishedAt": "2026-09-19T17:12:20.103Z",
+      "wallClockMs": 42479,
+      "approvalHash": "9a28a56342965850c6ce1ac5d62bc909382e42bf3c83f191dfcbfcb07ba3a698",
+      "receipt": {
+        "dispatched": true,
+        "method": "POST",
+        "url": "http://127.0.0.1:49968/receive",
+        "status": 200,
+        "response": "{\"received\":true,\"count\":2}",
+        "receiptKey": "791fbe31ebe3fcac2f07d7aa47793cf4da07a5b88030712ab70b4530ba4c5e5c",
+        "payloadHash": "1e5099918365589afb122a3ce05734be88e37d336082b2d7eccc211e0fad1940",
+        "duplicatePrevented": true,
+        "originalPayloadHash": "1e5099918365589afb122a3ce05734be88e37d336082b2d7eccc211e0fad1940"
+      }
+    },
+    {
+      "runId": "d6764af2-6576-4b5f-bec9-870110684633",
+      "status": "success",
+      "startedAt": "2026-09-19T17:12:20.315Z",
+      "finishedAt": "2026-09-19T17:13:41.902Z",
+      "wallClockMs": 81587,
+      "approvalHash": "a44a9379a79ced0cb238c02e2c32a631ed5e3c7266e30c628e20da83f5081d31",
+      "receipt": {
+        "dispatched": true,
+        "method": "POST",
+        "url": "http://127.0.0.1:49968/receive",
+        "status": 200,
+        "response": "{\"received\":true,\"count\":2}",
+        "receiptKey": "791fbe31ebe3fcac2f07d7aa47793cf4da07a5b88030712ab70b4530ba4c5e5c",
+        "payloadHash": "1e5099918365589afb122a3ce05734be88e37d336082b2d7eccc211e0fad1940",
+        "duplicatePrevented": true,
+        "originalPayloadHash": "1e5099918365589afb122a3ce05734be88e37d336082b2d7eccc211e0fad1940"
+      }
+    }
+  ],
+  "deliveries": 1,
+  "draft": "# ХУЇКС — тестовий дайджест: агенти, перевірки та робочі процеси\n\n**OpenAI: перевірка роботи агентів.** У стрічці є матеріал про те, як Cognition використовує GPT‑6 Astra, щоб Devin краще тестував власні зміни та показував, що вони працюють. Окремий матеріал присвячений вимірюванню використання AI та його зв’язку з бізнес-результатами. Це короткий огляд анонсів, а не незалежна оцінка заявленого ефекту.\nДжерело: https://openai.com/news/rss.xml\n\n**Anthropic: видимість розвитку моделей.** На сторінці новин компанія описує пропозицію метрик, які мають дати громадськості більше інформації про розвиток AI у провідних лабораторіях. Також у списку анонсів є партнерство з Accenture щодо вбудованого оцінювання. Деталі партнерства з цього фрагмента не встановлюємо.\nДжерело: https://www.anthropic.com/news\n\n**Linear: повторювані агентні задачі.** Оновлення Loops повідомляє про реакцію на зміни initiatives, projects і cycles, редагування документів Linear та оновлення у Slack. Окремо Coding sessions описує можливість агента налаштувати, запустити й протестувати код перед поверненням результату.\nДжерело: https://linear.app/now\n\n**Figma: інструменти спільноти й зв’язок дизайну з кодом.** У блозі оголошено публікацію інструментів Weave спільнотою. Серед матеріалів також є досвід Coinbase із Code Connect для спрямування агентів і зменшення витрат токенів; конкретних чисел у видимому фрагменті немає.\nДжерело: https://www.figma.com/blog/\n\nМежі цього випуску: використано статичний текст чотирьох офіційних сторінок. Витяги OpenAI та Linear скорочено. Перевірка підтверджує наявність дозволених посилань і формат, але не доводить кожну заяву незалежно від джерела. Публікації у зовнішні канали не було.\n",
+  "checks": "Three actual fetched-source runs, one controlled local delivery, two duplicate-prevented repeats. Unit tests separately cover rejection, unknown source URLs, receiver failure and uncertain-receipt refusal."
+}

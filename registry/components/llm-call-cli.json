@@ -1,0 +1,41 @@
+{
+  "id": "llm-call-cli",
+  "name": "llm-call/cli",
+  "kind": "step",
+  "contentType": "component",
+  "description": "Use the current CLI agent for bounded inference without a second provider subscription.",
+  "value": "Use the current CLI agent for bounded inference without a second provider subscription.",
+  "input": {
+    "request": {
+      "type": "object",
+      "required": true,
+      "notes": "Bounded messages and expected output contract."
+    }
+  },
+  "output": {
+    "reply": {
+      "type": "object",
+      "notes": "Validated structured output bound to the original job ID and hash."
+    }
+  },
+  "needsEnv": [],
+  "implementation": {
+    "status": "implemented",
+    "source": "src/registry-cli-step.mjs",
+    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+  },
+  "acceptance": {
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/digest-huyiks.txt",
+        "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  },
+  "usedBy": []
+}

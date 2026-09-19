@@ -1,0 +1,51 @@
+{
+  "id": "verify-sources",
+  "name": "Verify source links",
+  "kind": "step",
+  "contentType": "component",
+  "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+  "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+  "input": {
+    "draft": {
+      "type": "reference",
+      "required": true,
+      "notes": "Text or {text}, at most 16000 characters."
+    },
+    "sources": {
+      "type": "reference",
+      "required": true,
+      "notes": "Selected sources with URL allowlist."
+    },
+    "language": {
+      "type": "string",
+      "required": false,
+      "notes": "uk checks Ukrainian text markers; not a language-quality or fact-check guarantee."
+    }
+  },
+  "output": {
+    "result": {
+      "type": "object",
+      "notes": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee."
+    }
+  },
+  "needsEnv": [],
+  "usedBy": [],
+  "implementation": {
+    "status": "implemented",
+    "source": "src/registry-data-steps.mjs",
+    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+  },
+  "acceptance": {
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/digest-huyiks.txt",
+        "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  }
+}

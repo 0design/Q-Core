@@ -22,12 +22,12 @@ import { readFileSync } from "node:fs";
 import { parseYaml, YamlError } from "./yaml.mjs";
 
 /** The format tag every manifest must carry, verbatim. */
-export const MANIFEST_TAG = "qf.loop/v1";
+export const MANIFEST_TAG = "qloops.loop/v1";
 
 /** Step kinds the engine executes. */
-export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out"];
+export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"];
 
-/** Trigger kinds — входи, not steps. `schedule` is one of these, not a runner. */
+/** Trigger kinds — entry points, not steps. `schedule` is one of these, not a runner. */
 export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "loop-input", "event"];
 
 /** Reserved in the format, deliberately NOT implemented (owner decision 2026-08-01). */
@@ -114,8 +114,26 @@ function validateStep(raw, path, seenIds) {
     if (!Array.isArray(raw.then)) throw new ManifestError('"then" must be a list of steps', `${path}.then`);
     step.then = raw.then.map((s, i) => validateStep(s, `${path}.then[${i}]`, seenIds));
   }
+  if (raw.else != null) {
+    if (kind !== "if") throw new ManifestError('"else" is only valid on an if step', `${path}.else`);
+    if (!Array.isArray(raw.else)) throw new ManifestError('"else" must be a list of steps', `${path}.else`);
+    step.else = raw.else.map((s, i) => validateStep(s, `${path}.else[${i}]`, seenIds));
+  }
+  if (raw.cases != null) {
+    if (kind !== "switch" || !isPlainObject(raw.cases)) {
+      throw new ManifestError('"cases" must be a mapping on a switch step', `${path}.cases`);
+    }
+    step.cases = Object.fromEntries(Object.entries(raw.cases).map(([key, branch]) => {
+      if (!Array.isArray(branch)) throw new ManifestError('each switch case must be a list of steps', `${path}.cases.${key}`);
+      return [key, branch.map((s, i) => validateStep(s, `${path}.cases.${key}[${i}]`, seenIds))];
+    }));
+  }
+  if (raw.default != null) {
+    if (kind !== "switch" || !Array.isArray(raw.default)) throw new ManifestError('"default" must be a list of steps on a switch step', `${path}.default`);
+    step.default = raw.default.map((s, i) => validateStep(s, `${path}.default[${i}]`, seenIds));
+  }
 
-  /* Per-kind requirements. Checked at validate time so `qf validate` is worth
+  /* Per-kind requirements. Checked at validate time so `qloops validate` is worth
      running: a missing url should not be discovered halfway through a paid run. */
   if (kind === "fetch" && !config.url) {
     throw new ManifestError('a fetch step needs "config.url"', `${path}.config`);
@@ -125,6 +143,14 @@ function validateStep(raw, path, seenIds) {
   }
   if (kind === "llm-call" && !config.instructions) {
     throw new ManifestError('an llm-call step needs "config.instructions"', `${path}.config`);
+  }
+  if (["llm-call", "approval-gate"].includes(kind)) {
+    if (config.secretSource != null && !["env", "keychain"].includes(config.secretSource)) {
+      throw new ManifestError('"secretSource" must be "env" or "keychain"', `${path}.config.secretSource`);
+    }
+    if (config.keyRef != null && (config.keyRef.length > 128 || !/^[A-Z_][A-Z0-9_]*$/.test(config.keyRef))) {
+      throw new ManifestError('"keyRef" must be an uppercase environment/keychain alias', `${path}.config.keyRef`);
+    }
   }
   if (kind === "approval-gate") {
     const reviewer = config.reviewer ?? "human";
@@ -155,6 +181,31 @@ function validateStep(raw, path, seenIds) {
         `${path}.config`,
       );
     }
+  }
+  if (kind === "if") {
+    if (!config.condition && !config.when) throw new ManifestError('an if step needs "config.condition" (or "when")', `${path}.config`);
+    if (!step.then?.length && !step.else?.length) throw new ManifestError('an if step needs a non-empty "then" or "else" branch', path);
+  }
+  if (kind === "switch") {
+    if (!config.on && !config.value) throw new ManifestError('a switch step needs "config.on" (or "value")', `${path}.config`);
+    if (!step.cases || Object.keys(step.cases).length === 0) throw new ManifestError('a switch step needs at least one case', `${path}.cases`);
+    if (!Object.values(step.cases).some((branch) => branch.length) && !(step.default?.length)) throw new ManifestError('a switch step needs a non-empty case or default branch', path);
+  }
+  if (kind === "loop") {
+    const max = config.maxIterations == null ? 10 : Number(config.maxIterations);
+    if (!Number.isInteger(max) || max < 1 || max > 50) throw new ManifestError('"maxIterations" must be an integer from 1 to 50', `${path}.config.maxIterations`);
+    if (!step.then?.length) throw new ManifestError('a loop step needs a non-empty "then" body', path);
+    step.config.maxIterations = String(max);
+  }
+  if (kind === "each") {
+    if (!config.over || !/^\{\{[^{}]+\}\}$/.test(config.over)) throw new ManifestError('an each step needs a single template in "config.over"', `${path}.config.over`);
+    const max = config.maxItems == null ? 50 : Number(config.maxItems);
+    const concurrency = config.maxConcurrency == null ? 1 : Number(config.maxConcurrency);
+    if (!Number.isInteger(max) || max < 1 || max > 50) throw new ManifestError('"maxItems" must be an integer from 1 to 50', `${path}.config.maxItems`);
+    if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 10) throw new ManifestError('"maxConcurrency" must be an integer from 1 to 10', `${path}.config.maxConcurrency`);
+    if (!step.then?.length) throw new ManifestError('an each step needs a non-empty "then" body', path);
+    step.config.maxItems = String(max);
+    step.config.maxConcurrency = String(concurrency);
   }
   return step;
 }
@@ -260,7 +311,7 @@ export function validateManifest(doc) {
   if (tag !== MANIFEST_TAG) {
     const [family, ver] = String(tag).split("/");
     throw new ManifestError(
-      family === "qf.loop"
+      family === "qloops.loop"
         ? `this runner reads ${MANIFEST_TAG}; the manifest declares ${tag}. Version "${ver}" is either older or newer than this build`
         : `unknown manifest family "${tag}" — expected ${MANIFEST_TAG}`,
       "manifest",
