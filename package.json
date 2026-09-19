@@ -1,12 +1,13 @@
 {
   "name": "qloops",
-  "version": "0.2.0-core.16",
+  "version": "0.2.0-core.17",
   "license": "MIT",
   "description": "Run a QFactory loop from a YAML manifest. No database, no server, no build step.",
   "type": "module",
   "bin": {
     "qloops": "bin/qloops.mjs",
-    "qloop": "bin/qloop.mjs"
+    "qloop": "bin/qloop.mjs",
+    "qloops-host": "bin/qloops-host.mjs"
   },
   "engines": {
     "node": ">=20.3.0"

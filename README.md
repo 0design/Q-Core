@@ -193,3 +193,5 @@ the source checkout, or copy that shipped example into your installed caller.
 It demonstrates real failing/passing subprocess checks with a scripted executor.
 
 Explicit current-agent inference for SDD and Content: [caller protocol](contracts/v1/caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.
+
+Local manual, UTC schedule, and authenticated loopback webhook triggers use `qloops-host`; see [host contract](contracts/v1/host.md). The host does not install a daemon or supply model inference.

@@ -31,3 +31,5 @@ export {
   setKeychainSecret,
   resolveProviderSecret,
 } from "./secrets.mjs";
+
+export { createLocalHost, cronMatches } from "./host.mjs";
