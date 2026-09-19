@@ -1,6 +1,6 @@
 {
   "schema": "qf.contract-metadata/v1",
-  "revision": 11,
+  "revision": 12,
   "protocols": {
     "manifest": "qloops.loop/v1",
     "agent": "qf.agent/v1",

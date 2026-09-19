@@ -33,3 +33,5 @@ export {
 } from "./secrets.mjs";
 
 export { createLocalHost, cronMatches } from "./host.mjs";
+
+export { loadSkill, runSkill } from "./skill.mjs";

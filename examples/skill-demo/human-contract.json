@@ -1,0 +1,57 @@
+{
+  "schema": "qf.skill/v1",
+  "id": "release-note-human",
+  "version": "1.0.0",
+  "instructions": {
+    "file": "instructions.md",
+    "sha256": "a3b06d769c67009a6b1b1b5b807ce543d1a9aa458f3ec3a5a612cc43c3db4945"
+  },
+  "criteria": [
+    {
+      "id": "heading",
+      "rule": "Include required heading",
+      "verifier": {
+        "type": "node",
+        "file": "verify.mjs",
+        "sha256": "f61a10a37141e74442cca3dfe3648104f2c47824b219c62fb3cd295bb81381ae",
+        "args": [
+          "heading"
+        ],
+        "timeoutMs": 3000
+      }
+    },
+    {
+      "id": "changes",
+      "rule": "Include required changes",
+      "verifier": {
+        "type": "node",
+        "file": "verify.mjs",
+        "sha256": "f61a10a37141e74442cca3dfe3648104f2c47824b219c62fb3cd295bb81381ae",
+        "args": [
+          "changes"
+        ],
+        "timeoutMs": 3000
+      }
+    },
+    {
+      "id": "risks",
+      "rule": "Include required risks",
+      "verifier": {
+        "type": "node",
+        "file": "verify.mjs",
+        "sha256": "f61a10a37141e74442cca3dfe3648104f2c47824b219c62fb3cd295bb81381ae",
+        "args": [
+          "risks"
+        ],
+        "timeoutMs": 3000
+      }
+    },
+    {
+      "id": "audience",
+      "rule": "A person confirms the release note is useful for its audience",
+      "verifier": {
+        "type": "human"
+      }
+    }
+  ]
+}

@@ -195,3 +195,5 @@ It demonstrates real failing/passing subprocess checks with a scripted executor.
 Explicit current-agent inference for SDD and Content: [caller protocol](contracts/v1/caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.
 
 Local manual, UTC schedule, and authenticated loopback webhook triggers use `qloops-host`; see [host contract](contracts/v1/host.md). The host does not install a daemon or supply model inference.
+
+`runSkill` enforces the explicit criteria of a pinned authored skill bundle with independent Node verifiers and version-bound human review. See [skill contract](contracts/v1/skill.md) and `examples/skill-caller.mjs`; arbitrary prose is not automatically machine-verifiable.
