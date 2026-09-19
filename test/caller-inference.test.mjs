@@ -69,8 +69,13 @@ test('caller cancellation invalidates the pending job and enforces the total job
 });
 
 test('caller expiry, unknown-cost cap, and signal cancellation never produce generation or success',async t=>{
-  const r=setup(t,{inferenceTtlMs:1}),first=await runAgent(r);
-  await new Promise(resolve=>setTimeout(resolve,5));
+  // Freeze creation time, then expire the issued job explicitly. A 1ms wall
+  // clock TTL can expire before the first response on a busy CI runner.
+  let now=Date.now();
+  t.mock.method(Date,'now',()=>now);
+  const r=setup(t,{inferenceTtlMs:1000}),first=await runAgent(r);
+  assert.equal(first.nextAction.type,'provide_inference');
+  now+=1001;
   assert.equal((await runAgent({...r,resumeRunId:first.runId,inferenceReply:answer(first,spec)})).error.code,'INFERENCE_EXPIRED');
   assert.equal((await runAgent({...setup(t),maxCostUsd:1,maxCallCostUsd:1})).error.code,'BUDGET_EXHAUSTED');
   const cancel=setup(t),job=await runAgent(cancel),ac=new AbortController();ac.abort();
