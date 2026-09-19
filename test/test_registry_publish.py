@@ -1,5 +1,8 @@
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -140,6 +143,43 @@ class PublisherTest(unittest.TestCase):
             p.promote(self.store, descriptor)
         self.assertNotIn('current.json', self.store.objects)
 
+
+
+class ReleaseApprovalTest(unittest.TestCase):
+    def check_gate(self, reviews, manual=False, event='push', merged=True):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            commit = 'a' * 40
+            prs = [{'number': 1, 'merged_at': 'date' if merged else None,
+                    'base': {'ref': 'main'}, 'merge_commit_sha': commit,
+                    'head': {'sha': 'b' * 40}, 'user': {'id': 1}}]
+            (root / 'gh').write_text('#!' + sys.executable + '\nimport json,sys\nprint(json.dumps(' +
+                                    repr([reviews]) + ' if sys.argv[-1].endswith("/reviews") else ' + repr(prs) + '))\n')
+            (root / 'git').write_text('#!/bin/sh\nexit 0\n')
+            for name in ('gh', 'git'):
+                (root / name).chmod(0o755)
+            env = {**os.environ, 'PATH': directory + os.pathsep + os.environ['PATH'],
+                   'GITHUB_REPOSITORY': '0design/qloops', 'GITHUB_EVENT_NAME': event,
+                   'RELEASE_APPROVED': str(manual).lower()}
+            result = subprocess.run(['node', str(Path(__file__).parents[1] / 'scripts/check-reviewed-release.mjs'), commit],
+                                    env=env, capture_output=True)
+            return result.returncode == 0
+
+    def test_unreviewed_and_unmerged_fail(self):
+        self.assertFalse(self.check_gate([]))
+        self.assertFalse(self.check_gate([], manual=True, event='workflow_dispatch', merged=False))
+
+    def test_exact_head_approval_only(self):
+        review = {'state': 'APPROVED', 'commit_id': 'b' * 40, 'user': {'id': 2}}
+        self.assertTrue(self.check_gate([review]))
+        self.assertFalse(self.check_gate([{**review, 'commit_id': 'c' * 40}]))
+        self.assertFalse(self.check_gate([{**review, 'user': {'id': 1}}]))
+
+    def test_manual_confirmation_only_on_dispatch(self):
+        self.assertFalse(self.check_gate([], manual=True))
+        self.assertTrue(self.check_gate([], manual=True, event='workflow_dispatch'))
+        self.assertFalse(self.check_gate([{'state': 'CHANGES_REQUESTED', 'user': {'id': 2}}],
+                                         manual=True, event='workflow_dispatch'))
 
 if __name__ == '__main__':
     unittest.main()
