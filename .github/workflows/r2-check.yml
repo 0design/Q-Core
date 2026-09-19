@@ -1,0 +1,23 @@
+name: R2 connection check
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/r2-registry-publish]
+    paths: ['scripts/check-r2.py', '.github/workflows/r2-check.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify write, private read, public read and cleanup
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: 'true'
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          REGISTRY_PUBLIC_URL: ${{ vars.REGISTRY_PUBLIC_URL }}
+        run: python3 scripts/check-r2.py
