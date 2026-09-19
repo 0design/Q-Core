@@ -22,6 +22,7 @@ test('real local manual/schedule/webhook run records receipts; replay/auth/tampe
   const file=join(root,'loop.yaml');
   writeFileSync(file,`manifest: qloops.loop/v1\nid: hosted-test\nname: Host acceptance\nversion: 1.0.0\nowner: test\nenabled: true\ntriggers:\n  - kind: manual\n  - kind: webhook\n  - kind: schedule\n    cron: "* * * * *"\nsteps:\n  - id: read\n    kind: fetch\n    config:\n      url: "http://127.0.0.1:${source.address().port}/"\n      format: text\n`);
   const config={manifest:file,manifestSha256:hash(readFileSync(file))};
+  assert.throws(()=>createLocalHost({...config,callerProvider:{kind:'caller',agent:'codex',model:'test',payerScope:'local-cli',apiKey:'private'}}),/never credentials/);
   const host=createLocalHost(config);
   assert.equal((await host.dispatch('manual','first')).status,'success');
   assert.equal((await createLocalHost(config).dispatch('manual','first')).duplicate,true);

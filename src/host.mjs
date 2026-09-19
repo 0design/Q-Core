@@ -35,7 +35,10 @@ export function createLocalHost(config) {
   insist(/^[a-f0-9]{64}$/.test(config.manifestSha256), 'Pinned manifest SHA256 required');
   const verify = () => { insist(hash(readFileSync(file)) === config.manifestSha256, 'Manifest changed; explicitly configure the new version'); return loadManifest(file); };
   verify();
-  if(config.callerProvider) validateCallerInput({provider:config.callerProvider});
+  if(config.callerProvider) {
+    insist(config.callerProvider.kind === 'caller' && Object.keys(config.callerProvider).every(k=>['kind','agent','model','payerScope'].includes(k)), 'Caller host configuration accepts identity only, never credentials');
+    validateCallerInput({provider:config.callerProvider});
+  }
   const policy = config.workspacePolicy ? validateWorkspacePolicy(config.workspacePolicy) : null;
   const store = new RunStore(file), dir = join(store.dir,'host',hash(file));
   mkdirSync(dir,{recursive:true,mode:0o700});
