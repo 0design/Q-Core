@@ -21,12 +21,16 @@
 import { flattenLoopSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
-import { assertInferenceReply } from "./caller-inference.mjs";
+import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-steps.mjs";
+import { runWorkspaceRead, runSpecification, runWorkspaceApply, runVerifyArtifact, runDetermined, assertFreshWorkspaceArtifact } from "./registry-workspace-steps.mjs";
+import { snapshot, contextFiles } from './workspace.mjs';
+import { assertInferenceReply, invalidateInference } from "./caller-inference.mjs";
 import { resolveTemplate } from "./template.mjs";
 import { num, str } from "./config.mjs";
 import { resolveTemplateValue } from "./template.mjs";
 import { usdForTokens } from "./cost.mjs";
 import { RunStore, newRunId } from "./state.mjs";
+import { hash, insist } from "./contracts.mjs";
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -34,7 +38,7 @@ export const DEFAULT_RUN_BUDGET_USD = 1;
 export const DEFAULT_MAX_TOKENS = 1200;
 export const MAX_EXPANDED_RUN_ROWS = 10_000;
 
-const ENGINE_KINDS = new Set(["fetch", "llm-call", "api-request", "approval-gate"]);
+const ENGINE_KINDS = new Set(["fetch", "llm-call", "api-request", "approval-gate", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"]);
 
 /** The three knobs, resolved once per run, with where each value came from. */
 export function resolveKnobs(settings = {}) {
@@ -131,6 +135,12 @@ export async function driveRun(run, opts = {}) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
   let inferenceReply = opts.inferenceReply;
   assertInferenceReply(run, inferenceReply);
+  if (run.status === 'success' && run.workspacePolicy) {
+    const artifact = run.steps.findLast(s => s.kind === 'workspace-apply' && s.status === 'success')?.output;
+    if (artifact) try { assertFreshWorkspaceArtifact(artifact, run.workspacePolicy); }
+    catch { run.status = 'needs_human'; run.summary = 'Completed artifact or verifier changed; existing evidence is stale'; store?.save(run); }
+  }
+  if (['waiting_human', 'failed', 'cancelled', 'needs_human', 'success'].includes(run.status)) return run;
   const knobs = opts.knobs ?? resolveKnobs(opts.settings ?? {});
 
   /* SENSITIVITY IS NOT IMPLEMENTED HERE — and it is refused, not ignored.
@@ -258,6 +268,10 @@ export async function driveRun(run, opts = {}) {
          no `.qf/` and no fallback — the request goes out or it does not. */
       fileSink: store ? (body) => store.writeSink(run.runId, body) : null,
       signal: opts.signal,
+      runStore: store,
+      workspacePolicy: run.workspacePolicy,
+      repairSnapshot: run.repairSnapshot,
+      repairAttempt: run.repairAttempt,
     };
 
     next.status = "running";
@@ -281,10 +295,12 @@ export async function driveRun(run, opts = {}) {
       let result;
       if (cliStep) {
         if (knobs.budgetUsd !== null) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null and use bounded inference jobs.');
+        const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }) : undefined;
+        if (step.config.input && explicitInput === undefined) throw new Error('CLI input reference did not resolve');
         const response = registryCliStep(run, {
           stepId: `${next.seq}:${next.stepId}`,
           instructions: resolveTemplate(str(step.config, 'instructions') ?? '', { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }),
-          input: next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
+          input: run.repairContext ? { input: step.config.input ? explicitInput : priorOutputs, repair: run.repairContext } : step.config.input ? explicitInput : next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
           provider: opts.callerProvider, reply: inferenceReply, save: persist,
           maxInferenceJobs: opts.maxInferenceJobs, inferenceTtlMs: opts.inferenceTtlMs,
         });
@@ -296,6 +312,22 @@ export async function driveRun(run, opts = {}) {
         if (format === 'json' && (!output || typeof output !== 'object')) throw new Error('CLI JSON output must be an object or array');
         result = { output, unknownUsage: true, provider: response.provider };
       } else result = await dispatch(step, ctx, knobs);
+      if (['verify-artifact', 'determined'].includes(next.kind) && result.output.outcome === 'fail') {
+        run.repairHistory ??= [];
+        run.repairHistory.push(result.output);
+        const policy = run.workspacePolicy, attempts = run.repairAttempt ?? 0;
+        if (attempts >= (policy.maxRepairAttempts ?? 0)) {
+          next.status = 'failed'; next.output = result.output; next.errorText = 'Independent verifier failed; repair limit reached';
+          next.finishedAt = new Date().toISOString(); run.status = 'needs_human'; run.summary = next.errorText; run.finishedAt = next.finishedAt; persist(); return run;
+        }
+        const from = run.steps.find(s => s.stepId === next.config.repairFrom && s.seq < next.seq && s.kind === 'llm-call' && s.config.provider === 'cli');
+        insist(from && run.steps.filter(s => s.seq >= from.seq && s.seq <= next.seq).every(s => ['llm-call','workspace-apply','verify-artifact','determined'].includes(s.kind)), 'Repair may only repeat the declared local proposal/apply/verify segment');
+        run.repairAttempt = attempts + 1;
+        run.repairSnapshot = snapshot(policy.workspace, policy.allowedPaths);
+        run.repairContext = { attempt: run.repairAttempt, evidence: result.output, files: contextFiles(policy.workspace, policy.allowedPaths) };
+        for (const row of run.steps.filter(s => s.seq >= from.seq && s.seq <= next.seq)) { row.status = 'pending'; row.output = null; row.errorText = null; row.startedAt = null; row.finishedAt = null; }
+        persist(); continue;
+      }
       const costUsd = result.costUsd ?? usdForTokens(result.tokensIn ?? 0, result.tokensOut ?? 0);
       next.status = result.waitingHuman ? "waiting_human" : "success";
       next.gateReason = result.waitingHuman ? "gate" : null;
@@ -354,6 +386,14 @@ export async function driveRun(run, opts = {}) {
 
 async function dispatch(step, ctx, knobs) {
   switch (step.kind) {
+    case "workspace-read": return runWorkspaceRead(step, ctx);
+    case "specification": return runSpecification(step, ctx);
+    case "workspace-apply": return runWorkspaceApply(step, ctx);
+    case "verify-artifact": return runVerifyArtifact(step, ctx);
+    case "determined": return runDetermined(step, ctx);
+    case "parse-web": return runParseWeb(step, ctx);
+    case "deduplicate": return runDeduplicate(step, ctx);
+    case "verify-sources": return runVerifySources(step, ctx);
     case "fetch":
       return runFetch(step, ctx);
     case "llm-call":
@@ -618,9 +658,14 @@ function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
 }
 
 /** Continue a run that is parked at a human gate. */
-export async function resumeRun(run, { decision, ...opts }) {
+export async function resumeRun(run, { decision, approvalHash, ...opts }) {
+  insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
   const gate = run.steps.find((s) => s.status === "waiting_human");
   if (!gate) throw new Error(`Run ${run.runId} is not waiting on anyone (status: ${run.status}).`);
+  if (gate.config.bind === 'sha256') {
+    const subject = run.steps.filter(s => s.seq < gate.seq && s.status === 'success' && s.output != null).at(-1)?.output ?? null;
+    insist(approvalHash === gate.output.approvalHash && hash(subject) === approvalHash && hash(gate.output.subject) === approvalHash, 'Approval does not match the current exact subject', 'STALE_APPROVAL');
+  }
   gate.decision = decision;
   if (decision === "reject") {
     gate.status = "failed";
@@ -637,6 +682,22 @@ export async function resumeRun(run, { decision, ...opts }) {
   run.status = "running";
   run.finishedAt = null;
   return driveRun(run, opts);
+}
+
+export function cancelWaitingRun(run, { store } = {}) {
+  insist(['waiting_inference', 'waiting_human'].includes(run.status), 'Only a paused run can be cancelled here; interrupt an active process directly');
+  run.cancelledFrom = run.status;
+  invalidateInference(run);
+  run.status = 'cancelled'; run.summary = 'Paused run cancelled; explicit resume is required';
+  run.finishedAt = new Date().toISOString(); store?.save(run);
+  return run;
+}
+export async function resumeCancelledRun(run, opts = {}) {
+  insist(run.status === 'cancelled' && ['waiting_inference', 'waiting_human'].includes(run.cancelledFrom), 'Interrupted effects require reconciliation; only an explicitly paused cancellation can resume');
+  run.status = run.cancelledFrom; delete run.cancelledFrom; run.finishedAt = null;
+  run.summary = run.status === 'waiting_human' ? 'Waiting for approval of the pinned subject' : 'Resuming caller inference';
+  opts.store?.save(run);
+  return run.status === 'waiting_human' ? run : driveRun(run, opts);
 }
 
 export { RunStore };

@@ -1,4 +1,11 @@
-# Core contract revision 9 (qf.agent/v1)
+# Core contract revision 10 (qf.agent/v1)
+
+Core.16 adds generic Registry SDD/Digest composition, pinned specification and
+approval subjects, reusable determined verification with persisted bounded
+repair, source checks and durable receiver receipts. See SPEC-MANIFEST.md §11.
+These are candidate implementations; public Registry and owner acceptance are
+separate. The historical direct `qloops agent/content` APIs below do not count
+as acceptance of a Registry template.
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
 and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships

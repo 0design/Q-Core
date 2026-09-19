@@ -6,15 +6,10 @@
   "description": "Avoid repeating source items across feed collection runs.",
   "value": "Avoid repeating source items across feed collection runs.",
   "input": {
-    "items": {
-      "type": "object",
+    "source": {
+      "type": "reference",
       "required": true,
-      "notes": "Normalized items with canonical identity."
-    },
-    "cursor": {
-      "type": "object",
-      "required": true,
-      "notes": "Previously processed identities."
+      "notes": "Sources array or {sources}; deduplication uses exact URL and text."
     }
   },
   "output": {
@@ -29,13 +24,22 @@
   },
   "needsEnv": [],
   "implementation": {
-    "status": "planned",
-    "source": null,
-    "limitation": "Delivery receipts in Content are not a persistent feed cursor or content deduplication component."
+    "status": "implemented",
+    "source": "src/registry-data-steps.mjs",
+    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
   },
   "acceptance": {
-    "status": "pending",
-    "evidence": []
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/digest-huyiks.txt",
+        "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+        "componentVersion": "0.1.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
   },
   "usedBy": []
 }

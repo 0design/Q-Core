@@ -13,11 +13,27 @@
       "contentType": "loop-template",
       "value": "Turn an intent into an approved specification and a verified project change.",
       "version": "0.1.0",
-      "status": "contract-only",
+      "status": "implementation-candidate",
       "inference": "cli",
       "dependencies": [
         {
           "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "workspace-read",
+          "version": "0.1.0"
+        },
+        {
+          "id": "specification",
+          "version": "0.1.0"
+        },
+        {
+          "id": "workspace-apply",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-artifact",
           "version": "0.1.0"
         },
         {
@@ -41,47 +57,19 @@
       },
       "readiness": {
         "templateId": "sdd-pipeline",
-        "status": "blocked",
-        "blockers": [
-          {
-            "id": "llm-call-cli",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "approval-gate",
-            "version": "1.0.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "workspace-apply",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "verify-artifact",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "determined",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          }
-        ],
+        "status": "components-ready",
+        "blockers": [],
         "components": [
           "llm-call-cli@0.1.0",
-          "approval-gate@1.0.0",
+          "workspace-read@0.1.0",
+          "specification@0.1.0",
           "workspace-apply@0.1.0",
           "verify-artifact@0.1.0",
+          "approval-gate@1.0.0",
           "determined@0.1.0"
         ]
-      }
+      },
+      "builtinDependencies": []
     },
     {
       "id": "content-feed",
@@ -122,33 +110,8 @@
       },
       "readiness": {
         "templateId": "content-feed",
-        "status": "blocked",
-        "blockers": [
-          {
-            "id": "fetch",
-            "version": "1.0.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "parse-web",
-            "version": "0.1.0",
-            "implementation": "planned",
-            "acceptance": "pending"
-          },
-          {
-            "id": "deduplicate",
-            "version": "0.1.0",
-            "implementation": "planned",
-            "acceptance": "pending"
-          },
-          {
-            "id": "llm-call-cli",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          }
-        ],
+        "status": "components-ready",
+        "blockers": [],
         "components": [
           "fetch@1.0.0",
           "parse-web@0.1.0",
@@ -163,7 +126,7 @@
       "contentType": "loop-template",
       "value": "Turn selected feed material into a useful editorial digest.",
       "version": "0.1.0",
-      "status": "contract-only",
+      "status": "implementation-candidate",
       "inference": "cli",
       "dependencies": [
         {
@@ -171,11 +134,19 @@
           "version": "0.1.0"
         },
         {
-          "id": "approval-gate",
-          "version": "1.0.0"
+          "id": "parse-web",
+          "version": "0.1.0"
         },
         {
-          "id": "api-request",
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
           "version": "1.0.0"
         }
       ],
@@ -192,33 +163,28 @@
       },
       "readiness": {
         "templateId": "digest",
-        "status": "blocked",
-        "blockers": [
-          {
-            "id": "llm-call-cli",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "approval-gate",
-            "version": "1.0.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "api-request",
-            "version": "1.0.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          }
-        ],
+        "status": "components-ready",
+        "blockers": [],
         "components": [
           "llm-call-cli@0.1.0",
+          "parse-web@0.1.0",
+          "deduplicate@0.1.0",
+          "verify-sources@0.1.0",
           "approval-gate@1.0.0",
+          "fetch@1.0.0",
           "api-request@1.0.0"
         ]
-      }
+      },
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "api-request",
+          "version": "1.0.0"
+        }
+      ]
     },
     {
       "id": "aindf-check",
@@ -254,12 +220,6 @@
         "blockers": [
           {
             "id": "aindf-validator",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "verify-artifact",
             "version": "0.1.0",
             "implementation": "partial",
             "acceptance": "pending"
@@ -309,18 +269,6 @@
         "blockers": [
           {
             "id": "unslop-canon",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "llm-call-cli",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "verify-artifact",
             "version": "0.1.0",
             "implementation": "partial",
             "acceptance": "pending"
@@ -378,30 +326,6 @@
             "id": "agentation",
             "version": "0.1.0",
             "implementation": "planned",
-            "acceptance": "pending"
-          },
-          {
-            "id": "llm-call-cli",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "workspace-apply",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "verify-artifact",
-            "version": "0.1.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          },
-          {
-            "id": "determined",
-            "version": "0.1.0",
-            "implementation": "partial",
             "acceptance": "pending"
           },
           {
@@ -493,7 +417,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.13",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -507,12 +431,21 @@
       "sha256": "a05e27501e41b1fc84853d7c20b63eedb90dcad3461c6c4450150c1d0e25a512",
       "contentType": "component",
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local Digest transport; public acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "1.0.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
       "implementation": {
-        "status": "partial",
+        "status": "implemented",
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
@@ -573,7 +506,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.13",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -675,7 +608,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.13",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -689,12 +622,21 @@
       "sha256": "2b1f253160e925d0a2948e6669aea37da178d081741a659fb297926bce76601c",
       "contentType": "component",
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local Digest transport; public acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "1.0.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "value": "Read a source. SPEC-MANIFEST.md §5.1. Fails on non-2xx, on a network error, and — for format: rss — on a feed with no items. An empty feed is not a success: the steps after it expect material. The RSS reader is regex-based, not an XML parser.",
       "implementation": {
-        "status": "partial",
+        "status": "implemented",
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
@@ -736,7 +678,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.13",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
