@@ -42,7 +42,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -132,7 +132,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -219,7 +219,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -314,7 +314,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -405,7 +405,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -494,7 +494,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -578,7 +578,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -671,7 +671,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -760,7 +760,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -847,7 +847,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -923,7 +923,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -964,6 +964,153 @@
           "version": "1.0.0"
         }
       ]
+    },
+    {
+      "id": "digest",
+      "name": "Digest",
+      "description": "Turn selected feed material into a useful editorial digest.",
+      "value": "Turn selected feed material into a useful editorial digest.",
+      "file": "loops/digest.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/qloops",
+        "path": "registry/loops/digest.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.1.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "api-request",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "loop-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests",
+        "releaseAcceptance": "pending"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [
+        "QF_DIGEST_OPENAI_URL",
+        "QF_DIGEST_ANTHROPIC_URL",
+        "QF_DIGEST_LINEAR_URL",
+        "QF_DIGEST_FIGMA_URL",
+        "QF_DIGEST_RECEIVER_URL"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "sha256": "d99ac1c021f61d60e7c495404511ba0316cfa25168f9adbc57713897a7758b5d"
+    },
+    {
+      "id": "sdd-pipeline",
+      "name": "SDD pipeline",
+      "description": "Turn an intent into an approved specification and a verified project change.",
+      "value": "Turn an intent into an approved specification and a verified project change.",
+      "file": "loops/sdd-pipeline.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/qloops",
+        "path": "registry/loops/sdd-pipeline.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "workspace-read",
+          "version": "0.1.0"
+        },
+        {
+          "id": "specification",
+          "version": "0.1.0"
+        },
+        {
+          "id": "workspace-apply",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-artifact",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        },
+        {
+          "id": "determined",
+          "version": "0.1.0"
+        }
+      ],
+      "builtinDependencies": [],
+      "contentType": "loop-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests",
+        "releaseAcceptance": "pending"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "sha256": "3018054289622229862301b2fb1e19655a75bf9dc8742c35fdb6355cb8cce7ed"
     }
   ],
   "components": [
@@ -1029,7 +1176,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1040,15 +1187,24 @@
         "status": "no-live-proof",
         "releaseAcceptance": "pending"
       },
-      "sha256": "3cd400e1bac1337c211e207b34fd7591f5adf8b1e12ddd0ab7ce0070c7d3ad38",
+      "sha256": "9a6ea01fdc0bc1f919e16a4b66ca058395ab2cf57d63a9b97059c31815ec7bbe",
       "contentType": "component",
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "1.0.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
       "implementation": {
-        "status": "partial",
+        "status": "implemented",
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
@@ -1128,7 +1284,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1198,7 +1354,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1236,22 +1392,31 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "partial",
-        "source": "src/caller-inference.mjs",
-        "limitation": "Existing caller jobs support specification, files and content. A generic Registry component binding is not accepted."
+        "status": "implemented",
+        "source": "src/registry-cli-step.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "9cfcf16f38e8a0620b273ceb1b9dedc4715f78bfe48c8d70fb34df5b5c17f19e"
+      "sha256": "f8f692b56a67936a40120b301a68e27a1aab497175329d932a7e42f068f8cd5b"
     },
     {
       "id": "parse-web",
@@ -1266,22 +1431,31 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "planned",
-        "source": null,
-        "limitation": "Fetching HTML is not parsing it. Reject unsupported pages or report unknown; do not fabricate an extraction."
+        "status": "implemented",
+        "source": "src/registry-data-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "f77c336104430d0080931e33bc49d88c41756709346979f1db926f0807343a54"
+      "sha256": "e7f72ad0ae1a6bb0cd556009d3f464d2a1ce6b9fd8ebe37a005316a7dcf58beb"
     },
     {
       "id": "determined",
@@ -1296,7 +1470,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -1310,17 +1484,26 @@
         }
       ],
       "implementation": {
-        "status": "partial",
-        "source": "src/determined.mjs",
-        "limitation": "Reducer exists; a composable Registry executor/verifier binding still needs acceptance."
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs + src/determined.mjs",
+        "limitation": "Generic pinned checker and bounded repair; native upstream quality release still separate."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "20da3562a08d69967dcf3fdf29a3e682d38499b8d6ebc1a201463724e340f23e"
+      "sha256": "f6e17319f431066bb45ea4ec06d6a028c94841325f6c6987f14f3773b7005833"
     },
     {
       "id": "workspace-apply",
@@ -1335,22 +1518,31 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "partial",
-        "source": "src/workspace.mjs",
-        "limitation": "Existing SDD executor is not yet an accepted general Registry component."
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "ff44df7437df2d6f572835712dd6ad0689096c67d2c12ece37843343d7e3f537"
+      "sha256": "ac4c0db750266b0e8bc051c8f852ad376983855b83fa5981b402a529af9413a6"
     },
     {
       "id": "verify-artifact",
@@ -1365,22 +1557,31 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "partial",
-        "source": "src/agent.mjs",
-        "limitation": "Preserve the approved verifier and artifact binding; never rewrite checks to pass."
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "1d7b49bf4e3bdb2f984802336fcc0f2463cfcf91e716203544a32cc23eb77bde"
+      "sha256": "d73c39ac264d430db8c82abbbd3715ccb1a1dd054ea8c942493c3846465ba0f0"
     },
     {
       "id": "deduplicate",
@@ -1395,22 +1596,31 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "planned",
-        "source": null,
-        "limitation": "Delivery receipts in Content are not a persistent feed cursor or content deduplication component."
+        "status": "implemented",
+        "source": "src/registry-data-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "18f39d5b27bd8f3423446503ee1081d9e5a4bcb9467d436b891479acc5012427"
+      "sha256": "fdc6d88ce2b3974d5f0905cbbbd4db0f0b09cb6e5513826936a91f2656f5b909"
     },
     {
       "id": "aindf-validator",
@@ -1425,7 +1635,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1455,7 +1665,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1485,7 +1695,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1500,6 +1710,123 @@
       "needsEnv": [],
       "builtinDependencies": [],
       "sha256": "79f2f01d27091e8f2712a3db7fe05c3914599c3a66f2c63f28ab1cf048866c38"
+    },
+    {
+      "id": "workspace-read",
+      "name": "Read scoped workspace",
+      "description": "Read explicitly allowed files and pin independent verifier sources.",
+      "value": "Read explicitly allowed files and pin independent verifier sources.",
+      "kind": "step",
+      "contentType": "component",
+      "file": "components/workspace-read.json",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "needsEnv": [],
+      "builtinDependencies": [],
+      "implementation": {
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+      },
+      "acceptance": {
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
+      },
+      "sha256": "2c550e2e6439e7ed3b4946d3c12ea8284e81010bc0aae4f216a673f898ce249e"
+    },
+    {
+      "id": "specification",
+      "name": "Versioned specification",
+      "description": "Persist scoped specification and plan revisions before approval.",
+      "value": "Persist scoped specification and plan revisions before approval.",
+      "kind": "step",
+      "contentType": "component",
+      "file": "components/specification.json",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "needsEnv": [],
+      "builtinDependencies": [],
+      "implementation": {
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+      },
+      "acceptance": {
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
+      },
+      "sha256": "66ada5dbbd8f8dfd0ffd4b4014a0d67829eddec555cec03baeacd0bf319be3d8"
+    },
+    {
+      "id": "verify-sources",
+      "name": "Verify source links",
+      "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+      "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+      "kind": "step",
+      "contentType": "component",
+      "file": "components/verify-sources.json",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "needsEnv": [],
+      "builtinDependencies": [],
+      "implementation": {
+        "status": "implemented",
+        "source": "src/registry-data-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+      },
+      "acceptance": {
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
+      },
+      "sha256": "8a98140334eabd69879a02abd25853831cafeacbbf6f9dda526043fc065a592d"
     }
   ],
   "demos": [
@@ -1528,7 +1855,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1571,7 +1898,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1614,7 +1941,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1634,19 +1961,87 @@
       "status": "offline-demo",
       "value": "Preserve feedback identity and expose ambiguous requests before execution.",
       "sha256": "e612df3657c10538cc4fe0af1718ba6dfc491a3589dd5fbde4766ed44d67375a"
+    },
+    {
+      "id": "digest-huyiks",
+      "loopId": "digest",
+      "name": "ХУЇКС: sourced digest",
+      "description": "Four source pages to an approved Ukrainian digest with visible source checks. Local installed candidate evidence; public release acceptance pending.",
+      "proof": "demos/digest-huyiks.txt",
+      "resultUrl": null,
+      "live": false,
+      "measured": null,
+      "author": "0design",
+      "version": "0.1.0",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "permissions": {
+        "execution": "none"
+      },
+      "evidence": {
+        "status": "local-live-proof",
+        "releaseAcceptance": "pending",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      },
+      "contentType": "demo",
+      "acceptance": {
+        "status": "pending",
+        "scope": "Real pinned Registry scenario and output required"
+      },
+      "sha256": "686620e2e2e62e0be970aaf3ffd73b9747b43918bfedd1bac9c6f019aa0b0b62"
+    },
+    {
+      "id": "sdd-verified-change",
+      "loopId": "sdd-pipeline",
+      "name": "SDD: verified change",
+      "description": "A scoped change reaches an independent verifier, with bounded repair. Local installed candidate evidence; public release acceptance pending.",
+      "proof": "demos/sdd-verified-change.txt",
+      "resultUrl": null,
+      "live": false,
+      "measured": null,
+      "author": "0design",
+      "version": "0.1.0",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "permissions": {
+        "execution": "none"
+      },
+      "evidence": {
+        "status": "local-live-proof",
+        "releaseAcceptance": "pending",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      },
+      "contentType": "demo",
+      "acceptance": {
+        "status": "pending",
+        "scope": "Real pinned Registry scenario and output required"
+      },
+      "sha256": "be341516ccb856a0dae949e3467f7ed05336459163941fab325fee5a672287ce"
     }
   ],
   "releaseVersion": "2026.09.19-registry.1-candidate",
   "core": {
     "package": "qloops",
-    "version": "0.2.0-core.15",
+    "version": "0.2.0-core.16",
     "manifest": "qloops.loop/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 9,
-    "artifact": "vendor/qloops-0.2.0-core.15.tgz",
-    "artifactSha256": "e940f950484bbac8708a8f963a3f02deaf91b2905c0d07b5853514ec815004b4",
-    "integrity": "sha512-NZeFxAqQfF9R6g7qonPJlkOaGl7N25jiaf7DQ4SRBmfaRmFiUcV9pcXcSePhrtqnBHtwtJVcCdERkF0Q/FuHgQ==",
-    "schemaSha256": "b29ce1a08d56685d8a1c73edb95acba2afdd3fd623c68dd23bad0ba00a91b284",
+    "contractRevision": 10,
+    "artifact": "vendor/qloops-0.2.0-core.16.tgz",
+    "artifactSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593",
+    "integrity": "sha512-Ip5bnz/R2rNncTpiPZlpnvWIBfF/5QJ7rXg5uYwMWWjZpIKQ3DncH0f/9kUokp63lowHuTqqjmz0V9nWuF/RvA==",
+    "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
     "requestSchemaSha256": "90d30cb77c9f348cbcb0e8e20d98ba3219c6aa3466fda76d2b7a1178cc566f87",
     "status": "consumer-integration-candidate",
     "source": "Core.15 exact package; integration candidate, product acceptance pending",
@@ -1676,11 +2071,27 @@
         "contentType": "loop-template",
         "value": "Turn an intent into an approved specification and a verified project change.",
         "version": "0.1.0",
-        "status": "contract-only",
+        "status": "implementation-candidate",
         "inference": "cli",
         "dependencies": [
           {
             "id": "llm-call-cli",
+            "version": "0.1.0"
+          },
+          {
+            "id": "workspace-read",
+            "version": "0.1.0"
+          },
+          {
+            "id": "specification",
+            "version": "0.1.0"
+          },
+          {
+            "id": "workspace-apply",
+            "version": "0.1.0"
+          },
+          {
+            "id": "verify-artifact",
             "version": "0.1.0"
           },
           {
@@ -1704,47 +2115,19 @@
         },
         "readiness": {
           "templateId": "sdd-pipeline",
-          "status": "blocked",
-          "blockers": [
-            {
-              "id": "llm-call-cli",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "approval-gate",
-              "version": "1.0.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "workspace-apply",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "verify-artifact",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "determined",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            }
-          ],
+          "status": "components-ready",
+          "blockers": [],
           "components": [
             "llm-call-cli@0.1.0",
-            "approval-gate@1.0.0",
+            "workspace-read@0.1.0",
+            "specification@0.1.0",
             "workspace-apply@0.1.0",
             "verify-artifact@0.1.0",
+            "approval-gate@1.0.0",
             "determined@0.1.0"
           ]
-        }
+        },
+        "builtinDependencies": []
       },
       {
         "id": "content-feed",
@@ -1785,33 +2168,8 @@
         },
         "readiness": {
           "templateId": "content-feed",
-          "status": "blocked",
-          "blockers": [
-            {
-              "id": "fetch",
-              "version": "1.0.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "parse-web",
-              "version": "0.1.0",
-              "implementation": "planned",
-              "acceptance": "pending"
-            },
-            {
-              "id": "deduplicate",
-              "version": "0.1.0",
-              "implementation": "planned",
-              "acceptance": "pending"
-            },
-            {
-              "id": "llm-call-cli",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            }
-          ],
+          "status": "components-ready",
+          "blockers": [],
           "components": [
             "fetch@1.0.0",
             "parse-web@0.1.0",
@@ -1826,7 +2184,7 @@
         "contentType": "loop-template",
         "value": "Turn selected feed material into a useful editorial digest.",
         "version": "0.1.0",
-        "status": "contract-only",
+        "status": "implementation-candidate",
         "inference": "cli",
         "dependencies": [
           {
@@ -1834,11 +2192,19 @@
             "version": "0.1.0"
           },
           {
-            "id": "approval-gate",
-            "version": "1.0.0"
+            "id": "parse-web",
+            "version": "0.1.0"
           },
           {
-            "id": "api-request",
+            "id": "deduplicate",
+            "version": "0.1.0"
+          },
+          {
+            "id": "verify-sources",
+            "version": "0.1.0"
+          },
+          {
+            "id": "approval-gate",
             "version": "1.0.0"
           }
         ],
@@ -1855,33 +2221,28 @@
         },
         "readiness": {
           "templateId": "digest",
-          "status": "blocked",
-          "blockers": [
-            {
-              "id": "llm-call-cli",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "approval-gate",
-              "version": "1.0.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "api-request",
-              "version": "1.0.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            }
-          ],
+          "status": "components-ready",
+          "blockers": [],
           "components": [
             "llm-call-cli@0.1.0",
+            "parse-web@0.1.0",
+            "deduplicate@0.1.0",
+            "verify-sources@0.1.0",
             "approval-gate@1.0.0",
+            "fetch@1.0.0",
             "api-request@1.0.0"
           ]
-        }
+        },
+        "builtinDependencies": [
+          {
+            "id": "fetch",
+            "version": "1.0.0"
+          },
+          {
+            "id": "api-request",
+            "version": "1.0.0"
+          }
+        ]
       },
       {
         "id": "aindf-check",
@@ -1917,12 +2278,6 @@
           "blockers": [
             {
               "id": "aindf-validator",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "verify-artifact",
               "version": "0.1.0",
               "implementation": "partial",
               "acceptance": "pending"
@@ -1972,18 +2327,6 @@
           "blockers": [
             {
               "id": "unslop-canon",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "llm-call-cli",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "verify-artifact",
               "version": "0.1.0",
               "implementation": "partial",
               "acceptance": "pending"
@@ -2041,30 +2384,6 @@
               "id": "agentation",
               "version": "0.1.0",
               "implementation": "planned",
-              "acceptance": "pending"
-            },
-            {
-              "id": "llm-call-cli",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "workspace-apply",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "verify-artifact",
-              "version": "0.1.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            },
-            {
-              "id": "determined",
-              "version": "0.1.0",
-              "implementation": "partial",
               "acceptance": "pending"
             },
             {
@@ -2156,7 +2475,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.13",
+          "version": "0.2.0-core.16",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2170,12 +2489,21 @@
         "sha256": "a05e27501e41b1fc84853d7c20b63eedb90dcad3461c6c4450150c1d0e25a512",
         "contentType": "component",
         "acceptance": {
-          "status": "pending",
-          "evidence": []
+          "status": "accepted",
+          "scope": "Controlled local Digest transport; public acceptance pending.",
+          "evidence": [
+            {
+              "file": "demos/digest-huyiks.txt",
+              "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+              "componentVersion": "1.0.0",
+              "coreVersion": "0.2.0-core.16",
+              "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+            }
+          ]
         },
         "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
         "implementation": {
-          "status": "partial",
+          "status": "implemented",
           "source": "src/steps.mjs",
           "limitation": "Existing runtime evidence is separate from Registry component acceptance."
         },
@@ -2236,7 +2564,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.13",
+          "version": "0.2.0-core.16",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2338,7 +2666,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.13",
+          "version": "0.2.0-core.16",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2352,12 +2680,21 @@
         "sha256": "2b1f253160e925d0a2948e6669aea37da178d081741a659fb297926bce76601c",
         "contentType": "component",
         "acceptance": {
-          "status": "pending",
-          "evidence": []
+          "status": "accepted",
+          "scope": "Controlled local Digest transport; public acceptance pending.",
+          "evidence": [
+            {
+              "file": "demos/digest-huyiks.txt",
+              "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+              "componentVersion": "1.0.0",
+              "coreVersion": "0.2.0-core.16",
+              "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+            }
+          ]
         },
         "value": "Read a source. SPEC-MANIFEST.md §5.1. Fails on non-2xx, on a network error, and — for format: rss — on a feed with no items. An empty feed is not a success: the steps after it expect material. The RSS reader is regex-based, not an XML parser.",
         "implementation": {
-          "status": "partial",
+          "status": "implemented",
           "source": "src/steps.mjs",
           "limitation": "Existing runtime evidence is separate from Registry component acceptance."
         },
@@ -2399,7 +2736,7 @@
         },
         "engine": {
           "package": "qloops",
-          "version": "0.2.0-core.13",
+          "version": "0.2.0-core.16",
           "manifest": "qloops.loop/v1"
         },
         "dependencies": [],
@@ -2491,5 +2828,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "b97c38e823ece850069eae947b8ee900a9f3a356d34439c42bb923d57d2094a6"
+  "releaseSha256": "293ad357f99b0286ba38d23209220aa23f5a529b29b532538842e694e067e958"
 }

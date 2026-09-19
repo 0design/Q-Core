@@ -1,29 +1,25 @@
 {
-  "id": "verify-artifact",
-  "name": "verify-artifact",
+  "id": "workspace-read",
+  "name": "Read scoped workspace",
   "kind": "step",
   "contentType": "component",
-  "description": "Check the exact output independently of the executor.",
-  "value": "Check the exact output independently of the executor.",
+  "description": "Read explicitly allowed files and pin independent verifier sources.",
+  "value": "Read explicitly allowed files and pin independent verifier sources.",
   "input": {
-    "source": {
-      "type": "reference",
+    "workspacePolicy": {
+      "type": "external-json",
       "required": true,
-      "notes": "Reference to workspace-apply artifact identity."
-    },
-    "repairFrom": {
-      "type": "step-id",
-      "required": false,
-      "notes": "Bounded CLI proposal step; repeated segment must contain only proposal/apply/verify."
+      "notes": "Supplied only by --workspace-policy: workspace, allowedPaths, intent, verifier and maxRepairAttempts; not generated step data."
     }
   },
   "output": {
-    "evidence": {
+    "result": {
       "type": "object",
-      "notes": "Pass, fail or unknown for each required criterion."
+      "notes": "Read explicitly allowed files and pin independent verifier sources."
     }
   },
   "needsEnv": [],
+  "usedBy": [],
   "implementation": {
     "status": "implemented",
     "source": "src/registry-workspace-steps.mjs",
@@ -41,6 +37,5 @@
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
       }
     ]
-  },
-  "usedBy": []
+  }
 }

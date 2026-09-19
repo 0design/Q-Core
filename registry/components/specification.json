@@ -1,29 +1,30 @@
 {
-  "id": "verify-artifact",
-  "name": "verify-artifact",
+  "id": "specification",
+  "name": "Versioned specification",
   "kind": "step",
   "contentType": "component",
-  "description": "Check the exact output independently of the executor.",
-  "value": "Check the exact output independently of the executor.",
+  "description": "Persist scoped specification and plan revisions before approval.",
+  "value": "Persist scoped specification and plan revisions before approval.",
   "input": {
     "source": {
       "type": "reference",
       "required": true,
-      "notes": "Reference to workspace-apply artifact identity."
+      "notes": "Reference to caller summary/criteria/plan."
     },
-    "repairFrom": {
-      "type": "step-id",
-      "required": false,
-      "notes": "Bounded CLI proposal step; repeated segment must contain only proposal/apply/verify."
+    "workspace": {
+      "type": "reference",
+      "required": true,
+      "notes": "Reference to workspace-read output; optional imported policy.specification takes precedence."
     }
   },
   "output": {
-    "evidence": {
+    "result": {
       "type": "object",
-      "notes": "Pass, fail or unknown for each required criterion."
+      "notes": "Persist scoped specification and plan revisions before approval."
     }
   },
   "needsEnv": [],
+  "usedBy": [],
   "implementation": {
     "status": "implemented",
     "source": "src/registry-workspace-steps.mjs",
@@ -41,6 +42,5 @@
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
       }
     ]
-  },
-  "usedBy": []
+  }
 }

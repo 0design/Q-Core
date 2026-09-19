@@ -25,7 +25,7 @@ import { parseYaml, YamlError } from "./yaml.mjs";
 export const MANIFEST_TAG = "qloops.loop/v1";
 
 /** Step kinds the engine executes. */
-export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each"];
+export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"];
 
 /** Trigger kinds — entry points, not steps. `schedule` is one of these, not a runner. */
 export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "loop-input", "event"];

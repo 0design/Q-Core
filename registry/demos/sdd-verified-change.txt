@@ -1,0 +1,342 @@
+{
+  "schema": "qf.registry-acceptance/v1",
+  "recordedAt": "2026-09-19T17:15:38.314Z",
+  "core": {
+    "version": "0.2.0-core.16",
+    "sha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+  },
+  "testedCatalogSha256": "3705a21c88877ffee9a7bab8bd141f14b7d2c6a53a1030e12ead94c52a1f4644",
+  "registryRelease": "2026.09.19-registry.1-candidate",
+  "transport": "pinned localhost HTTP export; public R2 acceptance pending",
+  "inference": {
+    "agent": "codex",
+    "kind": "caller-supplied-inference",
+    "requestedModel": "current-session; resolved-model-unknown",
+    "resolvedModel": null,
+    "costUsd": null,
+    "tokensIn": null,
+    "tokensOut": null
+  },
+  "approval": "Agent exercised the approved controlled-test flow; not owner acceptance.",
+  "methodology": "Actual Registry manifests and exact dependency bytes were installed with the clean packed CLI. Source/receiver and verifier ran for real. Codex supplied bounded replies. Timings include local orchestration pauses and reused prepared drafts/specs; they are not fresh-chat time-to-first-result benchmarks.",
+  "limitations": [
+    "Public immutable-release rerun remains required.",
+    "This is not independent owner acceptance or Claude/OpenRouter verification.",
+    "Scheduling was not installed or tested."
+  ],
+  "loopId": "sdd-pipeline",
+  "loopVersion": "0.1.0",
+  "manifestSha256": "3018054289622229862301b2fb1e19655a75bf9dc8742c35fdb6355cb8cce7ed",
+  "dependencies": [
+    {
+      "key": "components/llm-call-cli@0.1.0",
+      "path": "components/llm-call-cli.json",
+      "sha256": "6a369826824eaede3ce67565f7f0d33861ef957ac4e95641989e0e5b593b89ae"
+    },
+    {
+      "key": "components/workspace-read@0.1.0",
+      "path": "components/workspace-read.json",
+      "sha256": "f9dec032747ecc5e52aa77e71c47eb01c05e4825fb280aa379b21944405c05b6"
+    },
+    {
+      "key": "components/specification@0.1.0",
+      "path": "components/specification.json",
+      "sha256": "25dbb281ef2c9708b0603a9d61e5b94f246049943d145b414912d4751eae4059"
+    },
+    {
+      "key": "components/workspace-apply@0.1.0",
+      "path": "components/workspace-apply.json",
+      "sha256": "783c446fbd76b10a780b22a17920e44913aea75979c28f66dafa044a5d0f7c88"
+    },
+    {
+      "key": "components/verify-artifact@0.1.0",
+      "path": "components/verify-artifact.json",
+      "sha256": "ecd958a3e837fb7528355d6cd41906c26fd1c93b953ea410b36f8e0b6b38f16d"
+    },
+    {
+      "key": "components/approval-gate@1.0.0",
+      "path": "components/approval-gate.json",
+      "sha256": "3cd400e1bac1337c211e207b34fd7591f5adf8b1e12ddd0ab7ce0070c7d3ad38"
+    },
+    {
+      "key": "components/determined@0.1.0",
+      "path": "components/determined.json",
+      "sha256": "bc81c68a0c33b13016a7131bd42f438080e95dcde8db1762c4d0ebb8ab4c3eda"
+    },
+    {
+      "key": "loops/sdd-pipeline@0.1.0",
+      "path": "loops/sdd-pipeline.yaml",
+      "sha256": "3018054289622229862301b2fb1e19655a75bf9dc8742c35fdb6355cb8cce7ed"
+    }
+  ],
+  "runs": [
+    {
+      "runId": "a22d541e-22da-4678-94d4-6aca48915049",
+      "status": "success",
+      "startedAt": "2026-09-19T17:10:36.435Z",
+      "finishedAt": "2026-09-19T17:10:38.390Z",
+      "wallClockMs": 1955,
+      "specification": {
+        "summary": "Compute basket total from each item's price and quantity while preserving the existing export.",
+        "criteria": [
+          "An empty basket returns 0.",
+          "Two units at 12 plus four units at 3 return 36.",
+          "Two units at 2.5 return 5.",
+          "Only total.mjs changes; the independent verifier remains unchanged."
+        ],
+        "plan": [
+          "Replace item counting with summation of price multiplied by quantity.",
+          "Run the pinned verify.mjs with Node.",
+          "If verification fails, repair only total.mjs once within the approved bound; otherwise stop for human review."
+        ]
+      },
+      "approvalHash": "08f6ae5cd00cfde57b23c87a9919c1cfe4af5ac5ed118e16e1172cdebb1aede6",
+      "repairAttempts": 0,
+      "repairHistory": [],
+      "evidence": {
+        "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+        "revision": 1,
+        "outcome": "pass",
+        "exitCode": 0,
+        "stdout": "empty basket, quantities and decimals pass\n",
+        "stderr": "",
+        "verifierSources": {
+          "/usr/local/bin/node": "c583851fc85e4618b2374cda13399d59d373ad7cebfc4b55160820b88dcce67b",
+          "/private/tmp/qfactory-core16/final-project/verify.mjs": "e6779bc42c047fb1f1932a1793a34de3d23606ae965a5284344713592a6b2e3a"
+        },
+        "specHash": "43854ca9732b391a940276c6af240e63fda4fd9182b3e06e24c976f1213f778e",
+        "determined": {
+          "status": "success",
+          "planHash": "cfc46126db0a8328be445067c19aa33e44898fcdb58fc9648bbd8ffe8d61bab7",
+          "history": [
+            {
+              "attempt": 0,
+              "artifact": {
+                "sha256": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                "revision": 1
+              },
+              "outcomes": [
+                {
+                  "criterionId": "criterion-1",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 1,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                },
+                {
+                  "criterionId": "criterion-2",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 1,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                },
+                {
+                  "criterionId": "criterion-3",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 1,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                },
+                {
+                  "criterionId": "criterion-4",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 1,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "runId": "ac12f52c-289f-48ab-93fd-47380761e004",
+      "status": "success",
+      "startedAt": "2026-09-19T17:11:36.792Z",
+      "finishedAt": "2026-09-19T17:12:19.489Z",
+      "wallClockMs": 42697,
+      "specification": {
+        "summary": "Compute basket total from each item's price and quantity while preserving the existing export.",
+        "criteria": [
+          "An empty basket returns 0.",
+          "Two units at 12 plus four units at 3 return 36.",
+          "Two units at 2.5 return 5.",
+          "Only total.mjs changes; the independent verifier remains unchanged."
+        ],
+        "plan": [
+          "Replace item counting with summation of price multiplied by quantity.",
+          "Run the pinned verify.mjs with Node.",
+          "If verification fails, repair only total.mjs once within the approved bound; otherwise stop for human review."
+        ]
+      },
+      "approvalHash": "73083652da06a01c63dabe71d774864f3858456acf166277186e1b69b47ec703",
+      "repairAttempts": 1,
+      "repairHistory": [
+        {
+          "artifactHash": "230003ac3d3dba82902d493cdc823032f938cb81b490917c02460497b11ad2de",
+          "revision": 1,
+          "outcome": "fail",
+          "exitCode": 1,
+          "stdout": "",
+          "stderr": "node:internal/modules/run_main:122\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n15 !== 36\n\n    at file:///private/tmp/qfactory-core16/final-project/verify.mjs:4:8\n    at ModuleJob.run (node:internal/modules/esm/module_job:271:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:578:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:116:5) {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: 15,\n  expected: 36,\n  operator: 'strictEqual'\n}\n\nNode.js v22.14.0\n",
+          "verifierSources": {
+            "/usr/local/bin/node": "c583851fc85e4618b2374cda13399d59d373ad7cebfc4b55160820b88dcce67b",
+            "/private/tmp/qfactory-core16/final-project/verify.mjs": "e6779bc42c047fb1f1932a1793a34de3d23606ae965a5284344713592a6b2e3a"
+          },
+          "specHash": "43854ca9732b391a940276c6af240e63fda4fd9182b3e06e24c976f1213f778e",
+          "determined": {
+            "status": "needs_human",
+            "planHash": "cfc46126db0a8328be445067c19aa33e44898fcdb58fc9648bbd8ffe8d61bab7",
+            "history": [
+              {
+                "attempt": 0,
+                "artifact": {
+                  "sha256": "230003ac3d3dba82902d493cdc823032f938cb81b490917c02460497b11ad2de",
+                  "revision": 1
+                },
+                "outcomes": [
+                  {
+                    "criterionId": "criterion-1",
+                    "outcome": "fail",
+                    "artifactHash": "230003ac3d3dba82902d493cdc823032f938cb81b490917c02460497b11ad2de",
+                    "revision": 1,
+                    "verifier": {
+                      "type": "command",
+                      "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                    }
+                  },
+                  {
+                    "criterionId": "criterion-2",
+                    "outcome": "fail",
+                    "artifactHash": "230003ac3d3dba82902d493cdc823032f938cb81b490917c02460497b11ad2de",
+                    "revision": 1,
+                    "verifier": {
+                      "type": "command",
+                      "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                    }
+                  },
+                  {
+                    "criterionId": "criterion-3",
+                    "outcome": "fail",
+                    "artifactHash": "230003ac3d3dba82902d493cdc823032f938cb81b490917c02460497b11ad2de",
+                    "revision": 1,
+                    "verifier": {
+                      "type": "command",
+                      "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                    }
+                  },
+                  {
+                    "criterionId": "criterion-4",
+                    "outcome": "fail",
+                    "artifactHash": "230003ac3d3dba82902d493cdc823032f938cb81b490917c02460497b11ad2de",
+                    "revision": 1,
+                    "verifier": {
+                      "type": "command",
+                      "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                    }
+                  }
+                ]
+              }
+            ],
+            "reason": "Repair limit reached"
+          }
+        }
+      ],
+      "evidence": {
+        "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+        "revision": 2,
+        "outcome": "pass",
+        "exitCode": 0,
+        "stdout": "empty basket, quantities and decimals pass\n",
+        "stderr": "",
+        "verifierSources": {
+          "/usr/local/bin/node": "c583851fc85e4618b2374cda13399d59d373ad7cebfc4b55160820b88dcce67b",
+          "/private/tmp/qfactory-core16/final-project/verify.mjs": "e6779bc42c047fb1f1932a1793a34de3d23606ae965a5284344713592a6b2e3a"
+        },
+        "specHash": "43854ca9732b391a940276c6af240e63fda4fd9182b3e06e24c976f1213f778e",
+        "determined": {
+          "status": "success",
+          "planHash": "cfc46126db0a8328be445067c19aa33e44898fcdb58fc9648bbd8ffe8d61bab7",
+          "history": [
+            {
+              "attempt": 0,
+              "artifact": {
+                "sha256": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                "revision": 2
+              },
+              "outcomes": [
+                {
+                  "criterionId": "criterion-1",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 2,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                },
+                {
+                  "criterionId": "criterion-2",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 2,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                },
+                {
+                  "criterionId": "criterion-3",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 2,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                },
+                {
+                  "criterionId": "criterion-4",
+                  "outcome": "pass",
+                  "artifactHash": "376c54c8f46e13e6a62c7632330d96350b7ef8f232785d02d86ecf59b94d3d02",
+                  "revision": 2,
+                  "verifier": {
+                    "type": "command",
+                    "identity": "dc923ae7977cc9bf3d1669adac0ac54e3b1610444ede90aba1fcb4c88a6c2071"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "faultInjection": "Second run deliberately proposed a price-only total to exercise the independent verifier failure (15 != 36); the bound Codex reply repaired multiplication by quantity.",
+  "cancellation": {
+    "cancel": "cancelled",
+    "resume": "waiting_inference",
+    "oldJobInvalidated": true
+  },
+  "staleEvidence": {
+    "runId": "ac12f52c-289f-48ab-93fd-47380761e004",
+    "status": "needs_human",
+    "summary": "Completed artifact or verifier changed; existing evidence is stale",
+    "modifiedArtifactHash": "9ede759ad3675bb11729422e718ea4056726b76668616a97969ce8972a20192f"
+  },
+  "artifact": "export function total(items) {\n  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);\n}\n",
+  "checks": "Happy path, real failed verifier, bounded repair, paused cancellation/new-job resume, stale completed-artifact evidence refusal. Unit tests separately prove spec revision on scope change, verifier mutation refusal and repair-limit escalation."
+}

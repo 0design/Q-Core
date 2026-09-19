@@ -1,0 +1,33 @@
+{
+  "id": "sdd-verified-change",
+  "loopId": "sdd-pipeline",
+  "name": "SDD: verified change",
+  "description": "A scoped change reaches an independent verifier, with bounded repair. Local installed candidate evidence; public release acceptance pending.",
+  "proof": "demos/sdd-verified-change.txt",
+  "resultUrl": null,
+  "live": false,
+  "measured": null,
+  "author": "0design",
+  "version": "0.1.0",
+  "license": "MIT",
+  "engine": {
+    "package": "qloops",
+    "version": "0.2.0-core.16",
+    "manifest": "qloops.loop/v1"
+  },
+  "dependencies": [],
+  "permissions": {
+    "execution": "none"
+  },
+  "evidence": {
+    "status": "local-live-proof",
+    "releaseAcceptance": "pending",
+    "coreVersion": "0.2.0-core.16",
+    "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+  },
+  "contentType": "demo",
+  "acceptance": {
+    "status": "pending",
+    "scope": "Real pinned Registry scenario and output required"
+  }
+}

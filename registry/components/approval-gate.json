@@ -28,6 +28,11 @@
       "type": "string",
       "required": false,
       "notes": "check is RESERVED \u2014 refused."
+    },
+    "bind": {
+      "type": "string",
+      "required": false,
+      "notes": "sha256 binds exact subject and requires --approval-hash when approving or rejecting."
     }
   },
   "output": {
@@ -49,7 +54,21 @@
   "contentType": "component",
   "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
   "acceptance": {
-    "status": "pending",
-    "evidence": []
+    "status": "accepted",
+    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "evidence": [
+      {
+        "file": "demos/digest-huyiks.txt",
+        "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+        "componentVersion": "1.0.0",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      }
+    ]
+  },
+  "implementation": {
+    "status": "implemented",
+    "source": "src/steps.mjs",
+    "limitation": "Existing runtime evidence is separate from Registry component acceptance."
   }
 }

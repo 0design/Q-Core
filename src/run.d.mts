@@ -1,7 +1,7 @@
 /** Types for the driver. Hand-written — see manifest.d.mts on why. */
 import type { LoopManifest, LoopManifestSettings, LoopManifestStep } from "./manifest.d.mts";
 
-export type RunStatus = "running" | "success" | "failed" | "cancelled" | "waiting_human" | "waiting_inference";
+export type RunStatus = "running" | "success" | "failed" | "cancelled" | "waiting_human" | "waiting_inference" | "needs_human";
 export type StepStatus = "pending" | "running" | "success" | "failed" | "waiting_human" | "planned";
 
 export interface RunStep {
@@ -47,6 +47,9 @@ export interface Run {
   pendingInference?: { protocolVersion: string; jobId: string; hash: string; runId: string; phase: string; inputHash: string; expiresAt: number; messages: Array<{ role: string; content: string }>; outputKind: string };
   callerProvider?: DriveOptions['callerProvider'];
   executionKnobs?: Knobs;
+  workspacePolicy?: { workspace: string; allowedPaths: string[]; intent: string; verifier: { command: string; args: string[]; timeoutMs: number }; maxRepairAttempts?: number; specification?: { summary: string; criteria: string[]; plan: string[] } };
+  repairAttempt?: number;
+  repairHistory?: unknown[];
 }
 
 export interface Knobs {
@@ -79,4 +82,6 @@ export declare const MAX_EXPANDED_RUN_ROWS: number;
 export declare function resolveKnobs(settings?: LoopManifestSettings): Knobs;
 export declare function createRun(manifest: LoopManifest, opts?: { trigger?: string }): Run;
 export declare function driveRun(run: Run, opts?: DriveOptions): Promise<Run>;
-export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject" }): Promise<Run>;
+export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject"; approvalHash?: string }): Promise<Run>;
+export declare function cancelWaitingRun(run: Run, opts?: DriveOptions): Run;
+export declare function resumeCancelledRun(run: Run, opts?: DriveOptions): Promise<Run>;

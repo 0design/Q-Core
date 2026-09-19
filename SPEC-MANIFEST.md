@@ -369,3 +369,63 @@ not read says so by name instead of trying its luck.
 `RESERVED` fields — `agent-call`, `agent-gate mode: check` — are refused today
 precisely so that implementing them later cannot break a manifest that was
 written against this document.
+
+## 11. Registry composition additions (Core candidate)
+
+The Registry driver also executes `parse-web`, `deduplicate`, `verify-sources`,
+`workspace-read`, `specification`, `workspace-apply` and `verify-artifact`.
+These are generic components, not shortcuts to the direct SDD/content APIs.
+
+- `parse-web`: optional `source` references a successful text fetch; absent source
+  selects prior fetched text pages. `maxChars` is 500..10000 per page (default6000).
+  Static text extraction excludes scripts/navigation and reports truncation. It
+  does not execute JavaScript or assert that source statements are factual.
+- `deduplicate`: `source` references `{sources:[{url,text,...}]}`. Exact URL/text
+  duplicates are removed; `sourceHash` identifies the selected set.
+- `verify-sources`: `draft` references text or `{text}` and `sources` references
+  the selected sources. Requires every selected source URL, rejects unknown URLs
+  and enforces a 16000-character bound. Optional `language: uk` checks Ukrainian
+  markers, not linguistic quality. Facts need independent review.
+- `llm-call` with `provider: cli` may set `input` to one step-output reference to
+  bound its input instead of sending every prior raw output. Caller replies stay
+  bound to the exact pending job. No alternate provider fallback exists.
+- A human `approval-gate` with `bind: sha256` requires `qloops approve <manifest>
+  <runId> --approval-hash <hash>` (also for rejection). The displayed hash binds
+  the exact persisted subject; a mismatched/stale subject cannot be approved.
+- `api-request` may declare `receiptKey` resolving to a SHA-256 source identity.
+  Persistent receipt is claimed before sending; delivered repeats return the
+  receipt without a new request. Failure/interruption is uncertain and requires
+  reconciliation. This mode performs no automatic retry or missing-env file
+  fallback. The receiver destination must be explicitly configured.
+- Workspace components require an explicit local `--workspace-policy <json>`:
+  absolute `workspace`, `allowedPaths`, `intent`, immutable `verifier` command,
+  file `args`, `timeoutMs`, and `maxRepairAttempts` (0..5). Optional
+  `specification` imports bounded summary/criteria/plan but still needs approval.
+  Policy is persisted with the run; it cannot be supplied by generated output.
+- `workspace-read` pins files and independent verifier inputs. `specification`
+  takes `source` and `workspace` references and records a revision when spec or
+  policy changes. An ambiguous intent must be clarified before the caller replies;
+  a scope change starts a new specification revision, not a silent in-run edit.
+- `workspace-apply` takes `source` with `{files:[{path,content}]}` and `approval`
+  with the approved spec. It refuses changed source files, checker changes,
+  symlinks, out-of-scope paths and writable checker inputs. The verifier is a
+  trusted user-selected command, not an operating-system sandbox.
+- `verify-artifact` takes an applied artifact `source` and may set `repairFrom` to
+  its caller proposal step. Failed checks repeat only the declared local
+  proposal/apply/verify segment within the policy bound; missing/stale evidence
+  or changed checker stops. Limit exhaustion is `needs_human`, never success.
+  Repair evidence and revisions are retained. Interrupted applies require manual
+  reconciliation; they are never blindly repeated.
+
+These contracts describe the implementation candidate. Public release and real
+Registry acceptance require independent pinned-package evidence.
+- `determined` shares `source`, `specification` and `repairFrom` references. It
+  reuses the determined reducer's AND/freshness checks over approved criteria;
+  all criteria bind to the explicitly selected independent verifier suite. The
+  Registry driver persists pauses and bounded repair attempts around that reducer.
+- `qloops cancel <manifest> <runId>` cancels only a paused inference/approval run.
+  It invalidates the pending job. `qloops resume <manifest> <runId>` explicitly
+  resumes that paused cancellation with a new job, without repeating completed
+  steps. An interrupted active side effect cannot use this shortcut.
+- `fetch.maxBodyBytes` optionally raises the bounded response capture from 64000
+  to at most 2000000 bytes for static source pages; text output discloses truncation.

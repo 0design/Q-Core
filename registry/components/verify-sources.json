@@ -1,29 +1,35 @@
 {
-  "id": "parse-web",
-  "name": "parse-web",
+  "id": "verify-sources",
+  "name": "Verify source links",
   "kind": "step",
   "contentType": "component",
-  "description": "Extract source-attributed main content from a fetched web page.",
-  "value": "Extract source-attributed main content from a fetched web page.",
+  "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+  "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
   "input": {
-    "source": {
+    "draft": {
       "type": "reference",
-      "required": false,
-      "notes": "One successful fetched-text output; omitted means all prior fetched text outputs."
+      "required": true,
+      "notes": "Text or {text}, at most 16000 characters."
     },
-    "maxChars": {
-      "type": "number",
+    "sources": {
+      "type": "reference",
+      "required": true,
+      "notes": "Selected sources with URL allowlist."
+    },
+    "language": {
+      "type": "string",
       "required": false,
-      "notes": "500..10000 readable characters per source; default 6000, truncation disclosed."
+      "notes": "uk checks Ukrainian text markers; not a language-quality or fact-check guarantee."
     }
   },
   "output": {
-    "document": {
+    "result": {
       "type": "object",
-      "notes": "Title, main text, canonical URL and extraction diagnostics."
+      "notes": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee."
     }
   },
   "needsEnv": [],
+  "usedBy": [],
   "implementation": {
     "status": "implemented",
     "source": "src/registry-data-steps.mjs",
@@ -41,6 +47,5 @@
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
       }
     ]
-  },
-  "usedBy": []
+  }
 }

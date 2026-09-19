@@ -17,7 +17,8 @@
 import { requireStr, num, oneOf, str } from "./config.mjs";
 import { resolveTemplate, resolveTemplateDeep, missingEnvRefs } from "./template.mjs";
 import { fetchWithRetry } from "./http.mjs";
-import { CoreError } from "./contracts.mjs";
+import { CoreError, hash, insist } from "./contracts.mjs";
+import { deliverOnce } from "./delivery-receipts.mjs";
 export { fetchWithRetry } from "./http.mjs";
 
 /** Cap on a response body we hold in memory and write into state. */
@@ -111,7 +112,19 @@ export async function runFetch(step, ctx) {
     const why = e instanceof Error && e.name === "TimeoutError" ? `timed out after ${timeoutMs} ms` : String(e instanceof Error ? e.message : e);
     throw new Error(`"${label}": GET ${url} failed before any response — ${why}`);
   }
-  const text = (await res.text()).slice(0, BODY_CAP);
+  const maxBodyBytes = Number(step.config.maxBodyBytes ?? BODY_CAP);
+  insist(Number.isInteger(maxBodyBytes) && maxBodyBytes >= 1024 && maxBodyBytes <= 2000000, 'fetch maxBodyBytes must be 1024..2000000');
+  const reader = res.body?.getReader(), chunks = [];
+  let bytes = 0, truncated = false;
+  if (reader) for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const remaining = maxBodyBytes - bytes;
+    chunks.push(Buffer.from(value.subarray(0, remaining)));
+    bytes += Math.min(value.length, remaining);
+    if (value.length > remaining) { truncated = true; await reader.cancel(); break; }
+  }
+  const text = Buffer.concat(chunks).toString('utf8');
 
   if (!res.ok) {
     throw new Error(`"${label}": GET ${url} → HTTP ${res.status}. ${text.slice(0, 300)}`);
@@ -134,7 +147,7 @@ export async function runFetch(step, ctx) {
     }
     return { output: { status: res.status, url, count: entries.length, entries: entries.slice(0, limit) } };
   }
-  return { output: { status: res.status, url, body: text } };
+  return { output: { status: res.status, url, body: text, truncated } };
 }
 
 /* ──────────────────────────── llm-call ──────────────────────────── */
@@ -230,10 +243,12 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
   const anchor = str(step.config, "anchor") ?? null;
 
   if (reviewer === "human") {
+    const subject = lastOutput(ctx);
     return {
       output: {
         gate: { reviewer: "human", anchor, mode: str(step.config, "mode") ?? "approve" },
-        subject: lastOutput(ctx),
+        subject,
+        ...(step.config.bind === 'sha256' ? { approvalHash: hash(subject) } : {}),
       },
       waitingHuman: true,
     };
@@ -342,6 +357,8 @@ export async function runApiRequest(step, ctx) {
      SPEC-MANIFEST.md §Divergences and in the README, not left to be discovered.
      ───────────────────────────────────────────────────────────────────────── */
   const missing = missingEnvRefs(rawUrl);
+  const receiptKey = str(step.config, "receiptKey");
+  if (receiptKey) insist(missing.length === 0, 'Idempotent delivery requires an explicit destination; no file fallback');
   if (missing.length && ctx.fileSink) {
     const payload = buildBody(step, ctx, t);
     const file = ctx.fileSink(typeof payload === "string" ? payload : JSON.stringify(payload, null, 2));
@@ -375,7 +392,7 @@ export async function runApiRequest(step, ctx) {
 
   const payload = buildBody(step, ctx, t);
   const bodyString = typeof payload === "string" ? payload : JSON.stringify(payload);
-
+  const send = async () => {
   let status = 0;
   let responseText = "";
   try {
@@ -383,7 +400,7 @@ export async function runApiRequest(step, ctx) {
     if (method !== "GET") init.body = bodyString;
     const res = await fetchWithRetry(url, init, {
       timeoutMs: boundedTimeoutSec(step.config, label),
-      retries: 2,
+      retries: receiptKey ? 0 : 2,
     });
     status = res.status;
     responseText = (await res.text()).slice(0, 4000);
@@ -396,4 +413,7 @@ export async function runApiRequest(step, ctx) {
     throw new Error(`"${label}": ${method} ${url} → HTTP ${status}. ${responseText.slice(0, 500)}`);
   }
   return { output: { dispatched: true, method, url, status, response: responseText } };
+  };
+  if (!receiptKey) return send();
+  return deliverOnce({ store: ctx.runStore, destination: { url, method }, key: resolveTemplate(receiptKey, t), payloadHash: hash(bodyString) }, send);
 }

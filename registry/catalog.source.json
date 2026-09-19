@@ -42,7 +42,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -132,7 +132,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -219,7 +219,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -314,7 +314,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -405,7 +405,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -494,7 +494,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -578,7 +578,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -671,7 +671,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -760,7 +760,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -847,7 +847,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -923,7 +923,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -964,6 +964,151 @@
           "version": "1.0.0"
         }
       ]
+    },
+    {
+      "id": "digest",
+      "name": "Digest",
+      "description": "Turn selected feed material into a useful editorial digest.",
+      "value": "Turn selected feed material into a useful editorial digest.",
+      "file": "loops/digest.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/qloops",
+        "path": "registry/loops/digest.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.1.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "api-request",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "loop-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests",
+        "releaseAcceptance": "pending"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [
+        "QF_DIGEST_OPENAI_URL",
+        "QF_DIGEST_ANTHROPIC_URL",
+        "QF_DIGEST_LINEAR_URL",
+        "QF_DIGEST_FIGMA_URL",
+        "QF_DIGEST_RECEIVER_URL"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      }
+    },
+    {
+      "id": "sdd-pipeline",
+      "name": "SDD pipeline",
+      "description": "Turn an intent into an approved specification and a verified project change.",
+      "value": "Turn an intent into an approved specification and a verified project change.",
+      "file": "loops/sdd-pipeline.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/qloops",
+        "path": "registry/loops/sdd-pipeline.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "workspace-read",
+          "version": "0.1.0"
+        },
+        {
+          "id": "specification",
+          "version": "0.1.0"
+        },
+        {
+          "id": "workspace-apply",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-artifact",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        },
+        {
+          "id": "determined",
+          "version": "0.1.0"
+        }
+      ],
+      "builtinDependencies": [],
+      "contentType": "loop-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests",
+        "releaseAcceptance": "pending"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      }
     }
   ],
   "components": [
@@ -971,7 +1116,7 @@
       "id": "approval-gate",
       "name": "Approval gate",
       "kind": "step",
-      "description": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
+      "description": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
       "input": {
         "reviewer": {
           "type": "string",
@@ -996,21 +1141,21 @@
         "mode": {
           "type": "string",
           "required": false,
-          "notes": "check is RESERVED — refused."
+          "notes": "check is RESERVED \u2014 refused."
         }
       },
       "output": {
         "pass": {
           "type": "boolean",
-          "notes": "reviewer: agent — the verdict."
+          "notes": "reviewer: agent \u2014 the verdict."
         },
         "reason": {
           "type": "string",
-          "notes": "reviewer: agent — why."
+          "notes": "reviewer: agent \u2014 why."
         },
         "status": {
           "type": "string",
-          "notes": "reviewer: human — the run is waiting_human until qloop approve continues it or --reject fails it."
+          "notes": "reviewer: human \u2014 the run is waiting_human until qloop approve continues it or --reject fails it."
         }
       },
       "needsEnv": [],
@@ -1029,7 +1174,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1043,12 +1188,21 @@
       "sha256": "ef49eccd8d35165c65bd733f350b9141b7045edec146c9cfb14b519fe7748a57",
       "contentType": "component",
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "1.0.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
-      "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
+      "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
       "implementation": {
-        "status": "partial",
+        "status": "implemented",
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
@@ -1063,7 +1217,7 @@
         "instructions": {
           "type": "string",
           "required": true,
-          "notes": "templated. SPEC-MANIFEST.md §5.2."
+          "notes": "templated. SPEC-MANIFEST.md \u00a75.2."
         },
         "format": {
           "type": "string",
@@ -1083,7 +1237,7 @@
         "role": {
           "type": "string",
           "required": false,
-          "notes": "prepended as \"You are the ⟨role⟩ agent…\""
+          "notes": "prepended as \"You are the \u27e8role\u27e9 agent\u2026\""
         },
         "model": {
           "type": "string",
@@ -1094,7 +1248,7 @@
       "output": {
         "text": {
           "type": "string",
-          "notes": "format: text — {text, model}."
+          "notes": "format: text \u2014 {text, model}."
         },
         "model": {
           "type": "string",
@@ -1128,7 +1282,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1158,7 +1312,7 @@
       "id": "telegram-publish",
       "name": "Telegram publish",
       "kind": "composite",
-      "description": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md §5.3). Unset env vars do not fire a URL with braces in it — the runner writes to .qf/out/ and says so (SPEC §9).",
+      "description": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md \u00a75.3). Unset env vars do not fire a URL with braces in it \u2014 the runner writes to .qf/out/ and says so (SPEC \u00a79).",
       "input": {
         "text": {
           "type": "string",
@@ -1173,7 +1327,7 @@
         },
         "chatId": {
           "type": "string",
-          "notes": "Optional. The chat that was addressed. Not an engine field — the request body carries chat_id."
+          "notes": "Optional. The chat that was addressed. Not an engine field \u2014 the request body carries chat_id."
         }
       },
       "needsEnv": [
@@ -1197,7 +1351,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1214,7 +1368,7 @@
         "status": "pending",
         "evidence": []
       },
-      "value": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md §5.3). Unset env vars do not fire a URL with braces in it — the runner writes to .qf/out/ and says so (SPEC §9).",
+      "value": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md \u00a75.3). Unset env vars do not fire a URL with braces in it \u2014 the runner writes to .qf/out/ and says so (SPEC \u00a79).",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",
@@ -1235,18 +1389,27 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "partial",
-        "source": "src/caller-inference.mjs",
-        "limitation": "Existing caller jobs support specification, files and content. A generic Registry component binding is not accepted."
+        "status": "implemented",
+        "source": "src/registry-cli-step.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": []
@@ -1264,18 +1427,27 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "planned",
-        "source": null,
-        "limitation": "Fetching HTML is not parsing it. Reject unsupported pages or report unknown; do not fabricate an extraction."
+        "status": "implemented",
+        "source": "src/registry-data-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": []
@@ -1293,7 +1465,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [
@@ -1307,13 +1479,22 @@
         }
       ],
       "implementation": {
-        "status": "partial",
-        "source": "src/determined.mjs",
-        "limitation": "Reducer exists; a composable Registry executor/verifier binding still needs acceptance."
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs + src/determined.mjs",
+        "limitation": "Generic pinned checker and bounded repair; native upstream quality release still separate."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": []
@@ -1331,18 +1512,27 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "partial",
-        "source": "src/workspace.mjs",
-        "limitation": "Existing SDD executor is not yet an accepted general Registry component."
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": []
@@ -1360,18 +1550,27 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "partial",
-        "source": "src/agent.mjs",
-        "limitation": "Preserve the approved verifier and artifact binding; never rewrite checks to pass."
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": []
@@ -1389,18 +1588,27 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
       "implementation": {
-        "status": "planned",
-        "source": null,
-        "limitation": "Delivery receipts in Content are not a persistent feed cursor or content deduplication component."
+        "status": "implemented",
+        "source": "src/registry-data-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
       },
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
       },
       "needsEnv": [],
       "builtinDependencies": []
@@ -1418,7 +1626,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1447,7 +1655,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1476,7 +1684,7 @@
       "license": "MIT",
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1490,6 +1698,120 @@
       },
       "needsEnv": [],
       "builtinDependencies": []
+    },
+    {
+      "id": "workspace-read",
+      "name": "Read scoped workspace",
+      "description": "Read explicitly allowed files and pin independent verifier sources.",
+      "value": "Read explicitly allowed files and pin independent verifier sources.",
+      "kind": "step",
+      "contentType": "component",
+      "file": "components/workspace-read.json",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "needsEnv": [],
+      "builtinDependencies": [],
+      "implementation": {
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+      },
+      "acceptance": {
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
+      }
+    },
+    {
+      "id": "specification",
+      "name": "Versioned specification",
+      "description": "Persist scoped specification and plan revisions before approval.",
+      "value": "Persist scoped specification and plan revisions before approval.",
+      "kind": "step",
+      "contentType": "component",
+      "file": "components/specification.json",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "needsEnv": [],
+      "builtinDependencies": [],
+      "implementation": {
+        "status": "implemented",
+        "source": "src/registry-workspace-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+      },
+      "acceptance": {
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/sdd-verified-change.txt",
+            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
+      }
+    },
+    {
+      "id": "verify-sources",
+      "name": "Verify source links",
+      "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+      "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+      "kind": "step",
+      "contentType": "component",
+      "file": "components/verify-sources.json",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "needsEnv": [],
+      "builtinDependencies": [],
+      "implementation": {
+        "status": "implemented",
+        "source": "src/registry-data-steps.mjs",
+        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+      },
+      "acceptance": {
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "evidence": [
+          {
+            "file": "demos/digest-huyiks.txt",
+            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "componentVersion": "0.1.0",
+            "coreVersion": "0.2.0-core.16",
+            "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+          }
+        ]
+      }
     }
   ],
   "demos": [
@@ -1518,7 +1840,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1561,7 +1883,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1604,7 +1926,7 @@
       },
       "engine": {
         "package": "qloops",
-        "version": "0.2.0-core.15",
+        "version": "0.2.0-core.16",
         "manifest": "qloops.loop/v1"
       },
       "dependencies": [],
@@ -1623,19 +1945,85 @@
       "file": "demos/annotation-review.json",
       "status": "offline-demo",
       "value": "Preserve feedback identity and expose ambiguous requests before execution."
+    },
+    {
+      "id": "digest-huyiks",
+      "loopId": "digest",
+      "name": "\u0425\u0423\u0407\u041a\u0421: sourced digest",
+      "description": "Four source pages to an approved Ukrainian digest with visible source checks. Local installed candidate evidence; public release acceptance pending.",
+      "proof": "demos/digest-huyiks.txt",
+      "resultUrl": null,
+      "live": false,
+      "measured": null,
+      "author": "0design",
+      "version": "0.1.0",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "permissions": {
+        "execution": "none"
+      },
+      "evidence": {
+        "status": "local-live-proof",
+        "releaseAcceptance": "pending",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      },
+      "contentType": "demo",
+      "acceptance": {
+        "status": "pending",
+        "scope": "Real pinned Registry scenario and output required"
+      }
+    },
+    {
+      "id": "sdd-verified-change",
+      "loopId": "sdd-pipeline",
+      "name": "SDD: verified change",
+      "description": "A scoped change reaches an independent verifier, with bounded repair. Local installed candidate evidence; public release acceptance pending.",
+      "proof": "demos/sdd-verified-change.txt",
+      "resultUrl": null,
+      "live": false,
+      "measured": null,
+      "author": "0design",
+      "version": "0.1.0",
+      "license": "MIT",
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.16",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [],
+      "permissions": {
+        "execution": "none"
+      },
+      "evidence": {
+        "status": "local-live-proof",
+        "releaseAcceptance": "pending",
+        "coreVersion": "0.2.0-core.16",
+        "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
+      },
+      "contentType": "demo",
+      "acceptance": {
+        "status": "pending",
+        "scope": "Real pinned Registry scenario and output required"
+      }
     }
   ],
   "releaseVersion": "2026.09.19-registry.1-candidate",
   "core": {
     "package": "qloops",
-    "version": "0.2.0-core.15",
+    "version": "0.2.0-core.16",
     "manifest": "qloops.loop/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 9,
-    "artifact": "vendor/qloops-0.2.0-core.15.tgz",
-    "artifactSha256": "e940f950484bbac8708a8f963a3f02deaf91b2905c0d07b5853514ec815004b4",
-    "integrity": "sha512-NZeFxAqQfF9R6g7qonPJlkOaGl7N25jiaf7DQ4SRBmfaRmFiUcV9pcXcSePhrtqnBHtwtJVcCdERkF0Q/FuHgQ==",
-    "schemaSha256": "b29ce1a08d56685d8a1c73edb95acba2afdd3fd623c68dd23bad0ba00a91b284",
+    "contractRevision": 10,
+    "artifact": "vendor/qloops-0.2.0-core.16.tgz",
+    "artifactSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593",
+    "integrity": "sha512-Ip5bnz/R2rNncTpiPZlpnvWIBfF/5QJ7rXg5uYwMWWjZpIKQ3DncH0f/9kUokp63lowHuTqqjmz0V9nWuF/RvA==",
+    "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
     "requestSchemaSha256": "90d30cb77c9f348cbcb0e8e20d98ba3219c6aa3466fda76d2b7a1178cc566f87",
     "status": "consumer-integration-candidate",
     "source": "Core.15 exact package; integration candidate, product acceptance pending",

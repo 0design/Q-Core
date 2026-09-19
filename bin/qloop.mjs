@@ -26,7 +26,7 @@ import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadManifest, validateManifest, ManifestError } from "../src/manifest.mjs";
-import { createRun, driveRun, resumeRun, resolveKnobs } from "../src/run.mjs";
+import { createRun, driveRun, resumeRun, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
 import { RunStore } from "../src/state.mjs";
 import { flattenLoopSteps } from "../src/flatten.mjs";
 import { checkForUpdate, updateNotice } from "../src/update-check.mjs";
@@ -109,7 +109,7 @@ function fail(message, code = EXIT_FAILED) {
 /** Control-flow signal: the exit code has already been set. */
 class ExitSignal extends Error {}
 
-const VALUED_FLAGS = new Set(["section", "caller-provider"]);
+const VALUED_FLAGS = new Set(["section", "caller-provider", "approval-hash", "workspace-policy"]);
 
 function parseArgs(argv) {
   const flags = new Set();
@@ -246,6 +246,10 @@ async function cmdRun(args, flags, opts) {
     run.callerProvider = provider;
   }
   run.executionKnobs = knobs;
+  if (opts['workspace-policy']) {
+    const { validateWorkspacePolicy } = await import('../src/registry-workspace-steps.mjs');
+    run.workspacePolicy = validateWorkspacePolicy(readBoundedJson(opts['workspace-policy']));
+  }
 
   if (!quiet) {
     process.stdout.write(`${c.bold(manifest.name)} ${c.dim(`· run ${run.runId}`)}${dryRun ? c.dim(" · DRY RUN, no side effects") : ""}\n`);
@@ -312,6 +316,17 @@ async function cmdReply(args) {
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
+async function cmdPaused(args, action) {
+  const [file, runId] = args;
+  if (!file || !runId) fail(`qloops ${action} <manifest> <runId>`, EXIT_USAGE);
+  const store = new RunStore(file), run = store.load(runId);
+  if (!run) fail('Unknown run');
+  const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
+  const result = action === 'cancel' ? cancelWaitingRun(run, opts) : await resumeCancelledRun(run, opts);
+  store.saveLastRun(result); process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  return result.status === 'cancelled' ? 130 : result.status === 'success' ? 0 : 2;
+}
+
 /* ── status ─────────────────────────────────────────────────────────────── */
 
 async function cmdStatus(args, flags) {
@@ -354,7 +369,7 @@ function findManifestNearby() {
 
 /* ── approve ────────────────────────────────────────────────────────────── */
 
-async function cmdApprove(args, flags) {
+async function cmdApprove(args, flags, opts) {
   const file = args[0];
   if (!file) fail("qloop approve <manifest> [runId] [--reject]", EXIT_USAGE);
   const store = new RunStore(file);
@@ -367,14 +382,16 @@ async function cmdApprove(args, flags) {
   const decision = flags.has("reject") ? "reject" : "approve";
   const result = await resumeRun(run, {
     decision,
+    approvalHash: opts['approval-hash'],
     store,
     knobs: run.executionKnobs ?? resolveKnobs(manifest.settings),
     callerProvider: run.callerProvider,
     apiKey: process.env.OPENROUTER_API_KEY ?? null,
-    onStep: (s) => printStep(s, flags.has("quiet")),
+    onStep: (s) => printStep(s, flags.has("quiet") || flags.has("json")),
   });
   store.saveLastRun(result);
-  process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
+  if (flags.has('json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  else process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
   return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -609,6 +626,8 @@ const commands = {
   validate: cmdValidate,
   run: cmdRun,
   reply: cmdReply,
+  cancel: args => cmdPaused(args, 'cancel'),
+  resume: args => cmdPaused(args, 'resume'),
   status: cmdStatus,
   approve: cmdApprove,
   doctor: cmdDoctor,
