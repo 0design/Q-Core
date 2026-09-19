@@ -2044,10 +2044,10 @@
     "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
     "requestSchemaSha256": "90d30cb77c9f348cbcb0e8e20d98ba3219c6aa3466fda76d2b7a1178cc566f87",
     "status": "consumer-integration-candidate",
-    "source": "Core.15 exact package; integration candidate, product acceptance pending",
+    "source": "Core.16 exact package; integration candidate, public product acceptance pending",
     "pending": [
       "Public immutable snapshot and consumer acceptance",
-      "Real Registry SDD/Digest and determined acceptance",
+      "Public Registry SDD/Digest and determined acceptance",
       "Final provider and owner acceptance"
     ]
   },
@@ -2828,5 +2828,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "293ad357f99b0286ba38d23209220aa23f5a529b29b532538842e694e067e958"
+  "releaseSha256": "bedd6a5b7c0fe9c64164e01c3973e4ba8f2fae6e37d0c2d4bb1e9a7893d4e947"
 }
