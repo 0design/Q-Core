@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -54,9 +55,15 @@ def check():
                     break
                 except URLError as error:
                     if isinstance(error, HTTPError):
+                        body = error.read(32768).decode('utf-8', errors='replace')
+                        title = re.search(r'<title>(.*?)</title>', body, re.S | re.I)
+                        codes = re.findall(r'(?:Error|error code)\s*:?\s*(\d{3,5})', body)
                         print(json.dumps({'publicStatus': error.code,
                                           'server': error.headers.get('server'),
-                                          'mitigation': error.headers.get('cf-mitigated')}), flush=True)
+                                          'mitigation': error.headers.get('cf-mitigated'),
+                                          'ray': error.headers.get('cf-ray'),
+                                          'title': title.group(1).strip() if title else None,
+                                          'errorCodes': codes[:3]}), flush=True)
                     else:
                         print('Public connection failed: ' + type(error.reason).__name__, flush=True)
                     if attempt == 5:
