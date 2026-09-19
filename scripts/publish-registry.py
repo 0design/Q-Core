@@ -81,7 +81,7 @@ class R2:
             condition = ['--if-match', etag] if etag else ['--if-none-match', '*']
             self.command('put-object', '--bucket', self.bucket, '--key', key, '--body', str(path),
                          '--content-type', mimetypes.guess_type(key)[0] or 'application/octet-stream',
-                         '--cache-control', 'no-store' if key == 'current.json' else 'public,max-age=31536000,immutable',
+                         '--cache-control', 'no-store' if key == 'current.json' or key.endswith('/current.json') else 'public,max-age=31536000,immutable',
                          *condition)
 
     def verify_public(self, key, body):

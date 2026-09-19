@@ -23,14 +23,7 @@ class ProbeR2(p.R2):
 
     def put(self, key, body, etag=None):
         self.written.add(key)
-        # Explicitly no-store for mutable current even under the test namespace.
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / 'object'
-            path.write_bytes(body)
-            condition = ['--if-match', etag] if etag else ['--if-none-match', '*']
-            self.command('put-object', '--bucket', self.bucket, '--key', self.prefix + key,
-                         '--body', str(path), '--content-type', 'application/json',
-                         '--cache-control', 'no-store', *condition)
+        super().put(self.prefix + key, body, etag)
 
     def cleanup(self):
         failures = []
