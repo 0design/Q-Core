@@ -2,7 +2,7 @@
   "id": "sdd-verified-change",
   "loopId": "sdd-pipeline",
   "name": "SDD: verified change",
-  "description": "A scoped change reaches an independent verifier, with bounded repair. Public immutable candidate accepted; current promotion pending.",
+  "description": "A scoped change reaches an independent verifier, with bounded repair. Embedded run evidence and detached public-candidate acceptance are reported separately.",
   "proof": "demos/sdd-verified-change.txt",
   "resultUrl": null,
   "live": false,

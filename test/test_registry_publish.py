@@ -143,6 +143,13 @@ class PublisherTest(unittest.TestCase):
             p.promote(self.store, descriptor)
         self.assertNotIn('current.json', self.store.objects)
 
+    def test_pending_demo_evidence_does_not_claim_current_candidate_acceptance(self):
+        catalog = json.loads((Path(__file__).parents[1] / 'registry/catalog.source.json').read_text())
+        for demo in catalog['demos']:
+            evidence = demo.get('evidence', {})
+            if evidence.get('releaseAcceptance') == 'pending':
+                self.assertNotIn('candidate accepted', demo.get('description', '').lower(), demo['id'])
+
 
 
 class ReleaseApprovalTest(unittest.TestCase):
