@@ -24,8 +24,7 @@
       "needsEnv": [
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
+        "QLOOP_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/brand-mentions.txt",
@@ -114,8 +113,7 @@
       "needsEnv": [
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
+        "QLOOP_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": null,
@@ -202,8 +200,7 @@
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
         "TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_CHAT_ID",
-        "OPENROUTER_MODEL"
+        "TELEGRAM_CHAT_ID"
       ],
       "measured": null,
       "proof": "demos/content-factory.txt",
@@ -297,8 +294,7 @@
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
         "TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_CHAT_ID",
-        "OPENROUTER_MODEL"
+        "TELEGRAM_CHAT_ID"
       ],
       "measured": null,
       "proof": "demos/content-feed.txt",
@@ -388,8 +384,7 @@
       "needsEnv": [
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
+        "QLOOP_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/feed-fanout.txt",
@@ -477,8 +472,7 @@
       "needsEnv": [
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
+        "QLOOP_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/json-digest.txt",
@@ -561,8 +555,7 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
+        "QLOOP_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/price-watch.txt",
@@ -653,8 +646,7 @@
       "needsEnv": [
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
+        "QLOOP_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/release-watch.txt",
@@ -743,8 +735,7 @@
       "needsEnv": [
         "OPENROUTER_API_KEY",
         "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
+        "QLOOP_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/strict-gate.txt",
@@ -1040,7 +1031,19 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "d99ac1c021f61d60e7c495404511ba0316cfa25168f9adbc57713897a7758b5d"
+      "sha256": "d99ac1c021f61d60e7c495404511ba0316cfa25168f9adbc57713897a7758b5d",
+      "steps": 10,
+      "kinds": [
+        "fetch",
+        "parse-web",
+        "deduplicate",
+        "llm-call",
+        "verify-sources",
+        "approval-gate",
+        "api-request"
+      ],
+      "humanGate": true,
+      "agentGate": false
     },
     {
       "id": "sdd-pipeline",
@@ -1110,7 +1113,18 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "3018054289622229862301b2fb1e19655a75bf9dc8742c35fdb6355cb8cce7ed"
+      "sha256": "3018054289622229862301b2fb1e19655a75bf9dc8742c35fdb6355cb8cce7ed",
+      "steps": 7,
+      "kinds": [
+        "workspace-read",
+        "llm-call",
+        "specification",
+        "approval-gate",
+        "workspace-apply",
+        "determined"
+      ],
+      "humanGate": true,
+      "agentGate": false
     }
   ],
   "components": [
@@ -2828,5 +2842,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "bedd6a5b7c0fe9c64164e01c3973e4ba8f2fae6e37d0c2d4bb1e9a7893d4e947"
+  "releaseSha256": "58586a6c800f90a50d885b20fc7f32fdc47913e370a848f2405bde1f97f895c3"
 }

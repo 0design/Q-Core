@@ -3,6 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { loadManifest } from '../src/manifest.mjs';
+import { loopMetadata } from './registry-loop-metadata.mjs';
 import { componentReadiness } from './registry-readiness.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../registry');
@@ -29,6 +30,7 @@ export function buildRegistry(sourceRoot = root) {
         if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Loop value is required');
         const manifest = loadManifest(resolve(sourceRoot, file));
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
+        Object.assign(entry, loopMetadata(manifest));
       }
       if (entry.proof) asset(entry.proof);
       asset(`authors/${entry.author}.json`);
