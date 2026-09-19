@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import time
 from urllib.request import urlopen
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 import uuid
 
 
@@ -45,18 +45,26 @@ def check():
             s3('get-object', '--bucket', bucket, '--key', key, str(downloaded))
             if downloaded.read_bytes() != payload:
                 raise RuntimeError('Private read checksum mismatch')
+            print('R2 write and private read: passed', flush=True)
             for attempt in range(6):
                 try:
                     with urlopen(public + '/' + key, timeout=20) as response:
                         if response.read(len(payload) + 1) != payload:
                             raise RuntimeError('Public read checksum mismatch')
                     break
-                except URLError:
+                except URLError as error:
+                    if isinstance(error, HTTPError):
+                        print(json.dumps({'publicStatus': error.code,
+                                          'server': error.headers.get('server'),
+                                          'mitigation': error.headers.get('cf-mitigated')}), flush=True)
+                    else:
+                        print('Public connection failed: ' + type(error.reason).__name__, flush=True)
                     if attempt == 5:
                         raise RuntimeError('Public Registry did not serve the probe') from None
                     time.sleep(5)
         finally:
             s3('delete-object', '--bucket', bucket, '--key', key)
+            print('R2 probe cleanup: passed', flush=True)
     print(json.dumps({'bucket': bucket, 'publicOrigin': public,
                       'write': 'passed', 'privateRead': 'passed',
                       'publicRead': 'passed', 'cleanup': 'passed',
