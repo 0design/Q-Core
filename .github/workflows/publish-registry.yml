@@ -10,6 +10,10 @@ on:
         options: [publish, promote, rollback]
         default: publish
         required: true
+      approved:
+        description: 'I confirm owner review and approval of this exact release or rollback target.'
+        type: boolean
+        default: false
       descriptor:
         description: 'For promote/rollback: releases/<releaseVersion>/<full commit>/release.json'
         type: string
@@ -28,6 +32,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       ACTION: ${{ inputs.action || 'publish' }}
       DESCRIPTOR: ${{ inputs.descriptor }}
+      RELEASE_APPROVED: ${{ inputs.approved }}
     steps:
       - uses: actions/checkout@v4
         with:
