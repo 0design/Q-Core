@@ -29,7 +29,13 @@
     "registry4Core19CandidatePrepared": true,
     "registry4ExactExportAndInstall": true,
     "registry4WrongCatalogAndVersionRejected": true,
-    "remoteCi": "pending"
+    "remoteCi": {
+      "verifiedCommit": "78c6c5602b34c04371a288f2832cb08c110ff287",
+      "validateRun": 35477508856,
+      "validate": "pass",
+      "registryRun": 35477508844,
+      "registry": "pass"
+    }
   },
   "limitations": [
     "No npm publication, Registry publication, merge, or deployment was performed.",
