@@ -1,13 +1,13 @@
 # qloops
 
 Local, dependency-free loop runtime for Node.js >=20.3. The current reviewed
-delivery candidate is `0.2.0-core.18`; it is not an npm release or production
+delivery candidate is `0.2.0-core.19`; it is not an npm release or production
 acceptance.
 
 ## Install a reviewed local package
 
 ```sh
-npm install /absolute/path/qloops-0.2.0-core.18.tgz
+npm install /absolute/path/qloops-0.2.0-core.19.tgz
 npx qloops validate ./loop.yaml
 npx qloops run ./loop.yaml
 ```
@@ -154,7 +154,10 @@ durable receipt and ambiguous-send reconciliation are implemented. Receiver JSON
 must be `{ "id": "unique-receipt", "delivered": true }`. A file sink is not a
 Telegram receipt. Only synthetic/local receivers were exercised here.
 
-`determined` exports A2D-style plan-bound execute/verify/repair. `qualityCheck`
+`determined` exports A2D-style plan-bound execute/verify/repair. Existing
+`a2done`, `a2d`, or `.a2d` users must follow the [public migration guide](docs/a2d-migration.md):
+qloops deliberately provides no `a2d` binary/MCP alias and does not import old
+state, approvals, or completion evidence automatically. `qualityCheck`
 exports aindf-check (ds-readiness/UI composition) and unslop with hard/soft split,
 versioned findings, explicit coverage and optional recipe transport. `loadAindf`
 and `loadUnslop` load checksum-pinned upstream installations; no canon is copied.
@@ -188,7 +191,8 @@ MIT. No remote push, npm publish or production deployment is implied.
 ### determined consumer
 
 The installed package exports the A2D-based execute/verify/repair reducer. See
-[its callback contract and migration notes](contracts/v1/determined.md). Run the
+[its callback contract](contracts/v1/determined.md) and the
+[step-by-step A2D migration guide](docs/a2d-migration.md). Run the
 synthetic file-and-test example with `node examples/determined-caller.mjs` from
 the source checkout, or copy that shipped example into your installed caller.
 It demonstrates real failing/passing subprocess checks with a scripted executor.

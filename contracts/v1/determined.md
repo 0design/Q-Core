@@ -58,7 +58,10 @@ persist the resulting versioned history. Reapprove scope and regenerate evidence
 old completion claims are not transferable approval. Use `determined` for the new
 loop identity. `unslop` is a separate curated design-canon loop; historical
 `unslop-design` references do not alias the A2D mechanism. Canonical registry
-aliases/manifests and updates to public donor instructions belong to their owners.
+aliases/manifests and updates to archived donor instructions belong to their owners.
+The shipped [A2D migration guide](../../docs/a2d-migration.md) gives the supported
+replacement steps and fail-closed compatibility checks. It does not grant access
+to the archived donor or define an automatic state conversion.
 
 The source mapping is retained in the canonical Linear record [0D-263](https://linear.app/0dhaus/issue/0D-263).
 No donor code, hosted product, canon, credentials or configuration is copied.

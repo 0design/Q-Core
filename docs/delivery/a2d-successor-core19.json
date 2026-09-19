@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-19T23:52:56.593Z",
+  "scope": "Public A2D successor instructions and fail-closed compatibility checks",
+  "baseline": {
+    "commit": "dd55243fe8e0a7cd05dadeb8bc0dcb0f5ccd7e8d",
+    "registry": "2026.09.20-registry.3-candidate",
+    "core": "0.2.0-core.18",
+    "coreSha256": "c67a3cedd9194ee0ca54114230c474b0515f2e388bb655c25b21a6971323892a"
+  },
+  "candidate": {
+    "core": "0.2.0-core.19",
+    "artifactSha256": "ac312d4c6318dd7972f96f3e92ac9c7d3a1e020791e8a01292a3b51192362152",
+    "integrity": "sha512-UmgS4JPPzvRx1Be+Y005nk4DAR6Q/Ezhtge+fsu1LOIlajeZdPpL41CDlt+ZXH3SUW6pXi4/xP2tZIHBeu4znQ=="
+  },
+  "checks": {
+    "unitTests": "191/191",
+    "guidePresentInPackedArtifact": true,
+    "cleanInstallAndImports": true,
+    "installedDeterminedRepairAndVerification": true,
+    "freshEvidenceAccepted": true,
+    "staleHistoricalEvidenceRejected": true,
+    "a2dCommandRejectedWithExit64": true,
+    "a2dBinaryAbsent": true,
+    "a2dPackageSubpathAbsent": true,
+    "a2dStateImportAbsent": true,
+    "registry3Core18PinUnchanged": true,
+    "registryBuildCheck": true
+  },
+  "limitations": [
+    "No npm publication, Registry repin, merge, or deployment was performed.",
+    "The archived donor and its retained history were not modified.",
+    "Owner review and any authorized release action remain separate acceptance steps."
+  ]
+}
