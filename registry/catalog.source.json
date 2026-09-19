@@ -1950,7 +1950,7 @@
       "id": "digest-huyiks",
       "loopId": "digest",
       "name": "ХУЇКС: sourced digest",
-      "description": "Four source pages to an approved Ukrainian digest with visible source checks. Local installed candidate evidence; public release acceptance pending.",
+      "description": "Four source pages to an approved Ukrainian digest with visible source checks. Public immutable candidate accepted; current promotion pending.",
       "proof": "demos/digest-huyiks.txt",
       "resultUrl": null,
       "live": false,
@@ -1983,7 +1983,7 @@
       "id": "sdd-verified-change",
       "loopId": "sdd-pipeline",
       "name": "SDD: verified change",
-      "description": "A scoped change reaches an independent verifier, with bounded repair. Local installed candidate evidence; public release acceptance pending.",
+      "description": "A scoped change reaches an independent verifier, with bounded repair. Public immutable candidate accepted; current promotion pending.",
       "proof": "demos/sdd-verified-change.txt",
       "resultUrl": null,
       "live": false,
@@ -2013,7 +2013,7 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.19-registry.1-candidate",
+  "releaseVersion": "2026.09.20-registry.2-candidate",
   "core": {
     "package": "qloops",
     "version": "0.2.0-core.18",
