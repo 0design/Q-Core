@@ -1,0 +1,58 @@
+{
+  "schema": "qf.detached-registry-acceptance/v1",
+  "recordedAt": "2026-09-20T02:35:38+03:00",
+  "evidenceKind": "detached-public-acceptance",
+  "sourceResultSha256": "7691fa6bd627d697a762b11ec548f8ca85cf1c47b4d381b38b3b37025fea1008",
+  "acceptanceScriptSha256": "d73a03ca1bc5f27f2210e3a130ad21f1b010cb073d3f120af7d0cf8386054aa9",
+  "result": {
+    "base": "https://registry.qfactory.io/releases/2026.09.20-registry.3-candidate/7d3e741e27e0eedcefd811c5014440a7247dc504",
+    "catalogSha": "2510d4cb59858c88e16c0ccada806ad1fe90c4e1a024cf0bf26c813dd13972b5",
+    "core": "0.2.0-core.18",
+    "checks": {
+      "publicInstall": true,
+      "cliValidate": true,
+      "cliRun": true,
+      "overwriteRejected": true,
+      "wrongHashRejected": true,
+      "sddApprovalRepairPass": true,
+      "sddStaleEvidenceRejected": true,
+      "cancelResumeStaleReplyRejected": true,
+      "digestApprovalHashRejected": true,
+      "digestDeliveredOnce": true,
+      "digestDuplicatePrevented": true,
+      "digestUncertainNotReplayed": true
+    },
+    "relayDeliveries": 1,
+    "digestDeliveries": 2,
+    "locks": [
+      {
+        "id": "webhook-relay",
+        "releaseVersion": "2026.09.20-registry.3-candidate",
+        "resolved": 1
+      },
+      {
+        "id": "sdd-pipeline",
+        "releaseVersion": "2026.09.20-registry.3-candidate",
+        "resolved": 8
+      },
+      {
+        "id": "digest",
+        "releaseVersion": "2026.09.20-registry.3-candidate",
+        "resolved": 6
+      }
+    ]
+  },
+  "scope": [
+    "public download and exact catalog checksum",
+    "clean install, validate and run",
+    "overwrite and wrong-hash rejection",
+    "SDD approval, bounded repair, stale evidence and cancel/resume rejection",
+    "Digest approval binding, one-time delivery, deduplication and uncertain-delivery safety"
+  ],
+  "notAccepted": [
+    "current.json promotion",
+    "npm publication",
+    "owner visual/product acceptance",
+    "live Claude/OpenRouter provider acceptance"
+  ]
+}
