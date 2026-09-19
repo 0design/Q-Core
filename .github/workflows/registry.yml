@@ -1,10 +1,10 @@
 name: Registry
 on:
   pull_request:
-    paths: ['registry/**', 'scripts/build-registry.mjs', '.github/workflows/registry.yml']
+    paths: ['registry/**', 'scripts/*registry*', 'test/test_registry_publish.py', '.github/workflows/*registry*']
   push:
     branches: [main, codex/shared-registry]
-    paths: ['registry/**', 'scripts/build-registry.mjs', '.github/workflows/registry.yml']
+    paths: ['registry/**', 'scripts/*registry*', 'test/test_registry_publish.py', '.github/workflows/*registry*']
 permissions:
   contents: read
 jobs:
@@ -15,6 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - run: python3 -m unittest discover -s test -p test_registry_publish.py
       - run: node scripts/build-registry.mjs --check
       - run: node scripts/build-registry.mjs --export /tmp/registry
       - uses: actions/upload-artifact@v4
