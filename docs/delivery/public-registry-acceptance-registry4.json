@@ -1,0 +1,75 @@
+{
+  "schema": "qf.detached-registry-acceptance/v1",
+  "recordedAt": "2026-09-20T03:05:45+03:00",
+  "evidenceKind": "detached-public-acceptance",
+  "publication": {
+    "workflowRun": 35477630728,
+    "mergeCommit": "87e44272b0331a066ccd0bbfc0ef5f70cd12e1ee",
+    "candidateOnly": true,
+    "currentJsonPromoted": false
+  },
+  "sourceResultSha256": "9c36810c08e80f662b566de976618416f13269841a439cefe74136d6c7838be1",
+  "acceptanceScriptSha256": "d73a03ca1bc5f27f2210e3a130ad21f1b010cb073d3f120af7d0cf8386054aa9",
+  "successorResultSha256": "1fa611e0f0674826e5d1027b6bd5693f5ec90a95f5d5045c404db54fcae41e58",
+  "successorScriptSha256": "8ecfac8023dca95fc1c8d93aa7c8bbd1303005829358d3c1f6e5aadf4c939945",
+  "result": {
+    "base": "https://registry.qfactory.io/releases/2026.09.20-registry.4-candidate/87e44272b0331a066ccd0bbfc0ef5f70cd12e1ee",
+    "catalogSha": "53ead5c14376a13444714d7532c6bf094aeecdb0f7813223430cc5c9bada45e4",
+    "core": "0.2.0-core.19",
+    "coreSha256": "ac312d4c6318dd7972f96f3e92ac9c7d3a1e020791e8a01292a3b51192362152",
+    "migrationGuideSha256": "af038e30a898dd06b79cbd3f648c942b142e858a59396debff315654f580ef64",
+    "checks": {
+      "publicInstall": true,
+      "cliValidate": true,
+      "cliRun": true,
+      "overwriteRejected": true,
+      "wrongHashRejected": true,
+      "sddApprovalRepairPass": true,
+      "sddStaleEvidenceRejected": true,
+      "cancelResumeStaleReplyRejected": true,
+      "digestApprovalHashRejected": true,
+      "digestDeliveredOnce": true,
+      "digestDuplicatePrevented": true,
+      "digestUncertainNotReplayed": true,
+      "migrationGuideShipped": true,
+      "historicalIdsDocumented": true,
+      "a2dCommandRejected": true,
+      "freshDeterminedEvidenceAccepted": true,
+      "historicalA2dEvidenceRejected": true
+    },
+    "relayDeliveries": 1,
+    "digestDeliveries": 2,
+    "locks": [
+      {
+        "id": "webhook-relay",
+        "releaseVersion": "2026.09.20-registry.4-candidate",
+        "resolved": 1
+      },
+      {
+        "id": "sdd-pipeline",
+        "releaseVersion": "2026.09.20-registry.4-candidate",
+        "resolved": 8
+      },
+      {
+        "id": "digest",
+        "releaseVersion": "2026.09.20-registry.4-candidate",
+        "resolved": 6
+      }
+    ]
+  },
+  "scope": [
+    "public download and exact catalog and Core checksums",
+    "clean install, validate and run",
+    "overwrite and wrong-hash rejection",
+    "SDD approval, bounded repair, stale evidence and cancel/resume rejection",
+    "Digest approval binding, one-time delivery, deduplication and uncertain-delivery safety",
+    "shipped A2D migration guide, historical ID mapping and fail-closed legacy command",
+    "fresh determined evidence and rejection of historical A2D evidence"
+  ],
+  "notAccepted": [
+    "current.json promotion",
+    "npm publication",
+    "owner visual/product acceptance",
+    "live Claude/OpenRouter provider acceptance"
+  ]
+}
