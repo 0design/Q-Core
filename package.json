@@ -1,6 +1,6 @@
 {
   "name": "qloops",
-  "version": "0.2.0-core.18",
+  "version": "0.2.0-core.19",
   "license": "MIT",
   "description": "Run a QFactory loop from a YAML manifest. No database, no server, no build step.",
   "type": "module",
@@ -30,7 +30,8 @@
     "contracts/",
     "docs/codex.md",
     "docs/secrets.md",
-    "docs/cli-registry.md"
+    "docs/cli-registry.md",
+    "docs/a2d-migration.md"
   ],
   "dependencies": {},
   "author": "Oleg Kukharuk",

@@ -1,7 +1,7 @@
 # Codex subscription provider
 
 Codex support was introduced in Core candidate `0.2.0-core.2` and is included
-in the current `0.2.0-core.18` candidate for both `qloops agent` (SDD) and
+in the current `0.2.0-core.19` candidate for both `qloops agent` (SDD) and
 `qloops content`. It uses a **new local Codex CLI session** with the existing
 ChatGPT login. It does not re-enter the parent agent's conversation.
 
