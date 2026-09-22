@@ -173,6 +173,10 @@ npm run test:package
 
 Tests cover real localhost HTTP, subprocess fixtures, installed callers, negative
 paths, approval and resume. Package verification is limited to these local checks.
+The public-surface check also scans every tracked source file for private workspace
+references, including files excluded from the npm package. `docs/delivery/` is
+generated local receipt storage and has a separate invariant: only its `.gitkeep`
+may be tracked.
 
 MIT.
 
