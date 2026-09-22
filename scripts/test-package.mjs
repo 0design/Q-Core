@@ -3,7 +3,6 @@ import {
   rmSync,
   readFileSync,
   writeFileSync,
-  mkdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -139,7 +138,6 @@ try {
     ).status,
     "success",
   );
-  mkdirSync(join(root, "docs/delivery"), { recursive: true });
   const evidence = {
     package: packed.name,
     version: packed.version,
@@ -162,15 +160,6 @@ try {
       ? "clean-install + live Codex ChatGPT inference + independent verifier + cached resume"
       : "clean-install + real Codex subprocess fixture; not live inference",
   };
-  writeFileSync(
-    join(
-      root,
-      live
-        ? "docs/delivery/codex-package-live.json"
-        : "docs/delivery/package-evidence.json",
-    ),
-    JSON.stringify(evidence, null, 2) + "\n",
-  );
   console.log(JSON.stringify(evidence, null, 2));
 } finally {
   rmSync(tmp, { recursive: true, force: true });

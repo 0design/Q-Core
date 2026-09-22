@@ -16,7 +16,9 @@
     "test": "node --test test/*.test.mjs",
     "catalog": "node -e \"import('./src/catalog.mjs').then(async({buildCatalog})=>{const{writeFileSync}=await import('node:fs');writeFileSync('catalog.json',JSON.stringify(buildCatalog('loops',{examplesDir:'examples'}),null,2)+'\\n')})\"",
     "proof": "node scripts/record-proof.mjs --all",
-    "test:package": "node scripts/test-package.mjs && node scripts/test-content-package.mjs"
+    "check:public-surface": "node scripts/check-public-surface.mjs",
+    "prepack": "npm run check:public-surface",
+    "test:package": "npm run check:public-surface && node scripts/test-package.mjs && node scripts/test-content-package.mjs"
   },
   "files": [
     "bin/",

@@ -63,11 +63,10 @@ try {
   const uncertain=await call({...third,approval:{hash:thirdDraft.nextAction.hash,decision:'approve'}});
   assert.equal(uncertain.nextAction.type,'reconcile_receipt');assert.equal(received.length,2);
   assert.equal((await call(third)).nextAction.type,'reconcile_receipt');assert.equal(received.length,2);
-  const evidence={date:new Date().toISOString(),package:packed.version,artifactSha256:hash(readFileSync(tarball)),
+  const evidence={package:packed.version,artifactSha256:hash(readFileSync(tarball)),
     evidenceKind:'clean-installed shipped Content request example; Codex subprocess fixture; real localhost HTTP only; not live inference or owner acceptance',
     contractSha256:hash(contract),exampleSha256:hash(readFileSync(join(installed,'examples/content-request.json'))),
     checks:{exactText:true,approvalRequired:true,receipt:true,dedup:true,staleApprovalRejected:true,rejection:true,missingKey:true,uncertainReplayNoResend:true},outputs};
-  writeFileSync(join(root,'docs/delivery/content-contract-package.json'),JSON.stringify(evidence,null,2)+'\n');
   console.log(JSON.stringify({package:packed.version,artifactSha256:evidence.artifactSha256,checks:evidence.checks}));
 } finally {
   if(server.listening) await new Promise(r=>server.close(r));
