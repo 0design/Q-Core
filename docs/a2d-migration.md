@@ -59,7 +59,4 @@ A migrated caller is ready for review only when all of these are true:
 - `.a2d` state, old approvals, and old completion evidence are not imported;
 - the donor source and retained history remain accessible to their owner.
 
-The canonical source mapping and product decision are retained in
-[Linear 0D-263](https://linear.app/0dhaus/issue/0D-263) and
-[Linear 0D-106](https://linear.app/0dhaus/issue/0D-106). Those records explain
-provenance; they are not runtime dependencies.
+Migration records belong to the host and are not runtime dependencies.

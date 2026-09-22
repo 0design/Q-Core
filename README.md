@@ -184,7 +184,8 @@ Tests cover real localhost HTTP, subprocess fixtures, installed callers, negativ
 paths, approval and resume. Fixtures are not live inference evidence. The
 2026-09-07 real Claude attempt failed with expired OAuth; reauthenticate using the
 CLI's own login flow before rerunning live acceptance. No live OpenRouter call was
-made without a configured key. Local release evidence is in [Linear](https://linear.app/0dhaus/issue/0D-263).
+made without a configured key. Package verification does not establish live-provider
+acceptance.
 
 MIT. No remote push, npm publish or production deployment is implied.
 

@@ -63,5 +63,4 @@ The shipped [A2D migration guide](../../docs/a2d-migration.md) gives the support
 replacement steps and fail-closed compatibility checks. It does not grant access
 to the archived donor or define an automatic state conversion.
 
-The source mapping is retained in the canonical Linear record [0D-263](https://linear.app/0dhaus/issue/0D-263).
 No donor code, hosted product, canon, credentials or configuration is copied.
