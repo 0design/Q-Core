@@ -52,6 +52,13 @@ test('rejects a source whose bytes do not match its pinned manifest', () => {
   assert.equal(fixture.normalized, null);
 });
 
+test('rejects a manifest pinned to a different valid YouTube video ID', () => {
+  const fixture = runFixture(complete, { manifestPatch: { videoId: 'AAAAAAAAAAA' } });
+  assert.equal(fixture.result.status, 1);
+  assert.match(fixture.verification.errors.join('\n'), /source video ID mismatch/);
+  assert.equal(fixture.normalized, null);
+});
+
 test('rejects every nonblank transcript line that is not an exact timestamped segment', () => {
   const fixture = runFixture('[0:00] intro\n[0:0] malformed timestamp\n[0:08] first\n[0:16] second\n[0:24] third');
   assert.equal(fixture.result.status, 1);
