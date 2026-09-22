@@ -14,9 +14,7 @@ Historical identifiers remain historical:
 | `.a2d` saved state | host-owned versioned `history` | No state import or rename |
 | prior approval or completion claim | newly approved plan and fresh evidence | Never transferred |
 
-Do not delete or rewrite the archived donor repository or `.a2d` data to make a
-migration appear complete. Preserve them as read-only history until the owner has
-accepted the replacement and any retention requirement is satisfied.
+Do not delete, rewrite, or import old `.a2d` data as part of migration.
 
 ## Supported migration
 
@@ -32,8 +30,8 @@ accepted the replacement and any retention requirement is satisfied.
    [`contracts/v1/determined.md`](../contracts/v1/determined.md). Keep trusted
    verifiers outside writable scope and hash the real artifact.
 4. **Request a new approval.** Present the migrated criteria, verifier pins,
-   allowed changes, limits, and host behavior to the owner. An A2D approval does
-   not authorize the qloops run.
+   allowed changes, limits, and host behavior to the authorized reviewer. An A2D
+   approval does not authorize the qloops run.
 5. **Run and regenerate evidence.** Accept success only when every criterion
    passes against one current artifact snapshot. Missing, stale, human, or
    exhausted evidence returns `needs_human`.
@@ -57,6 +55,5 @@ A migrated caller is ready for review only when all of these are true:
   limit end in `needs_human`;
 - `qloops a2d` is rejected and no `a2d` binary or MCP alias is exposed;
 - `.a2d` state, old approvals, and old completion evidence are not imported;
-- the donor source and retained history remain accessible to their owner.
 
 Migration records belong to the host and are not runtime dependencies.

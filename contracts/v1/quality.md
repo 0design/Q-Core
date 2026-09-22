@@ -1,8 +1,7 @@
 # Quality adapter contract — revision 4 / qf.quality/v1
 
-Candidate core.5 strengthens the existing result envelope. Consumers must update
-callbacks and repin explicitly: missing new pin fields produce needs_human, not
-an implicit legacy pass. Canonical Site manifests remain separate.
+Consumers must update callbacks and repin explicitly: missing pin fields produce
+needs_human, not an implicit legacy pass.
 
 `qualityCheck(request,{evaluate,recipe})` snapshots request data before callbacks.
 Input: kind (`aindf-check` or `unslop`), mode (AINDF: `ds-readiness` or
@@ -61,9 +60,9 @@ must be independently bound to the composition before supplying browser evidence
 The current local package is 0.5.0-rc.1 / framework 0.3.0-rc.1. npm aindf still
 returns E404 as checked 2026-09-10; this is not released-framework acceptance.
 
-## Native Oleg unslop
+## Native unslop
 
-Load the explicitly installed Oleg canon with `loadUnslop({root,packageVersion,sha256})`.
+Load an explicitly installed rule set with `loadUnslop({root,packageVersion,sha256})`.
 Digest covers scripts/references/package.json. The adapter loads rule metadata from
 that same pinned upstream; it does not maintain a copied rule list. Requested rule
 must resolve to one exact ID and apply to the artifact file extension through a
@@ -74,8 +73,8 @@ Native red findings are hard; orange/white findings are soft, not passing silenc
 The artifact is a single file with actual bytes matching its hash, checked before
 and after detection. Browser receipts may bind that CSS file together with the
 rendered page and screenshot hashes. This demonstrates selected source-rule
-coverage, not complete subjective design quality. The package named unslop from
-another npm author is not a substitute for Oleg's canon.
+coverage, not complete subjective design quality. The installed rule set is bound
+by its declared version and checksum.
 
 Both native loaders require immutable installation roots: Node caches imported
 modules by path. Loading a changed checksum from an already-loaded root is rejected;

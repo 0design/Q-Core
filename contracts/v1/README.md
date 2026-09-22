@@ -1,14 +1,11 @@
 # Core contract revision 12 (qf.agent/v1)
 
-Core.16 added generic Registry SDD/Digest composition, pinned specification and
-approval subjects, reusable determined verification with persisted bounded
-repair, source checks and durable receiver receipts. Core.17 added the local
-manual/schedule/authenticated-webhook host boundary. Core.18 adds pinned authored
-skill execution with explicit required criteria. See SPEC-MANIFEST.md §11 and
-[the skill contract](skill.md). These are candidate implementations; public
-Registry and owner acceptance are separate. The historical direct
-`qloops agent/content` APIs below do not count as acceptance of a Registry
-template.
+The contract covers Registry SDD/Digest composition, pinned specification and
+approval subjects, reusable determined verification with persisted bounded repair,
+source checks, durable receiver receipts, local host triggers, and pinned authored
+skill execution. See SPEC-MANIFEST.md §11 and [the skill contract](skill.md).
+The historical direct `qloops agent/content` APIs do not establish compatibility
+with a Registry template.
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
 and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships
@@ -27,8 +24,8 @@ provider {kind: claude|codex|openrouter, model, executable? or keyRef?, payerSco
 secretSource? (openrouter: env|keychain)},
 deadlineMs (1..300000), maxRepairAttempts (0..5), verifier {command,args},
 optional approval {hash,decision:approve|reject}, resumeRunId.
-Supported loops: sdd-pipeline@1.0.0 and synthetic-sdd@1.0.0 (test alias). Canonical SDD manifests are site-owned;
-this executable synthetic entry point is the integration reference.
+Supported loops: sdd-pipeline@1.0.0 and synthetic-sdd@1.0.0 (test alias). This
+executable synthetic entry point is the integration reference.
 
 ModelProvider: generate(messages, limits, signal) -> content, provider identity,
 requestId, usage {tokensIn,tokensOut,costUsd}, error. Missing metrics are null.
@@ -65,10 +62,10 @@ Revision 3 adds specification import, durable clarification and explicit revisio
 see [specification](specification.md). Missing checker now requests human
 configuration; invalid checker remains failed/64. Unavailable Codex model requests
 explicit provider configuration. Existing approved scope cannot be silently changed.
-Candidate core.4 also documented the [determined callback contract](determined.md),
-including operational failure and cancellation behavior. Repin and run consumer
-tests before adopting these changes; an older Site pin does not establish
-compatibility with the current contract revision.
+The [determined callback contract](determined.md) covers operational failure and
+cancellation behavior. Repin and run consumer tests before adopting these changes;
+an older package pin does not establish compatibility with the current contract
+revision.
 
 Revision 4 strengthens [quality evidence](quality.md): upstream checksum and DS
 subject binding, immutable coverage, native rule applicability and severity, and

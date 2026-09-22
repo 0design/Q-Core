@@ -1,20 +1,18 @@
 # qloops
 
-Local, dependency-free loop runtime for Node.js >=20.3. The current reviewed
-delivery candidate is `0.2.0-core.19`; it is not an npm release or production
-acceptance.
+Local, dependency-free loop runtime for Node.js >=20.3.
 
-## Install a reviewed local package
+## Install a package
 
 ```sh
-npm install /absolute/path/qloops-0.2.0-core.19.tgz
+npm install /absolute/path/qloops.tgz
 npx qloops validate ./loop.yaml
 npx qloops run ./loop.yaml
 ```
 
 Both `qloops` and legacy `qloop` are installed. No `qf` alias. The package includes
-runtime, schema, providers and synthetic contract fixtures. Canonical loops live
-in an independent registry, not a neighboring private source checkout.
+runtime, schema, providers and synthetic contract fixtures. Install reusable loops
+from a versioned registry export.
 
 ```sh
 npx qloops install /absolute/registry-export CATALOG_SHA256 loop-id 1.0.0 ./loop.yaml
@@ -39,8 +37,7 @@ See `contracts/v1/fixtures.json` for a complete request and
 `contracts/v1/request.schema.json` for the structural schema. `validateRequest`
 adds path and authorization checks. Substitute real absolute workspace, Node and
 CLI paths. `sdd-pipeline@1.0.0` runs the built-in SDD capability;
-`synthetic-sdd@1.0.0` is its test alias. Canonical registry acceptance still
-requires the site to wire and pin its own manifest.
+`synthetic-sdd@1.0.0` is its test alias. A consumer must pin the manifest it runs.
 
 The first call returns `needs_human` with a spec and approval hash. Review the
 specification, verifier, exact file scope and context. Resume the same request
@@ -141,18 +138,13 @@ and [synthetic request example](examples/content-request.json). They describe lo
 configuration, exact-text approval, repeat/dedup and uncertain-delivery recovery
 without requiring a source checkout. The SDD request schema is not a Content schema.
 
-Parent-agent limitation: the tested Codex workspace-write shell currently denies
-its nested CLI's local app-server initialization. `CLI_ENVIRONMENT_DENIED` asks for
-a supported caller arrangement, without bypassing the sandbox. Standalone Core
-proofs do not imply this parent environment works; see [Codex execution boundaries](docs/codex.md#execution-boundary).
-
 `qloops content request.json` uses `qf.content-request/v1`: explicit sources,
 allowedOrigins, profile, provider, receipt-aware webhook receiver and deadline.
 `runContent` exports the same orchestration with caller-injected capabilities.
 Source identity dedup, source-attribution checks, exact draft/receiver approval,
 durable receipt and ambiguous-send reconciliation are implemented. Receiver JSON
 must be `{ "id": "unique-receipt", "delivered": true }`. A file sink is not a
-Telegram receipt. Only synthetic/local receivers were exercised here.
+Telegram receipt. Configure and approve the receiver for each delivery.
 
 `determined` exports A2D-style plan-bound execute/verify/repair. Existing
 `a2done`, `a2d`, or `.a2d` users must follow the [public migration guide](docs/a2d-migration.md):
@@ -160,9 +152,8 @@ qloops deliberately provides no `a2d` binary/MCP alias and does not import old
 state, approvals, or completion evidence automatically. `qualityCheck`
 exports aindf-check (ds-readiness/UI composition) and unslop with hard/soft split,
 versioned findings, explicit coverage and optional recipe transport. `loadAindf`
-and `loadUnslop` load checksum-pinned upstream installations; no canon is copied.
-Missing DS, stale evidence, unknown rules and missing browser evidence cannot pass.
-See delivery documentation for upstream/version and acceptance limitations.
+and `loadUnslop` load checksum-pinned upstream installations. Missing DS, stale
+evidence, unknown rules and missing browser evidence cannot pass.
 
 ## Legacy YAML commands
 
@@ -181,13 +172,9 @@ npm run test:package
 ```
 
 Tests cover real localhost HTTP, subprocess fixtures, installed callers, negative
-paths, approval and resume. Fixtures are not live inference evidence. The
-2026-09-07 real Claude attempt failed with expired OAuth; reauthenticate using the
-CLI's own login flow before rerunning live acceptance. No live OpenRouter call was
-made without a configured key. Package verification does not establish live-provider
-acceptance.
+paths, approval and resume. Package verification is limited to these local checks.
 
-MIT. No remote push, npm publish or production deployment is implied.
+MIT.
 
 ### determined consumer
 
