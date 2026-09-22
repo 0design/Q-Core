@@ -8,35 +8,32 @@ import { spawnSync } from 'node:child_process';
 
 const extractor = new URL('../scripts/extract-podcast-transcript.mjs', import.meta.url);
 const sha256 = value => createHash('sha256').update(value).digest('hex');
-const source = transcript => JSON.stringify({ webpageMarkdown: 'Podcast — https://www.youtube.com/watch?v=RAGlJ_B9EfE', videoContent: { transcript: { hasTranscript: true, data: transcript } } });
-function runFixture(transcript, { corrupt = false, wrongHash = false } = {}) {
+const source = transcript => JSON.stringify({ webpageMarkdown: 'Podcast — Channel — https://www.youtube.com/watch?v=RAGlJ_B9EfE', videoContent: { transcript: { hasTranscript: true, data: transcript } } });
+function runFixture(transcript, { corrupt = false, wrongHash = false, manifestPatch = {} } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'qf-podcast-input-'));
   try {
     const raw = corrupt ? source(transcript).slice(0, -1) : source(transcript);
-    const manifest = { videoId: 'RAGlJ_B9EfE', title: 'Podcast', sourceSha256: wrongHash ? '0'.repeat(64) : sha256(raw), maxAllowedInterSegmentGapSeconds: 10, requiredChapterStartsSeconds: [0, 10, 20] };
+    const manifest = { videoId: 'RAGlJ_B9EfE', title: 'Podcast', channel: 'Channel', sourceSha256: wrongHash ? '0'.repeat(64) : sha256(raw), maxAllowedInterSegmentGapSeconds: 10, requiredChapterStartsSeconds: [0, 10, 20], ...manifestPatch };
     writeFileSync(join(directory, 'source-export.json'), raw);
     writeFileSync(join(directory, 'source-manifest.json'), `${JSON.stringify(manifest)}\n`);
     const result = spawnSync(process.execPath, [extractor.pathname, directory], { encoding: 'utf8' });
     const output = { result, verification: JSON.parse(readFileSync(join(directory, 'verification.json'))), normalized: existsSync(join(directory, 'normalized-transcript.json')) ? JSON.parse(readFileSync(join(directory, 'normalized-transcript.json'))) : null };
     rmSync(directory, { recursive: true, force: true });
     return output;
-  } catch (error) {
-    rmSync(directory, { recursive: true, force: true });
-    throw error;
-  }
+  } catch (error) { rmSync(directory, { recursive: true, force: true }); throw error; }
 }
+const complete = '[0:00] intro\n[0:08] first\n[0:16] second\n[0:24] third';
 
 test('accepts only a complete, well-formed, continuous authored transcript fixture', () => {
-  const fixture = runFixture('[0:00] intro\n[0:08] first\n[0:16] second\n[0:24] third');
+  const fixture = runFixture(complete);
   assert.equal(fixture.result.status, 0);
   assert.equal(fixture.verification.status, 'pass');
   assert.equal(fixture.normalized.status, 'eligible-as-input');
 });
 
 test('rejects malformed JSON even when its text contains timestamps', () => {
-  const fixture = runFixture('[0:00] intro\n[0:10] second\n[0:20] third', { corrupt: true });
+  const fixture = runFixture(complete, { corrupt: true });
   assert.equal(fixture.result.status, 1);
-  assert.equal(fixture.verification.status, 'fail');
   assert.equal(fixture.verification.source.jsonParseable, false);
   assert.equal(fixture.normalized, null);
 });
@@ -48,10 +45,29 @@ test('rejects an excessive gap instead of emitting an eligible input', () => {
   assert.equal(fixture.normalized, null);
 });
 
-
 test('rejects a source whose bytes do not match its pinned manifest', () => {
-  const fixture = runFixture('[0:00] intro\n[0:08] first\n[0:16] second\n[0:24] third', { wrongHash: true });
+  const fixture = runFixture(complete, { wrongHash: true });
   assert.equal(fixture.result.status, 1);
   assert.match(fixture.verification.errors.join('\n'), /source SHA-256 mismatch/);
+  assert.equal(fixture.normalized, null);
+});
+
+test('rejects every nonblank transcript line that is not an exact timestamped segment', () => {
+  const fixture = runFixture('[0:00] intro\n[0:0] malformed timestamp\n[0:08] first\n[0:16] second\n[0:24] third');
+  assert.equal(fixture.result.status, 1);
+  assert.match(fixture.verification.errors.join('\n'), /invalid transcript line 2/);
+  assert.equal(fixture.normalized, null);
+});
+
+for (const [name, manifestPatch, expected] of [
+  ['missing gap limit', { maxAllowedInterSegmentGapSeconds: undefined }, /maxAllowedInterSegmentGapSeconds/],
+  ['invalid gap limit', { maxAllowedInterSegmentGapSeconds: '10' }, /maxAllowedInterSegmentGapSeconds/],
+  ['missing chapter list', { requiredChapterStartsSeconds: undefined }, /requiredChapterStartsSeconds/],
+  ['invalid chapter list', { requiredChapterStartsSeconds: [0, 20, 10] }, /requiredChapterStartsSeconds/],
+  ['missing channel identity', { channel: '' }, /channel/]
+]) test(`rejects manifest with ${name}`, () => {
+  const fixture = runFixture(complete, { manifestPatch });
+  assert.equal(fixture.result.status, 1);
+  assert.match(fixture.verification.errors.join('\n'), expected);
   assert.equal(fixture.normalized, null);
 });

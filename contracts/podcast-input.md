@@ -4,7 +4,7 @@ This contract prepares a verified local input for the authorized video `RAGlJ_B9
 
 ## Capture boundary
 
-The source capture is a local, read-only `source-export.json` accompanied by `source-manifest.json`; neither third-party transcript text nor credentials belong in this repository. The manifest pins the YouTube video ID, title, expected chapter starts, maximum allowed inter-segment gap, and SHA-256 of the exact capture.
+The source capture is a local, read-only `source-export.json` accompanied by `source-manifest.json`; neither third-party transcript text nor credentials belong in this repository. The manifest pins the YouTube video ID, title, channel, expected chapter starts, maximum allowed inter-segment gap, and SHA-256 of the exact capture.
 
 ## Verification
 
@@ -12,9 +12,10 @@ The source capture is a local, read-only `source-export.json` accompanied by `so
 
 - `source-export.json` parses as complete JSON;
 - its SHA-256, video ID, and title match the manifest;
-- transcript timestamps are monotonic;
+- every nonblank transcript line is exactly `[MM:SS] nonempty text`, and timestamps are monotonic;
 - every inter-segment gap is at most `maxAllowedInterSegmentGapSeconds`;
-- every required chapter start is covered by a segment at or before that timestamp, and the transcript reaches the final required chapter.
+- every required chapter start is covered by a segment at or before that timestamp, and the transcript reaches the final required chapter;
+- the manifest has a nonempty channel, a nonnegative integer gap limit, and a nonempty ascending unique list of nonnegative chapter starts.
 
 The script writes `verification.json` for both outcomes. It writes `normalized-transcript.json` with `status: "eligible-as-input"` only when every check passes. A future Podcast loop must require both `normalized-transcript.status === "eligible-as-input"` and `verification.status === "pass"`; it must reject every other output.
 
