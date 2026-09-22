@@ -2,27 +2,29 @@
 
 Registry has three content types: loop templates, components, and demos. Content type does not imply implementation or acceptance.
 
-- `loops/`: executable YAML templates. Most older entries remain
-  `reference-only`; SDD and Digest are implementation candidates with local
-  version-bound evidence. Neither status means public or owner acceptance.
+- `loops/`: executable YAML templates. Entries marked `reference-only` are not
+  runnable Registry templates. Check each entry's declared readiness and exact
+  engine pin before installing it.
 - `components/`: versioned building-block contracts. Registry names distinguish `llm-call/cli` and `llm-call/openrouter`; file IDs use hyphens. The existing YAML runtime kind `llm-call` maps to OpenRouter only.
 - `demos/`: scenario descriptions and historical sample outputs. Historical output is not accepted user evidence. The previous Registry `examples/` directory has been consolidated here.
 - `composition.json`: the machine-readable composition for SDD, content-feed,
   Digest, aindf-check and Unslop. Each template reports its own component
-  readiness; template and demo acceptance remain separate. determined is a
-  reusable loop-component.
+  readiness. determined is a reusable loop-component.
 
 Root `examples/` belongs to the npm Core API package, not the Registry catalog. It contains caller requests and integration samples needed to use the API; it is not a second product-demo category.
 
 ## Component-first acceptance
 
-Each template resolves exact component IDs and versions. `node scripts/registry-readiness.mjs <template-id>` reports missing implementation and acceptance. A template cannot start acceptance while a required component is partial, planned, missing or unaccepted. A direct SDD/Content API call or alternate inference provider must not stand in for an absent Registry component.
+Each template resolves exact component IDs and versions. `node
+scripts/registry-readiness.mjs <template-id>` reports missing implementation or
+readiness. A template cannot run while a required component is partial, planned,
+missing or unavailable. A direct SDD/Content API call or alternate inference
+provider must not stand in for an absent Registry component.
 
 Evidence must bind the component version. `components-ready` means prerequisites
-are ready; it does not mean the template or demo has passed. SDD, content-feed
-and Digest currently have component-ready prerequisites. aindf-check and Unslop
-remain blocked on their partial adapters. Public immutable-pair and owner
-acceptance are still required for the release scenarios.
+are ready; it does not prove that a template or demo is suitable for every target
+environment. SDD, content-feed and Digest have component-ready prerequisites.
+aindf-check and Unslop remain unavailable while their adapters are partial.
 
 Edit the asset and `catalog.source.json`, then run `node scripts/build-registry.mjs`. The builder validates dependency resolution and cycles, computes prerequisite readiness, and exports a versioned catalog and checksums. Core runtime and Registry share this repository but publish independently; the npm package excludes Registry.
 

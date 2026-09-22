@@ -1,4 +1,4 @@
-# Quality adapter contract — revision 4 / qf.quality/v1
+# Quality adapter contract — qf.quality/v1
 
 Consumers must update callbacks and repin explicitly: missing pin fields produce
 needs_human, not an implicit legacy pass.
@@ -51,14 +51,15 @@ hash({designSystemSha256: designSystem.sha256, sections: designSystem.sections ?
 
 The adapter checks the exact DS and upstream content before/after evaluation.
 Native validation handles schema/rules; the adapter additionally refuses an empty
-DS subject because the reviewed RC can return vacuous passing levels for absent
-contracts. Operational native exceptions remain unknown, not success.
+DS subject because an absent contract cannot establish conformance. Operational
+native exceptions remain unknown, not success.
 
 Readiness maps native conformance levels. UI coverage is only the upstream
 `composition-contract`; unknown UI/DOM/visual rules stay unknown. A rendered page
 must be independently bound to the composition before supplying browser evidence.
-The current local package is 0.5.0-rc.1 / framework 0.3.0-rc.1. npm aindf still
-returns E404 as checked 2026-09-10; this is not released-framework acceptance.
+The caller supplies the installed upstream source and its exact version and
+checksum. This adapter does not install, publish, or validate an upstream
+framework distribution.
 
 ## Native unslop
 

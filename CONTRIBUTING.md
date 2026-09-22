@@ -21,8 +21,8 @@ alone does not publish a Registry entry.
 
 Preserve source attribution and license. Never include secrets or private drafts.
 Use environment references for service access. Cost/tokens stay null when not
-measured. Evidence records must distinguish fixtures, controlled local runs,
-public release acceptance, and owner acceptance.
+measured. Evidence records must distinguish fixtures, controlled local runs, and
+externally observable results.
 
 ## Local checks
 
@@ -38,14 +38,14 @@ an exact Core/Registry pair, pack the intended reviewed Core build, pin its byte
 SHA256 in catalog source, regenerate, then export:
 
 ```sh
-node scripts/build-registry.mjs --export /absolute/candidate-export --core-artifact /absolute/qloops-VERSION.tgz
+node scripts/build-registry.mjs --export /absolute/registry-export --core-artifact /absolute/qloops-VERSION.tgz
 ```
 
 Install from that export through the public CLI Registry path and exercise the
-actual template. A transport-only test cannot accept a composed workflow. Supply
-positive and negative cases, failed verification/repair, limits and stale evidence
-where applicable. Component acceptance is version-bound and must include proof;
-planned content must not claim acceptance or become installable by metadata alone.
+actual template. A transport-only test does not exercise a composed workflow.
+Supply positive and negative cases, failed verification/repair, limits and stale
+evidence where applicable. A planned component must remain unavailable and cannot
+become installable through metadata alone.
 
 Human approvals must bind the concrete artifact/version. Irreversible external
 actions require the appropriate permission. Receipt-aware `api-request` supports
@@ -55,16 +55,15 @@ retry. This is not a blanket exactly-once guarantee for arbitrary integrations.
 ## PR, CI, review and publication
 
 Run the repository's current PR workflows without production credentials.
-A clean local test is useful evidence but does not replace actual PR CI or review.
-Record the exact commit reviewed. Merge follows acceptance under the repository's
-review policy; contributors cannot self-declare their artifact accepted.
+A clean local test is useful evidence but does not replace PR CI or review. Record
+the exact commit reviewed. Contributors cannot self-approve a change.
 
-After approved merge, the publisher creates an immutable snapshot, verifies its
-checksums and consumer compatibility, then updates the public pointer according
-to release policy. Draft or unreviewed PRs are not production snapshots. A merged
-file does not automatically update every installed runtime: clients resolve the
-versioned catalog and explicitly install a compatible pinned entry. `qloop init`
-is a legacy convenience, not a universal compatibility promise.
+The publisher creates an immutable snapshot only through the repository's review
+and distribution process, verifies checksums and consumer compatibility, and then
+updates a public pointer when authorized. A merged file does not automatically
+update every installed runtime: clients resolve the versioned catalog and
+explicitly install a compatible pinned entry. `qloop init` is a legacy
+convenience, not a universal compatibility promise.
 
 Contributions ship under MIT. Include only material you may distribute under
 that license; third-party services and their access terms remain separate.

@@ -1,18 +1,20 @@
-# Core contract revision 12 (qf.agent/v1)
+# Core contracts (qf.agent/v1)
 
-The contract covers Registry SDD/Digest composition, pinned specification and
-approval subjects, reusable determined verification with persisted bounded repair,
-source checks, durable receiver receipts, local host triggers, and pinned authored
-skill execution. See SPEC-MANIFEST.md §11 and [the skill contract](skill.md).
-The historical direct `qloops agent/content` APIs do not establish compatibility
+The contracts cover Registry SDD/Digest composition, specification and approval
+subjects, determined verification with persisted bounded repair, source checks,
+durable receiver receipts, local host triggers, and authored skill execution. See
+SPEC-MANIFEST.md §11 and [the skill contract](skill.md).
+Direct `qloops agent` and `qloops content` use does not establish compatibility
 with a Registry template.
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
-and a shipped [synthetic request](../../examples/content-request.json). Core.9 ships
-these discoverability additions without changing revision5 runtime semantics.
+and a shipped [synthetic request](../../examples/content-request.json).
 
-Core.18 uses `qloops.loop/v1` for YAML manifests. Older manifest namespaces are rejected. Revision 9 added bounded control expansion and explicit provider secret-source metadata; protocol namespaces remain unchanged. Migrate a copy of the manifest and revalidate it with the new package; do not resume old runs or rewrite historical evidence. Consumers pin the package tarball SHA256 and this directory.
-No sibling source imports. Contract fixtures are synthetic, not live acceptance.
+YAML manifests use `qloops.loop/v1`; older manifest namespaces are rejected.
+Migrate a copy of a manifest and revalidate it with the installed package. Do not
+resume old runs or rewrite historical evidence. Consumers pin the package tarball
+SHA256 and this directory. No sibling source imports. Contract fixtures are
+synthetic and do not exercise external providers or delivery destinations.
 
 `qloops agent request.json` (or `-` for bounded stdin) emits exactly one JSON
 result on stdout. Logs belong on stderr. Status/exit: success/0, failed/1,
@@ -47,58 +49,45 @@ provider, usage. Unknown verification never means success. Repair cannot edit te
 
 Resource note: optional maxCostUsd requires caller-estimated maxCallCostUsd. Unknown or exceeded reported cost stops subsequent calls. This is a reservation check, not a provider billing guarantee.
 
-Revision 2 adds `codex` with absolute executable, explicit model and `local-cli`.
-Codex 0.153.4 requires ChatGPT authentication and never falls back to API billing.
-It runs read-only in an isolated cwd, accepts text only, and rejects tool events.
+## Compatibility and limits
+
+`codex` accepts an absolute executable, explicit model and `local-cli` payer
+scope. It requires ChatGPT authentication and never falls back to API billing. It
+runs read-only in an isolated cwd, accepts text only, and rejects tool events.
 Provider metadata uses `authMethod: chatgpt`, `permissionMode: read-only`,
-`acceptedTools: []`, `model: null` (CLI does not emit resolved identity).
-Direct usage includes `costKind: subscription-usage`, nullable cost, cached input
-and input/output tokens. Agent aggregate usage retains the existing shape.
-Existing revision 1 requests remain valid. Consumers that adopted the provider
-at core.2 must repin the exact current package bytes before using the newer
-contracts. Other protocols and exit codes are unchanged.
+`acceptedTools: []`, and `model: null` when the CLI does not emit a resolved
+identity. Usage may contain nullable cost and token fields.
 
-Revision 3 adds specification import, durable clarification and explicit revisions:
-see [specification](specification.md). Missing checker now requests human
-configuration; invalid checker remains failed/64. Unavailable Codex model requests
-explicit provider configuration. Existing approved scope cannot be silently changed.
-The [determined callback contract](determined.md) covers operational failure and
-cancellation behavior. Repin and run consumer tests before adopting these changes;
-an older package pin does not establish compatibility with the current contract
-revision.
+Consumers must compare the installed package version and contract revision in
+`version.json` with their own compatibility pin, then run their consumer checks.
+An older package pin does not establish compatibility with newly used fields.
+Agent and loop protocol namespaces and exit codes are separate compatibility
+boundaries.
 
-Revision 4 strengthens [quality evidence](quality.md): upstream checksum and DS
-subject binding, immutable coverage, native rule applicability and severity, and
-cooperative cancellation. Callback reports/recipes need the new checksum fields;
-old incomplete evidence yields needs_human. Adopt core.5 with explicit consumer
-repin and native adapter tests. Agent/loop protocol names are unchanged.
+Specification import, durable clarification and explicit revisions are described
+in [specification](specification.md). Missing checkers request human
+configuration; invalid checkers remain failed/64. An unavailable provider requests
+explicit configuration, and approved scope cannot be silently changed. The
+[determined callback contract](determined.md) covers operational failure and
+cancellation behavior.
 
-Core.6 tightens [registry validation](registry.md): ambiguous/malformed dependencies,
-section/file identity and per-entry engine drift are refused. Exact release pins
-are preserved; stricter rejection is documented without changing agent protocol.
+Quality reports and recipes require the checksum fields in
+[quality.md](quality.md); incomplete or stale evidence yields `needs_human`.
+[Registry validation](registry.md) refuses ambiguous or malformed dependencies,
+section/file identity mismatches, and engine drift.
 
-Revision 5 / core.8 adds actionable local recovery to SDD and Content results:
-AUTH_REQUIRED → configure_access; MISSING_EXECUTABLE/UNSUPPORTED_CLI →
-configure_provider; UNSUPPORTED_NESTING → configure_caller;
-PERMISSION_DENIED/SCOPE_DENIED → review_permissions. All these errors return
-needs_human/exit2. Content previously returned failed for these recoverable errors;
-missing SDD executable previously returned failed. Consumers must handle these
-actions, display their message in the same conversation, and explicitly repin.
-After local authentication is restored, retry the same SDD request with its runId;
-Content retries the same request. Neither grants approval or sends automatically.
-Changing provider/scope requires a new request or the documented approved revision.
-configure_caller is an instruction, not an implemented broker. Claude nesting
-guards remain enforced; four-entry golden-path support is not inferred from this.
+Recoverable SDD and Content outcomes use `needs_human`/exit2:
+`AUTH_REQUIRED` → `configure_access`,
+`MISSING_EXECUTABLE`/`UNSUPPORTED_CLI` → `configure_provider`,
+`UNSUPPORTED_NESTING` or `CLI_ENVIRONMENT_DENIED` → `configure_caller`, and
+`PERMISSION_DENIED`/`SCOPE_DENIED` → `review_permissions`. These actions never
+alter permissions, bypass guards, grant approval, or send content automatically.
+Retry an SDD request with its run ID after its prerequisite is restored; retry
+Content with the same request and workspace. Changing provider or scope requires a
+new request or fresh documented approval.
 
-Revision6 / core.10 recognizes the observed Codex app-server client startup
-permission denial as CLI_ENVIRONMENT_DENIED → needs_human/configure_caller rather
-than a generic invalid JSONL failure. Raw stderr is not exposed and no permission
-change/retry is made. Content errors retain an existing runId for correlation;
-resume still uses the same request/workspace, not an SDD resumeRunId field.
-This makes the environment blocker actionable; it does not solve or bypass it.
-
-Core.15 introspection reports the reviewed Codex CLI versions `0.153.4` and
-`0.154.0-alpha.6.2`; consumers can read the installed values through
-`coreCapabilities()` before selecting a local CLI.
-
-Explicit current-agent inference for SDD and Content: [caller protocol](caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.
+Read `coreCapabilities()` from the installed package before selecting a local CLI;
+it reports the supported provider and secret-store capabilities for those exact
+package bytes. Explicit current-agent inference for SDD and Content is specified
+in the [caller protocol](caller-inference.md). There is no automatic provider
+fallback: Core retains approval, execution and independent verification.

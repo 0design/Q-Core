@@ -1,4 +1,4 @@
-# Specification workflow extension (candidate revision 3)
+# Specification workflow extension
 
 SDD accepts an optional `specification: {summary, criteria, plan}` input. This
 imports the provided specification without model generation. A previous external

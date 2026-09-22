@@ -1,10 +1,9 @@
 # Content request, approval and receipt contract
 
-Available since qloops@0.2.0-core.9; current contract revision 6. This publishes the existing
-Content interface without a runtime/schema change. Use the installed package's
-[synthetic request](../../examples/content-request.json); no private source checkout
-is required. This document is the field contract; the SDD request schema does not
-validate Content. There is no separate Content JSON-schema validator in this release.
+Use the installed package's [synthetic request](../../examples/content-request.json);
+no source checkout is required. This document is the field contract; the SDD
+request schema does not validate Content. There is no separate Content JSON-schema
+validator.
 
 ## Invocation and results
 
@@ -49,16 +48,17 @@ RSS/article extraction or Telegram/LinkedIn API adapter.
 Provider descriptors:
 
 - Codex: `{kind:"codex", model:"explicit-model", executable:"/absolute/codex",
-  payerScope:"local-cli"}`. Reviewed version/auth/limits from the package's Codex
-  contract apply. The example model was verified locally, not guaranteed available
-  for every account. Configure it explicitly; never silently choose another payer.
-- Claude: same CLI fields with kind `claude`. Adapter exists; Claude acceptance is
-  deferred until after Codex stabilization. Active nesting guards remain enforced.
+  payerScope:"local-cli"}`. The executable, model, authentication and account
+  limits must be available in the caller's environment. Configure it explicitly;
+  never silently choose another payer.
+- Claude: same CLI fields with kind `claude`. The executable and selected model
+  must be available in the caller's environment. Active nesting guards remain
+  enforced.
 - OpenRouter: `{kind:"openrouter",model:"explicit-provider/model",
   keyRef:"OPENROUTER_API_KEY",payerScope:"local-byok",secretSource:"env"}`.
   `secretSource` may be `env` (the backwards-compatible default) or `keychain`;
-  the protected local store is resolved without putting the secret in JSON. Live
-  proof still requires access/budget.
+  the protected local store is resolved without putting the secret in JSON. Access
+  and billing are provided by the caller.
 
 Receiver: `{kind:"webhook",url:"https://permitted.example/receive",
 id:"stable-channel-identity",keyRef:"OPTIONAL_RECEIVER_TOKEN"}`. keyRef is optional,
@@ -153,7 +153,6 @@ inspect a deadline/cap. These are instructions, not automatic permission changes
 An attribution check failure can return needs_human with evidence and no action:
 show the findings for editorial correction. No generic retry means “publish”.
 
-The installed-example package proof covers draft/approval/exact text/receipt/replay,
-changed-input stale approval/rejection, missing receiver key and uncertain send.
-It uses a subprocess model fixture and real localhost HTTP, explicitly not owner
-Content acceptance. Real sources/profile/channel plus owner acceptance remain open.
+The installed example uses synthetic inputs, a subprocess model fixture and a
+localhost receiver. Before sending real content, configure the real sources and
+receiver, and obtain explicit approval for the exact draft and destination.

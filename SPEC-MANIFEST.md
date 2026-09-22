@@ -339,20 +339,17 @@ parity test (`scripts/loop-parity.ts`) enforces that across four cases: a loop
 with no human, a gate that holds, a budget that cuts, and a fan-out lane per
 item.
 
-**On an unset `{{env.X}}` in a URL, neither home fires the request** (owner
-decision, 2026-08-02). They differ only in what they do instead:
+**On an unset `{{env.X}}` in a URL, neither home fires the request.** They differ
+only in what they do instead:
 
 | | |
 |---|---|
 | engine | the step **fails**, naming the variable: "TELEGRAM_BOT_TOKEN is not set … the missing value is a secret, not a broken endpoint" |
 | runner | the payload goes to `.qf/out/<runId>.txt`, the run continues, and the CLI says `⚠ NOT SENT` |
 
-Both refuse to send blind. The runner's file sink exists so a loop can be proven
-end to end **before** its real receiver has credentials — which is the whole
-point of running it locally. Before this was aligned, the engine posted to a URL
-with braces still in it and read back a 404, i.e. it reported "no such bot" when
-the truth was "no token in the environment" — two different problems needing two
-different fixes.
+Both refuse to send blind. The runner's file sink lets you validate an end-to-end
+flow before configuring a real receiver. A missing environment value is reported
+as a missing value, rather than treated as a receiver endpoint.
 
 **What the runner does not enforce at all:** `settings.sensitivity` (refused
 outright) and `settings.limits` (validated, not counted — there is no cross-run
@@ -370,7 +367,7 @@ not read says so by name instead of trying its luck.
 precisely so that implementing them later cannot break a manifest that was
 written against this document.
 
-## 11. Registry composition additions (Core candidate)
+## 11. Registry composition additions
 
 The Registry driver also executes `parse-web`, `deduplicate`, `verify-sources`,
 `workspace-read`, `specification`, `workspace-apply` and `verify-artifact`.
@@ -417,8 +414,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   Repair evidence and revisions are retained. Interrupted applies require manual
   reconciliation; they are never blindly repeated.
 
-These contracts describe the implementation candidate. Public release and real
-Registry acceptance require independent pinned-package evidence.
+Use an exact package pin and validate the actual template in its target
+environment before relying on a Registry composition.
 - `determined` shares `source`, `specification` and `repairFrom` references. It
   reuses the determined reducer's AND/freshness checks over approved criteria;
   all criteria bind to the explicitly selected independent verifier suite. The
