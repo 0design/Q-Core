@@ -1,7 +1,5 @@
 name: Registry
 on:
-  pull_request:
-    paths: ['registry/**', 'src/**', 'bin/**', 'contracts/**', 'package.json', 'scripts/*registry*', 'test/test_registry_publish.py', '.github/workflows/*registry*']
   push:
     branches: [main, codex/shared-registry]
     paths: ['registry/**', 'src/**', 'bin/**', 'contracts/**', 'package.json', 'scripts/*registry*', 'test/test_registry_publish.py', '.github/workflows/*registry*']

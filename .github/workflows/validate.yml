@@ -13,8 +13,6 @@
 name: validate
 
 on:
-  pull_request:
-    paths: ["loops/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json", "scripts/build-registry.mjs", ".github/workflows/validate.yml"]
   push:
     branches: [main]
 

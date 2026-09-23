@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const registryPath = path => path === "registry" || path.startsWith("registry/");
 
@@ -49,7 +51,7 @@ function argument(name) {
   return index < 0 ? undefined : process.argv[index + 1];
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const result = classifyRange(argument("--base"), argument("--head"));
   console.log(process.argv.includes("--funnel-only") ? result.funnel : JSON.stringify(result));
 }

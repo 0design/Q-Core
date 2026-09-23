@@ -1,7 +1,11 @@
 name: Contribution funnel
 
 on:
-  pull_request:
+  # The workflow definition and classifier below are taken from the trusted
+  # base branch. PR content is fetched only as Git data for classification, or
+  # later checked out in a read-only job that validates it.
+  pull_request_target:
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read
@@ -12,16 +16,32 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       funnel: ${{ steps.classify.outputs.funnel }}
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_HEAD_REF: refs/qf/contribution-pr-head
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
+          # pull_request_target resolves this workflow from the base branch;
+          # retain that boundary for the policy implementation too.
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
       - id: classify
         name: select funnel from the complete diff
         run: |
-          funnel="$(node scripts/classify-contribution.mjs --base '${{ github.event.pull_request.base.sha }}' --head '${{ github.event.pull_request.head.sha }}' --funnel-only)"
-          test "$funnel" = registry || test "$funnel" = core
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          funnel=core
+          # A malformed or unavailable PR head fails closed into Core. The
+          # head is never checked out or executed in this policy step.
+          if [[ "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] && \
+             git fetch --no-tags --depth=1 origin "$PR_HEAD_SHA:$PR_HEAD_REF"; then
+            candidate="$(node scripts/classify-contribution.mjs --base "$BASE_SHA" --head "$PR_HEAD_REF" --funnel-only)" || candidate=""
+            if [ "$candidate" = registry ]; then
+              funnel=registry
+            fi
+          fi
           echo "funnel=$funnel" >> "$GITHUB_OUTPUT"
 
   registry:
@@ -31,6 +51,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -57,6 +80,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
