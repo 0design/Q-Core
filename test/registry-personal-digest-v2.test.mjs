@@ -85,17 +85,70 @@ test('Personal Digest v2 creates only local approval-bound daily, weekly, and Х
   }
 });
 
+test('Saturday output contracts fail before approval for missing sections or a wrong ХУЇКС header', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'qf-personal-digest-v2-hostile-'));
+  const server = createServer((req, res) => res.end('<main>Перевірений матеріал для персонального дайджесту.</main>'));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const urls = [1, 2, 3, 4].map(n => `${base}/source-${n}`);
+  const env = Object.fromEntries(urls.map((url, index) => [`QF_PERSONAL_DIGEST_SOURCE_${index + 1}_URL`, url]));
+  env.QF_PERSONAL_DIGEST_PROFILE = 'Продуктовий дизайнер; цінує прикладні зміни для малих команд.';
+  const previous = Object.fromEntries(Object.keys(env).map(key => [key, process.env[key]]));
+  Object.assign(process.env, env);
+  const saturday = loadManifest(new URL('../registry/loops/personal-digest-saturday.yaml', import.meta.url));
+  const opts = { store: new RunStore(join(root, 'saturday.yaml')), callerProvider: provider, settings: saturday.settings };
+  const validWeekly = `## Короткі інфоприводи\nСтислий сигнал.\n\n## Помітні / відчутні / важливі новини\nВажливий вплив.\n${urls.map(url => `Джерело: ${url}`).join('\n')}`;
+  const invalidWeekly = `Лише текст без required sections.\n${urls.map(url => `Джерело: ${url}`).join('\n')}`;
+  const invalidPost = `**Неправильний header**\n${urls.map(url => `Джерело: ${url}`).join('\n')}`;
+  const reply = async (run, text) => {
+    await driveRun(run, { ...opts, inferenceReply: { jobId: run.pendingInference.jobId, hash: run.pendingInference.hash, output: { text } } });
+  };
+  try {
+    const missingSections = createRun(saturday, { trigger: 'schedule' });
+    await driveRun(missingSections, opts);
+    await reply(missingSections, invalidWeekly);
+    assert.equal(missingSections.status, 'failed');
+    assert.match(missingSections.steps.find(step => step.stepId === 'weekly-checks').errorText, /required Markdown sections/);
+    assert.equal(missingSections.steps.some(step => step.status === 'waiting_human'), false);
+
+    const wrongHeader = createRun(saturday, { trigger: 'schedule' });
+    await driveRun(wrongHeader, opts);
+    await reply(wrongHeader, validWeekly);
+    assert.equal(wrongHeader.status, 'waiting_human');
+    await resumeRun(wrongHeader, { ...opts, decision: 'approve', approvalHash: waitingGate(wrongHeader) });
+    assert.equal(wrongHeader.status, 'waiting_inference');
+    await reply(wrongHeader, invalidPost);
+    assert.equal(wrongHeader.status, 'failed');
+    assert.match(wrongHeader.steps.find(step => step.stepId === 'huyiks-checks').errorText, /required literal prefix/);
+    assert.equal(wrongHeader.steps.find(step => step.stepId === 'huyiks-approval').status, 'pending');
+  } finally {
+    for (const [key, value] of Object.entries(previous)) if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    await new Promise(resolve => server.close(resolve));
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('Saturday ХУЇКС contract keeps the accepted header and rejects the superseded no-space form', () => {
   const text = readFileSync(new URL('../registry/loops/personal-digest-saturday.yaml', import.meta.url), 'utf8');
   assert.equal(text.includes(header), true);
   assert.equal(text.includes(historicalNoSpaceHeader), false);
   assert.equal(text.includes('do not deliver or publish it'), true);
-  assert.equal(loadManifest(new URL('../registry/loops/personal-digest-saturday.yaml', import.meta.url)).steps.some(step => step.id === 'huyiks-checks'), false);
+  assert.equal(loadManifest(new URL('../registry/loops/personal-digest-saturday.yaml', import.meta.url)).steps.some(step => step.id === 'huyiks-checks'), true);
 });
 
-test('Core20 source verifier refuses the required stable header links, so the final post remains a human-approved artifact', () => {
+test('Core20 source verifier distinguishes fixed header links from cited source URLs', () => {
+  const source = 'https://example.test/source';
+  const post = `${header}\nУкраїнський текст.\n${source}`;
   assert.throws(() => runVerifySources(
     { config: { draft: '{{steps.post.output}}', sources: '{{steps.sources.output}}', language: 'uk' } },
-    { priorOutputs: { post: { text: `${header}\nУкраїнський текст.\nhttps://example.test/source` }, sources: { sources: [{ url: 'https://example.test/source', text: 'source' }] } } },
+    { priorOutputs: { post: { text: post }, sources: { sources: [{ url: source, text: 'source' }] } } },
+  ), /unverified URL/);
+  assert.doesNotThrow(() => runVerifySources(
+    { config: { draft: '{{steps.post.output}}', sources: '{{steps.sources.output}}', language: 'uk', fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: header } },
+    { priorOutputs: { post: { text: post }, sources: { sources: [{ url: source, text: 'source' }] } } },
+  ));
+  assert.throws(() => runVerifySources(
+    { config: { draft: '{{steps.post.output}}', sources: '{{steps.sources.output}}', language: 'uk', fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: header } },
+    { priorOutputs: { post: { text: `${header}\nhttps://invented.example/\n${source}` }, sources: { sources: [{ url: source, text: 'source' }] } } },
   ), /unverified URL/);
 });

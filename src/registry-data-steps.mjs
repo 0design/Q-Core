@@ -3,6 +3,16 @@ import { resolveTemplate, resolveTemplateValue } from './template.mjs';
 
 const context = ctx => ({ priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, item: ctx.item, index: ctx.itemIndex });
 const value = (step, field, ctx) => resolveTemplateValue(step.config[field], context(ctx));
+const textValue = (step, field, ctx) => resolveTemplate(step.config[field], context(ctx));
+const stringList = (step, field, ctx) => {
+  if (!(field in step.config)) return [];
+  const raw = textValue(step, field, ctx);
+  let list;
+  try { list = JSON.parse(raw); }
+  catch { throw new Error(`${field} must be a JSON array of nonempty strings`); }
+  insist(Array.isArray(list) && list.every(item => typeof item === 'string' && item.length > 0), `${field} must be a JSON array of nonempty strings`);
+  return list;
+};
 const strip = html => html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<(script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&(?:nbsp|amp|quot|lt|gt);/g, s => ({'&nbsp;':' ', '&amp;':'&', '&quot;':'"', '&lt;':'<', '&gt;':'>'})[s]).replace(/\s+/g, ' ').trim();
 
 /** A deliberately small readable-text extractor, not a browser or a facts verifier. */
@@ -38,9 +48,20 @@ export function runVerifySources(step, ctx) {
   insist(typeof text === 'string' && text.trim() && text.length <= 16000, 'A bounded nonempty draft is required');
   insist(Array.isArray(sources) && sources.length > 0, 'Pinned source list required');
   const urls = new Set(sources.map(s => s.url));
+  const fixedLinks = stringList(step, 'fixedLinks', ctx);
+  insist(fixedLinks.every(url => /^https?:\/\//.test(url)), 'fixedLinks must be a JSON array of HTTP(S) URLs');
+  const requiredHeadings = stringList(step, 'requiredHeadings', ctx);
+  const requiredPrefix = step.config.requiredPrefix == null ? null : textValue(step, 'requiredPrefix', ctx);
+  insist(requiredPrefix === null || typeof requiredPrefix === 'string' && requiredPrefix.length > 0, 'requiredPrefix must be a nonempty string');
+  if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
+  if (requiredHeadings.length > 0) {
+    const headings = [...text.matchAll(/^##[^\r\n]*$/gm)].map(match => match[0]);
+    insist(headings.length === requiredHeadings.length && headings.every((heading, index) => heading === requiredHeadings[index]), 'Draft must contain exactly the required Markdown sections in order');
+  }
   const links = [...text.matchAll(/https?:\/\/[^\s<>"\]]+/g)].map(m => m[0].replace(/[).,;]+$/, ''));
-  insist(links.length > 0 && links.every(link => urls.has(link)), 'Draft includes an unverified URL or no source links');
+  const allowed = new Set([...urls, ...fixedLinks]);
+  insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), checks: ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited'], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), fixedLinks, checks: ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections'])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }

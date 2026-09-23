@@ -65,6 +65,7 @@ steps:
       draft: "{{steps.personal-weekly.output}}"
       sources: "{{steps.unique.output}}"
       language: uk
+      requiredHeadings: '["## Короткі інфоприводи","## Помітні / відчутні / важливі новини"]'
   - id: weekly-approval
     kind: approval-gate
     config:
@@ -89,6 +90,14 @@ steps:
         Cite every selected source URL verbatim. Do not invent social signals,
         facts, publication dates, or personal experience. This is a local draft
         artifact only: do not deliver or publish it.
+  - id: huyiks-checks
+    kind: verify-sources
+    config:
+      draft: "{{steps.huyiks-post.output}}"
+      sources: "{{steps.unique.output}}"
+      language: uk
+      fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]'
+      requiredPrefix: "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc) і by [QFactory.io](https://QFactory.io) 🧋DD.MM**"
   - id: huyiks-approval
     kind: approval-gate
     config:

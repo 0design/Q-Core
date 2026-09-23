@@ -3,8 +3,8 @@
   "name": "Verify source links",
   "kind": "step",
   "contentType": "component",
-  "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
-  "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+  "description": "Check citation URLs, fixed presentation links, and optional literal output-format contracts; not a factual-accuracy guarantee.",
+  "value": "Check citation URLs, fixed presentation links, and optional literal output-format contracts; not a factual-accuracy guarantee.",
   "input": {
     "draft": {
       "type": "reference",
@@ -20,12 +20,27 @@
       "type": "string",
       "required": false,
       "notes": "uk checks Ukrainian text markers; not a language-quality or fact-check guarantee."
+    },
+    "fixedLinks": {
+      "type": "json-string",
+      "required": false,
+      "notes": "A JSON array of fixed HTTP(S) presentation links permitted in addition to selected-source URLs. Every other link must still be selected, and all selected sources must still be cited."
+    },
+    "requiredPrefix": {
+      "type": "string",
+      "required": false,
+      "notes": "A byte-exact literal prefix required at the beginning of the draft before any approval gate."
+    },
+    "requiredHeadings": {
+      "type": "json-string",
+      "required": false,
+      "notes": "A JSON array of exact level-two Markdown headings. When set, the draft must contain exactly this ordered list."
     }
   },
   "output": {
     "result": {
       "type": "object",
-      "notes": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee."
+      "notes": "Check selected citation URLs, optional fixed presentation links, and optional literal format contracts; not a factual-accuracy guarantee."
     }
   },
   "needsEnv": [],

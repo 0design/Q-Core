@@ -1208,8 +1208,8 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "a0a4e00f59c09c0971bec2028f3562d6e854e3ad170ca308b79009fb66ab1ae6",
-      "steps": 11,
+      "sha256": "9648a55c584ccf9737dbc2419f6b35f4be6b996df2a7a0ca1ebd2341268a75c0",
+      "steps": 12,
       "kinds": [
         "fetch",
         "parse-web",
@@ -2016,7 +2016,7 @@
           }
         ]
       },
-      "sha256": "8a98140334eabd69879a02abd25853831cafeacbbf6f9dda526043fc065a592d"
+      "sha256": "4cc9ba651b6ae3daa0e34ca9dfc0b2d59cbd6cba31c7138d777d27dfd7e427ae"
     }
   ],
   "demos": [
@@ -3165,5 +3165,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "61d2bc5835bf41a2ddea126421df5c2b9d93e0ac0414da072bc0910d3d2f778b"
+  "releaseSha256": "5530c29e52d13afca994b7493dcd3a9169b57ad846c3e69b53416d620d81baf3"
 }
