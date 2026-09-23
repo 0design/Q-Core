@@ -187,6 +187,151 @@
       ]
     },
     {
+      "id": "personal-digest-daily",
+      "name": "Personal Digest v2: weekday daily",
+      "contentType": "loop-template",
+      "value": "Create a sourced and approval-bound Ukrainian personal daily digest on weekdays.",
+      "version": "2.0.0",
+      "status": "implementation-candidate",
+      "inference": "cli",
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.1.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "schedule",
+          "version": "1.0.0"
+        }
+      ],
+      "stages": [
+        "Start only on the weekday schedule",
+        "Fetch, read, and deduplicate the configured personal sources",
+        "Create a sourced personal daily draft",
+        "Check sources and obtain approval for the exact text"
+      ],
+      "acceptance": {
+        "status": "blocked",
+        "evidence": []
+      },
+      "readiness": {
+        "templateId": "personal-digest-daily",
+        "status": "blocked",
+        "blockers": [
+          {
+            "id": "schedule",
+            "version": "1.0.0",
+            "implementation": "partial",
+            "acceptance": "pending"
+          }
+        ],
+        "components": [
+          "llm-call-cli@0.1.0",
+          "parse-web@0.1.0",
+          "deduplicate@0.1.0",
+          "verify-sources@0.1.0",
+          "approval-gate@1.0.0",
+          "fetch@1.0.0",
+          "schedule@1.0.0"
+        ]
+      }
+    },
+    {
+      "id": "personal-digest-saturday",
+      "name": "Personal Digest v2: Saturday weekly and ХУЇКС post",
+      "contentType": "loop-template",
+      "value": "Create sourced, approval-bound Saturday weekly and ХУЇКС post artifacts without delivery.",
+      "version": "2.0.0",
+      "status": "implementation-candidate",
+      "inference": "cli",
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.1.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "schedule",
+          "version": "1.0.0"
+        }
+      ],
+      "stages": [
+        "Start only on the Saturday schedule",
+        "Fetch, read, and deduplicate the configured personal sources",
+        "Create and approve a two-section personal weekly digest",
+        "Create, check, and separately approve the exact local ХУЇКС post artifact",
+        "Stop without delivery or publication"
+      ],
+      "acceptance": {
+        "status": "blocked",
+        "evidence": []
+      },
+      "readiness": {
+        "templateId": "personal-digest-saturday",
+        "status": "blocked",
+        "blockers": [
+          {
+            "id": "schedule",
+            "version": "1.0.0",
+            "implementation": "partial",
+            "acceptance": "pending"
+          }
+        ],
+        "components": [
+          "llm-call-cli@0.1.0",
+          "parse-web@0.1.0",
+          "deduplicate@0.1.0",
+          "verify-sources@0.1.0",
+          "approval-gate@1.0.0",
+          "fetch@1.0.0",
+          "schedule@1.0.0"
+        ]
+      }
+    },
+    {
       "id": "aindf-check",
       "name": "aindf-check",
       "contentType": "loop-template",
@@ -665,6 +810,8 @@
         "brand-mentions",
         "content-factory",
         "content-feed",
+        "personal-digest-daily",
+        "personal-digest-saturday",
         "price-watch",
         "release-watch"
       ],

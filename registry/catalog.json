@@ -1046,6 +1046,182 @@
       "agentGate": false
     },
     {
+      "id": "personal-digest-daily",
+      "name": "Personal Digest v2: weekday daily",
+      "description": "Create an approval-bound Ukrainian personal daily digest from a configured local profile on weekdays.",
+      "value": "Create a sourced and approval-bound Ukrainian personal daily digest on weekdays.",
+      "file": "loops/personal-digest-daily.yaml",
+      "version": "2.0.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/qloops",
+        "path": "registry/loops/personal-digest-daily.yaml",
+        "revision": "digest-v2-candidate"
+      },
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.20",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.1.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "schedule",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "loop-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests",
+        "releaseAcceptance": "pending"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [
+        "QF_PERSONAL_DIGEST_SOURCE_1_URL",
+        "QF_PERSONAL_DIGEST_SOURCE_2_URL",
+        "QF_PERSONAL_DIGEST_SOURCE_3_URL",
+        "QF_PERSONAL_DIGEST_SOURCE_4_URL",
+        "QF_PERSONAL_DIGEST_PROFILE"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "sha256": "0911ec7bdda7f36be39eb66ce8562edd3e8e25d5432efd7b84a818b526ea1ff0",
+      "steps": 9,
+      "kinds": [
+        "fetch",
+        "parse-web",
+        "deduplicate",
+        "llm-call",
+        "verify-sources",
+        "approval-gate"
+      ],
+      "humanGate": true,
+      "agentGate": false
+    },
+    {
+      "id": "personal-digest-saturday",
+      "name": "Personal Digest v2: Saturday weekly and ХУЇКС post",
+      "description": "Create an approval-bound Ukrainian personal weekly digest and a separate, non-delivering Saturday ХУЇКС post artifact.",
+      "value": "Create sourced, approval-bound Saturday weekly and ХУЇКС post artifacts without delivery.",
+      "file": "loops/personal-digest-saturday.yaml",
+      "version": "2.0.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/qloops",
+        "path": "registry/loops/personal-digest-saturday.yaml",
+        "revision": "digest-v2-candidate"
+      },
+      "engine": {
+        "package": "qloops",
+        "version": "0.2.0-core.20",
+        "manifest": "qloops.loop/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.1.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "schedule",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "loop-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests",
+        "releaseAcceptance": "pending"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [
+        "QF_PERSONAL_DIGEST_SOURCE_1_URL",
+        "QF_PERSONAL_DIGEST_SOURCE_2_URL",
+        "QF_PERSONAL_DIGEST_SOURCE_3_URL",
+        "QF_PERSONAL_DIGEST_SOURCE_4_URL",
+        "QF_PERSONAL_DIGEST_PROFILE"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "sha256": "a0a4e00f59c09c0971bec2028f3562d6e854e3ad170ca308b79009fb66ab1ae6",
+      "steps": 11,
+      "kinds": [
+        "fetch",
+        "parse-web",
+        "deduplicate",
+        "llm-call",
+        "verify-sources",
+        "approval-gate"
+      ],
+      "humanGate": true,
+      "agentGate": false
+    },
+    {
       "id": "sdd-pipeline",
       "name": "SDD pipeline",
       "description": "Turn an intent into an approved specification and a verified project change.",
@@ -2045,7 +2221,7 @@
       "sha256": "125f232b781708773d7f1dab6e84c053a695d90030a546c14f05dcd975a24bfe"
     }
   ],
-  "releaseVersion": "2026.09.22-registry.5-candidate",
+  "releaseVersion": "2026.09.24-registry.5-digest-v2-candidate",
   "core": {
     "package": "qloops",
     "version": "0.2.0-core.20",
@@ -2257,6 +2433,151 @@
             "version": "1.0.0"
           }
         ]
+      },
+      {
+        "id": "personal-digest-daily",
+        "name": "Personal Digest v2: weekday daily",
+        "contentType": "loop-template",
+        "value": "Create a sourced and approval-bound Ukrainian personal daily digest on weekdays.",
+        "version": "2.0.0",
+        "status": "implementation-candidate",
+        "inference": "cli",
+        "dependencies": [
+          {
+            "id": "llm-call-cli",
+            "version": "0.1.0"
+          },
+          {
+            "id": "parse-web",
+            "version": "0.1.0"
+          },
+          {
+            "id": "deduplicate",
+            "version": "0.1.0"
+          },
+          {
+            "id": "verify-sources",
+            "version": "0.1.0"
+          },
+          {
+            "id": "approval-gate",
+            "version": "1.0.0"
+          }
+        ],
+        "builtinDependencies": [
+          {
+            "id": "fetch",
+            "version": "1.0.0"
+          },
+          {
+            "id": "schedule",
+            "version": "1.0.0"
+          }
+        ],
+        "stages": [
+          "Start only on the weekday schedule",
+          "Fetch, read, and deduplicate the configured personal sources",
+          "Create a sourced personal daily draft",
+          "Check sources and obtain approval for the exact text"
+        ],
+        "acceptance": {
+          "status": "blocked",
+          "evidence": []
+        },
+        "readiness": {
+          "templateId": "personal-digest-daily",
+          "status": "blocked",
+          "blockers": [
+            {
+              "id": "schedule",
+              "version": "1.0.0",
+              "implementation": "partial",
+              "acceptance": "pending"
+            }
+          ],
+          "components": [
+            "llm-call-cli@0.1.0",
+            "parse-web@0.1.0",
+            "deduplicate@0.1.0",
+            "verify-sources@0.1.0",
+            "approval-gate@1.0.0",
+            "fetch@1.0.0",
+            "schedule@1.0.0"
+          ]
+        }
+      },
+      {
+        "id": "personal-digest-saturday",
+        "name": "Personal Digest v2: Saturday weekly and ХУЇКС post",
+        "contentType": "loop-template",
+        "value": "Create sourced, approval-bound Saturday weekly and ХУЇКС post artifacts without delivery.",
+        "version": "2.0.0",
+        "status": "implementation-candidate",
+        "inference": "cli",
+        "dependencies": [
+          {
+            "id": "llm-call-cli",
+            "version": "0.1.0"
+          },
+          {
+            "id": "parse-web",
+            "version": "0.1.0"
+          },
+          {
+            "id": "deduplicate",
+            "version": "0.1.0"
+          },
+          {
+            "id": "verify-sources",
+            "version": "0.1.0"
+          },
+          {
+            "id": "approval-gate",
+            "version": "1.0.0"
+          }
+        ],
+        "builtinDependencies": [
+          {
+            "id": "fetch",
+            "version": "1.0.0"
+          },
+          {
+            "id": "schedule",
+            "version": "1.0.0"
+          }
+        ],
+        "stages": [
+          "Start only on the Saturday schedule",
+          "Fetch, read, and deduplicate the configured personal sources",
+          "Create and approve a two-section personal weekly digest",
+          "Create, check, and separately approve the exact local ХУЇКС post artifact",
+          "Stop without delivery or publication"
+        ],
+        "acceptance": {
+          "status": "blocked",
+          "evidence": []
+        },
+        "readiness": {
+          "templateId": "personal-digest-saturday",
+          "status": "blocked",
+          "blockers": [
+            {
+              "id": "schedule",
+              "version": "1.0.0",
+              "implementation": "partial",
+              "acceptance": "pending"
+            }
+          ],
+          "components": [
+            "llm-call-cli@0.1.0",
+            "parse-web@0.1.0",
+            "deduplicate@0.1.0",
+            "verify-sources@0.1.0",
+            "approval-gate@1.0.0",
+            "fetch@1.0.0",
+            "schedule@1.0.0"
+          ]
+        }
       },
       {
         "id": "aindf-check",
@@ -2737,6 +3058,8 @@
           "brand-mentions",
           "content-factory",
           "content-feed",
+          "personal-digest-daily",
+          "personal-digest-saturday",
           "price-watch",
           "release-watch"
         ],
@@ -2842,5 +3165,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "8c9e61a66eb9e816496195c745a9b920567fa159087912b897c3413b5738253d"
+  "releaseSha256": "61d2bc5835bf41a2ddea126421df5c2b9d93e0ac0414da072bc0910d3d2f778b"
 }
