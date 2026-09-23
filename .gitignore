@@ -3,6 +3,5 @@
 node_modules/
 *.tgz
 .DS_Store
-.qf/
 *.log
 __pycache__/
