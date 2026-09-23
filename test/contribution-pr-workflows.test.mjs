@@ -10,7 +10,7 @@ test("all pull requests, including root .gitignore changes, receive unprivileged
   assert.doesNotThrow(() => assertContributionPrWorkflows({ validate, registry }));
 });
 
-test("workflow policy rejects a restored path filter or privileged trigger", () => {
+test("workflow policy rejects restored filters, privileged triggers, secrets, and write permissions", () => {
   const pathFiltered = validate.replace("  pull_request:\n", "  pull_request:\n    paths: ['src/**']\n");
   assert.throws(
     () => assertContributionPrWorkflows({ validate: pathFiltered, registry }),
@@ -22,4 +22,18 @@ test("workflow policy rejects a restored path filter or privileged trigger", () 
     () => assertContributionPrWorkflows({ validate: privileged, registry }),
     /must stay unprivileged/,
   );
+
+  const secret = validate.replace("permissions:\n", "env:\n  TOKEN: ${{ secrets.TOKEN }}\npermissions:\n");
+  assert.throws(
+    () => assertContributionPrWorkflows({ validate: secret, registry }),
+    /must not access secrets/,
+  );
+
+  for (const [name, workflow] of [["baseline", validate], ["registry", registry]]) {
+    const writeEnabled = workflow.replace("  contents: read\n", "  contents: read\n  pull-requests: write\n");
+    assert.throws(
+      () => assertContributionPrWorkflows(name === "baseline" ? { validate: writeEnabled, registry } : { validate, registry: writeEnabled }),
+      /must declare exactly read-only contents permission/,
+    );
+  }
 });
