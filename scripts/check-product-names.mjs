@@ -35,7 +35,15 @@ export function assertNoRetiredProductNames(files) {
       : source;
     assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);
     assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
+    assert.equal(/\bloops?\s+(?:catalog|manifest|version|id)\b/i.test(inspectable), false, `${path} retains a retired product loop term`);
   }
+}
+
+export function verifyWorkflowConsumerNames(root) {
+  const files = filesBelow(root, "registry/workflows")
+    .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
+  assert.ok(files.length > 0, "Registry must contain at least one workflow consumer");
+  assertNoRetiredProductNames(files);
 }
 
 export function verifyProductNames(root = resolve(".")) {
@@ -49,6 +57,7 @@ export function verifyProductNames(root = resolve(".")) {
   const activeSources = [...scannedRoots.flatMap((relative) => filesBelow(root, relative)), ...scannedFiles]
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assertNoRetiredProductNames(activeSources);
+  verifyWorkflowConsumerNames(root);
 
   assert.equal(existsSync(join(root, "registry", "workflows")), true, "Registry must expose workflows/");
   assert.equal(existsSync(join(root, "registry", "loops")), false, "Registry must not retain loops/");

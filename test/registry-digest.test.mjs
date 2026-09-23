@@ -74,3 +74,10 @@ test('source components refuse hallucinated links, empty sources and normalize d
   assert.equal(unique.output.removed, 1);
   assert.throws(() => runVerifySources({ config: { draft: '{{steps.draft.output}}', sources: '{{steps.parsed.output}}', language: 'uk' } }, context), /unverified URL/);
 });
+
+test('Digest is a Q-Core workflow consumer without retired product aliases', () => {
+  const source = readFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), 'utf8');
+  assert.match(source, /^manifest: q-core\.workflow\/v1$/m);
+  assert.match(source, /Cite each selected source URL verbatim/i);
+  assert.doesNotMatch(source, /\bqloops?\b|\bloopId\b|\bloops?\s+(?:catalog|manifest|version|id)\b/i);
+});
