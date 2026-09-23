@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # Turn source material into a checked draft with an explicit approval step before delivery.
 # OpenRouter example: configure the model explicitly. CLI acceptance uses the caller interface.
@@ -25,7 +25,7 @@ steps:
     kind: fetch
     config:
       name: "Fetch material"
-      url: "{{env.QLOOP_SOURCE_URL}}"
+      url: "{{env.QCORE_SOURCE_URL}}"
       format: json
       timeoutSec: "30"
 

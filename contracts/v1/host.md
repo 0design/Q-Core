@@ -1,6 +1,6 @@
 # Local trigger host
 
-`qloops-host <manual|schedule|webhook> config.json [manual-event-id]` hosts one
+`q-core-host <manual|schedule|webhook> config.json [manual-event-id]` hosts one
 explicitly installed loop. It neither installs a background service nor hosts
 work on behalf of another account. The process and machine must remain awake.
 Stopping it stops future triggers; currently running work is not rolled back.
@@ -8,7 +8,7 @@ Missed schedule minutes are not replayed on restart.
 
 Configuration: `manifest` (absolute installed YAML path), `manifestSha256`
 (SHA256 of its exact bytes), optional `callerProvider` and `workspacePolicy`
-with the same contracts as `qloops run`. Changes require an explicit new pin.
+with the same contracts as `q-core run`. Changes require an explicit new pin.
 The manifest must declare the requested trigger kind and be enabled.
 
 Manual mode requires a unique bounded event ID. Schedule mode polls UTC cron

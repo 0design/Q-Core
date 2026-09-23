@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # Find relevant brand mentions without reading every source item manually.
 # OpenRouter example: configure the model explicitly. CLI acceptance uses the caller interface.
@@ -25,7 +25,7 @@ steps:
     kind: fetch
     config:
       name: "Search the feed"
-      url: "{{env.QLOOP_SOURCE_URL}}"
+      url: "{{env.QCORE_SOURCE_URL}}"
       format: rss
       limit: "10"
       timeoutSec: "30"
@@ -54,7 +54,7 @@ steps:
     config:
       name: "Send the summary"
       method: POST
-      url: "{{env.QLOOP_WEBHOOK_URL}}"
+      url: "{{env.QCORE_WEBHOOK_URL}}"
       expect: "2xx"
       timeoutSec: "30"
       body: '{"text":"{{steps.Keep the real ones.output.text}}"}'

@@ -4,7 +4,7 @@ import { subprocess, scopedEnvironment } from "./subprocess.mjs";
 import { CoreError, insist } from "./contracts.mjs";
 
 const SECURITY = "/usr/bin/security";
-const SERVICE = "com.qfactory.qloops.openrouter";
+const SERVICE = "com.qfactory.q-core.openrouter";
 const KEY_REF = /^[A-Z_][A-Z0-9_]*$/;
 const MAX_KEY_REF_LENGTH = 128;
 const MAX_SECRET_BYTES = 8192;

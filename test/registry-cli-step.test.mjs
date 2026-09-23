@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { registryCliStep } from '../src/registry-cli-step.mjs';
 const provider = { kind: 'caller', agent: 'codex', model: 'caller-selected', payerScope: 'local-cli' };
 function setup() {
-  const state = { runId: 'run-test', loopId: 'example' };
+  const state = { runId: 'run-test', workflowId: 'example' };
   let persisted;
   const args = { stepId: 'draft', instructions: 'Summarize the supplied source.', input: { source: 'A real input is required in acceptance.' }, provider, save: () => { persisted = structuredClone(state); } };
   return { state, args, snapshot: () => persisted };

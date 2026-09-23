@@ -14,7 +14,7 @@ const modelIndex = process.argv.indexOf("--model");
 const liveModel = modelIndex >= 0 ? process.argv[modelIndex + 1] : null;
 if (live) assert.ok(liveModel && !liveModel.startsWith("--"), "Live checks require --model MODEL");
 const root = resolve("."),
-  tmp = mkdtempSync(join(tmpdir(), "qloops-clean-install-"));
+  tmp = mkdtempSync(join(tmpdir(), "q-core-clean-install-"));
 const bounded = (value, max = 400) =>
   typeof value === "string" ? value.slice(0, max) : null;
 const unexpectedExit = (phase, error) => {
@@ -42,12 +42,12 @@ const exec = (cmd, args, opts = {}) =>
       ...process.env,
       QF_NO_UPDATE_CHECK: "1",
       QFACTORY_REGISTRY: "",
-      QLOOP_CATALOG_URL: "",
+      QCORE_CATALOG_URL: "",
     },
     ...opts,
   });
 try {
-  writeFileSync(join(tmp, "package.json"), JSON.stringify({name:"qloops-proof-caller",private:true,type:"module"}));
+  writeFileSync(join(tmp, "package.json"), JSON.stringify({name:"q-core-proof-caller",private:true,type:"module"}));
   const packed = JSON.parse(
     exec("npm", ["pack", root, "--ignore-scripts", "--json"]),
   )[0];
@@ -61,12 +61,12 @@ try {
     tarball,
   ]);
   const smoke =
-    "import {validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck} from 'qloops'; if(![validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
+    "import {validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck} from 'q-core'; if(![validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
   const imports = exec(process.execPath, ["--input-type=module", "-e", smoke]);
   const manifest =
-    "manifest: qloops.loop/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
+    "manifest: q-core.workflow/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
   writeFileSync(join(tmp, "clean.yaml"), manifest);
-  const bin = join(tmp, "node_modules/qloops/bin/qloops.mjs");
+  const bin = join(tmp, "node_modules/q-core/bin/q-core.mjs");
   const validation = exec(process.execPath, [bin, "validate", "clean.yaml"]);
   let runCode = 0;
   try {

@@ -1,6 +1,6 @@
 {
   "id": "annotation-review",
-  "loopId": "annotation-fix",
+  "workflowId": "annotation-fix",
   "contentType": "demo",
   "value": "Preserve feedback identity and expose ambiguous requests before execution.",
   "mode": "offline",

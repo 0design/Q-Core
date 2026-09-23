@@ -12,12 +12,12 @@ const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
 const [id, wantRun] = process.argv.slice(2);
 if (!id) { console.error("usage: record-proof.mjs <loop-id> [runId]"); process.exit(64); }
 
-const runsDir = join(PKG, "registry", "loops", ".qf", "runs");
+const runsDir = join(PKG, "registry", "workflows", ".qf", "runs");
 if (!existsSync(runsDir)) { console.error(`no runs at ${runsDir} — run the loop first`); process.exit(1); }
 
 const runs = readdirSync(runsDir).filter((f) => f.endsWith(".json"))
   .map((f) => { try { return JSON.parse(readFileSync(join(runsDir, f), "utf8")); } catch { return null; } })
-  .filter((r) => r && r.loopId === id && (!wantRun || r.runId === wantRun))
+  .filter((r) => r && r.workflowId === id && (!wantRun || r.runId === wantRun))
   .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
 
 /* Only successful runs may supply catalog evidence. */
@@ -31,7 +31,7 @@ const clean = (s) => String(s)
   .replace(/\b\d{8,10}:[A-Za-z0-9_-]{30,}\b/g, "…:…");
 
 const trace = {
-  runId: run.runId, loopId: run.loopId, status: run.status, summary: clean(run.summary),
+  runId: run.runId, workflowId: run.workflowId, status: run.status, summary: clean(run.summary),
   startedAt: run.startedAt, costUsd: run.costUsd, tokensIn: run.tokensIn, tokensOut: run.tokensOut,
   steps: run.steps.map((s) => ({
     kind: s.kind, name: s.name, status: s.status,

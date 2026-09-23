@@ -1,8 +1,8 @@
 /**
  * YAML reader for loop manifests — a documented SUBSET, not a YAML engine.
  *
- * WHY HAND-WRITTEN. The whole point of this package is that `qloops validate` and
- * `qloops run --dry-run` work on a clean machine with nothing installed: unpack the
+ * WHY HAND-WRITTEN. The whole point of this package is that `q-core validate` and
+ * `q-core run --dry-run` work on a clean machine with nothing installed: unpack the
  * tarball, run it. One dependency turns that into "…after npm install finishes,
  * assuming you have network". A manifest format whose reader needs a package
  * manager is a format with a footnote.
@@ -238,7 +238,7 @@ function parseFlow(src, lineNo) {
 export function parseYaml(text) {
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
 
-  // One document only. A second --- would mean the file holds two loops and we
+  // One document only. A second --- would mean the file holds two workflows and we
   // would have to guess which one was meant.
   let start = 0;
   while (start < lines.length && isBlank(lines[start])) start++;

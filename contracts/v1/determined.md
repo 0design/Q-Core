@@ -1,6 +1,6 @@
 # determined: execute → verify → repair
 
-`determined` is the reusable execution reducer exported by `qloops`. Import it
+`determined` is the reusable execution reducer exported by `q-core`. Import it
 from the installed package. It does not create a service, invoke a model, launch
 shell commands or grant workspace permissions on its own. A trusted host supplies
 `execute`, `verify`, and `getArtifact`. The shipped
@@ -47,8 +47,8 @@ return `needs_human`; consumers should handle that outcome.
 ## A2D successor and historical compatibility
 
 The historical package `a2done`, binary/MCP ID `a2d`, and `.a2d` state have no
-automatic compatibility layer. qloops does not replace their binary, MCP tools,
-hooks or saved state. Do not point old clients at a nonexistent `qloops a2d`
+automatic compatibility layer. q-core does not replace their binary, MCP tools,
+hooks or saved state. Do not point old clients at a nonexistent `q-core a2d`
 command or rename state files.
 
 For a new integration, convert plan-time criteria/verifiers to the descriptors

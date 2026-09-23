@@ -4,19 +4,19 @@ The contracts cover Registry SDD/Digest composition, specification and approval
 subjects, determined verification with persisted bounded repair, source checks,
 durable receiver receipts, local host triggers, and authored skill execution. See
 SPEC-MANIFEST.md §11 and [the skill contract](skill.md).
-Direct `qloops agent` and `qloops content` use does not establish compatibility
+Direct `q-core agent` and `q-core content` use does not establish compatibility
 with a Registry template.
 
 Content has a separate [HTTP request, approval, repeat and receipt contract](content.md)
 and a shipped [synthetic request](../../examples/content-request.json).
 
-YAML manifests use `qloops.loop/v1`; older manifest namespaces are rejected.
+YAML manifests use `q-core.workflow/v1`; older manifest namespaces are rejected.
 Migrate a copy of a manifest and revalidate it with the installed package. Do not
 resume old runs or rewrite historical evidence. Consumers pin the package tarball
 SHA256 and this directory. No sibling source imports. Contract fixtures are
 synthetic and do not exercise external providers or delivery destinations.
 
-`qloops agent request.json` (or `-` for bounded stdin) emits exactly one JSON
+`q-core agent request.json` (or `-` for bounded stdin) emits exactly one JSON
 result on stdout. Logs belong on stderr. Status/exit: success/0, failed/1,
 needs_human/2, cancelled/130; malformed request failed/64. No implicit provider.
 
@@ -26,7 +26,7 @@ provider {kind: claude|codex|openrouter, model, executable? or keyRef?, payerSco
 secretSource? (openrouter: env|keychain)},
 deadlineMs (1..300000), maxRepairAttempts (0..5), verifier {command,args},
 optional approval {hash,decision:approve|reject}, resumeRunId.
-Supported loops: sdd-pipeline@1.0.0 and synthetic-sdd@1.0.0 (test alias). This
+Supported workflows: sdd-pipeline@1.0.0 and synthetic-sdd@1.0.0 (test alias). This
 executable synthetic entry point is the integration reference.
 
 ModelProvider: generate(messages, limits, signal) -> content, provider identity,

@@ -2,7 +2,7 @@
 
 Registry has three content types: loop templates, components, and demos. Content type does not imply implementation or acceptance.
 
-- `loops/`: executable YAML templates. Entries marked `reference-only` are not
+- `workflows/`: executable YAML templates. Entries marked `reference-only` are not
   runnable Registry templates. Check each entry's declared readiness and exact
   engine pin before installing it.
 - `components/`: versioned building-block contracts. Registry names distinguish `llm-call/cli` and `llm-call/openrouter`; file IDs use hyphens. The existing YAML runtime kind `llm-call` maps to OpenRouter only.

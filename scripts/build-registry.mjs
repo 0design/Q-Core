@@ -10,7 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../registry');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const sri = bytes => `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 export function assertCoreArtifact(catalog, body) {
-  if (catalog.core.artifact !== `vendor/qloops-${catalog.core.version}.tgz` ||
+  if (catalog.core.artifact !== `vendor/q-core-${catalog.core.version}.tgz` ||
       sha(body) !== catalog.core.artifactSha256 || sri(body) !== catalog.core.integrity)
     throw Error('Core artifact does not match catalog pin');
 }
@@ -19,11 +19,11 @@ export function buildRegistry(sourceRoot = root) {
   const assets = {};
   const ids = new Set();
   function asset(file) {
-    if (!/^(loops|components|demos|authors|examples)\/[a-z0-9-]+\.(yaml|json|txt)$/.test(file)) throw Error('Unsafe registry path');
+    if (!/^(workflows|components|demos|authors|examples)\/[a-z0-9-]+\.(yaml|json|txt)$/.test(file)) throw Error('Unsafe registry path');
     if (lstatSync(resolve(sourceRoot, file.split('/')[0])).isSymbolicLink() || lstatSync(resolve(sourceRoot, file)).isSymbolicLink()) throw Error('Registry symlink');
     return assets[file] ??= readFileSync(resolve(sourceRoot, file));
   }
-  for (const section of ['loops', 'components', 'demos']) {
+  for (const section of ['workflows', 'components', 'demos']) {
     for (const entry of catalog[section]) {
       const key = `${section}/${entry.id}`;
       if (!/^[a-z0-9-]+$/.test(entry.id) || ids.has(key)) throw Error('Invalid or duplicate entry');
@@ -32,7 +32,7 @@ export function buildRegistry(sourceRoot = root) {
       if (entry.engine?.version !== catalog.core.version) throw Error('Engine pin mismatch');
       const file = entry.file ?? `${key}.json`;
       entry.sha256 = sha(asset(file));
-      if (section === 'loops') {
+      if (section === 'workflows') {
         if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Loop value is required');
         const manifest = loadManifest(resolve(sourceRoot, file));
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
@@ -46,13 +46,13 @@ export function buildRegistry(sourceRoot = root) {
   if (composition.schemaVersion !== 1 || !Array.isArray(composition.templates)) throw Error('Invalid composition contract');
   const templateIds = new Set();
   for (const template of composition.templates) {
-    if (!template.id || templateIds.has(template.id) || template.contentType !== 'loop-template' || !template.value?.trim()) throw Error('Invalid template contract');
+    if (!template.id || templateIds.has(template.id) || template.contentType !== 'workflow-template' || !template.value?.trim()) throw Error('Invalid template contract');
     templateIds.add(template.id);
     template.readiness = componentReadiness(template, [...catalog.components, ...(composition.builtins ?? [])]);
   }
-  for (const entry of [...catalog.loops, ...catalog.components]) componentReadiness(entry, [...catalog.components, ...(composition.builtins ?? [])]);
+  for (const entry of [...catalog.workflows, ...catalog.components]) componentReadiness(entry, [...catalog.components, ...(composition.builtins ?? [])]);
   catalog.composition = composition;
-  for (const demo of catalog.demos) if (!catalog.loops.some(loop => loop.id === demo.loopId) && !composition.templates.some(template => template.id === demo.loopId)) throw Error('Missing demo loop');
+  for (const demo of catalog.demos) if (!catalog.workflows.some(loop => loop.id === demo.workflowId) && !composition.templates.some(template => template.id === demo.workflowId)) throw Error('Missing demo loop');
   delete catalog.releaseSha256;
   catalog.releaseSha256 = sha(JSON.stringify(catalog));
   return { catalog, assets };
@@ -79,5 +79,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     }
     writeFileSync(resolve(destination, 'SHA256SUMS'), Object.entries(files).map(([file, body]) => `${sha(body)}  ${file}`).sort().join('\n') + '\n');
   }
-  console.log(JSON.stringify({ version: catalog.releaseVersion, entries: catalog.loops.length + catalog.components.length + catalog.demos.length }));
+  console.log(JSON.stringify({ version: catalog.releaseVersion, entries: catalog.workflows.length + catalog.components.length + catalog.demos.length }));
 }

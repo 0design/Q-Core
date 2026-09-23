@@ -11,7 +11,7 @@ import {subprocess, scopedEnvironment} from '../src/subprocess.mjs';
 const exported = resolve(process.argv[2]);
 const bytes = readFileSync(join(exported, 'catalog.json'));
 const catalog = JSON.parse(bytes);
-assert.match(catalog.core.artifact, /^vendor\/qloops-[a-zA-Z0-9.-]+\.tgz$/);
+assert.match(catalog.core.artifact, /^vendor\/q-core-[a-zA-Z0-9.-]+\.tgz$/);
 const archive = join(exported, catalog.core.artifact);
 assert.equal(hash(readFileSync(archive)), catalog.core.artifactSha256);
 assert.equal(`sha512-${createHash('sha512').update(readFileSync(archive)).digest('base64')}`, catalog.core.integrity);
@@ -40,12 +40,12 @@ try {
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;
   const env = {...scopedEnvironment(), QF_NO_UPDATE_CHECK:'1',
-    QLOOP_SOURCE_URL: base + '/source', QLOOP_WEBHOOK_URL: base + '/sink'};
+    QCORE_SOURCE_URL: base + '/source', QCORE_WEBHOOK_URL: base + '/sink'};
   const run = (exe, args) => subprocess(exe, args, {cwd, env, timeoutMs:30000});
   writeFileSync(join(cwd, 'package.json'), '{"private":true}');
   const installed = await run('npm', ['install','--ignore-scripts','--no-audit','--no-fund',archive]);
   assert.equal(installed.code, 0, installed.stderr);
-  const cli = args => run(process.execPath, [join(cwd,'node_modules/qloops/bin/qloops.mjs'), ...args]);
+  const cli = args => run(process.execPath, [join(cwd,'node_modules/q-core/bin/q-core.mjs'), ...args]);
   const destination = join(cwd, 'relay.yaml');
   const install = (digest, version, target) => cli(['install',base+'/registry',digest,'webhook-relay',version,target]);
   const result = await install(hash(bytes),'1.1.0',destination);

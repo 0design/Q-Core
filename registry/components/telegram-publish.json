@@ -10,7 +10,7 @@
     "text": {
       "type": "string",
       "required": true,
-      "notes": "Message body. In shipped loops this is a prior step's output, templated into api-request body."
+      "notes": "Message body. In shipped workflows this is a prior step's output, templated into api-request body."
     }
   },
   "output": {

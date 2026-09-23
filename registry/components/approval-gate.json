@@ -46,7 +46,7 @@
     },
     "status": {
       "type": "string",
-      "notes": "reviewer: human \u2014 the run is waiting_human until qloop approve continues it or --reject fails it."
+      "notes": "reviewer: human \u2014 the run is waiting_human until q-core approve continues it or --reject fails it."
     }
   },
   "needsEnv": [],

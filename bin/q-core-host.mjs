@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createLocalHost } from '../src/host.mjs';
 const [mode,file,eventId]=process.argv.slice(2);
 try {
-  if(!['manual','schedule','webhook'].includes(mode)||!file) throw Error('Usage: qloops-host <manual|schedule|webhook> <config.json> [manual-event-id]');
+  if(!['manual','schedule','webhook'].includes(mode)||!file) throw Error('Usage: q-core-host <manual|schedule|webhook> <config.json> [manual-event-id]');
   const host=createLocalHost(JSON.parse(readFileSync(file,'utf8')));
   const report=result=>{if(result)process.stdout.write(JSON.stringify(result)+'\n');};
   if(mode==='manual') report(await host.dispatch(mode,eventId));

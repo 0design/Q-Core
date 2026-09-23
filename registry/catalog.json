@@ -1,11 +1,11 @@
 {
   "catalogVersion": 2,
-  "loops": [
+  "workflows": [
     {
       "id": "brand-mentions",
       "name": "Find your brand mentions",
       "description": "Filter a news feed for relevant mentions of your brand.",
-      "file": "loops/brand-mentions.yaml",
+      "file": "workflows/brand-mentions.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -23,8 +23,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/brand-mentions.txt",
@@ -40,9 +40,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -53,8 +53,8 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
@@ -63,13 +63,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "3b01eadde84fa17d1a1fb5e8454ef5926cca5320ef215db7b5127aaed80bcdf1",
+      "sha256": "8882cd8eaf7f88560d6b4d9909777615c8a35c80b35715fc88da4ce55dabb979",
       "value": "Find relevant brand mentions without reading every source item manually.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -94,7 +94,7 @@
       "id": "budget-guard",
       "name": "Test the budget ceiling",
       "description": "Verify that a zero budget stops the loop before a paid step.",
-      "file": "loops/budget-guard.yaml",
+      "file": "workflows/budget-guard.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -112,8 +112,8 @@
       "budgetUsd": 0,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": null,
@@ -129,9 +129,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -142,8 +142,8 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
@@ -152,13 +152,13 @@
         "status": "no-live-proof",
         "releaseAcceptance": "pending"
       },
-      "sha256": "71e2089601763d455447976e52e1fee0c7f803cada0bb242f8bb9913552828dc",
+      "sha256": "6cfa525f2bb4ae6a31c69c1103032f0513e8c5499227f8217cba58a9a6b2c4b6",
       "value": "Check how a configured spending limit stops a model-backed workflow before using it on real work.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -179,7 +179,7 @@
       "id": "content-factory",
       "name": "Draft, check, approve, publish",
       "description": "Prepare a post and pause for your approval before publishing.",
-      "file": "loops/content-factory.yaml",
+      "file": "workflows/content-factory.yaml",
       "version": "1.1.0",
       "steps": 5,
       "topLevelSteps": 5,
@@ -198,7 +198,7 @@
       "budgetUsd": 0.4,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
+        "QCORE_SOURCE_URL",
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID"
       ],
@@ -215,9 +215,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -232,7 +232,7 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
+          "QCORE_SOURCE_URL",
           "TELEGRAM_BOT_TOKEN",
           "TELEGRAM_CHAT_ID",
           "OPENROUTER_MODEL"
@@ -243,13 +243,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "82611c779f48d5e0852b2c772031851c968054b807d36220b08437bace4d4219",
+      "sha256": "134901e471a005a509b6cf103b51db46e6df04881e492d35513473b2512068fe",
       "value": "Turn source material into a checked draft with an explicit approval step before delivery.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -274,7 +274,7 @@
       "id": "content-feed",
       "name": "Content feed",
       "description": "Read an RSS feed, write a short morning digest and send it to Telegram. Repeated runs may redeliver; receiver-side deduplication requires separate configuration.",
-      "file": "loops/content-feed.yaml",
+      "file": "workflows/content-feed.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -292,7 +292,7 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
+        "QCORE_SOURCE_URL",
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID"
       ],
@@ -309,9 +309,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -322,7 +322,7 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
+          "QCORE_SOURCE_URL",
           "TELEGRAM_BOT_TOKEN",
           "TELEGRAM_CHAT_ID",
           "OPENROUTER_MODEL"
@@ -333,13 +333,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "479e536836272cc56d2d9be72783c3fc0c03399975516ff88f9260b226563858",
+      "sha256": "134062a186acb1f928f661eab44b995c42bc33236213c3eada50c933829c49ac",
       "value": "Condense a source feed into a readable update so the user does not need to review every item manually.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -364,7 +364,7 @@
       "id": "feed-fanout",
       "name": "Feed fan-out",
       "description": "Give each entry its own model call and outgoing message.",
-      "file": "loops/feed-fanout.yaml",
+      "file": "workflows/feed-fanout.yaml",
       "version": "1.1.0",
       "steps": 4,
       "topLevelSteps": 2,
@@ -383,8 +383,8 @@
       "budgetUsd": 0.15,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/feed-fanout.txt",
@@ -399,9 +399,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -412,8 +412,8 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
@@ -422,13 +422,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "7359d80ba02ef3d52ee10e57af8c90b4b07a0ef25fb801936c24f0dc1adbb12c",
+      "sha256": "431cf400b5a9bf2c7dd08d2e9fedf4e2156fc532d9fd5aa40594cb5118cdc9b0",
       "value": "Process multiple feed items consistently and collect the results without repeating the same manual steps.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -453,7 +453,7 @@
       "id": "json-digest",
       "name": "Get a structured digest",
       "description": "Request a JSON summary and reject incorrectly formatted output.",
-      "file": "loops/json-digest.yaml",
+      "file": "workflows/json-digest.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -471,8 +471,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/json-digest.txt",
@@ -487,9 +487,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -500,8 +500,8 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
@@ -510,13 +510,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "c2af30819347373f7a0e71b7d74a8be7f0bb19a322fef043b6ee5c6b875e9c80",
+      "sha256": "61535abad89a4a72c9984b6993ab69a0c43257daec74d85d3a93a6d7bdcd5fee",
       "value": "Produce a structured summary that a downstream service can consume without manual reformatting.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -537,7 +537,7 @@
       "id": "price-watch",
       "name": "Watch for price changes",
       "description": "Read a price source and prepare an update for your destination.",
-      "file": "loops/price-watch.yaml",
+      "file": "workflows/price-watch.yaml",
       "version": "1.1.0",
       "steps": 4,
       "topLevelSteps": 4,
@@ -555,7 +555,7 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/price-watch.txt",
@@ -570,9 +570,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -587,7 +587,7 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
@@ -596,13 +596,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "d72bd1491fe126380efc1d41015ac34b74ec6f7528b4a3f138e3b7ffee78ca75",
+      "sha256": "2ebcd052f6f2f781fbf4f223b3b27f8ab3680201eabe6efbfd95b5a7a1c937c4",
       "value": "Surface relevant price updates without repeatedly checking the source manually.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -627,7 +627,7 @@
       "id": "release-watch",
       "name": "Release watch",
       "description": "Follow a public GitHub repository and summarize what changed.",
-      "file": "loops/release-watch.yaml",
+      "file": "workflows/release-watch.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -645,8 +645,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/release-watch.txt",
@@ -662,9 +662,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -675,8 +675,8 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
@@ -685,13 +685,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "c8c9905f1d2d940d13f63f9ee868d14ef44354d205d84bacda658177d893cfd6",
+      "sha256": "dbcd1511c22046af8d0ac7de67b659956890c884607639ce18b5fc8454e94bc3",
       "value": "Summarize new software releases and highlight items worth reviewing without reading the full release feed.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -716,7 +716,7 @@
       "id": "strict-gate",
       "name": "Check before continuing",
       "description": "Review an output against a rubric before the next step.",
-      "file": "loops/strict-gate.yaml",
+      "file": "workflows/strict-gate.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -734,8 +734,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/strict-gate.txt",
@@ -750,9 +750,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -767,8 +767,8 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
@@ -777,13 +777,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "4807dd5904596c4666754082bc00d359e2578c0ded604bc5716d3122b0a6b04f",
+      "sha256": "f38ff47e8c37a445429fd22098a6d860cc218c605e61c0c9fcdf5b573d371fb7",
       "value": "Check a draft against an explicit rubric before allowing the next workflow step.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -804,7 +804,7 @@
       "id": "webhook-relay",
       "name": "Pass data to a webhook",
       "description": "Read a JSON endpoint and forward its data without a model call.",
-      "file": "loops/webhook-relay.yaml",
+      "file": "workflows/webhook-relay.yaml",
       "version": "1.1.0",
       "steps": 2,
       "topLevelSteps": 2,
@@ -820,8 +820,8 @@
       "model": null,
       "budgetUsd": 0.05,
       "needsEnv": [
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/webhook-relay.txt",
@@ -837,15 +837,15 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "environment": [
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL"
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL"
         ],
         "execution": "local-only"
       },
@@ -853,13 +853,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "dfc638199167fb4163a804e44bfe1033f229f72b0add6c67f54585fcc1dff32d",
+      "sha256": "ed66add0ee204bcd1da7633c82840b1e563cfc2dfbc1008b0101dd152b76672b",
       "value": "Move source data to a configured receiver without a manual copy-and-paste step.",
       "executionProfile": {
         "inference": "none",
         "callerReady": true
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -880,7 +880,7 @@
       "id": "wide-fanout",
       "name": "Test fan-out limits",
       "description": "Explore per-item processing with explicit limits and truncation.",
-      "file": "loops/wide-fanout.yaml",
+      "file": "workflows/wide-fanout.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 2,
@@ -897,8 +897,8 @@
       "model": null,
       "budgetUsd": 0.05,
       "needsEnv": [
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/wide-fanout.txt",
@@ -913,15 +913,15 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "environment": [
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL"
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL"
         ],
         "execution": "local-only"
       },
@@ -929,13 +929,13 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "b90988f510a106c0b1bee4e8cac6b164e0c02ba9ec6b5be4cd7990ca0c1822e9",
+      "sha256": "52c0af677376ce94b3e5aa91c748d770089c74d9fb0f18245273abf711283caa",
       "value": "Verify bounded fan-out behavior before applying a workflow to a large input set.",
       "executionProfile": {
         "inference": "none",
         "callerReady": true
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -961,19 +961,19 @@
       "name": "Digest",
       "description": "Turn selected feed material into a useful editorial digest.",
       "value": "Turn selected feed material into a useful editorial digest.",
-      "file": "loops/digest.yaml",
+      "file": "workflows/digest.yaml",
       "version": "0.1.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
         "repository": "0design/qloops",
-        "path": "registry/loops/digest.yaml",
+        "path": "registry/workflows/digest.yaml",
         "revision": "candidate"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -1007,7 +1007,7 @@
           "version": "1.0.0"
         }
       ],
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "status": "implementation-candidate",
       "acceptance": {
         "status": "pending",
@@ -1031,7 +1031,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "d99ac1c021f61d60e7c495404511ba0316cfa25168f9adbc57713897a7758b5d",
+      "sha256": "0d13775a17a0016d14bd641d55e866d6c9bb7933099457123fe7b4970a100987",
       "steps": 10,
       "kinds": [
         "fetch",
@@ -1050,19 +1050,19 @@
       "name": "SDD pipeline",
       "description": "Turn an intent into an approved specification and a verified project change.",
       "value": "Turn an intent into an approved specification and a verified project change.",
-      "file": "loops/sdd-pipeline.yaml",
+      "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
         "repository": "0design/qloops",
-        "path": "registry/loops/sdd-pipeline.yaml",
+        "path": "registry/workflows/sdd-pipeline.yaml",
         "revision": "candidate"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -1095,7 +1095,7 @@
         }
       ],
       "builtinDependencies": [],
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "status": "implementation-candidate",
       "acceptance": {
         "status": "pending",
@@ -1113,7 +1113,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "3018054289622229862301b2fb1e19655a75bf9dc8742c35fdb6355cb8cce7ed",
+      "sha256": "5b5b4e9e22097f8af2f1751f5382709e8f0952097c637e94f33e1338b6c8a34a",
       "steps": 7,
       "kinds": [
         "workspace-read",
@@ -1171,7 +1171,7 @@
         },
         "status": {
           "type": "string",
-          "notes": "reviewer: human — the run is waiting_human until qloop approve continues it or --reject fails it."
+          "notes": "reviewer: human — the run is waiting_human until q-core approve continues it or --reject fails it."
         }
       },
       "needsEnv": [],
@@ -1189,9 +1189,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -1201,7 +1201,7 @@
         "status": "no-live-proof",
         "releaseAcceptance": "pending"
       },
-      "sha256": "9a6ea01fdc0bc1f919e16a4b66ca058395ab2cf57d63a9b97059c31815ec7bbe",
+      "sha256": "860516391f6e4b662442ecbe55da0bffddc9f7d39caeb7f558d4e1f2176e60f6",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
@@ -1297,9 +1297,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -1334,7 +1334,7 @@
         "text": {
           "type": "string",
           "required": true,
-          "notes": "Message body. In shipped loops this is a prior step's output, templated into api-request body."
+          "notes": "Message body. In shipped workflows this is a prior step's output, templated into api-request body."
         }
       },
       "output": {
@@ -1367,9 +1367,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -1379,7 +1379,7 @@
         "status": "no-live-proof",
         "releaseAcceptance": "pending"
       },
-      "sha256": "21aa3ea0d01bf091a6c07c1c08187dcec9ece48b35c27b7ed16deab3928354be",
+      "sha256": "934843f0bb6fd0da7aa5a4172536d9916d4a884a03b2a4d3b19cae50bc02e9ff",
       "contentType": "component",
       "acceptance": {
         "status": "pending",
@@ -1405,9 +1405,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1444,9 +1444,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1483,9 +1483,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -1531,9 +1531,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1570,9 +1570,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1609,9 +1609,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1648,9 +1648,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1678,9 +1678,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1708,9 +1708,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1737,9 +1737,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "needsEnv": [],
@@ -1776,9 +1776,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "needsEnv": [],
@@ -1815,9 +1815,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "needsEnv": [],
@@ -1846,7 +1846,7 @@
   "demos": [
     {
       "id": "content-feed",
-      "loopId": "content-feed",
+      "workflowId": "content-feed",
       "name": "Morning digest",
       "description": "Reads a feed, writes a short digest, sends it. Proof is the recorded run in the repo, not a hosted playback.",
       "proof": "demos/content-feed.txt",
@@ -1868,9 +1868,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -1880,7 +1880,7 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "5bb7469f4a39e0720049dbee04049e253137cf2ae15ea6193e867c19ac35cc10",
+      "sha256": "4ac0b4df1f64db9c670ea1bb1b8fd14e0c935ceeb7a151570157828f4ada3429",
       "contentType": "demo",
       "acceptance": {
         "status": "pending",
@@ -1889,7 +1889,7 @@
     },
     {
       "id": "webhook-relay",
-      "loopId": "webhook-relay",
+      "workflowId": "webhook-relay",
       "name": "JSON webhook relay",
       "description": "Read JSON from a source and forward it to a webhook. Inspect the template and historical output, then adapt the source and destination to your task.",
       "proof": "demos/webhook-relay.txt",
@@ -1911,9 +1911,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -1923,7 +1923,7 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "6b1875b083daf3592dd983c0d7089572c0b513ded350d77a3fa27af7f53fc2f5",
+      "sha256": "393a66fa5a3f348aa18454e333c3e470d2fac0373f8bea79742afde80f4f3c3f",
       "contentType": "demo",
       "acceptance": {
         "status": "pending",
@@ -1932,7 +1932,7 @@
     },
     {
       "id": "annotation-review",
-      "loopId": "annotation-fix",
+      "workflowId": "annotation-fix",
       "name": "Annotation review queue",
       "description": "Executable offline queue example; no live MCP, model inference or website modification.",
       "proof": null,
@@ -1954,9 +1954,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -1974,11 +1974,11 @@
       "file": "demos/annotation-review.json",
       "status": "offline-demo",
       "value": "Preserve feedback identity and expose ambiguous requests before execution.",
-      "sha256": "e612df3657c10538cc4fe0af1718ba6dfc491a3589dd5fbde4766ed44d67375a"
+      "sha256": "f1f7adfa5ca5b885444f14a7e2ac9cad3e7f1df0e4a6084eb629e7acbf78684e"
     },
     {
       "id": "digest-huyiks",
-      "loopId": "digest",
+      "workflowId": "digest",
       "name": "ХУЇКС: sourced digest",
       "description": "Four source pages to an approved Ukrainian digest with visible source checks. Embedded run evidence and detached public-candidate acceptance are reported separately.",
       "proof": "demos/digest-huyiks.txt",
@@ -1989,9 +1989,9 @@
       "version": "0.1.0",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -2008,11 +2008,11 @@
         "status": "pending",
         "scope": "Real pinned Registry scenario and output required"
       },
-      "sha256": "319402e57d50f0f4a336c46e8e09f745bd172e4b8c6b1e7b1b93e74a0e99009f"
+      "sha256": "0e98346780feedce4810f9dda2854bca6766601b5259cf7135d16e60dc27cd9a"
     },
     {
       "id": "sdd-verified-change",
-      "loopId": "sdd-pipeline",
+      "workflowId": "sdd-pipeline",
       "name": "SDD: verified change",
       "description": "A scoped change reaches an independent verifier, with bounded repair. Embedded run evidence and detached public-candidate acceptance are reported separately.",
       "proof": "demos/sdd-verified-change.txt",
@@ -2023,9 +2023,9 @@
       "version": "0.1.0",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -2042,19 +2042,19 @@
         "status": "pending",
         "scope": "Real pinned Registry scenario and output required"
       },
-      "sha256": "125f232b781708773d7f1dab6e84c053a695d90030a546c14f05dcd975a24bfe"
+      "sha256": "5125f305921d8a85e3bf37df942883933c6e04c23bc0d33a49cffddac5078de0"
     }
   ],
-  "releaseVersion": "2026.09.22-registry.5-candidate",
+  "releaseVersion": "2026.09.23-registry.6-candidate",
   "core": {
-    "package": "qloops",
-    "version": "0.2.0-core.20",
-    "manifest": "qloops.loop/v1",
+    "package": "q-core",
+    "version": "0.2.0-q-core.21",
+    "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 12,
-    "artifact": "vendor/qloops-0.2.0-core.20.tgz",
-    "artifactSha256": "aa92949946c41a9445647546564c0ab015fc6e1ab9181ab780f7501aeed5c270",
-    "integrity": "sha512-9qTHLXli1fLYEx6fFR61rr7dcaTbzdO6h9Um5jhzdfHFwEtabNVeBvkJtkisHGEayM/EjGdJbhiwcUySOnVi2A==",
+    "artifact": "vendor/q-core-0.2.0-q-core.21.tgz",
+    "artifactSha256": "ef1fad45dd9d78cc5d75b88b14f724e7ec97c48719609819b1bc360354bdd675",
+    "integrity": "sha512-Z9ct5UAD1V3rP1EN5DRQoSFLeK4meA73mxDPHfIyU9wz0wx2QyW2ilwikhMKkRF00Db2NlW42sTuqVITCJ5q6A==",
     "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
     "requestSchemaSha256": "90d30cb77c9f348cbcb0e8e20d98ba3219c6aa3466fda76d2b7a1178cc566f87",
     "status": "consumer-integration-candidate",
@@ -2073,7 +2073,7 @@
   "composition": {
     "schemaVersion": 1,
     "contentTypes": [
-      "loop-template",
+      "workflow-template",
       "component",
       "demo"
     ],
@@ -2082,7 +2082,7 @@
       {
         "id": "sdd-pipeline",
         "name": "SDD pipeline",
-        "contentType": "loop-template",
+        "contentType": "workflow-template",
         "value": "Turn an intent into an approved specification and a verified project change.",
         "version": "0.1.0",
         "status": "implementation-candidate",
@@ -2146,7 +2146,7 @@
       {
         "id": "content-feed",
         "name": "Content feed",
-        "contentType": "loop-template",
+        "contentType": "workflow-template",
         "value": "Collect and normalize relevant source material without reviewing every source manually.",
         "version": "0.1.0",
         "status": "contract-only",
@@ -2195,7 +2195,7 @@
       {
         "id": "digest",
         "name": "Digest",
-        "contentType": "loop-template",
+        "contentType": "workflow-template",
         "value": "Turn selected feed material into a useful editorial digest.",
         "version": "0.1.0",
         "status": "implementation-candidate",
@@ -2261,7 +2261,7 @@
       {
         "id": "aindf-check",
         "name": "aindf-check",
-        "contentType": "loop-template",
+        "contentType": "workflow-template",
         "value": "Distinguish DS readiness from compliance of a concrete composition.",
         "version": "0.1.0",
         "status": "contract-only",
@@ -2306,7 +2306,7 @@
       {
         "id": "unslop",
         "name": "Unslop",
-        "contentType": "loop-template",
+        "contentType": "workflow-template",
         "value": "Find design-canon violations without copying the canon.",
         "version": "0.1.0",
         "status": "contract-only",
@@ -2356,7 +2356,7 @@
       {
         "id": "annotation-fix",
         "name": "Fix website annotations",
-        "contentType": "loop-template",
+        "contentType": "workflow-template",
         "value": "Apply website feedback and return evidence to each original annotation.",
         "version": "0.1.0",
         "status": "contract-only",
@@ -2488,9 +2488,9 @@
           "revision": "e453b57"
         },
         "engine": {
-          "package": "qloops",
-          "version": "0.2.0-core.20",
-          "manifest": "qloops.loop/v1"
+          "package": "q-core",
+          "version": "0.2.0-q-core.21",
+          "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
         "permissions": {
@@ -2577,9 +2577,9 @@
           "revision": "e453b57"
         },
         "engine": {
-          "package": "qloops",
-          "version": "0.2.0-core.20",
-          "manifest": "qloops.loop/v1"
+          "package": "q-core",
+          "version": "0.2.0-q-core.21",
+          "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
         "permissions": {
@@ -2679,9 +2679,9 @@
           "revision": "e453b57"
         },
         "engine": {
-          "package": "qloops",
-          "version": "0.2.0-core.20",
-          "manifest": "qloops.loop/v1"
+          "package": "q-core",
+          "version": "0.2.0-q-core.21",
+          "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
         "permissions": {
@@ -2718,7 +2718,7 @@
         "id": "schedule",
         "name": "Schedule",
         "kind": "trigger",
-        "description": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. qloop run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
+        "description": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. q-core run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
         "input": {
           "cron": {
             "type": "string",
@@ -2749,9 +2749,9 @@
           "revision": "e453b57"
         },
         "engine": {
-          "package": "qloops",
-          "version": "0.2.0-core.20",
-          "manifest": "qloops.loop/v1"
+          "package": "q-core",
+          "version": "0.2.0-q-core.21",
+          "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
         "permissions": {
@@ -2767,7 +2767,7 @@
           "status": "pending",
           "evidence": []
         },
-        "value": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. qloop run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
+        "value": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. q-core run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
         "implementation": {
           "status": "partial",
           "source": "src/steps.mjs",
@@ -2842,5 +2842,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "8c9e61a66eb9e816496195c745a9b920567fa159087912b897c3413b5738253d"
+  "releaseSha256": "ad8c26e0a8cb87dc8cc5dc60dae08a8df7114fe2af73fe373bbff1cd0f8a32fc"
 }

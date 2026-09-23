@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # Produce a structured summary that a downstream service can consume without manual reformatting.
 # OpenRouter example: configure the model explicitly. CLI acceptance uses the caller interface.
@@ -23,7 +23,7 @@ steps:
     kind: fetch
     config:
       name: "Read feed"
-      url: "{{env.QLOOP_SOURCE_URL}}"
+      url: "{{env.QCORE_SOURCE_URL}}"
       format: rss
       limit: "5"
       timeoutSec: "20"
@@ -44,7 +44,7 @@ steps:
     config:
       name: "Send the shape"
       method: POST
-      url: "{{env.QLOOP_WEBHOOK_URL}}"
+      url: "{{env.QCORE_WEBHOOK_URL}}"
       expect: "2xx"
       timeoutSec: "20"
       body: '{"count":"{{steps.Shape it.output.count}}","run":"{{run.id}}","cost":"{{run.costUsd}}"}'

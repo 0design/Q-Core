@@ -10,7 +10,7 @@ const spec = { summary: 'Return sum', criteria: ['sum(2,3) equals 5'], plan: ['U
 
 test('Registry SDD manifest preserves spec approval, repairs a real failed file and rejects verifier mutation', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-registry-sdd-')), file = join(root, 'sdd.yaml');
-  copyFileSync(new URL('../registry/loops/sdd-pipeline.yaml', import.meta.url), file);
+  copyFileSync(new URL('../registry/workflows/sdd-pipeline.yaml', import.meta.url), file);
   writeFileSync(join(root, 'sum.mjs'), 'export const sum=(a,b)=>a-b;');
   writeFileSync(join(root, 'verify.mjs'), 'import assert from "node:assert/strict"; import {sum} from "./sum.mjs"; assert.equal(sum(2,3),5);');
   const manifest = loadManifest(file), store = new RunStore(file);
@@ -55,7 +55,7 @@ test('Registry SDD manifest preserves spec approval, repairs a real failed file 
 
 test('failed verification reaches needs_human at zero repair bound and a direct drive cannot bypass approval', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-registry-limit-')), file = join(root, 'sdd.yaml');
-  copyFileSync(new URL('../registry/loops/sdd-pipeline.yaml', import.meta.url), file);
+  copyFileSync(new URL('../registry/workflows/sdd-pipeline.yaml', import.meta.url), file);
   writeFileSync(join(root, 'value.txt'), 'original');
   writeFileSync(join(root, 'verify.mjs'), 'process.exit(1);');
   const manifest = loadManifest(file), store = new RunStore(file), run = createRun(manifest);

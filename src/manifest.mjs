@@ -5,7 +5,7 @@
  * (stage 2) described a YAML format; nothing could read it, so a stranger could
  * write a perfectly valid manifest and had no way to run it. What comes out of
  * here is exactly `{ settings, steps }` as stored in `qf_loop_template` — the
- * same tree `flattenLoopSteps` and `driveRun` take. There is no second format
+ * same tree `flattenWorkflowSteps` and `driveRun` take. There is no second format
  * and no translation layer: this reads THE format, or it refuses.
  *
  * ONE NORMALISATION MATTERS. `LoopStep.config` is `Record<string, string>` in the
@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { parseYaml, YamlError } from "./yaml.mjs";
 
 /** The format tag every manifest must carry, verbatim. */
-export const MANIFEST_TAG = "qloops.loop/v1";
+export const MANIFEST_TAG = "q-core.workflow/v1";
 
 /** Step kinds the engine executes. */
 export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"];
@@ -133,7 +133,7 @@ function validateStep(raw, path, seenIds) {
     step.default = raw.default.map((s, i) => validateStep(s, `${path}.default[${i}]`, seenIds));
   }
 
-  /* Per-kind requirements. Checked at validate time so `qloops validate` is worth
+  /* Per-kind requirements. Checked at validate time so `q-core validate` is worth
      running: a missing url should not be discovered halfway through a paid run. */
   if (kind === "fetch" && !config.url) {
     throw new ManifestError('a fetch step needs "config.url"', `${path}.config`);

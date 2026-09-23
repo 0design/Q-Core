@@ -21,7 +21,7 @@ export function registryCliStep(state, { stepId, instructions, input, provider, 
     ],
     phase: `registry:${stepId}`,
     outputKind: 'text',
-    binding: { loopId: state.loopId, stepId },
+    binding: { workflowId: state.workflowId, stepId },
     provider, reply, save, maxInferenceJobs, inferenceTtlMs,
   });
 }

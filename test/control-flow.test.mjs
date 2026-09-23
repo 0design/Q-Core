@@ -5,7 +5,7 @@ import { validateManifest, ManifestError } from "../src/manifest.mjs";
 import { createRun, driveRun } from "../src/run.mjs";
 
 const base = (steps) => validateManifest({
-  manifest: "qloops.loop/v1",
+  manifest: "q-core.workflow/v1",
   id: "controls",
   version: "1.0.0",
   steps,

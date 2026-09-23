@@ -1,6 +1,6 @@
 # Codex subscription provider
 
-The Codex provider is available to both `qloops agent` (SDD) and `qloops content`.
+The Codex provider is available to both `q-core agent` (SDD) and `q-core content`.
 It uses a **new local Codex CLI session** with the existing ChatGPT login. It does
 not re-enter the parent agent's conversation.
 
@@ -12,7 +12,7 @@ not re-enter the parent agent's conversation.
    Unsupported versions are rejected.
 2. Copy `contracts/v1/codex-request.json`. Set your absolute workspace,
    executable, explicit model, allowed files and trusted verifier command.
-3. Run `qloops agent request.json`. Review the returned specification and scope.
+3. Run `q-core agent request.json`. Review the returned specification and scope.
 4. Add the returned `resumeRunId` and
    `approval: {"hash":"RETURNED_HASH","decision":"approve"}` to the same request.
    Run it again. Core applies only the scoped file contents and runs the verifier.
@@ -22,7 +22,7 @@ not re-enter the parent agent's conversation.
 The direct text adapter is also exported:
 
 ```js
-import { codex } from 'qloops';
+import { codex } from 'q-core';
 const result = await codex({
   executable: '/absolute/path/to/codex',
   model: 'gpt-5.6-luna',
@@ -46,7 +46,7 @@ Choose a supported model explicitly for a new run.
 
 A parent environment can deny the nested CLI's in-process app-server
 initialization before inference. Version and ChatGPT login can pass while
-execution still fails. qloops returns
+execution still fails. q-core returns
 `CLI_ENVIRONMENT_DENIED` / `needs_human` / `configure_caller` for this startup
 denial and preserves run correlation. Do not remove sandbox or nesting guards,
 copy credentials, or silently switch payer or provider. A supported caller
@@ -56,7 +56,7 @@ The adapter checks the exact CLI version and ChatGPT authentication before
 inference. It supplies bounded messages through stdin and parses bounded JSONL;
 there is no shell interpolation or automatic API/model/provider fallback.
 `CODEX_HOME` is preserved when set; credentials are never read or copied by
-qloops. API keys and the caller's session identifiers are not passed through.
+q-core. API keys and the caller's session identifiers are not passed through.
 
 Each call uses an ephemeral session in a disposable working directory outside
 the target workspace. User config and project instructions are not loaded;
@@ -72,15 +72,15 @@ only with a trusted CLI installation and workspace/verifier.
 
 Missing executable, unsupported version, expired/API auth, permission/tool events,
 unavailable models, malformed/incomplete output, quota failure, timeout and cancellation are typed
-failures. Cancellation terminates the process group. `QLOOPS_DEPTH` and existing
+failures. Cancellation terminates the process group. `QCORE_DEPTH` and existing
 Claude nesting guards are retained. No retries of failed inference are hidden
-inside qloops; the pinned CLI can perform bounded internal transport retries.
+inside q-core; the pinned CLI can perform bounded internal transport retries.
 
 ## Usage
 
 ChatGPT authentication uses subscription access; API-key authentication uses
 separate API billing. This adapter requires the former. Existing allowance and
-limits still apply; qloops does not promise free or unlimited inference.
+limits still apply; q-core does not promise free or unlimited inference.
 [Official authentication documentation](https://learn.chatgpt.com/docs/auth).
 
 Token usage comes from Codex's completion event. Dollar cost and actual resolved

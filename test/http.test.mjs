@@ -159,7 +159,7 @@ test("model caller preserves payload and uses shared transport recovery", async 
 });
 
 async function assertDriverFailure(status) {
-  const dir = await mkdtemp(join(tmpdir(), "qloops-http-"));
+  const dir = await mkdtemp(join(tmpdir(), "q-core-http-"));
   try {
     const store = new RunStore(dir);
     let calls = 0;
@@ -187,7 +187,7 @@ for (const status of [401, 503]) {
 }
 
 test("driver persists success only after real HTTP recovery and downstream completion", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "qloops-recovery-"));
+  const dir = await mkdtemp(join(tmpdir(), "q-core-recovery-"));
   try {
     const store = new RunStore(dir);
     let calls = 0;

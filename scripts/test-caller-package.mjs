@@ -12,10 +12,10 @@ try {
   const artifact=join(dir,packed.filename);
   const sha256=createHash('sha256').update(readFileSync(artifact)).digest('hex');
   exec('npm',['install','--ignore-scripts','--no-audit','--no-fund',artifact]);
-  const tests=readFileSync(join(root,'test/caller-inference.test.mjs'),'utf8').replaceAll("'../src/","'qloops/src/");
+  const tests=readFileSync(join(root,'test/caller-inference.test.mjs'),'utf8').replaceAll("'../src/","'q-core/src/");
   writeFileSync(join(dir,'caller.test.mjs'),tests);
   const output=exec(process.execPath,['--test','caller.test.mjs']);
-  for(const path of ['contracts/v1/caller-inference.md','examples/caller-request.json','examples/caller-content-request.json']) readFileSync(join(dir,'node_modules/qloops',path));
+  for(const path of ['contracts/v1/caller-inference.md','examples/caller-request.json','examples/caller-content-request.json']) readFileSync(join(dir,'node_modules/q-core',path));
   const evidence={version:packed.version,sha256,evidenceKind:'Clean installed package; scripted caller replies, real independent Node verifier and localhost receipt. Not live parent inference.',output};
   writeFileSync(join(root,'docs/delivery/caller-package.json'),JSON.stringify(evidence,null,2)+'\n');
   console.log(JSON.stringify(evidence,null,2));

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contentTypes": [
-    "loop-template",
+    "workflow-template",
     "component",
     "demo"
   ],
@@ -10,7 +10,7 @@
     {
       "id": "sdd-pipeline",
       "name": "SDD pipeline",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Turn an intent into an approved specification and a verified project change.",
       "version": "0.1.0",
       "status": "implementation-candidate",
@@ -74,7 +74,7 @@
     {
       "id": "content-feed",
       "name": "Content feed",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Collect and normalize relevant source material without reviewing every source manually.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -123,7 +123,7 @@
     {
       "id": "digest",
       "name": "Digest",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Turn selected feed material into a useful editorial digest.",
       "version": "0.1.0",
       "status": "implementation-candidate",
@@ -189,7 +189,7 @@
     {
       "id": "aindf-check",
       "name": "aindf-check",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Distinguish DS readiness from compliance of a concrete composition.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -234,7 +234,7 @@
     {
       "id": "unslop",
       "name": "Unslop",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Find design-canon violations without copying the canon.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -284,7 +284,7 @@
     {
       "id": "annotation-fix",
       "name": "Fix website annotations",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Apply website feedback and return evidence to each original annotation.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -416,9 +416,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -505,9 +505,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -607,9 +607,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -646,7 +646,7 @@
       "id": "schedule",
       "name": "Schedule",
       "kind": "trigger",
-      "description": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. qloop run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
+      "description": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. q-core run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
       "input": {
         "cron": {
           "type": "string",
@@ -677,9 +677,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.20",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.21",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -695,7 +695,7 @@
         "status": "pending",
         "evidence": []
       },
-      "value": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. qloop run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
+      "value": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. q-core run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",

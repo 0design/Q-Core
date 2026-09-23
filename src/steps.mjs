@@ -7,7 +7,7 @@
  *   api-request    → API-Request      — an outgoing request; A LOOP MAY END HERE
  *   fan-out        → handled by the driver, not here (it creates rows, not output)
  *
- * `schedule` is a TRIGGER, not a runner. `qloops run` performs one pass; whether it
+ * `schedule` is a TRIGGER, not a runner. `q-core run` performs one pass; whether it
  * is time for that pass is decided by launchd/cron, which is the honest place
  * for it — see README §Scheduling.
  *
@@ -52,7 +52,7 @@ const tctx = (ctx) => ({
   priorStepNames: ctx.priorStepNames,
   ...(ctx.item !== undefined ? { item: ctx.item } : {}),
   ...(ctx.itemIndex != null ? { index: ctx.itemIndex } : {}),
-  run: { id: ctx.runId, loopId: ctx.templateId, costUsd: ctx.spentUsd ?? 0 },
+  run: { id: ctx.runId, workflowId: ctx.templateId, costUsd: ctx.spentUsd ?? 0 },
 });
 
 /* ───────────────────────────── fetch ───────────────────────────── */

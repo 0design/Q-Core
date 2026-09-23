@@ -7,9 +7,9 @@ validator.
 
 ## Invocation and results
 
-`qloops content /absolute/path/request.json` reads a UTF-8 JSON file, at most
+`q-core content /absolute/path/request.json` reads a UTF-8 JSON file, at most
 128000 bytes. Content CLI does **not** accept `-`/stdin. From JavaScript:
-`import { runContentRequest } from 'qloops'`, then
+`import { runContentRequest } from 'q-core'`, then
 `await runContentRequest(request, {env: process.env, signal})` (options optional).
 This is the concrete HTTP/model/webhook adapter. `runContent` is a different
 callback-based API; do not pass it the HTTP request below.
@@ -72,7 +72,7 @@ receiver adapter versions are internally `1`; do not invent your own version pin
    path placeholders, confirm the explicit model and start a controlled source/
    receiver server implementing the contract below. Port8787 is an example only;
    the package does not automatically start a server. Keep all test data synthetic.
-2. Run `qloops content request.json`. A valid draft returns needs_human with
+2. Run `q-core content request.json`. A valid draft returns needs_human with
    `nextAction:{type:"approve_publication",hash,text,receiver}`. No send yet.
    Show **that exact text and destination** to the user, including source URLs.
 3. After explicit approval, add `approval:{hash:<returned hash>,decision:"approve"}`
@@ -123,7 +123,7 @@ runId; overlapping uncertain inputs can return a null runId with the blocking ke
 JS reconciliation is explicit; there is no reconciliation CLI command:
 
 ```js
-import { reconcilePublication } from 'qloops';
+import { reconcilePublication } from 'q-core';
 const result = await reconcilePublication(
   { workspace, runId, idempotencyKey },
   { lookup: async ({ receiver, idempotencyKey }) => {

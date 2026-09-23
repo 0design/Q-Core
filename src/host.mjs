@@ -1,4 +1,4 @@
-/** Explicit local host for installed loops. No daemon installation or remote shell. */
+/** Explicit local host for installed workflows. No daemon installation or remote shell. */
 import { readFileSync, writeFileSync, mkdirSync, lstatSync, existsSync, renameSync, unlinkSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:http';

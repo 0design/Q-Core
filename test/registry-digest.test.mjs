@@ -12,7 +12,7 @@ const provider = { kind: 'caller', agent: 'codex', model: 'test-double', payerSc
 test('actual Digest manifest enforces pending inference, exact approval and durable duplicate/uncertain receipts', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-registry-digest-'));
   const file = join(root, 'digest.yaml');
-  copyFileSync(new URL('../registry/loops/digest.yaml', import.meta.url), file);
+  copyFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), file);
   let deliveries = 0, fail = false;
   const server = createServer((req, res) => {
     if (req.url === '/receive') { deliveries++; req.resume(); res.writeHead(fail ? 503 : 200); res.end('receipt'); }

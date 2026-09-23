@@ -6,10 +6,10 @@ A supported YAML step declares `kind: llm-call` and `config.provider: cli`. Its 
 
 Supply a local provider JSON file containing only `kind: caller`, `agent: codex` or `claude`, the actual selected `model`, and `payerScope: local-cli`. Never include a credential. Naming an agent does not prove its support was tested.
 
-1. Run `qloops run <manifest> --caller-provider <provider.json> --json`.
+1. Run `q-core run <manifest> --caller-provider <provider.json> --json`.
 2. Exit 2 and `status: waiting_inference` mean the run needs a response. Read `pendingInference.messages`, its job ID, hash and expiry. Generate the bounded answer in the selected agent; do not improvise missing steps or substitute another provider.
 3. Write a reply JSON object with exactly `jobId`, `hash`, and `output: {text: "the actual answer"}`. For JSON output format, `text` contains the JSON result as a string.
-4. Run `qloops reply <manifest> <runId> <reply.json> --json`.
+4. Run `q-core reply <manifest> <runId> <reply.json> --json`.
 5. Continue only with the new pending job, or handle a human gate. Exit 0 means driver success; it does not prove human approval or external delivery. Exit 1 means failure.
 
 Replies are bound to the stored job and input context. Replay, altered context, oversized output and expiry fail. Execution configuration is persisted; editing the manifest is not a way to change an in-flight run. A human gate still needs explicit approval. Job completion and its next state transition are persisted together.

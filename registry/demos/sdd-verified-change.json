@@ -1,6 +1,6 @@
 {
   "id": "sdd-verified-change",
-  "loopId": "sdd-pipeline",
+  "workflowId": "sdd-pipeline",
   "name": "SDD: verified change",
   "description": "A scoped change reaches an independent verifier, with bounded repair. Embedded run evidence and detached public-candidate acceptance are reported separately.",
   "proof": "demos/sdd-verified-change.txt",
@@ -11,9 +11,9 @@
   "version": "0.1.0",
   "license": "MIT",
   "engine": {
-    "package": "qloops",
+    "package": "q-core",
     "version": "0.2.0-core.16",
-    "manifest": "qloops.loop/v1"
+    "manifest": "q-core.workflow/v1"
   },
   "dependencies": [],
   "permissions": {

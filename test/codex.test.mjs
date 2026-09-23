@@ -26,7 +26,7 @@ test("Codex isolates cwd, config, credentials environment and permissions", asyn
     const invocation = JSON.parse(r.content);
     assert.equal(invocation.env.OPENAI_API_KEY, undefined);
     assert.equal(invocation.env.CODEX_API_KEY, undefined);
-    assert.equal(invocation.env.QLOOPS_DEPTH, "1");
+    assert.equal(invocation.env.QCORE_DEPTH, "1");
     assert.notEqual(invocation.cwd, process.cwd());
     assert.equal(existsSync(invocation.cwd), false);
     assert.ok(invocation.args.includes("--ignore-user-config"));
@@ -134,7 +134,7 @@ test("incomplete, reordered, extra and rate limited event streams fail closed", 
   );
 });
 test("Codex caller executes approved scope and resumes through installed-style CLI boundary", async (t) => {
-  const workspace = mkdtempSync(join(tmpdir(), "qloops-codex-caller-"));
+  const workspace = mkdtempSync(join(tmpdir(), "q-core-codex-caller-"));
   t.after(() => rmSync(workspace, { recursive: true, force: true }));
   writeFileSync(join(workspace, "value.mjs"), "export const add=()=>0;");
   writeFileSync(
@@ -158,7 +158,7 @@ test("Codex caller executes approved scope and resumes through installed-style C
   const caller = async (request) => {
     const p = await subprocess(
       process.execPath,
-      [resolve("bin/qloops.mjs"), "agent", "-"],
+      [resolve("bin/q-core.mjs"), "agent", "-"],
       {
         input: JSON.stringify(request),
         env: scopedEnvironment(),

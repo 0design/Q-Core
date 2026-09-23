@@ -2,12 +2,12 @@
 
 Open a pull request with an independently runnable loop, a supported component,
 or version-bound demo evidence. The public Registry source is `registry/`.
-The root `loops/` and `catalog.json` are legacy bundled examples; adding there
+The root `workflows/` and `catalog.json` are legacy bundled examples; adding there
 alone does not publish a Registry entry.
 
 ## Files and metadata
 
-- Loops: `registry/loops/<id>.yaml` plus an entry in
+- Workflows: `registry/workflows/<id>.yaml` plus an entry in
   `registry/catalog.source.json` with value, version, origin, author, MIT license,
   exact Core engine pin and dependency versions.
 - Components: `registry/components/<id>.json` and catalog source metadata. Use
@@ -27,7 +27,7 @@ externally observable results.
 ## Local checks
 
 ```sh
-node bin/qloops.mjs validate registry/loops/your-loop.yaml
+node bin/q-core.mjs validate registry/workflows/your-loop.yaml
 node scripts/build-registry.mjs
 node scripts/build-registry.mjs --check
 npm test
@@ -38,7 +38,7 @@ an exact Core/Registry pair, pack the intended reviewed Core build, pin its byte
 SHA256 in catalog source, regenerate, then export:
 
 ```sh
-node scripts/build-registry.mjs --export /absolute/registry-export --core-artifact /absolute/qloops-VERSION.tgz
+node scripts/build-registry.mjs --export /absolute/registry-export --core-artifact /absolute/q-core-VERSION.tgz
 ```
 
 Install from that export through the public CLI Registry path and exercise the
@@ -62,7 +62,7 @@ The publisher creates an immutable snapshot only through the repository's review
 and distribution process, verifies checksums and consumer compatibility, and then
 updates a public pointer when authorized. A merged file does not automatically
 update every installed runtime: clients resolve the versioned catalog and
-explicitly install a compatible pinned entry. `qloop init` is a legacy
+explicitly install a compatible pinned entry. `q-core init` is a legacy
 convenience, not a universal compatibility promise.
 
 Contributions ship under MIT. Include only material you may distribute under

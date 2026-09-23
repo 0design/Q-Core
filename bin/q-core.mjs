@@ -4,7 +4,7 @@ if (process.argv[2] === "auth") {
     const { hasKeychainSecret, removeKeychainSecret, setKeychainSecret } = await import("../src/secrets.mjs");
     const [operation, provider, keyRef = "OPENROUTER_API_KEY", ...extra] = process.argv.slice(3);
     if (!operation || provider !== "openrouter" || extra.length || !["set", "status", "remove"].includes(operation))
-      throw new Error("Usage: qloops auth <set|status|remove> openrouter [KEY_REF]");
+      throw new Error("Usage: q-core auth <set|status|remove> openrouter [KEY_REF]");
     if (operation === "set") {
       await setKeychainSecret({ provider, keyRef });
       process.stdout.write(JSON.stringify({ provider, keyRef, stored: true }) + "\n");
@@ -32,7 +32,7 @@ if (process.argv[2] === "auth") {
       process.argv.slice(3);
     if (!destination)
       throw new Error(
-        "Usage: qloops install <registry-directory-or-URL> <catalog-sha256> <id> <version> <destination>",
+        "Usage: q-core install <registry-directory-or-URL> <catalog-sha256> <id> <version> <destination>",
       );
     console.log(
       JSON.stringify(
@@ -43,4 +43,4 @@ if (process.argv[2] === "auth") {
     console.error(e.message);
     process.exitCode = 1;
   }
-} else await import("./qloop.mjs");
+} else await import("./q-workflow.mjs");

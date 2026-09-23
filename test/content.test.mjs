@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runContent, reconcilePublication } from "../src/content.mjs";
 const setup = (t) => {
-  const workspace = mkdtempSync(join(tmpdir(), "qloops-content-"));
+  const workspace = mkdtempSync(join(tmpdir(), "q-core-content-"));
   t.after(() => rmSync(workspace, { recursive: true, force: true }));
   return {
     workspace,

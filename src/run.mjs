@@ -11,14 +11,14 @@
  *   3. execute, record output + tokens + cost
  *
  * A run that stops at a human gate is not finished and not failed: it is
- * `waiting_human`, held on disk, and `qloops approve` continues it from exactly
+ * `waiting_human`, held on disk, and `q-core approve` continues it from exactly
  * there. The loop re-reads its own step list on every iteration, which is why a
  * run parked yesterday resumes today with nothing kept in memory.
  *
  * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a loop
  * that ends in `api-request` is a complete loop.
  */
-import { flattenLoopSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
+import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
 import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-steps.mjs";
@@ -81,11 +81,11 @@ function summarise(status, rows, dryRun = false) {
 
 /** Build the initial run record from a manifest. */
 export function createRun(manifest, { trigger = "manual" } = {}) {
-  const flat = flattenLoopSteps(manifest.steps);
+  const flat = flattenWorkflowSteps(manifest.steps);
   return {
     runId: newRunId(),
-    loopId: manifest.id,
-    loopName: manifest.name,
+    workflowId: manifest.id,
+    workflowName: manifest.name,
     manifestFile: manifest.file ?? null,
     trigger,
     status: "running",
@@ -254,7 +254,7 @@ export async function driveRun(run, opts = {}) {
     /* ── 2. EXECUTE ─────────────────────────────────────────────────────── */
     const ctx = {
       runId: run.runId,
-      templateId: run.loopId,
+      templateId: run.workflowId,
       stepId: next.stepId,
       priorOutputs,
       priorStepNames,

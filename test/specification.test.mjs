@@ -11,7 +11,7 @@ const spec = {
   plan: ["Implement value.mjs"],
 };
 function setup(t) {
-  const workspace = mkdtempSync(join(tmpdir(), "qloops-spec-"));
+  const workspace = mkdtempSync(join(tmpdir(), "q-core-spec-"));
   t.after(() => rmSync(workspace, { recursive: true, force: true }));
   writeFileSync(join(workspace, "value.mjs"), "export const add=()=>0;");
   writeFileSync(
@@ -43,7 +43,7 @@ test("imported spec skips inference and real caller requires explicit scope appr
   const call = async (request) => {
     const p = await subprocess(
       process.execPath,
-      [resolve("bin/qloops.mjs"), "agent", "-"],
+      [resolve("bin/q-core.mjs"), "agent", "-"],
       { input: JSON.stringify(request), timeoutMs: 5000 },
     );
     return { code: p.code, result: JSON.parse(p.stdout) };

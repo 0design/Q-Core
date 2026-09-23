@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 id: digest
 name: "Digest: sources to an approved Ukrainian document"
 version: 0.1.0

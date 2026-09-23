@@ -12,7 +12,7 @@ const check = (cwd) => spawnSync(process.execPath, ['scripts/check-public-surfac
 });
 
 test('public-surface guard scans tracked source files excluded from npm package', (t) => {
-  const temporaryRoot = mkdtempSync(join(tmpdir(), 'qloops-public-surface-'));
+  const temporaryRoot = mkdtempSync(join(tmpdir(), 'q-core-public-surface-'));
   const worktree = join(temporaryRoot, 'source');
   execFileSync('git', ['worktree', 'add', '--detach', worktree, 'HEAD'], {
     cwd: root,

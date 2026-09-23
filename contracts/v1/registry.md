@@ -1,13 +1,13 @@
 # Pinned registry consumption
 
-`qloops install <base> <catalog-sha256> <id> <version> <destination>` downloads,
+`q-core install <base> <catalog-sha256> <id> <version> <destination>` downloads,
 checks and installs an exact loop plus a sidecar origin/dependency lock. The base
 is an absolute export directory or static HTTPS directory containing catalog.json
-and loops/components/demos subdirectories. HTTP is allowed only on localhost for
+and workflows/components/demos subdirectories. HTTP is allowed only on localhost for
 controlled development. The Site /api/registry route is a different API layout;
 it is not automatically treated as a static export base.
 
-The catalog must pin the installed qloops version exactly and qloops.loop/v1. A newer
+The catalog must pin the installed q-core version exactly and q-core.workflow/v1. A newer
 local engine must not rewrite a downloaded catalog or silently accept the old pin.
 Use the engine artifact pinned by the catalog. Catalog and every resolved asset
 need SHA256 verification; the root manifest is parsed and checked before
@@ -15,10 +15,10 @@ destination writes.
 
 The installer rejects malformed sections/dependencies, mismatched entry engine
 metadata, files outside their declared section/ID, and ambiguous same-ID
-dependencies spanning loops/components. Dependencies are exact IDs/versions;
+dependencies spanning workflows/components. Dependencies are exact IDs/versions;
 missing targets, cycles or checksum mismatch fail before installation. Each section
 has at most 1000 entries, each dependency list at most 100 entries. Loop default
-path is loops/<id>.yaml; component/demo default is <section>/<id>.json.
+path is workflows/<id>.yaml; component/demo default is <section>/<id>.json.
 
 Existing destination or lock is never overwritten. Download failure does not become
 success. Installation writes a manifest and then its lock as separate exclusive

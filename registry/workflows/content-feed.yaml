@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # Condense a source feed into a readable update so the user does not need to review every item manually.
 # OpenRouter example: configure the model explicitly. CLI acceptance uses the caller interface.
@@ -26,7 +26,7 @@ steps:
     kind: fetch
     config:
       name: "Fetch feed"
-      url: "{{env.QLOOP_SOURCE_URL}}"
+      url: "{{env.QCORE_SOURCE_URL}}"
       format: rss
       limit: "8"
       timeoutSec: "30"

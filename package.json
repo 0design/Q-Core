@@ -1,24 +1,24 @@
 {
-  "name": "qloops",
-  "version": "0.2.0-core.20",
+  "name": "q-core",
+  "version": "0.2.0-q-core.21",
   "license": "MIT",
-  "description": "Run a QFactory loop from a YAML manifest. No database, no server, no build step.",
+  "description": "Run a QFactory workflow from a YAML manifest. No database, no server, no build step.",
   "type": "module",
   "bin": {
-    "qloops": "bin/qloops.mjs",
-    "qloop": "bin/qloop.mjs",
-    "qloops-host": "bin/qloops-host.mjs"
+    "q-core": "bin/q-core.mjs",
+    "q-core-host": "bin/q-core-host.mjs"
   },
   "engines": {
     "node": ">=20.3.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "catalog": "node -e \"import('./src/catalog.mjs').then(async({buildCatalog})=>{const{writeFileSync}=await import('node:fs');writeFileSync('catalog.json',JSON.stringify(buildCatalog('loops',{examplesDir:'examples'}),null,2)+'\\n')})\"",
+    "catalog": "node -e \"import('./src/catalog.mjs').then(async({buildCatalog})=>{const{writeFileSync}=await import('node:fs');writeFileSync('catalog.json',JSON.stringify(buildCatalog('workflows',{examplesDir:'examples'}),null,2)+'\\n')})\"",
     "proof": "node scripts/record-proof.mjs --all",
     "check:public-surface": "node scripts/check-public-surface.mjs",
-    "prepack": "npm run check:public-surface",
-    "test:package": "npm run check:public-surface && node scripts/test-package.mjs && node scripts/test-content-package.mjs"
+    "check:product-names": "node scripts/check-product-names.mjs",
+    "prepack": "npm run check:public-surface && npm run check:product-names",
+    "test:package": "npm run check:public-surface && npm run check:product-names && node scripts/test-package.mjs && node scripts/test-content-package.mjs"
   },
   "files": [
     "bin/",

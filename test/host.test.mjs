@@ -20,7 +20,7 @@ test('real local manual/schedule/webhook run records receipts; replay/auth/tampe
   let calls=0;const source=createServer((req,res)=>{calls++;res.end('host result');});
   await new Promise(r=>source.listen(0,'127.0.0.1',r));t.after(()=>source.close());
   const file=join(root,'loop.yaml');
-  writeFileSync(file,`manifest: qloops.loop/v1\nid: hosted-test\nname: Host acceptance\nversion: 1.0.0\nowner: test\nenabled: true\ntriggers:\n  - kind: manual\n  - kind: webhook\n  - kind: schedule\n    cron: "* * * * *"\nsteps:\n  - id: read\n    kind: fetch\n    config:\n      url: "http://127.0.0.1:${source.address().port}/"\n      format: text\n`);
+  writeFileSync(file,`manifest: q-core.workflow/v1\nid: hosted-test\nname: Host acceptance\nversion: 1.0.0\nowner: test\nenabled: true\ntriggers:\n  - kind: manual\n  - kind: webhook\n  - kind: schedule\n    cron: "* * * * *"\nsteps:\n  - id: read\n    kind: fetch\n    config:\n      url: "http://127.0.0.1:${source.address().port}/"\n      format: text\n`);
   const config={manifest:file,manifestSha256:hash(readFileSync(file))};
   assert.throws(()=>createLocalHost({...config,callerProvider:{kind:'caller',agent:'codex',model:'test',payerScope:'local-cli',apiKey:'private'}}),/never credentials/);
   const host=createLocalHost(config);
@@ -44,7 +44,7 @@ test('real local manual/schedule/webhook run records receipts; replay/auth/tampe
 test('waiting approval blocks later host events and is never implicitly approved',async t=>{
   const root=mkdtempSync(join(tmpdir(),'qf-host-gate-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
   const file=join(root,'loop.yaml');
-  writeFileSync(file,'manifest: qloops.loop/v1\nid: host-gate\nname: Host gate\nversion: 1.0.0\nowner: test\nenabled: true\ntriggers:\n  - kind: manual\nsteps:\n  - id: approval\n    kind: approval-gate\n    config:\n      mode: human\n');
+  writeFileSync(file,'manifest: q-core.workflow/v1\nid: host-gate\nname: Host gate\nversion: 1.0.0\nowner: test\nenabled: true\ntriggers:\n  - kind: manual\nsteps:\n  - id: approval\n    kind: approval-gate\n    config:\n      mode: human\n');
   const host=createLocalHost({manifest:file,manifestSha256:hash(readFileSync(file))});
   assert.equal((await host.dispatch('manual','first')).status,'waiting_human');
   await assert.rejects(host.dispatch('manual','second'),/still active or waiting/);

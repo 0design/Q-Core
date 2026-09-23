@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # Process multiple feed items consistently and collect the results without repeating the same manual steps.
 # OpenRouter example: configure the model explicitly. CLI acceptance uses the caller interface.
@@ -23,7 +23,7 @@ steps:
     kind: fetch
     config:
       name: "Fetch feed"
-      url: "{{env.QLOOP_SOURCE_URL}}"
+      url: "{{env.QCORE_SOURCE_URL}}"
       format: rss
       limit: "20"
       timeoutSec: "30"
@@ -52,7 +52,7 @@ steps:
         config:
           name: "Send this one"
           method: POST
-          url: "{{env.QLOOP_WEBHOOK_URL}}"
+          url: "{{env.QCORE_WEBHOOK_URL}}"
           expect: "2xx"
           timeoutSec: "30"
           body: '{"i":"{{index}}","title":"{{item.title}}","link":"{{item.link}}","take":"{{steps.Take on this one.output.text}}"}'

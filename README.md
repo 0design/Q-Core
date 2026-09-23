@@ -1,36 +1,36 @@
-# qloops
+# q-core
 
 Local, dependency-free loop runtime for Node.js >=20.3.
 
 ## Install a package
 
 ```sh
-npm install /absolute/path/qloops.tgz
-npx qloops validate ./loop.yaml
-npx qloops run ./loop.yaml
+npm install /absolute/path/q-core.tgz
+npx q-core validate ./loop.yaml
+npx q-core run ./loop.yaml
 ```
 
-Both `qloops` and legacy `qloop` are installed. No `qf` alias. The package includes
-runtime, schema, providers and synthetic contract fixtures. Install reusable loops
+Both `q-core` and legacy `q-core` are installed. No `qf` alias. The package includes
+runtime, schema, providers and synthetic contract fixtures. Install reusable workflows
 from a versioned registry export.
 
 ```sh
-npx qloops install /absolute/registry-export CATALOG_SHA256 loop-id 1.0.0 ./loop.yaml
+npx q-core install /absolute/registry-export CATALOG_SHA256 loop-id 1.0.0 ./loop.yaml
 ```
 
 The catalog must pin this engine version. Installer verifies catalog bytes,
 manifest identity, checksums and exact dependencies, and writes `loop.yaml.lock.json`.
 It never overwrites files. HTTPS registries are supported; HTTP is localhost-only.
 No implicit mutable remote catalog is used. Legacy remote discovery requires both
-`QLOOP_CATALOG_URL` and `QLOOP_CATALOG_SHA256`. `QFACTORY_REGISTRY` is an explicitly
+`QCORE_CATALOG_URL` and `QCORE_CATALOG_SHA256`. `QFACTORY_REGISTRY` is an explicitly
 trusted local development overlay, not a verified release install.
 
 ## Agent -> Core -> CLI -> result
 
 ```sh
-npx qloops agent request.json
+npx q-core agent request.json
 # or pipe bounded JSON on stdin
-npx qloops agent - < request.json
+npx q-core agent - < request.json
 ```
 
 See `contracts/v1/fixtures.json` for a complete request and
@@ -82,7 +82,7 @@ Set this provider in an agent or content request (choose your real absolute CLI 
 ```
 
 The path above was verified on this Mac. A standalone installation of the exact
-reviewed CLI works too; qloops does not install or replace it. Run that executable's
+reviewed CLI works too; q-core does not install or replace it. Run that executable's
 `login status` first. ChatGPT authentication is required; saved API-key auth is
 rejected, API-key environment variables are not forwarded, and API/provider/model
 fallback is disabled. A legacy CLI is rejected with `UNSUPPORTED_CLI`.
@@ -103,13 +103,13 @@ cost; use deadlines and repair limits for subscription workflows.
 
 The value beyond scheduling is the reusable workflow: versioned scope, explicit
 approval, independent verification, bounded repair and resumable evidence.
-A scheduler can launch qloops; for a simple recurring prompt, a built-in scheduled
+A scheduler can launch q-core; for a simple recurring prompt, a built-in scheduled
 task may already be enough. See [Codex integration details](docs/codex.md).
 
 ## Reusable providers
 
 ```js
-import { openRouter } from 'qloops';
+import { openRouter } from 'q-core';
 const result = await openRouter({
   messages: [{ role: 'user', content: 'Summarize this synthetic input.' }],
   model: 'YOUR_EXPLICIT_MODEL', keyRef: 'OPENROUTER_API_KEY',
@@ -138,7 +138,7 @@ and [synthetic request example](examples/content-request.json). They describe lo
 configuration, exact-text approval, repeat/dedup and uncertain-delivery recovery
 without requiring a source checkout. The SDD request schema is not a Content schema.
 
-`qloops content request.json` uses `qf.content-request/v1`: explicit sources,
+`q-core content request.json` uses `qf.content-request/v1`: explicit sources,
 allowedOrigins, profile, provider, receipt-aware webhook receiver and deadline.
 `runContent` exports the same orchestration with caller-injected capabilities.
 Source identity dedup, source-attribution checks, exact draft/receiver approval,
@@ -148,7 +148,7 @@ Telegram receipt. Configure and approve the receiver for each delivery.
 
 `determined` exports A2D-style plan-bound execute/verify/repair. Existing
 `a2done`, `a2d`, or `.a2d` users must follow the [public migration guide](docs/a2d-migration.md):
-qloops deliberately provides no `a2d` binary/MCP alias and does not import old
+q-core deliberately provides no `a2d` binary/MCP alias and does not import old
 state, approvals, or completion evidence automatically. `qualityCheck`
 exports aindf-check (ds-readiness/UI composition) and unslop with hard/soft split,
 versioned findings, explicit coverage and optional recipe transport. `loadAindf`
@@ -157,8 +157,8 @@ evidence, unknown rules and missing browser evidence cannot pass.
 
 ## Legacy YAML commands
 
-`qloop validate`, `run [--dry-run]`, `status`, `approve [--reject]`, `catalog`,
-`init` and `doctor` remain available for `qloops.loop/v1`. Step kinds and fields are in
+`q-core validate`, `run [--dry-run]`, `status`, `approve [--reject]`, `catalog`,
+`init` and `doctor` remain available for `q-core.workflow/v1`. Step kinds and fields are in
 [SPEC-MANIFEST.md](./SPEC-MANIFEST.md). Legacy JSON is not the new agent envelope.
 `run` performs one pass; scheduling belongs to the caller/launchd. State is local
 in `.qf/`; no server/database is required. Legacy YAML agent-call and check mode
@@ -191,6 +191,6 @@ It demonstrates real failing/passing subprocess checks with a scripted executor.
 
 Explicit current-agent inference for SDD and Content: [caller protocol](contracts/v1/caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.
 
-Local manual, UTC schedule, and authenticated loopback webhook triggers use `qloops-host`; see [host contract](contracts/v1/host.md). The host does not install a daemon or supply model inference.
+Local manual, UTC schedule, and authenticated loopback webhook triggers use `q-core-host`; see [host contract](contracts/v1/host.md). The host does not install a daemon or supply model inference.
 
 `runSkill` enforces the explicit criteria of a pinned authored skill bundle with independent Node verifiers and version-bound human review. See [skill contract](contracts/v1/skill.md) and `examples/skill-caller.mjs`; arbitrary prose is not automatically machine-verifiable.

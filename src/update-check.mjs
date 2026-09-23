@@ -3,7 +3,7 @@
  * differently for no reason.
  *
  * THE RULES, all of them:
- *   • CLI ONLY. Nothing here runs during `qloops run`'s work; a loop must never
+ *   • CLI ONLY. Nothing here runs during `q-core run`'s work; a loop must never
  *     become slower or less reliable because a version check was in the way.
  *   • A plain GET of a STATIC JSON file. No identifiers of any kind — no machine
  *     id, no version query string, no telemetry. The request says nothing about
@@ -32,7 +32,7 @@ const TIMEOUT_MS = 2000;
 
 function cacheFile() {
   const base = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
-  return join(base, "qloop", "update.json");
+  return join(base, "q-core", "update.json");
 }
 
 function readCache() {
@@ -103,5 +103,5 @@ export async function checkForUpdate(localVersion) {
 /** The one line the CLI prints, or "" when there is nothing to say. */
 export function updateNotice(update) {
   if (!update) return "";
-  return `\n  qloop ${update.version} is available.${update.notes ? ` ${update.notes}` : ""}\n`;
+  return `\n  q-core ${update.version} is available.${update.notes ? ` ${update.notes}` : ""}\n`;
 }

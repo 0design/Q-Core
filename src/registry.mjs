@@ -2,7 +2,7 @@
  * Load and validate the hand-written registry: components and demos.
  *
  * These files are the source. `catalog.json` is generated from them plus the
- * loops, and must never be the place a contract is edited. A component that
+ * workflows, and must never be the place a contract is edited. A component that
  * invents engine behaviour would be a lie the site then repeats — so validation
  * is shape only; the words come from SPEC-MANIFEST.md.
  */
@@ -104,10 +104,10 @@ export function validateComponent(raw, file = "component") {
   };
 }
 
-/** Validate one demo. loopId is checked against loops at catalog build. */
+/** Validate one demo. workflowId is checked against workflows at catalog build. */
 export function validateDemo(raw, file = "demo") {
   assertString(raw.id, "id", file);
-  assertString(raw.loopId, "loopId", file);
+  assertString(raw.workflowId, "workflowId", file);
   assertString(raw.name, "name", file);
   assertString(raw.description, "description", file);
   assertString(raw.proof, "proof", file);
@@ -119,7 +119,7 @@ export function validateDemo(raw, file = "demo") {
   }
   return {
     id: raw.id,
-    loopId: raw.loopId,
+    workflowId: raw.workflowId,
     name: raw.name,
     description: raw.description.trim().replace(/\s+/g, " "),
     proof: raw.proof,
@@ -159,42 +159,42 @@ export function loadRegistry(registryDir) {
 }
 
 /**
- * Loops that use this component.
+ * Workflows that use this component.
  *
- * step     → loops whose flattened kinds include the id
- * trigger  → loops that declare that trigger (schedule is not a step kind)
- * composite → loops that already need every env var the recipe names
+ * step     → workflows whose flattened kinds include the id
+ * trigger  → workflows that declare that trigger (schedule is not a step kind)
+ * composite → workflows that already need every env var the recipe names
  */
-export function deriveUsedBy(component, loops) {
+export function deriveUsedBy(component, workflows) {
   if (component.kind === "trigger") {
     if (component.id === "schedule") {
-      return loops.filter((l) => l.schedule).map((l) => l.id);
+      return workflows.filter((l) => l.schedule).map((l) => l.id);
     }
     return [];
   }
   if (component.kind === "composite") {
     const needed = component.needsEnv ?? [];
     if (needed.length) {
-      return loops.filter((l) => needed.every((e) => l.needsEnv.includes(e))).map((l) => l.id);
+      return workflows.filter((l) => needed.every((e) => l.needsEnv.includes(e))).map((l) => l.id);
     }
     const parts = component.builtFrom ?? [];
-    return loops.filter((l) => parts.every((k) => l.kinds.includes(k))).map((l) => l.id);
+    return workflows.filter((l) => parts.every((k) => l.kinds.includes(k))).map((l) => l.id);
   }
-  return loops.filter((l) => l.kinds.includes(component.id)).map((l) => l.id);
+  return workflows.filter((l) => l.kinds.includes(component.id)).map((l) => l.id);
 }
 
-export function assertDemoLoopExists(demo, loops) {
-  if (!loops.some((l) => l.id === demo.loopId)) {
-    throw new RegistryError(`demo "${demo.id}": loopId "${demo.loopId}" is not in loops/`);
+export function assertDemoWorkflowExists(demo, workflows) {
+  if (!workflows.some((l) => l.id === demo.workflowId)) {
+    throw new RegistryError(`demo "${demo.id}": workflowId "${demo.workflowId}" is not in workflows/`);
   }
 }
 
-export function enrichComponent(component, loops) {
-  return { ...component, usedBy: deriveUsedBy(component, loops) };
+export function enrichComponent(component, workflows) {
+  return { ...component, usedBy: deriveUsedBy(component, workflows) };
 }
 
-export function enrichDemo(demo, loops) {
-  assertDemoLoopExists(demo, loops);
-  const loop = loops.find((l) => l.id === demo.loopId);
+export function enrichDemo(demo, workflows) {
+  assertDemoWorkflowExists(demo, workflows);
+  const loop = workflows.find((l) => l.id === demo.workflowId);
   return { ...demo, measured: loop.measured ?? null };
 }
