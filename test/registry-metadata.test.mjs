@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegistry } from '../scripts/build-registry.mjs';
-import { loopMetadata } from '../scripts/registry-loop-metadata.mjs';
+import { workflowMetadata } from '../scripts/registry-workflow-metadata.mjs';
 test('new Registry workflows have truthful manifest-derived consumer metadata', () => {
   const { catalog } = buildRegistry();
   const digest = catalog.workflows.find(loop => loop.id === 'digest');
@@ -17,7 +17,7 @@ test('new Registry workflows have truthful manifest-derived consumer metadata', 
   assert.deepEqual(sdd.needsEnv, []);
 });
 test('metadata includes alternative branches and provider-specific access', () => {
-  const metadata = loopMetadata({ steps: [{
+  const metadata = workflowMetadata({ steps: [{
     kind: 'if', then: [], else: [{
       kind: 'switch', cases: { a: [{ kind: 'llm-call', config: { provider: 'cli' } }] },
       default: [
@@ -29,5 +29,5 @@ test('metadata includes alternative branches and provider-specific access', () =
   assert.equal(metadata.steps, 5);
   assert.equal(metadata.humanGate, true);
   assert.deepEqual(metadata.needsEnv, ['SOURCE']);
-  assert.deepEqual(loopMetadata({steps:[{kind:'llm-call'}]}).needsEnv, ['OPENROUTER_API_KEY']);
+  assert.deepEqual(workflowMetadata({steps:[{kind:'llm-call'}]}).needsEnv, ['OPENROUTER_API_KEY']);
 });

@@ -1,6 +1,6 @@
 {
   "runId": "2a610723-3869-4fd0-b4aa-e050ab26e768",
-  "loopId": "wide-fanout",
+  "workflowId": "wide-fanout",
   "status": "success",
   "summary": "Completed 14/14 steps.",
   "startedAt": "2026-08-02T06:29:36.421Z",

@@ -18,7 +18,8 @@
     "check:public-surface": "node scripts/check-public-surface.mjs",
     "check:product-names": "node scripts/check-product-names.mjs",
     "prepack": "npm run check:public-surface && npm run check:product-names",
-    "test:package": "npm run check:public-surface && npm run check:product-names && node scripts/test-package.mjs && node scripts/test-content-package.mjs"
+    "test:registry-export": "node scripts/test-exact-registry-export.mjs",
+    "test:package": "npm run check:public-surface && npm run check:product-names && node scripts/test-package.mjs && node scripts/test-content-package.mjs && npm run test:registry-export"
   },
   "files": [
     "bin/",

@@ -1,6 +1,6 @@
 # Contributing to the versioned Registry
 
-Open a pull request with an independently runnable loop, a supported component,
+Open a pull request with an independently runnable workflow, a supported component,
 or version-bound demo evidence. The public Registry source is `registry/`.
 The root `workflows/` and `catalog.json` are legacy bundled examples; adding there
 alone does not publish a Registry entry.
@@ -14,7 +14,7 @@ alone does not publish a Registry entry.
   actual supported engine kinds from SPEC-MANIFEST.md. A description does not
   implement a runtime adapter. Planned entries remain unavailable.
 - Demos: catalog source entry plus `registry/demos/<id>.txt` containing a
-  reviewable result/evidence record; refer to an existing loop/template ID.
+  reviewable result/evidence record; refer to an existing workflow/template ID.
   Set `live` only when its public result is actually reachable.
 - Authors: `registry/authors/<id>.json`; templates and builtin pins live in
   `registry/composition.json`.
@@ -27,7 +27,7 @@ externally observable results.
 ## Local checks
 
 ```sh
-node bin/q-core.mjs validate registry/workflows/your-loop.yaml
+node bin/q-core.mjs validate registry/workflows/your-workflow.yaml
 node scripts/build-registry.mjs
 node scripts/build-registry.mjs --check
 npm test

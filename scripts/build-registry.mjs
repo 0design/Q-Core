@@ -3,7 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { loadManifest } from '../src/manifest.mjs';
-import { loopMetadata } from './registry-loop-metadata.mjs';
+import { workflowMetadata } from './registry-workflow-metadata.mjs';
 import { componentReadiness } from './registry-readiness.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../registry');
@@ -33,10 +33,10 @@ export function buildRegistry(sourceRoot = root) {
       const file = entry.file ?? `${key}.json`;
       entry.sha256 = sha(asset(file));
       if (section === 'workflows') {
-        if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Loop value is required');
+        if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Workflow value is required');
         const manifest = loadManifest(resolve(sourceRoot, file));
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
-        Object.assign(entry, loopMetadata(manifest));
+        Object.assign(entry, workflowMetadata(manifest));
       }
       if (entry.proof) asset(entry.proof);
       asset(`authors/${entry.author}.json`);
@@ -52,7 +52,7 @@ export function buildRegistry(sourceRoot = root) {
   }
   for (const entry of [...catalog.workflows, ...catalog.components]) componentReadiness(entry, [...catalog.components, ...(composition.builtins ?? [])]);
   catalog.composition = composition;
-  for (const demo of catalog.demos) if (!catalog.workflows.some(loop => loop.id === demo.workflowId) && !composition.templates.some(template => template.id === demo.workflowId)) throw Error('Missing demo loop');
+  for (const demo of catalog.demos) if (!catalog.workflows.some(workflow => workflow.id === demo.workflowId) && !composition.templates.some(template => template.id === demo.workflowId)) throw Error('Missing demo workflow');
   delete catalog.releaseSha256;
   catalog.releaseSha256 = sha(JSON.stringify(catalog));
   return { catalog, assets };

@@ -34,7 +34,7 @@ test('shared registry export installs through Core and rejects unreviewed metada
   const value = source.workflows[0].value;
   delete source.workflows[0].value;
   writeFileSync(sourcePath, JSON.stringify(source));
-  assert.throws(() => buildRegistry(dir), /Loop value/);
+  assert.throws(() => buildRegistry(dir), /Workflow value/);
   source.workflows[0].value = value;
   source.workflows[0].license = 'LicenseRef-Pending';
   writeFileSync(sourcePath, JSON.stringify(source));

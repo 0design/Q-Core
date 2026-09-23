@@ -17,7 +17,7 @@
 
   If the machine is asleep at 09:30, launchd runs the job when it wakes. That is
   the honest limit of a laptop: for a digest that must arrive at 09:30 sharp, the
-  loop belongs on something that stays awake.
+  workflow belongs on something that stays awake.
 -->
 <plist version="1.0">
 <dict>

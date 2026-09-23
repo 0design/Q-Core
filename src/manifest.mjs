@@ -319,7 +319,7 @@ export function validateManifest(doc) {
   }
 
   if (typeof doc.id !== "string" || doc.id.trim() === "") {
-    throw new ManifestError('"id" is required — it names the loop in state and in logs', "id");
+    throw new ManifestError('"id" is required — it names the workflow in state and in logs', "id");
   }
   if (!Array.isArray(doc.steps) || doc.steps.length === 0) {
     throw new ManifestError('"steps" is required and must hold at least one step', "steps");

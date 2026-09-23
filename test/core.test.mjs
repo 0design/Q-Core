@@ -22,7 +22,7 @@ const setup = (t) => {
   return {
     protocolVersion: "qf.agent/v1",
     requestId: "fixture",
-    loop: { id: "synthetic-sdd", version: "1.0.0" },
+    workflow: { id: "synthetic-sdd", version: "1.0.0" },
     intent: "Write new to value.txt",
     workspace: dir,
     allowedPaths: ["value.txt"],
@@ -352,10 +352,10 @@ test("verifier command is bound into resume evidence", async (t) => {
   assert.equal(resumed.status, "needs_human");
   assert.equal(resumed.error.code, "WORKSPACE_CHANGED");
 });
-test("contract rejects unpinned loop and unsafe request", (t) => {
+test("contract rejects unpinned workflow and unsafe request", (t) => {
   const r = setup(t);
   for (const patch of [
-    { loop: { id: "synthetic-sdd", version: "latest" } },
+    { workflow: { id: "synthetic-sdd", version: "latest" } },
     { allowedPaths: ["../x"] },
     { allowedTools: [] },
     { deadlineMs: 0 },

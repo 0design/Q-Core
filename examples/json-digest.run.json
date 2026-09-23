@@ -1,6 +1,6 @@
 {
   "runId": "a65fd51a-ffa8-45eb-af64-a27ba9d0429f",
-  "loopId": "json-digest",
+  "workflowId": "json-digest",
   "status": "success",
   "summary": "Completed 3/3 steps.",
   "startedAt": "2026-08-02T06:29:34.579Z",

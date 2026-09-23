@@ -20,7 +20,7 @@ synthetic and do not exercise external providers or delivery destinations.
 result on stdout. Logs belong on stderr. Status/exit: success/0, failed/1,
 needs_human/2, cancelled/130; malformed request failed/64. No implicit provider.
 
-Request: protocolVersion, requestId, loop {id,version}, intent, workspace (absolute),
+Request: protocolVersion, requestId, workflow {id,version}, intent, workspace (absolute),
 allowedPaths (exact relative files), allowedTools (verifier executable paths),
 provider {kind: claude|codex|openrouter, model, executable? or keyRef?, payerScope,
 secretSource? (openrouter: env|keychain)},
@@ -61,7 +61,7 @@ identity. Usage may contain nullable cost and token fields.
 Consumers must compare the installed package version and contract revision in
 `version.json` with their own compatibility pin, then run their consumer checks.
 An older package pin does not establish compatibility with newly used fields.
-Agent and loop protocol namespaces and exit codes are separate compatibility
+Agent and workflow protocol namespaces and exit codes are separate compatibility
 boundaries.
 
 Specification import, durable clarification and explicit revisions are described

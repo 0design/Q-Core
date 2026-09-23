@@ -55,7 +55,7 @@ For a new integration, convert plan-time criteria/verifiers to the descriptors
 above, supply an authorized executor plus independent evidence callbacks, and
 persist the resulting versioned history. Reapprove scope and regenerate evidence;
 old completion claims are not transferable approval. Use `determined` for the new
-loop identity.
+workflow identity.
 The shipped [A2D migration guide](../../docs/a2d-migration.md) gives the supported
 replacement steps and fail-closed compatibility checks. It does not grant access
 or define an automatic state conversion.

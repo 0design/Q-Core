@@ -1,13 +1,13 @@
 # q-core
 
-Local, dependency-free loop runtime for Node.js >=20.3.
+Local, dependency-free workflow runtime for Node.js >=20.3.
 
 ## Install a package
 
 ```sh
 npm install /absolute/path/q-core.tgz
-npx q-core validate ./loop.yaml
-npx q-core run ./loop.yaml
+npx q-core validate ./workflow.yaml
+npx q-core run ./workflow.yaml
 ```
 
 Both `q-core` and legacy `q-core` are installed. No `qf` alias. The package includes
@@ -15,11 +15,11 @@ runtime, schema, providers and synthetic contract fixtures. Install reusable wor
 from a versioned registry export.
 
 ```sh
-npx q-core install /absolute/registry-export CATALOG_SHA256 loop-id 1.0.0 ./loop.yaml
+npx q-core install /absolute/registry-export CATALOG_SHA256 workflow-id 1.0.0 ./workflow.yaml
 ```
 
 The catalog must pin this engine version. Installer verifies catalog bytes,
-manifest identity, checksums and exact dependencies, and writes `loop.yaml.lock.json`.
+manifest identity, checksums and exact dependencies, and writes `workflow.yaml.lock.json`.
 It never overwrites files. HTTPS registries are supported; HTTP is localhost-only.
 No implicit mutable remote catalog is used. Legacy remote discovery requires both
 `QCORE_CATALOG_URL` and `QCORE_CATALOG_SHA256`. `QFACTORY_REGISTRY` is an explicitly

@@ -2051,14 +2051,14 @@
     "version": "0.2.0-q-core.21",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 12,
+    "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.21.tgz",
-    "artifactSha256": "ef1fad45dd9d78cc5d75b88b14f724e7ec97c48719609819b1bc360354bdd675",
-    "integrity": "sha512-Z9ct5UAD1V3rP1EN5DRQoSFLeK4meA73mxDPHfIyU9wz0wx2QyW2ilwikhMKkRF00Db2NlW42sTuqVITCJ5q6A==",
+    "artifactSha256": "3deda08d082ee34815f9283debc5dd906a755372634aae5a71df97c73b1f7248",
+    "integrity": "sha512-0SkvBpxVLkceEe17NLzYv4jJWrKC8iHKVc2QeUVlTxcGBSLDyUE+I5+Xnicvc7bkLy2nc7kEbHV8Q+wWnO5KFQ==",
     "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
-    "requestSchemaSha256": "90d30cb77c9f348cbcb0e8e20d98ba3219c6aa3466fda76d2b7a1178cc566f87",
+    "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "consumer-integration-candidate",
-    "source": "Core.20 exact package with pinned skill SDK; integration candidate, public product acceptance pending",
+    "source": "Core.21 renamed workflow candidate with pinned contract revision; integration candidate, public product acceptance pending",
     "pending": [
       "Public immutable snapshot and consumer acceptance",
       "Public Registry SDD/Digest and determined acceptance",
@@ -2842,5 +2842,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "ad8c26e0a8cb87dc8cc5dc60dae08a8df7114fe2af73fe373bbff1cd0f8a32fc"
+  "releaseSha256": "6de83bf34148907d781e0f911d488a3227088e93fbc5f22fd09f613f5f2fad19"
 }

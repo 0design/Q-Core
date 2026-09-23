@@ -38,7 +38,7 @@ no_new_sources means nothing was sent; delivery success includes a receipt.
 | approval | Omit for drafting. Then `{hash: "returned SHA256", decision: "approve"}` or `"reject"` for the exact returned draft and receiver |
 
 Do not include secrets or raw authorization tokens. Do not invent `resumeRunId`,
-`specification`, `verifier`, `allowedPaths`, `loop`, `source.text` or a scheduling
+`specification`, `verifier`, `allowedPaths`, `workflow`, `source.text` or a scheduling
 field: those do not configure this HTTP API. Source text is fetched on every call,
 including approval/replay. GET has no source-auth/header adapter; provide permitted
 readable endpoints. Responses are bounded to64000 bytes and normalized source text

@@ -34,7 +34,7 @@ const setup = (t) => {
   return {
     protocolVersion: "qf.agent/v1",
     requestId: "caller",
-    loop: { id: "synthetic-sdd", version: "1.0.0" },
+    workflow: { id: "synthetic-sdd", version: "1.0.0" },
     intent: "Implement add",
     workspace,
     allowedPaths: ["value.mjs"],

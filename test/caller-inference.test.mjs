@@ -13,7 +13,7 @@ function setup(t,extra={}) {
   const workspace=mkdtempSync(join(tmpdir(),'qf-caller-'));t.after(()=>rmSync(workspace,{recursive:true,force:true}));
   writeFileSync(join(workspace,'value.mjs'),'export const add=()=>0;\n');
   writeFileSync(join(workspace,'verify.mjs'),"import assert from 'node:assert/strict';import {add} from './value.mjs';assert.equal(add(2,3),5);assert.equal(add(-2,1),-1);\n");
-  return {protocolVersion:'qf.agent/v1',requestId:'caller-test',loop:{id:'sdd-pipeline',version:'1.0.0'},intent:'Implement numeric add',workspace,allowedPaths:['value.mjs'],allowedTools:[process.execPath],verifier:{command:process.execPath,args:['verify.mjs']},provider,deadlineMs:3000,maxRepairAttempts:1,...extra};
+  return {protocolVersion:'qf.agent/v1',requestId:'caller-test',workflow:{id:'sdd-pipeline',version:'1.0.0'},intent:'Implement numeric add',workspace,allowedPaths:['value.mjs'],allowedTools:[process.execPath],verifier:{command:process.execPath,args:['verify.mjs']},provider,deadlineMs:3000,maxRepairAttempts:1,...extra};
 }
 const answer=(result,output)=>({jobId:result.nextAction.job.jobId,hash:result.nextAction.job.hash,output});
 const files=content=>({files:[{path:'value.mjs',content}]});

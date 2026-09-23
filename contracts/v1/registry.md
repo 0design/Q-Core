@@ -1,7 +1,7 @@
 # Pinned registry consumption
 
 `q-core install <base> <catalog-sha256> <id> <version> <destination>` downloads,
-checks and installs an exact loop plus a sidecar origin/dependency lock. The base
+checks and installs an exact workflow plus a sidecar origin/dependency lock. The base
 is an absolute export directory or static HTTPS directory containing catalog.json
 and workflows/components/demos subdirectories. HTTP is allowed only on localhost for
 controlled development. The Site /api/registry route is a different API layout;
@@ -17,7 +17,7 @@ The installer rejects malformed sections/dependencies, mismatched entry engine
 metadata, files outside their declared section/ID, and ambiguous same-ID
 dependencies spanning workflows/components. Dependencies are exact IDs/versions;
 missing targets, cycles or checksum mismatch fail before installation. Each section
-has at most 1000 entries, each dependency list at most 100 entries. Loop default
+has at most 1000 entries, each dependency list at most 100 entries. Workflow default
 path is workflows/<id>.yaml; component/demo default is <section>/<id>.json.
 
 Existing destination or lock is never overwritten. Download failure does not become

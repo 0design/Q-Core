@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
@@ -12,6 +13,31 @@ export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(binFiles.some((file) => /^qloops?(?:-|\.)/.test(file)), false, "retired qloop binaries must not ship");
 }
 
+const scannedRoots = ["src", "bin", "launchd", "examples", "contracts", "docs"];
+const scannedFiles = ["README.md", "CONTRIBUTING.md", "SPEC-MANIFEST.md", ".github/PULL_REQUEST_TEMPLATE.md", ".github/workflows/validate.yml"];
+
+function filesBelow(root, relative) {
+  const path = join(root, relative);
+  if (!existsSync(path)) return [];
+  if (statSync(path).isFile()) return [relative];
+  return readdirSync(path, { withFileTypes: true }).flatMap((entry) =>
+    filesBelow(root, join(relative, entry.name)),
+  );
+}
+
+export function assertNoRetiredProductNames(files) {
+  for (const { path, source } of files) {
+    // The manifest deliberately rejects the retired namespace. It is not an
+    // accepted alias, and keeping the exact rejected token makes that boundary
+    // explicit for callers and tests.
+    const inspectable = path === "src/manifest.mjs"
+      ? source.replaceAll("qloops.loop", "")
+      : source;
+    assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);
+    assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
+  }
+}
+
 export function verifyProductNames(root = resolve(".")) {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   verifyPackageSurface(pkg, readdirSync(join(root, "bin")));
@@ -20,20 +46,27 @@ export function verifyProductNames(root = resolve(".")) {
   assert.match(manifest, /MANIFEST_TAG = "q-core\.workflow\/v1"/);
   assert.match(manifest, /family === "qloops\.loop"/, "the only retired manifest reference must fail closed");
 
-  for (const file of ["catalog.mjs", "registry.mjs", "registry-release.mjs", "index.mjs"]) {
-    const source = readFileSync(join(root, "src", file), "utf8");
-    assert.equal(/qloops|qloop\b/.test(source), false, `active Core API must not retain ${file} aliases`);
-  }
+  const activeSources = [...scannedRoots.flatMap((relative) => filesBelow(root, relative)), ...scannedFiles]
+    .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
+  assertNoRetiredProductNames(activeSources);
 
   assert.equal(existsSync(join(root, "registry", "workflows")), true, "Registry must expose workflows/");
   assert.equal(existsSync(join(root, "registry", "loops")), false, "Registry must not retain loops/");
   const catalog = JSON.parse(readFileSync(join(root, "registry", "catalog.source.json"), "utf8"));
+  const contractVersion = JSON.parse(readFileSync(join(root, "contracts", "v1", "version.json"), "utf8"));
+  const requestSchema = readFileSync(join(root, "contracts", "v1", "request.schema.json"));
   assert.ok(Array.isArray(catalog.workflows), "Registry catalog must expose workflows");
   assert.equal(Object.hasOwn(catalog, "loops"), false, "Registry catalog must not retain loops alias");
   assert.deepEqual(
     { package: catalog.core.package, version: catalog.core.version, manifest: catalog.core.manifest },
     { package: pkg.name, version: pkg.version, manifest: "q-core.workflow/v1" },
     "Registry Core pin must name this exact candidate",
+  );
+  assert.equal(catalog.core.contractRevision, contractVersion.revision, "Registry must pin this contract revision");
+  assert.equal(
+    catalog.core.requestSchemaSha256,
+    createHash("sha256").update(requestSchema).digest("hex"),
+    "Registry must pin this exact request schema",
   );
   for (const entry of [...catalog.workflows, ...catalog.components, ...catalog.demos]) {
     assert.equal(entry.engine?.package, pkg.name, `${entry.id} must pin Q-Core`);
