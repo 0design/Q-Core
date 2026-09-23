@@ -1,0 +1,72 @@
+name: Contribution funnel
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    name: classify contribution
+    runs-on: ubuntu-latest
+    outputs:
+      funnel: ${{ steps.classify.outputs.funnel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - id: classify
+        name: select funnel from the complete diff
+        run: |
+          funnel="$(node scripts/classify-contribution.mjs --base '${{ github.event.pull_request.base.sha }}' --head '${{ github.event.pull_request.head.sha }}' --funnel-only)"
+          test "$funnel" = registry || test "$funnel" = core
+          echo "funnel=$funnel" >> "$GITHUB_OUTPUT"
+
+  registry:
+    name: registry validation and candidate
+    needs: classify
+    if: needs.classify.outputs.funnel == 'registry'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: syntax lint
+        run: node --check scripts/build-registry.mjs
+      - name: Registry catalog completeness
+        run: node scripts/build-registry.mjs --check
+      - name: exact downloadable candidate
+        run: |
+          mkdir -p /tmp/core-package
+          npm pack --pack-destination /tmp/core-package --json > /tmp/core-package/pack.json
+          core_archive="$(node -p "JSON.parse(require('fs').readFileSync('/tmp/core-package/pack.json'))[0].filename")"
+          node scripts/build-registry.mjs --export /tmp/registry --core-artifact "/tmp/core-package/$core_archive"
+          node scripts/test-registry-export.mjs /tmp/registry
+      - uses: actions/upload-artifact@v4
+        with:
+          name: registry-candidate-${{ github.event.pull_request.head.sha }}
+          path: /tmp/registry
+
+  core:
+    name: core strict validation
+    needs: classify
+    if: needs.classify.outputs.funnel == 'core'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: dependency boundary
+        run: |
+          test "$(node -p "Object.keys(require('./package.json').dependencies || {}).length")" = 0
+      - name: full tests and installed-package checks
+        run: |
+          npm test
+          npm run test:package
+      - name: committed-secret scan
+        run: |
+          ! grep -rInE '(sk-or-[A-Za-z0-9]{16,}|[0-9]{8,10}:[A-Za-z0-9_-]{30,})' --exclude-dir=.git .
