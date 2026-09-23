@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+function assertReadOnlyPermissions(source, workflow) {
+  const match = source.match(/^permissions:\n((?:  [^\n]+\n)+)\n*jobs:/m);
+  assert.ok(match, `${workflow} must declare permissions before jobs`);
+  const entries = match[1].trim().split("\n").map(line => line.trim());
+  assert.deepEqual(entries, ["contents: read"], `${workflow} must declare exactly read-only contents permission`);
+}
+
 export function assertContributionPrWorkflows({ validate, registry }) {
   assert.doesNotMatch(validate, /\bpull_request_target\b/, "baseline validation must stay unprivileged");
   assert.match(
@@ -8,7 +15,7 @@ export function assertContributionPrWorkflows({ validate, registry }) {
     /^on:\n  pull_request:\s*\n  push:/m,
     "baseline validation must run on every pull request without a path filter",
   );
-  assert.match(validate, /^permissions:\n  contents: read$/m, "baseline validation must have read-only contents access");
+  assertReadOnlyPermissions(validate, "baseline validation");
   assert.doesNotMatch(validate, /\$\{\{\s*secrets\s*\./, "baseline validation must not access secrets");
   assert.match(validate, /node --test test\/\*\.test\.mjs/, "baseline validation must run Core tests");
   assert.match(validate, /node scripts\/build-registry\.mjs --check/, "baseline validation must check Registry integrity");
@@ -21,7 +28,7 @@ export function assertContributionPrWorkflows({ validate, registry }) {
   assert.match(registry, /'registry\/\*\*'/, "Registry path filter must include Registry files");
   assert.match(registry, /'scripts\/\*registry\*'/, "Registry path filter must include its builder");
   assert.doesNotMatch(registry, /\bpull_request_target\b/, "Registry candidate export must stay unprivileged");
-  assert.match(registry, /^permissions:\n  contents: read$/m, "Registry candidate export must have read-only contents access");
+  assertReadOnlyPermissions(registry, "Registry candidate export");
   assert.doesNotMatch(registry, /\$\{\{\s*secrets\s*\./, "Registry candidate export must not access secrets");
   assert.match(registry, /node scripts\/build-registry\.mjs --check/, "Registry candidate export must validate before export");
 }
