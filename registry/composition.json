@@ -354,7 +354,7 @@
       "id": "api-request",
       "name": "API request",
       "kind": "step",
-      "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
+      "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A workflow may end here. This is a complete workflow, not an unfinished one. SPEC does not enumerate response fields.",
       "input": {
         "url": {
           "type": "string",
@@ -390,7 +390,7 @@
       "output": {
         "response": {
           "type": "object",
-          "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the loop is complete."
+          "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the workflow is complete."
         }
       },
       "needsEnv": [],
@@ -417,7 +417,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.25",
+        "version": "0.2.0-q-core.26",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -443,7 +443,7 @@
           }
         ]
       },
-      "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
+      "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A workflow may end here. This is a complete workflow, not an unfinished one. SPEC does not enumerate response fields.",
       "implementation": {
         "status": "implemented",
         "source": "src/steps.mjs",
@@ -506,7 +506,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.25",
+        "version": "0.2.0-q-core.26",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -608,7 +608,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.25",
+        "version": "0.2.0-q-core.26",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -678,7 +678,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.25",
+        "version": "0.2.0-q-core.26",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],

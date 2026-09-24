@@ -93,7 +93,7 @@
     {
       "id": "budget-guard",
       "name": "Test the budget ceiling",
-      "description": "Verify that a zero budget stops the loop before a paid step.",
+      "description": "Verify that a zero budget stops the workflow before a paid step.",
       "file": "workflows/budget-guard.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1258,7 +1258,7 @@
         "model": {
           "type": "string",
           "required": false,
-          "notes": "overrides the loop's model."
+          "notes": "overrides the workflow's model."
         }
       },
       "output": {
@@ -2430,7 +2430,7 @@
         "id": "api-request",
         "name": "API request",
         "kind": "step",
-        "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
+        "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A workflow may end here. This is a complete workflow, not an unfinished one. SPEC does not enumerate response fields.",
         "input": {
           "url": {
             "type": "string",
@@ -2466,7 +2466,7 @@
         "output": {
           "response": {
             "type": "object",
-            "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the loop is complete."
+            "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the workflow is complete."
           }
         },
         "needsEnv": [],
@@ -2493,7 +2493,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.25",
+          "version": "0.2.0-q-core.26",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2519,7 +2519,7 @@
             }
           ]
         },
-        "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
+        "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A workflow may end here. This is a complete workflow, not an unfinished one. SPEC does not enumerate response fields.",
         "implementation": {
           "status": "implemented",
           "source": "src/steps.mjs",
@@ -2582,7 +2582,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.25",
+          "version": "0.2.0-q-core.26",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2684,7 +2684,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.25",
+          "version": "0.2.0-q-core.26",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2754,7 +2754,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.25",
+          "version": "0.2.0-q-core.26",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2846,5 +2846,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "870dff73a6e040ee8330fb66a7cb7e010f6fe5c9afb63e1113edb9e6edcfd9f9"
+  "releaseSha256": "b52828a4299efb40d98903f0b8acfd24cb0f348adc69414152b81987bf44cfc7"
 }

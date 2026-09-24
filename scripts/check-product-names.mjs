@@ -27,6 +27,8 @@ const scannedRoots = ["src", "bin", "launchd", "examples", "contracts", "docs"];
 const scannedFiles = ["README.md", "CONTRIBUTING.md", "SPEC-MANIFEST.md", ".github/PULL_REQUEST_TEMPLATE.md", ".github/workflows/validate.yml"];
 const productProseFiles = [
   "SPEC-MANIFEST.md",
+  "registry/catalog.source.json",
+  "registry/composition.json",
   "registry/README.md",
   "src/catalog.mjs",
   "src/config.mjs",
@@ -135,6 +137,23 @@ export function verifyReachableCliProductNames(root) {
   );
 }
 
+export function verifyRegistryComposition(root, pkg) {
+  const path = join(root, "registry", "composition.json");
+  const source = readFileSync(path, "utf8");
+  assertNoRetiredProductUnitTerms([{ path: "registry/composition.json", source }]);
+  const composition = JSON.parse(source);
+  const expectedBuiltinIds = new Set(["api-request", "fan-out", "fetch", "schedule"]);
+  const builtins = composition.builtins?.filter((entry) => expectedBuiltinIds.has(entry.id)) ?? [];
+  assert.equal(builtins.length, expectedBuiltinIds.size, "Registry composition must retain every active builtin pin");
+  for (const builtin of builtins) {
+    assert.deepEqual(
+      builtin.engine,
+      { package: pkg.name, version: pkg.version, manifest: "q-core.workflow/v1" },
+      `${builtin.id} must pin this exact Q-Core candidate`,
+    );
+  }
+}
+
 export function verifyProductNames(root = resolve(".")) {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   verifyPackageSurface(pkg, readdirSync(join(root, "bin")));
@@ -147,6 +166,7 @@ export function verifyProductNames(root = resolve(".")) {
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assertNoRetiredProductNames(activeSources);
   assertNoRetiredProductUnitTerms(productProseFiles.map((path) => ({ path, source: readFileSync(join(root, path), "utf8") })));
+  verifyRegistryComposition(root, pkg);
   verifyPackagedReadmeAliasBoundary(root);
   verifyWorkflowConsumerNames(root);
   verifyDemoNames(root);

@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, assertNoRetiredProductUnitTerms, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyPackagedReadmeAliasBoundary, verifyProductNames, verifyReachableCliProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, assertNoRetiredProductUnitTerms, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyPackagedReadmeAliasBoundary, verifyProductNames, verifyReachableCliProductNames, verifyRegistryComposition, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -43,6 +43,28 @@ test("Core product prose rejects a retired loop unit while control-flow loop sta
   assert.doesNotThrow(() => assertNoRetiredProductUnitTerms([
     { path: "SPEC-MANIFEST.md", source: "A workflow may contain kind: loop with loop.maxIterations." },
   ]));
+});
+
+test("Registry composition rejects stale builtin pins and product loop prose", () => {
+  const root = mkdtempSync(join(tmpdir(), "q-core-composition-name-guard-"));
+  const pkg = { name: "q-core", version: "0.2.0-q-core.26" };
+  const builtins = ["api-request", "fan-out", "fetch", "schedule"].map((id) => ({
+    id,
+    engine: { package: pkg.name, version: pkg.version, manifest: "q-core.workflow/v1" },
+  }));
+  const composition = { builtins, description: "A workflow may contain kind: loop." };
+  try {
+    mkdirSync(join(root, "registry"), { recursive: true });
+    const file = join(root, "registry", "composition.json");
+    writeFileSync(file, JSON.stringify({ ...composition, description: "A selected loop manifest is accepted." }));
+    assert.throws(() => verifyRegistryComposition(root, pkg), /product unit/);
+    writeFileSync(file, JSON.stringify({ ...composition, builtins: [{ ...builtins[0], engine: { ...builtins[0].engine, version: "0.2.0-q-core.25" } }, ...builtins.slice(1)] }));
+    assert.throws(() => verifyRegistryComposition(root, pkg), /exact Q-Core candidate/);
+    writeFileSync(file, JSON.stringify(composition));
+    assert.doesNotThrow(() => verifyRegistryComposition(root, pkg));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("Registry6 workflow consumers reject retired product loop terms while generic feedback loop remains valid", () => {
