@@ -73,7 +73,16 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const { catalog, assets } = buildRegistry();
   const index = process.argv.indexOf('--export');
   const destination = index < 0 ? root : resolve(process.argv[index + 1]);
-  const files = { 'catalog.json': JSON.stringify(catalog, null, 2) + '\n', ...assets, 'composition.json': JSON.stringify(catalog.composition, null, 2) + '\n', LICENSE: readFileSync(resolve(root, 'LICENSE')) };
+  /* Planned entries are a canonical part of the Registry boundary. Export their
+     explicit classification with the raw records so an installed Core can make
+     the same discoverable-but-forbidden decision as the source checkout. */
+  const files = {
+    'catalog.json': JSON.stringify(catalog, null, 2) + '\n',
+    ...assets,
+    'composition.json': JSON.stringify(catalog.composition, null, 2) + '\n',
+    'planned.json': readFileSync(resolve(root, 'planned.json')),
+    LICENSE: readFileSync(resolve(root, 'LICENSE')),
+  };
   const coreIndex = process.argv.indexOf('--core-artifact');
   if (coreIndex >= 0) {
     if (index < 0 || !process.argv[coreIndex + 1]) throw Error('Core artifact requires an export destination and input file');
@@ -83,13 +92,15 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     assertCoreArtifact(catalog, body);
     files[catalog.core.artifact] = body;
   }
+  const checksums = Object.entries(files).map(([file, body]) => `${sha(body)}  ${file}`).sort().join('\n') + '\n';
   if (process.argv.includes('--check')) {
     if (readFileSync(resolve(root, 'catalog.json'), 'utf8') !== files['catalog.json']) throw Error('Generated catalog drift');
+    if (readFileSync(resolve(root, 'SHA256SUMS'), 'utf8') !== checksums) throw Error('Generated checksum drift');
   } else {
     for (const [file, body] of Object.entries(files)) {
       const path = resolve(destination, file); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, body);
     }
-    writeFileSync(resolve(destination, 'SHA256SUMS'), Object.entries(files).map(([file, body]) => `${sha(body)}  ${file}`).sort().join('\n') + '\n');
+    writeFileSync(resolve(destination, 'SHA256SUMS'), checksums);
   }
   console.log(JSON.stringify({ version: catalog.releaseVersion, entries: catalog.workflows.length + catalog.components.length + catalog.demos.length }));
 }

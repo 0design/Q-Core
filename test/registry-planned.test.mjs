@@ -57,6 +57,16 @@ test("catalog source must agree with explicit planned metadata", (t) => {
   assert.throws(() => buildRegistry(dir), /disagrees with planned\.json at launch/);
 });
 
+test("missing or malformed planned classification fails closed instead of accepting raw contracts", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "q-core-planned-missing-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  cpSync(registry, dir, { recursive: true });
+  rmSync(join(dir, "planned.json"));
+  assert.throws(() => loadRegistry(dir), /agentation\.json: kind must be a non-empty string/);
+  writeFileSync(join(dir, "planned.json"), "{ invalid");
+  assert.throws(() => loadRegistry(dir), /planned\.json: not valid JSON/);
+});
+
 test("CLI renders planned entries and explicitly refuses to initialize or run them", () => {
   const invoke = (args) => spawnSync(process.execPath, [cli, ...args], {
     encoding: "utf8",
