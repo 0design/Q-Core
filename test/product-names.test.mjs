@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyReachableCliProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -11,7 +11,7 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.21", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.22", bin: {} }, []),
     /Q-Core name/,
   );
 });
@@ -76,6 +76,20 @@ test("host and skill entrypoints reject product loop wording while generic loop 
     assert.throws(() => verifyHostSkillNames(root), /product unit/);
     writeFileSync(host, `${source}\n// Close the feedback loop; control step kind: loop.\n`);
     assert.doesNotThrow(() => verifyHostSkillNames(root));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("reachable CLI output rejects product loop wording while generic control flow remains valid", () => {
+  const root = mkdtempSync(join(tmpdir(), "q-core-cli-name-guard-"));
+  const cli = join(root, "bin/q-workflow.mjs");
+  mkdirSync(dirname(cli), { recursive: true });
+  try {
+    writeFileSync(cli, "q-core doctor checks this machine before blaming the loop.\n");
+    assert.throws(() => verifyReachableCliProductNames(root), /product unit/);
+    writeFileSync(cli, "const controlKind = 'loop'; // generic control flow\n");
+    assert.doesNotThrow(() => verifyReachableCliProductNames(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

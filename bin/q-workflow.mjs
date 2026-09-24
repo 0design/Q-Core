@@ -60,7 +60,7 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
   q-core status [<manifest>]         show recent runs
   q-core approve <manifest> [runId]  continue a run held at a human gate
                                     (--reject to refuse it)
-  q-core doctor                      check this machine before blaming the loop
+  q-core doctor                      check this machine before blaming the workflow
 
 Installed as q-core. There is no qf alias — that name belongs to @q-factory/bridge.
 
@@ -154,7 +154,7 @@ function describePlan(manifest) {
   lines.push("");
   const triggers = manifest.triggers.length
     ? manifest.triggers.map((t) => (t.kind === "schedule" ? `schedule "${t.cron}" UTC` : t.kind)).join(" · ")
-    : "none declared — this loop only runs when you run it";
+    : "none declared — this workflow only runs when you run it";
   lines.push(`  triggers   ${triggers}`);
   lines.push(`  model      ${knobs.model} ${c.dim(`(${knobs.provenance.model})`)}`);
   lines.push(
@@ -173,8 +173,8 @@ function describePlan(manifest) {
   lines.push("");
   lines.push(
     hasHumanGate
-      ? `  ${c.dim("this loop stops for a human — `q-core approve` continues it")}`
-      : `  ${c.dim("no human gate — this loop runs to the end on its own")}`,
+      ? `  ${c.dim("this workflow stops for a human — `q-core approve` continues it")}`
+      : `  ${c.dim("no human gate — this workflow runs to the end on its own")}`,
   );
   return lines.join("\n");
 }

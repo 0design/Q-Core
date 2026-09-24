@@ -1,6 +1,6 @@
 {
   "name": "q-core",
-  "version": "0.2.0-q-core.21",
+  "version": "0.2.0-q-core.22",
   "license": "MIT",
   "description": "Run a QFactory workflow from a YAML manifest. No database, no server, no build step.",
   "type": "module",

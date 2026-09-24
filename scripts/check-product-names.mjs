@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.21"), "candidate version must identify Q-Core");
+  assert.ok(pkg.version.endsWith("-q-core.22"), "candidate version must identify Q-Core");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
@@ -91,6 +91,15 @@ export function verifyHostSkillNames(root) {
   }
 }
 
+export function verifyReachableCliProductNames(root) {
+  const source = readFileSync(join(root, "bin", "q-workflow.mjs"), "utf8");
+  assert.equal(
+    /before blaming the loop|this loop only runs|this loop stops for a human|no human gate — this loop runs/i.test(source),
+    false,
+    "reachable q-core CLI output retains loop as the product unit; use workflow",
+  );
+}
+
 export function verifyProductNames(root = resolve(".")) {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   verifyPackageSurface(pkg, readdirSync(join(root, "bin")));
@@ -105,6 +114,7 @@ export function verifyProductNames(root = resolve(".")) {
   verifyWorkflowConsumerNames(root);
   verifyDemoNames(root);
   verifyHostSkillNames(root);
+  verifyReachableCliProductNames(root);
 
   assert.equal(existsSync(join(root, "registry", "workflows")), true, "Registry must expose workflows/");
   assert.equal(existsSync(join(root, "registry", "loops")), false, "Registry must not retain loops/");
