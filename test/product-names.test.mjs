@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -32,6 +32,20 @@ test("Registry6 workflow consumers reject retired product loop terms while gener
     assert.throws(() => verifyWorkflowConsumerNames(root), /retired product loop term/);
     writeFileSync(file, "Close the feedback loop before reporting completion. kind: loop");
     assert.doesNotThrow(() => verifyWorkflowConsumerNames(root));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Registry demo metadata rejects product loop wording while generic terminology remains valid", () => {
+  const root = mkdtempSync(join(tmpdir(), "q-core-demo-name-guard-"));
+  const file = join(root, "registry/demos/webhook-relay.json");
+  mkdirSync(join(root, "registry/demos"), { recursive: true });
+  try {
+    writeFileSync(file, "The target loop acceptance must be reported.");
+    assert.throws(() => verifyDemoNames(root), /product unit/);
+    writeFileSync(file, "Close the feedback loop before reporting; control kind: loop.");
+    assert.doesNotThrow(() => verifyDemoNames(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

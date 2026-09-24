@@ -1923,7 +1923,7 @@
         "status": "historical-unverified",
         "releaseAcceptance": "pending"
       },
-      "sha256": "393a66fa5a3f348aa18454e333c3e470d2fac0373f8bea79742afde80f4f3c3f",
+      "sha256": "e8ba53f439155b8de14c23670263e0a9d365d00e186631551f3fba4478b306ce",
       "contentType": "demo",
       "acceptance": {
         "status": "pending",
@@ -1974,7 +1974,7 @@
       "file": "demos/annotation-review.json",
       "status": "offline-demo",
       "value": "Preserve feedback identity and expose ambiguous requests before execution.",
-      "sha256": "f1f7adfa5ca5b885444f14a7e2ac9cad3e7f1df0e4a6084eb629e7acbf78684e"
+      "sha256": "2e2c644ad599dd83855db056b0581d7155e7bd559ee652ba371f2aca2f7f992f"
     },
     {
       "id": "digest-huyiks",
@@ -2842,5 +2842,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "12f184cbbafd3b1af2d4afc638dd429bf6c078fa6bc25e079ea76257637017a7"
+  "releaseSha256": "dacc976d66a2f13e4a0e10d6463d05c8343955abd150d407bcb66e1cf1783fd0"
 }

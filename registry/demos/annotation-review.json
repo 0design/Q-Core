@@ -9,6 +9,6 @@
   "live": false,
   "acceptance": {
     "status": "pending",
-    "limitation": "Tests queue normalization only; not target loop acceptance."
+    "limitation": "Tests queue normalization only; not target workflow acceptance."
   }
 }

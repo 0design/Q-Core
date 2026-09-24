@@ -60,6 +60,21 @@ export function verifyWorkflowConsumerNames(root) {
   assertNoRetiredProductNames(files);
 }
 
+export function verifyDemoNames(root) {
+  const files = filesBelow(root, "registry/demos")
+    .filter((path) => path.endsWith(".json"))
+    .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
+  assert.ok(files.length > 0, "Registry must contain live demo metadata");
+  assertNoRetiredProductNames(files);
+  for (const { path, source } of files) {
+    assert.equal(
+      /\b(?:a|an|the|this|that|selected|installed|pinned|target)\s+loops?\b|\bloops?\s+(?:is|are|acceptance|sequence)\b/i.test(source),
+      false,
+      path + " retains loop as the product unit; use workflow",
+    );
+  }
+}
+
 export function verifyHostSkillNames(root) {
   const files = hostSkillFiles.map((path) => {
     const absolute = join(root, path);
@@ -88,6 +103,7 @@ export function verifyProductNames(root = resolve(".")) {
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assertNoRetiredProductNames(activeSources);
   verifyWorkflowConsumerNames(root);
+  verifyDemoNames(root);
   verifyHostSkillNames(root);
 
   assert.equal(existsSync(join(root, "registry", "workflows")), true, "Registry must expose workflows/");
