@@ -6,7 +6,8 @@
   "type": "module",
   "bin": {
     "qloops": "bin/qloops.mjs",
-    "qloop": "bin/qloop.mjs"
+    "qloop": "bin/qloop.mjs",
+    "qf-telegram-one-shot": "bin/telegram-one-shot.mjs"
   },
   "engines": {
     "node": ">=20.3.0"
