@@ -9,6 +9,8 @@
                                     start explicit CLI caller inference
   q-core reply <manifest> <runId> <reply.json> --json
                                     submit the exact pending job response
+  q-core clarify <manifest> <runId> <answers.json> --json
+                                    submit exact answers to a paused SDD clarification
   q-core status [<manifest>]          what the last runs did
  *   q-core approve <manifest> [runId]   continue a run parked at a human gate
  *
@@ -57,6 +59,8 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
                                     start explicit CLI caller inference
   q-core reply <manifest> <runId> <reply.json> --json
                                     submit the exact pending job response
+  q-core clarify <manifest> <runId> <answers.json> --json
+                                    submit exact answers to a paused SDD clarification
   q-core status [<manifest>]         show recent runs
   q-core approve <manifest> [runId]  continue a run held at a human gate
                                     (--reject to refuse it)
@@ -289,7 +293,8 @@ async function cmdRun(args, flags, opts) {
     if (!dryRun) process.stdout.write(c.dim(`  state ${shortPath(join(store.dir, "runs", `${result.runId}.json`))}\n`));
     if (result.status === 'waiting_inference') process.stdout.write(`\n  Continue with: q-core reply ${file} ${result.runId} <reply.json>\n`);
     if (result.status === "waiting_human") {
-      process.stdout.write(`\n  Continue with:  q-core approve ${file} ${result.runId}\n`);
+      if (result.pendingClarification) process.stdout.write(`\n  Continue with: q-core clarify ${file} ${result.runId} <answers.json>\n`);
+      else process.stdout.write(`\n  Continue with:  q-core approve ${file} ${result.runId}\n`);
     }
   }
 
@@ -311,6 +316,18 @@ async function cmdReply(args) {
   if (!run || run.status !== 'waiting_inference' || !run.pendingInference) fail('Run is not waiting for CLI inference');
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
+  store.saveLastRun(result);
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
+}
+
+async function cmdClarify(args) {
+  const [file, runId, answersFile] = args;
+  if (!file || !runId || !answersFile) fail('q-core clarify <manifest> <runId> <answers.json>', EXIT_USAGE);
+  const store = new RunStore(file), run = store.load(runId);
+  if (!run || run.status !== 'waiting_human' || !run.pendingClarification) fail('Run is not waiting for SDD clarification answers');
+  if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
+  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, clarification: readBoundedJson(answersFile) });
   store.saveLastRun(result);
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
@@ -644,6 +661,7 @@ const commands = {
   validate: cmdValidate,
   run: cmdRun,
   reply: cmdReply,
+  clarify: cmdClarify,
   cancel: args => cmdPaused(args, 'cancel'),
   resume: args => cmdPaused(args, 'resume'),
   status: cmdStatus,
