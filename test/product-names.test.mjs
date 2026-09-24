@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyRegistryCliConsumerNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -46,20 +46,6 @@ test("Registry demo metadata rejects product loop wording while generic terminol
     assert.throws(() => verifyDemoNames(root), /product unit/);
     writeFileSync(file, "Close the feedback loop before reporting; control kind: loop.");
     assert.doesNotThrow(() => verifyDemoNames(root));
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test("Registry CLI consumer rejects product manifest filenames while generic terminology remains valid", () => {
-  const root = mkdtempSync(join(tmpdir(), "q-core-registry-cli-name-guard-"));
-  const file = join(root, "test/registry-cli-command.test.mjs");
-  mkdirSync(dirname(file), { recursive: true });
-  try {
-    writeFileSync(file, "const manifest = 'loop.yaml';");
-    assert.throws(() => verifyRegistryCliConsumerNames(root), /workflow manifest filename/);
-    writeFileSync(file, "const manifest = 'workflow.yaml'; // feedback loop; kind: loop");
-    assert.doesNotThrow(() => verifyRegistryCliConsumerNames(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

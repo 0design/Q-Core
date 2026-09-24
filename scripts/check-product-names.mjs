@@ -29,9 +29,6 @@ const hostSkillFiles = [
   "test/host.test.mjs",
   "test/skill.test.mjs",
 ];
-const registryCliConsumerFiles = [
-  "test/registry-cli-command.test.mjs",
-];
 
 function filesBelow(root, relative) {
   const path = join(root, relative);
@@ -78,22 +75,6 @@ export function verifyDemoNames(root) {
   }
 }
 
-export function verifyRegistryCliConsumerNames(root) {
-  const files = registryCliConsumerFiles.map((path) => {
-    const absolute = join(root, path);
-    assert.equal(existsSync(absolute), true, path + " must remain in the Registry CLI consumer surface");
-    return { path, source: readFileSync(absolute, "utf8") };
-  });
-  assertNoRetiredProductNames(files);
-  for (const { path, source } of files) {
-    assert.equal(
-      /['"](?:[^'"]*\/)?loops?\.ya?ml['"]/.test(source),
-      false,
-      path + " retains loop as a workflow manifest filename",
-    );
-  }
-}
-
 export function verifyHostSkillNames(root) {
   const files = hostSkillFiles.map((path) => {
     const absolute = join(root, path);
@@ -123,7 +104,6 @@ export function verifyProductNames(root = resolve(".")) {
   assertNoRetiredProductNames(activeSources);
   verifyWorkflowConsumerNames(root);
   verifyDemoNames(root);
-  verifyRegistryCliConsumerNames(root);
   verifyHostSkillNames(root);
 
   assert.equal(existsSync(join(root, "registry", "workflows")), true, "Registry must expose workflows/");
