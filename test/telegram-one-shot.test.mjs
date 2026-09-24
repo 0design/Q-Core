@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, chmodSync, symlinkSync, writeFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -13,7 +13,7 @@ const plan = { campaignId: 'synthetic-one-test', chatId: '-1001234567890', chatT
 const token = '1234:syntheticToken';
 
 function fixture(t) {
-  const root = mkdtempSync(join(tmpdir(), 'qf-telegram-one-shot-'));
+  const root = mkdtempSync(join(realpathSync(tmpdir()), 'qf-telegram-one-shot-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   return join(root, 'journal');
 }
@@ -85,4 +85,36 @@ test('uncertain send and mismatched receiver receipt never retry', async (t) => 
     await assert.rejects(telegramOneShot(args), /reconcile manually/);
     assert.equal(telegram.calls.filter((x) => x === 'sendMessage').length, 1);
   }
+});
+
+test('symlink parent and world-readable journal fail before any provider call', async (t) => {
+  const root = mkdtempSync(join(realpathSync(tmpdir()), 'qf-journal-path-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const privateParent = join(root, 'private');
+  mkdirSync(privateParent, { mode: 0o700 });
+  symlinkSync(privateParent, join(root, 'link'));
+  symlinkSync(join(root, 'missing'), join(root, 'dangling'));
+  const telegram = fakeTelegram();
+  await assert.rejects(telegramOneShot({ plan, payload, journalDir: join(root, 'link', 'journal'),
+    fetchImpl: telegram.fetchImpl }), /Unsafe journal parent/);
+  await assert.rejects(telegramOneShot({ plan, payload, journalDir: join(root, 'dangling', 'journal'),
+    fetchImpl: telegram.fetchImpl }), /Unsafe journal parent/);
+  const readable = join(root, 'readable');
+  mkdirSync(readable, { mode: 0o700 });
+  chmodSync(readable, 0o755);
+  await assert.rejects(telegramOneShot({ plan, payload, journalDir: readable,
+    fetchImpl: telegram.fetchImpl }), /owner-only/);
+  assert.deepEqual(telegram.calls, []);
+});
+
+test('forged delivered claim cannot suppress send with a false receipt', async (t) => {
+  const journalDir = fixture(t), telegram = fakeTelegram();
+  mkdirSync(journalDir, { mode: 0o700 });
+  const args = await approved(journalDir, telegram.fetchImpl);
+  const file = join(journalDir, `${createHash('sha256').update(plan.campaignId).digest('hex')}.json`);
+  writeFileSync(file, JSON.stringify({ campaignId: plan.campaignId, chatId: plan.chatId,
+    payloadSha256, approvalBinding: args.approval.binding, phase: 'delivered', mac: '0'.repeat(64),
+    receipt: { chatId: plan.chatId, payloadSha256, messageId: 999, date: 123 } }), { mode: 0o600 });
+  await assert.rejects(telegramOneShot(args), /integrity failed/);
+  assert.deepEqual(telegram.calls, []);
 });
