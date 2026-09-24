@@ -10,7 +10,7 @@ npx q-core validate ./workflow.yaml
 npx q-core run ./workflow.yaml
 ```
 
-Both `q-core` and legacy `q-core` are installed. No `qf` alias. The package includes
+`q-core` is the only installed executable. No other CLI alias is provided. The package includes
 runtime, schema, providers and synthetic contract fixtures. Install reusable workflows
 from a versioned registry export.
 

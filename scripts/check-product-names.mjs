@@ -5,12 +5,22 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.22"), "candidate version must identify Q-Core");
+  assert.ok(pkg.version.endsWith("-q-core.23"), "candidate version must identify Q-Core");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
   }, "only Q-Core CLI names are public");
   assert.equal(binFiles.some((file) => /^qloops?(?:-|\.)/.test(file)), false, "retired qloop binaries must not ship");
+}
+
+export function verifyPackagedReadmeAliasBoundary(root) {
+  const source = readFileSync(join(root, "README.md"), "utf8");
+  assert.match(source, /`q-core` is the only installed executable\./, "README must state the single Q-Core executable");
+  assert.equal(
+    /Both `q-core` and legacy `q-core` are installed\./.test(source),
+    false,
+    "README must not describe Q-Core as its own legacy alias",
+  );
 }
 
 const scannedRoots = ["src", "bin", "launchd", "examples", "contracts", "docs"];
@@ -111,6 +121,7 @@ export function verifyProductNames(root = resolve(".")) {
   const activeSources = [...scannedRoots.flatMap((relative) => filesBelow(root, relative)), ...scannedFiles]
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assertNoRetiredProductNames(activeSources);
+  verifyPackagedReadmeAliasBoundary(root);
   verifyWorkflowConsumerNames(root);
   verifyDemoNames(root);
   verifyHostSkillNames(root);

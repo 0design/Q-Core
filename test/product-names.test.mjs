@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyReachableCliProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyPackagedReadmeAliasBoundary, verifyProductNames, verifyReachableCliProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -11,9 +11,21 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.22", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.23", bin: {} }, []),
     /Q-Core name/,
   );
+});
+
+test("packaged README rejects a duplicate Q-Core legacy-alias claim", () => {
+  const root = mkdtempSync(join(tmpdir(), "q-core-readme-name-guard-"));
+  try {
+    writeFileSync(join(root, "README.md"), "Both `q-core` and legacy `q-core` are installed.\n");
+    assert.throws(() => verifyPackagedReadmeAliasBoundary(root), /single Q-Core executable/);
+    writeFileSync(join(root, "README.md"), "`q-core` is the only installed executable. No other CLI alias is provided.\n");
+    assert.doesNotThrow(() => verifyPackagedReadmeAliasBoundary(root));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("hostile qloops compatibility alias in any Core source is rejected", () => {
