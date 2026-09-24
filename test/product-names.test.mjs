@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, assertNoRetiredProductUnitTerms, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyPackagedReadmeAliasBoundary, verifyProductNames, verifyReachableCliProductNames, verifyRegistryComposition, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, assertNoRetiredProductUnitTerms, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyPackagedReadmeAliasBoundary, verifyProductNames, verifyProofCliNames, verifyReachableCliProductNames, verifyRegistryComposition, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -134,6 +134,20 @@ test("reachable CLI output rejects product loop wording while generic control fl
     assert.throws(() => verifyReachableCliProductNames(root), /product unit/);
     writeFileSync(cli, "const controlKind = 'loop'; // generic control flow\n");
     assert.doesNotThrow(() => verifyReachableCliProductNames(root));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("proof CLI rejects a retired workflow spelling but permits feedback loop", () => {
+  const root = mkdtempSync(join(tmpdir(), "q-core-proof-cli-name-guard-"));
+  const file = join(root, "scripts/record-proof.mjs");
+  try {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, "// usage: record-proof <loop-id>\n");
+    assert.throws(() => verifyProofCliNames(root), /retired loop-id contract/);
+    writeFileSync(file, "// Close the feedback loop after recording a workflow run.\n");
+    assert.doesNotThrow(() => verifyProofCliNames(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

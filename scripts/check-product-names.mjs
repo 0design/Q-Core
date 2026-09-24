@@ -73,6 +73,7 @@ export function assertNoRetiredProductNames(files) {
       : source;
     assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);
     assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
+    assert.equal(/\bloop-id\b/i.test(inspectable), false, `${path} retains the retired loop-id contract`);
     assert.equal(/\bloops?\s+(?:catalog|manifest|version|id)\b/i.test(inspectable), false, `${path} retains a retired product loop term`);
   }
 }
@@ -137,6 +138,17 @@ export function verifyReachableCliProductNames(root) {
   );
 }
 
+export function verifyProofCliNames(root) {
+  const path = "scripts/record-proof.mjs";
+  const source = readFileSync(join(root, path), "utf8");
+  assertNoRetiredProductNames([{ path, source }]);
+  assert.equal(
+    /\b(?:a|the|successful|selected|this)\s+loop(?:\s+run)?\b/i.test(source),
+    false,
+    "proof CLI retains loop as the product unit; use workflow",
+  );
+}
+
 export function verifyRegistryComposition(root, pkg) {
   const path = join(root, "registry", "composition.json");
   const source = readFileSync(path, "utf8");
@@ -172,6 +184,7 @@ export function verifyProductNames(root = resolve(".")) {
   verifyDemoNames(root);
   verifyHostSkillNames(root);
   verifyReachableCliProductNames(root);
+  verifyProofCliNames(root);
 
   assert.equal(existsSync(join(root, "registry", "workflows")), true, "Registry must expose workflows/");
   assert.equal(existsSync(join(root, "registry", "loops")), false, "Registry must not retain loops/");

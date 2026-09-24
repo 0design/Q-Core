@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/** Record a successful loop run as catalog evidence.
- * Usage: node scripts/record-proof.mjs <loop-id> [runId]
+/** Record a successful workflow run as catalog evidence.
+ * Usage: node scripts/record-proof.mjs <workflow-id> [runId]
  * Write measured trace data and actual output, never estimated proof.
  * Review public output for secrets: URL/token scrubbing is not a complete audit.
  */
@@ -10,10 +10,10 @@ import { fileURLToPath } from "node:url";
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
 const [id, wantRun] = process.argv.slice(2);
-if (!id) { console.error("usage: record-proof.mjs <loop-id> [runId]"); process.exit(64); }
+if (!id) { console.error("usage: record-proof.mjs <workflow-id> [runId]"); process.exit(64); }
 
 const runsDir = join(PKG, "registry", "workflows", ".qf", "runs");
-if (!existsSync(runsDir)) { console.error(`no runs at ${runsDir} — run the loop first`); process.exit(1); }
+if (!existsSync(runsDir)) { console.error(`no runs at ${runsDir} — run the workflow first`); process.exit(1); }
 
 const runs = readdirSync(runsDir).filter((f) => f.endsWith(".json"))
   .map((f) => { try { return JSON.parse(readFileSync(join(runsDir, f), "utf8")); } catch { return null; } })

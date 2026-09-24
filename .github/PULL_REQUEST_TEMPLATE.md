@@ -21,7 +21,7 @@ One manifest, one pull request. A `.yaml` file in `workflows/`.
 - [ ] The irreversible step is last, and behind a gate if it publishes, charges, sends or deletes
 - [ ] `settings.budgetUsd` is set explicitly
 - [ ] An agent-gate rubric is a condition, not a wish
-- [ ] Optional proof: `examples/<id>.run.json` and `examples/<id>.txt` via `node scripts/record-proof.mjs <id>`
+- [ ] Optional proof: `examples/<id>.run.json` and `examples/<id>.txt` via `node scripts/record-proof.mjs <workflow-id>`
 
 ---
 
