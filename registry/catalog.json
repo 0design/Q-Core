@@ -1031,7 +1031,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "0d13775a17a0016d14bd641d55e866d6c9bb7933099457123fe7b4970a100987",
+      "sha256": "32e453061a047c353c5dc61b8214c60e12e063ee3790fd9cbb973af529b2cb51",
       "steps": 10,
       "kinds": [
         "fetch",
@@ -2846,5 +2846,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "b52828a4299efb40d98903f0b8acfd24cb0f348adc69414152b81987bf44cfc7"
+  "releaseSha256": "7b1a29093e4e8e7d5f05662e36d3c49bc8495f87fbcbbe773f12e51d433d547d"
 }

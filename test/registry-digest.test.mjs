@@ -78,6 +78,9 @@ test('source components refuse hallucinated links, empty sources and normalize d
 test('Digest is a Q-Core workflow consumer without retired product aliases', () => {
   const source = readFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), 'utf8');
   assert.match(source, /^manifest: q-core\.workflow\/v1$/m);
-  assert.match(source, /Cite each selected source URL verbatim/i);
+  assert.match(source, /Put each cited\s+source URL directly in the sentence or bullet that relies on it/i);
+  assert.match(source, /do not\s+replace inline citations with a standalone source list/i);
+  assert.match(source, /do\s+not\s+imitate a private author's personal experience or present it as a\s+channel post/i);
+  assert.match(source, /If source metadata says\s+textTruncated is true, name the affected source or sources/i);
   assert.doesNotMatch(source, /\bqloops?\b|\bloopId\b|\bloops?\s+(?:catalog|manifest|version|id)\b/i);
 });
