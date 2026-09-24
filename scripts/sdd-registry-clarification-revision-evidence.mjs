@@ -77,8 +77,8 @@ async function startAtGate(manifest, store, workspacePolicy, specification) {
 /**
  * Executes only the declared Registry manifest with supplied caller replies.
  * It never calls a model/provider and never approves a run. The returned
- * receipt distinguishes a supported revision boundary from the current
- * clarification capability gap instead of using src/agent.mjs as a shortcut.
+ * receipt proves both revision invalidation and the contract-bound
+ * clarification bridge without using src/agent.mjs as a shortcut.
  */
 export async function collectEvidence(root, { cleanup = true } = {}) {
   const pins = catalogPins(root);
@@ -112,9 +112,16 @@ export async function collectEvidence(root, { cleanup = true } = {}) {
     await driveRun(ambiguous, ambiguousOpts);
     assert.equal(ambiguous.status, "waiting_inference");
     await reply(ambiguous, { questions: [{ id: "format", question: "Which output format?" }] }, ambiguousOpts);
-    const failedStep = ambiguous.steps.find((step) => step.status === "failed");
-    assert.equal(ambiguous.status, "failed", "Current Registry route must expose its clarification limitation rather than fabricate a specification");
-    assert.match(failedStep?.errorText ?? "", /Specification requires bounded summary, criteria and plan/);
+    assert.equal(ambiguous.status, "waiting_human", "Questions must persist as a human clarification stop");
+    const clarification = ambiguous.pendingClarification;
+    assert.ok(clarification?.hash, "Clarification must have an exact question hash");
+    await driveRun(ambiguous, { ...ambiguousOpts, clarification: { hash: clarification.hash, answers: [{ id: "format", answer: "Plain text" }] } });
+    assert.equal(ambiguous.status, "waiting_inference", "Exact answers must issue a new caller job");
+    assert.deepEqual(JSON.parse(ambiguous.pendingInference.messages[1].content).clarification, {
+      hash: clarification.hash,
+      questions: clarification.questions,
+      answers: [{ id: "format", answer: "Plain text" }],
+    });
 
     receipt = {
       schema: "qfactory.sdd-registry-clarification-revision-evidence/v1",
@@ -129,10 +136,11 @@ export async function collectEvidence(root, { cleanup = true } = {}) {
       },
       clarification: {
         requested: { id: "format", question: "Which output format?" },
-        durableQuestionAnswerRecorded: false,
-        verdict: "BLOCKED",
-        failure: failedStep?.errorText ?? null,
-        explanation: "The declared Registry runner forwards questions to the versioned specification component, which accepts only summary/criteria/plan. No direct agent shortcut was used.",
+        questionHash: clarification.hash,
+        durableQuestionAnswerRecorded: true,
+        verdict: "PASS",
+        nextCallerJobId: ambiguous.pendingInference.jobId,
+        explanation: "The declared Registry runner persists questions, rejects non-bound answers before a new job, and passes the exact Q/A context to the next caller job. No direct agent shortcut was used.",
       },
       effects: { providerCalls: 0, paidCalls: 0, ownerApprovals: 0, publication: false },
     };

@@ -31,6 +31,7 @@ import { resolveTemplateValue } from "./template.mjs";
 import { usdForTokens } from "./cost.mjs";
 import { RunStore, newRunId } from "./state.mjs";
 import { hash, insist } from "./contracts.mjs";
+import { questions } from "./specification.mjs";
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -39,6 +40,43 @@ export const DEFAULT_MAX_TOKENS = 1200;
 export const MAX_EXPANDED_RUN_ROWS = 10_000;
 
 const ENGINE_KINDS = new Set(["fetch", "llm-call", "api-request", "approval-gate", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"]);
+
+function clarificationAnswers(value) {
+  insist(value && typeof value === 'object' && !Array.isArray(value), 'Clarification answers must be an object', 'INVALID_CLARIFICATION');
+  insist(/^[a-f0-9]{64}$/.test(value.hash) && Array.isArray(value.answers) && value.answers.length > 0 && value.answers.length <= 10, 'Clarification requires question hash and bounded answers', 'INVALID_CLARIFICATION');
+  insist(value.answers.every(answer => answer && typeof answer.id === 'string' && answer.id.length > 0 && answer.id.length <= 80 && typeof answer.answer === 'string' && answer.answer.trim() && answer.answer.length <= 4000), 'Clarification answers must be nonempty and bounded', 'INVALID_CLARIFICATION');
+  insist(new Set(value.answers.map(answer => answer.id)).size === value.answers.length, 'Clarification cannot answer one question more than once', 'INVALID_CLARIFICATION');
+  return { hash: value.hash, answers: value.answers.map(({ id, answer }) => ({ id, answer })) };
+}
+
+function consumeClarification(run, input) {
+  const clarification = clarificationAnswers(input);
+  const answerHash = hash(clarification.answers);
+  const pending = run.pendingClarification;
+  if (!pending) {
+    const previous = run.clarificationHistory?.find(entry => entry.hash === clarification.hash && entry.answerHash === answerHash);
+    insist(previous, 'Clarification is stale, unknown, or differs from the accepted answer set', 'STALE_CLARIFICATION');
+    return false;
+  }
+  insist(run.status === 'waiting_human', 'Clarification can only resume a waiting run', 'STALE_CLARIFICATION');
+  insist(clarification.hash === pending.hash, 'Clarification does not match the current exact question set', 'STALE_CLARIFICATION');
+  const expected = pending.questions.map(question => question.id).sort();
+  const actual = clarification.answers.map(answer => answer.id).sort();
+  insist(expected.length === actual.length && expected.every((id, index) => id === actual[index]), 'Clarification must answer every current question exactly once', 'INVALID_CLARIFICATION');
+  const row = run.steps.find(step => step.seq === pending.seq && step.status === 'waiting_human');
+  insist(row, 'Clarification waiting step is missing', 'STALE_CLARIFICATION');
+  run.clarificationHistory ??= [];
+  run.clarificationHistory.push({ ...pending, answers: clarification.answers, answerHash, answeredAt: new Date().toISOString() });
+  run.clarificationContext = { hash: pending.hash, questions: pending.questions, answers: clarification.answers };
+  delete run.pendingClarification;
+  row.status = 'pending'; row.output = null; row.gateReason = null; row.errorText = null; row.startedAt = null; row.finishedAt = null;
+  run.status = 'running'; run.summary = 'Clarification accepted; requesting a Q/A-bound specification.'; run.finishedAt = null;
+  return true;
+}
+
+function isSddClarification(run, step, output) {
+  return run.workflowId === 'sdd-pipeline' && step.stepId === 'brief' && output && typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 1 && Array.isArray(output.questions);
+}
 
 /** The three knobs, resolved once per run, with where each value came from. */
 export function resolveKnobs(settings = {}) {
@@ -134,6 +172,10 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
 export async function driveRun(run, opts = {}) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
   let inferenceReply = opts.inferenceReply;
+  if (opts.clarification !== undefined) {
+    insist(inferenceReply === undefined, 'Submit clarification separately from a caller inference reply', 'INVALID_CLARIFICATION');
+    consumeClarification(run, opts.clarification);
+  }
   assertInferenceReply(run, inferenceReply);
   if (run.status === 'success' && run.workspacePolicy) {
     const artifact = run.steps.findLast(s => s.kind === 'workspace-apply' && s.status === 'success')?.output;
@@ -297,10 +339,13 @@ export async function driveRun(run, opts = {}) {
         if (knobs.budgetUsd !== null) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null and use bounded inference jobs.');
         const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }) : undefined;
         if (step.config.input && explicitInput === undefined) throw new Error('CLI input reference did not resolve');
+        const input = run.clarificationContext && run.workflowId === 'sdd-pipeline' && next.stepId === 'brief'
+          ? { ...explicitInput, clarification: structuredClone(run.clarificationContext) }
+          : explicitInput;
         const response = registryCliStep(run, {
           stepId: `${next.seq}:${next.stepId}`,
           instructions: resolveTemplate(str(step.config, 'instructions') ?? '', { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }),
-          input: run.repairContext ? { input: step.config.input ? explicitInput : priorOutputs, repair: run.repairContext } : step.config.input ? explicitInput : next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
+          input: run.repairContext ? { input: step.config.input ? input : priorOutputs, repair: run.repairContext } : step.config.input ? input : next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
           provider: opts.callerProvider, reply: inferenceReply, save: persist,
           maxInferenceJobs: opts.maxInferenceJobs, inferenceTtlMs: opts.inferenceTtlMs,
         });
@@ -312,6 +357,25 @@ export async function driveRun(run, opts = {}) {
         if (format === 'json' && (!output || typeof output !== 'object')) throw new Error('CLI JSON output must be an object or array');
         result = { output, unknownUsage: true, provider: response.provider };
       } else result = await dispatch(step, ctx, knobs);
+      if (isSddClarification(run, next, result.output)) {
+        const requested = questions(result.output.questions);
+        const inference = run.inferenceHistory?.at(-1);
+        const clarification = {
+          type: 'clarify_spec',
+          runId: run.runId,
+          hash: hash({ workflowId: run.workflowId, runId: run.runId, stepId: next.stepId, inferenceJobId: inference?.jobId ?? null, questions: requested }),
+          questions: requested,
+        };
+        insist(inference?.status === 'consumed', 'Clarification must follow a consumed caller job', 'STALE_INFERENCE');
+        next.status = 'waiting_human'; next.gateReason = 'clarification'; next.output = clarification;
+        next.tokensIn = null; next.tokensOut = null; next.costUsd = null; next.provider = result.provider; next.finishedAt = null;
+        run.tokensIn = null; run.tokensOut = null; run.costUsd = null;
+        run.pendingClarification = { hash: clarification.hash, questions: requested, seq: next.seq, stepId: next.stepId, inferenceJobId: inference.jobId };
+        run.status = 'waiting_human'; run.summary = 'Waiting for answers to the exact clarification questions.'; run.finishedAt = null;
+        persist(); onStep(next);
+        return run;
+      }
+      if (run.clarificationContext && run.workflowId === 'sdd-pipeline' && next.stepId === 'brief') delete run.clarificationContext;
       if (['verify-artifact', 'determined'].includes(next.kind) && result.output.outcome === 'fail') {
         run.repairHistory ??= [];
         run.repairHistory.push(result.output);

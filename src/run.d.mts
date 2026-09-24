@@ -45,6 +45,9 @@ export interface Run {
   tokensOut: number | null;
   steps: RunStep[];
   pendingInference?: { protocolVersion: string; jobId: string; hash: string; runId: string; phase: string; inputHash: string; expiresAt: number; messages: Array<{ role: string; content: string }>; outputKind: string };
+  pendingClarification?: { hash: string; questions: Array<{ id: string; question: string }>; seq: number; stepId: string; inferenceJobId: string };
+  clarificationContext?: { hash: string; questions: Array<{ id: string; question: string }>; answers: Array<{ id: string; answer: string }> };
+  clarificationHistory?: Array<{ hash: string; questions: Array<{ id: string; question: string }>; seq: number; stepId: string; inferenceJobId: string; answers: Array<{ id: string; answer: string }>; answerHash: string; answeredAt: string }>;
   callerProvider?: DriveOptions['callerProvider'];
   executionKnobs?: Knobs;
   workspacePolicy?: { workspace: string; allowedPaths: string[]; intent: string; verifier: { command: string; args: string[]; timeoutMs: number }; maxRepairAttempts?: number; specification?: { summary: string; criteria: string[]; plan: string[] } };
@@ -68,6 +71,7 @@ export interface DriveOptions {
   apiKey?: string | null;
   callerProvider?: { kind: 'caller'; agent: 'codex' | 'claude'; model: string; payerScope: 'local-cli' };
   inferenceReply?: { jobId: string; hash: string; output: { text: string } };
+  clarification?: { hash: string; answers: Array<{ id: string; answer: string }> };
   maxInferenceJobs?: number;
   inferenceTtlMs?: number;
   dryRun?: boolean;

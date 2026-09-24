@@ -94,3 +94,42 @@ test('paused caller cancellation invalidates old job and resumes without repeati
   await driveRun(run, { ...opts, inferenceReply: { jobId: job.jobId, hash: job.hash, output: { text: 'fresh' } } });
   assert.equal(run.status, 'success');
 });
+
+test('Registry SDD persists question-bound clarification and only creates the next caller job after exact answers', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'qf-registry-sdd-clarification-')), file = join(root, 'sdd.yaml');
+  copyFileSync(new URL('../registry/workflows/sdd-pipeline.yaml', import.meta.url), file);
+  writeFileSync(join(root, 'sum.mjs'), 'export const sum=(a,b)=>a-b;');
+  writeFileSync(join(root, 'verify.mjs'), 'import assert from "node:assert/strict"; import {sum} from "./sum.mjs"; assert.equal(sum(2,3),5);');
+  const manifest = loadManifest(file), store = new RunStore(file), run = createRun(manifest);
+  run.workspacePolicy = { workspace: root, allowedPaths: ['sum.mjs'], intent: 'Make sum add two numbers', maxRepairAttempts: 0, verifier: { command: process.execPath, args: ['verify.mjs'], timeoutMs: 5000 } };
+  const opts = { store, callerProvider, settings: manifest.settings };
+  const reply = async output => {
+    const job = structuredClone(run.pendingInference);
+    return driveRun(run, { ...opts, inferenceReply: { jobId: job.jobId, hash: job.hash, output: { text: JSON.stringify(output) } } });
+  };
+  try {
+    await driveRun(run, opts);
+    await reply({ questions: [{ id: 'format', question: 'Which output format?' }] });
+    assert.equal(run.status, 'waiting_human');
+    assert.equal(run.pendingClarification.questions[0].id, 'format');
+    assert.equal(run.steps.find(step => step.stepId === 'brief').gateReason, 'clarification');
+    const clarification = { hash: run.pendingClarification.hash, answers: [{ id: 'format', answer: 'Plain text' }] };
+    const before = structuredClone(run.pendingClarification);
+    await assert.rejects(driveRun(run, { ...opts, clarification: { ...clarification, hash: '0'.repeat(64) } }), /does not match/);
+    await assert.rejects(driveRun(run, { ...opts, clarification: { hash: clarification.hash, answers: [] } }), /requires question hash/);
+    await assert.rejects(driveRun(run, { ...opts, clarification: { hash: clarification.hash, answers: [...clarification.answers, ...clarification.answers] } }), /more than once/);
+    assert.deepEqual(run.pendingClarification, before);
+
+    await driveRun(run, { ...opts, clarification });
+    assert.equal(run.status, 'waiting_inference');
+    const nextJob = structuredClone(run.pendingInference);
+    const input = JSON.parse(nextJob.messages[1].content);
+    assert.deepEqual(input.clarification, { ...clarification, questions: before.questions });
+    await driveRun(run, { ...opts, clarification });
+    assert.deepEqual(run.pendingInference, nextJob);
+    await reply(spec);
+    assert.equal(run.status, 'waiting_human');
+    assert.equal(run.pendingClarification, undefined);
+    assert.equal(run.clarificationHistory.length, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
