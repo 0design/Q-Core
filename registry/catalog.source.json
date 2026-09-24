@@ -2017,7 +2017,7 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.24-registry.11-candidate",
+  "releaseVersion": "2026.09.25-registry.12-candidate",
   "core": {
     "package": "q-core",
         "version": "0.2.0-q-core.26",
@@ -2027,7 +2027,7 @@
     "artifact": "vendor/q-core-0.2.0-q-core.26.tgz",
     "artifactSha256": "249cefe03d8f5ef6054b3a7c21cd1e4264afd5ee81c469141f6cffd5e3bc4541",
     "integrity": "sha512-NWQWMpfNdcQhHWrv8zO8f/rBtpbwZxpd6AosEC2vuZqOnxy7Kel4OG60+tTTPfuHBFzFgUyS41IGEEBQY/Fo9w==",
-    "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
+    "schemaSha256": "1c886ed4e9313a5c846dd507197d053c5020b0d0c3606da55490d05933c7005d",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "consumer-integration-candidate",
     "source": "Core.26 catalog/init workflow wording candidate with pinned contract revision; integration candidate, public product acceptance pending",
