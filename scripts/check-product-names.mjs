@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.22"), "candidate version must identify Q-Core");
+  assert.match(pkg.version, /^0\.2\.0-q-core\.[1-9][0-9]*$/, "candidate version must identify Q-Core with an immutable numeric revision");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
