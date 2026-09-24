@@ -3,6 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { loadManifest } from '../src/manifest.mjs';
+import { loadPlannedCatalogEntries } from '../src/registry.mjs';
 import { workflowMetadata } from './registry-workflow-metadata.mjs';
 import { componentReadiness } from './registry-readiness.mjs';
 
@@ -16,6 +17,7 @@ export function assertCoreArtifact(catalog, body) {
 }
 export function buildRegistry(sourceRoot = root) {
   const catalog = JSON.parse(readFileSync(resolve(sourceRoot, 'catalog.source.json')));
+  const planned = loadPlannedCatalogEntries(sourceRoot);
   const assets = {};
   const ids = new Set();
   function asset(file) {
@@ -40,6 +42,16 @@ export function buildRegistry(sourceRoot = root) {
       }
       if (entry.proof) asset(entry.proof);
       asset(`authors/${entry.author}.json`);
+    }
+  }
+  for (const entry of planned) {
+    const section = `${entry.section}s`;
+    const catalogEntry = catalog[section].find((candidate) => candidate.id === entry.id);
+    if (!catalogEntry) throw Error(`Planned ${entry.section} is missing from catalog source: ${entry.id}`);
+    for (const key of ['file', 'name', 'description', 'status', 'launch', 'reason']) {
+      if (catalogEntry[key] !== entry[key]) {
+        throw Error(`Planned ${entry.section} ${entry.id} disagrees with planned.json at ${key}`);
+      }
     }
   }
   const composition = JSON.parse(readFileSync(resolve(sourceRoot, 'composition.json')));

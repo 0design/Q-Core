@@ -419,6 +419,12 @@ function printLoops(workflows) {
 function printComponents(components) {
   process.stdout.write(`${c.bold(`${components.length} components`)}\n\n`);
   for (const comp of components) {
+    if (comp.status === "planned" && comp.launch === "forbidden") {
+      process.stdout.write(`  ${c.bold(comp.id)} ${c.dim("· planned · launch forbidden")}\n`);
+      process.stdout.write(`    ${comp.description}\n`);
+      process.stdout.write(c.dim(`    unavailable: ${comp.reason}\n\n`));
+      continue;
+    }
     const used = comp.usedBy?.length ? `used by ${comp.usedBy.length} loop(s)` : "used by none yet";
     process.stdout.write(`  ${c.bold(comp.id)} ${c.dim(`· ${comp.kind} · ${used}`)}\n`);
     process.stdout.write(`    ${comp.description}\n\n`);
@@ -428,6 +434,12 @@ function printComponents(components) {
 function printDemos(demos) {
   process.stdout.write(`${c.bold(`${demos.length} demos`)}\n\n`);
   for (const d of demos) {
+    if (d.status === "planned" && d.launch === "forbidden") {
+      process.stdout.write(`  ${c.bold(d.id)} ${c.dim("· planned · launch forbidden")}\n`);
+      process.stdout.write(`    ${d.description}\n`);
+      process.stdout.write(c.dim(`    unavailable: ${d.reason}\n\n`));
+      continue;
+    }
     const live = d.live ? "live" : "not live";
     const proof = d.proof ? `proof ${d.proof}` : "no proof";
     process.stdout.write(`  ${c.bold(d.id)} ${c.dim(`· ${d.name} · ${proof} · ${live}`)}\n`);
@@ -479,6 +491,12 @@ async function cmdInit(args, flags) {
 
   let entry = cat.workflows.find((l) => l.id === id);
   let remote = null;
+
+  const planned = [...(cat.components ?? []), ...(cat.demos ?? [])]
+    .find((candidate) => candidate.id === id && candidate.status === "planned" && candidate.launch === "forbidden");
+  if (planned) {
+    fail(`${id} is planned in this registry and cannot be initialized or run: ${planned.reason}`, EXIT_USAGE);
+  }
 
   /* ── NOT IN THIS BUILD? LOOK IT UP IN THE PUBLISHED CATALOGUE ─────────────
      The package ships a snapshot of the catalogue as of its release; the

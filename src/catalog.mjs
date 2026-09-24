@@ -162,10 +162,16 @@ export function buildCatalog(workflowsDir, { examplesDir, version = 2, registryD
     : [];
   const workflows = files.map((f) => describeWorkflow(join(workflowsDir, f), { examplesDir }));
   const registry = loadRegistry(registryDir ?? join(dirname(workflowsDir), "registry"));
+  const plannedComponents = registry.planned
+    .filter((entry) => entry.section === "component")
+    .map((entry) => ({ ...entry, contentType: "component" }));
+  const plannedDemos = registry.planned
+    .filter((entry) => entry.section === "demo")
+    .map((entry) => ({ ...entry, contentType: "demo" }));
   return {
     catalogVersion: version,
     workflows,
-    components: registry.components.map((c) => enrichComponent(c, workflows)),
-    demos: registry.demos.map((d) => enrichDemo(d, workflows)),
+    components: [...registry.components.map((c) => enrichComponent(c, workflows)), ...plannedComponents],
+    demos: [...registry.demos.map((d) => enrichDemo(d, workflows)), ...plannedDemos],
   };
 }

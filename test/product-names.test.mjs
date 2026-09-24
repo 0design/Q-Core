@@ -11,7 +11,7 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.23", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.24", bin: {} }, []),
     /Q-Core name/,
   );
 });

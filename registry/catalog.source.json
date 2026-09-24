@@ -42,7 +42,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -132,7 +132,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -219,7 +219,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -314,7 +314,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -405,7 +405,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -494,7 +494,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -578,7 +578,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -671,7 +671,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -760,7 +760,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -847,7 +847,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -923,7 +923,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -981,7 +981,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1057,7 +1057,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1174,7 +1174,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1282,7 +1282,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1351,7 +1351,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1389,7 +1389,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1427,7 +1427,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1465,7 +1465,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1512,7 +1512,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1550,7 +1550,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1588,7 +1588,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1626,7 +1626,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1655,7 +1655,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1676,7 +1676,6 @@
       "name": "Agentation",
       "description": "Read website annotations and report verified resolutions through Agentation MCP.",
       "value": "Turn precise website feedback into traceable changes without copying context manually.",
-      "kind": "step",
       "contentType": "component",
       "file": "components/agentation.json",
       "version": "0.1.0",
@@ -1684,7 +1683,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1692,6 +1691,9 @@
         "status": "planned",
         "limitation": "Live MCP binding and browser verification remain unimplemented."
       },
+      "status": "planned",
+      "launch": "forbidden",
+      "reason": "No verified raw component contract exists yet.",
       "acceptance": {
         "status": "pending",
         "evidence": []
@@ -1712,7 +1714,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1750,7 +1752,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1788,7 +1790,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1840,7 +1842,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1883,7 +1885,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1905,7 +1907,7 @@
       "id": "annotation-review",
       "workflowId": "annotation-fix",
       "name": "Annotation review queue",
-      "description": "Executable offline queue example; no live MCP, model inference or website modification.",
+      "description": "Offline annotation review remains discoverable, but has no verified raw demo contract or proof.",
       "proof": null,
       "resultUrl": null,
       "live": false,
@@ -1926,7 +1928,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1943,7 +1945,9 @@
         "scope": "Registry composition and real user execution; historical output is not acceptance"
       },
       "file": "demos/annotation-review.json",
-      "status": "offline-demo",
+      "status": "planned",
+      "launch": "forbidden",
+      "reason": "No verified raw demo contract or proof exists yet.",
       "value": "Preserve feedback identity and expose ambiguous requests before execution."
     },
     {
@@ -1960,7 +1964,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1993,7 +1997,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2013,16 +2017,16 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.24-registry.8-candidate",
+  "releaseVersion": "2026.09.24-registry.9-candidate",
   "core": {
     "package": "q-core",
-        "version": "0.2.0-q-core.23",
+        "version": "0.2.0-q-core.24",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.23.tgz",
-    "artifactSha256": "f41164eae8bb82985f09de72515c5e0d14aa3fa9304e006f32fac6741bc9f341",
-    "integrity": "sha512-xHaPbVQUzw7EO51Wz2QqzhfpjnSxrLnRBxj3peabdzkOQ5PbhZYBsePKsyUN6hOXk0UWW0STaVC+3NIl6P2zNQ==",
+    "artifact": "vendor/q-core-0.2.0-q-core.24.tgz",
+    "artifactSha256": "c65991eba6193f25fee8f5d55e2ab2cb5aed341a97259b58fe43ae270bddfd8c",
+    "integrity": "sha512-7T/IXNuSrqKDdh2tMD5wUhUH1KBYGoPT4thupB0Yu36lQMeX73W78h39umuthSG+u4tH3+f57uvt/G5Q5CB+Gw==",
     "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "consumer-integration-candidate",

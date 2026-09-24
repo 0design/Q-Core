@@ -10,6 +10,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const COMPONENT_KINDS = new Set(["step", "trigger", "composite"]);
+const PLANNED_SECTIONS = new Set(["component", "demo"]);
 
 export class RegistryError extends Error {
   constructor(message) {
@@ -57,6 +58,60 @@ function assertFieldMap(map, label, file, { requireRequired = false } = {}) {
       throw new RegistryError(`${file}: ${label}.${name}.required must be a boolean`);
     }
   }
+}
+
+/**
+ * A planned entry is catalog metadata, deliberately not a partial runtime
+ * contract. Its raw JSON remains beside it so provenance is visible, but the
+ * loader must neither treat it as executable nor silently discard it.
+ */
+export function validatePlannedCatalogEntry(raw, file = "planned entry") {
+  assertString(raw.id, "id", file);
+  assertString(raw.section, "section", file);
+  if (!PLANNED_SECTIONS.has(raw.section)) {
+    throw new RegistryError(`${file}: section must be component or demo`);
+  }
+  assertString(raw.file, "file", file);
+  const expected = `${raw.section}s/${raw.id}.json`;
+  if (raw.file !== expected) {
+    throw new RegistryError(`${file}: file must be ${expected}`);
+  }
+  assertString(raw.name, "name", file);
+  assertString(raw.description, "description", file);
+  if (raw.status !== "planned") {
+    throw new RegistryError(`${file}: status must be planned`);
+  }
+  if (raw.launch !== "forbidden") {
+    throw new RegistryError(`${file}: launch must be forbidden`);
+  }
+  assertString(raw.reason, "reason", file);
+  return {
+    id: raw.id,
+    section: raw.section,
+    file: raw.file,
+    name: raw.name.trim().replace(/\s+/g, " "),
+    description: raw.description.trim().replace(/\s+/g, " "),
+    status: "planned",
+    launch: "forbidden",
+    reason: raw.reason.trim().replace(/\s+/g, " "),
+  };
+}
+
+export function loadPlannedCatalogEntries(registryDir) {
+  const file = join(registryDir, "planned.json");
+  if (!existsSync(file)) return [];
+  const raw = readJsonFile(file);
+  if (raw.schemaVersion !== 1 || !Array.isArray(raw.entries)) {
+    throw new RegistryError(`${file}: schemaVersion 1 and entries array are required`);
+  }
+  const entries = raw.entries.map((entry, index) => validatePlannedCatalogEntry(entry, `${file}: entries[${index}]`));
+  const keys = new Set();
+  for (const entry of entries) {
+    const key = `${entry.section}:${entry.id}`;
+    if (keys.has(key)) throw new RegistryError(`${file}: duplicate planned ${key}`);
+    keys.add(key);
+  }
+  return entries;
 }
 
 function uniqueIds(items, label) {
@@ -128,33 +183,60 @@ export function validateDemo(raw, file = "demo") {
   };
 }
 
-function loadJsonDir(dir, validate) {
+function loadJsonDir(dir, validate, planned = []) {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir)
+  const files = readdirSync(dir)
     .filter((f) => f.endsWith(".json"))
-    .sort()
-    .map((f) => {
+    .sort();
+  const section = dir.endsWith("components") ? "component" : "demo";
+  const plannedByFile = new Map(planned.map((entry) => [entry.file, entry]));
+  const items = files.flatMap((f) => {
       const file = join(dir, f);
-      return validate(readJsonFile(file), file);
+      const relative = `${section}s/${f}`;
+      const declared = plannedByFile.get(relative);
+      if (declared) {
+        const raw = readJsonFile(file);
+        if (raw.id !== declared.id || raw.contentType !== section) {
+          throw new RegistryError(`${file}: does not match its explicit planned catalog declaration`);
+        }
+        return [];
+      }
+      return [validate(readJsonFile(file), file)];
     });
+  for (const entry of planned) {
+    if (!files.includes(entry.file.slice(entry.file.lastIndexOf("/") + 1))) {
+      throw new RegistryError(`${dir}: planned ${entry.id} is missing ${entry.file}`);
+    }
+  }
+  return items;
 }
 
-export function loadComponents(dir) {
-  const items = loadJsonDir(dir, validateComponent);
+export function loadComponents(dir, planned = []) {
+  const items = loadJsonDir(dir, validateComponent, planned);
   uniqueIds(items, "component");
   return items;
 }
 
-export function loadDemos(dir) {
-  const items = loadJsonDir(dir, validateDemo);
+export function loadDemos(dir, planned = []) {
+  const items = loadJsonDir(dir, validateDemo, planned);
   uniqueIds(items, "demo");
   return items;
 }
 
 export function loadRegistry(registryDir) {
+  const planned = loadPlannedCatalogEntries(registryDir);
+  const components = loadComponents(join(registryDir, "components"), planned.filter((entry) => entry.section === "component"));
+  const demos = loadDemos(join(registryDir, "demos"), planned.filter((entry) => entry.section === "demo"));
+  for (const entry of planned) {
+    const strict = entry.section === "component" ? components : demos;
+    if (strict.some((item) => item.id === entry.id)) {
+      throw new RegistryError(`${registryDir}: planned ${entry.section} ${entry.id} is also loaded as a strict contract`);
+    }
+  }
   return {
-    components: loadComponents(join(registryDir, "components")),
-    demos: loadDemos(join(registryDir, "demos")),
+    components,
+    demos,
+    planned,
   };
 }
 
