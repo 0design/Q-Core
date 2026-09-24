@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.24"), "candidate version must identify Q-Core");
+  assert.ok(pkg.version.endsWith("-q-core.25"), "candidate version must identify Q-Core");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
@@ -104,7 +104,7 @@ export function verifyHostSkillNames(root) {
 export function verifyReachableCliProductNames(root) {
   const source = readFileSync(join(root, "bin", "q-workflow.mjs"), "utf8");
   assert.equal(
-    /before blaming the loop|this loop only runs|this loop stops for a human|no human gate — this loop runs/i.test(source),
+    /before blaming the loop|this loop only runs|this loop stops for a human|no human gate — this loop runs|used by \$\{comp\.usedBy\.length\} loop\(s\)|published catalogue · \$\{extra\.length\} loop\(s\)|the loop does not exist|no loop "\$\{id\}|a loop makes requests|the loop still runs/i.test(source),
     false,
     "reachable q-core CLI output retains loop as the product unit; use workflow",
   );

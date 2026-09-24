@@ -54,6 +54,11 @@ try {
   const installed = await run('npm', ['install','--ignore-scripts','--no-audit','--no-fund',archive]);
   assert.equal(installed.code, 0, installed.stderr);
   const cli = args => run(process.execPath, [join(cwd,'node_modules/q-core/bin/q-core.mjs'), ...args]);
+  const remoteCli = args => subprocess(process.execPath, [join(cwd,'node_modules/q-core/bin/q-core.mjs'), ...args], {
+    cwd,
+    env: {...env, QCORE_CATALOG_URL: base + '/registry', QCORE_CATALOG_SHA256: hash(bytes)},
+    timeoutMs: 30000,
+  });
   const registryCli = args => subprocess(process.execPath, [join(cwd,'node_modules/q-core/bin/q-core.mjs'), ...args], {
     cwd,
     env: {...env, QFACTORY_REGISTRY: exported},
@@ -71,6 +76,14 @@ try {
     assert.equal(blocked.code, 64, blocked.stderr);
     assert.match(`${blocked.stdout}${blocked.stderr}`, new RegExp(`${id} is planned in this registry and cannot be initialized or run`));
   }
+  const remoteCatalog = await remoteCli(['catalog', '--remote', '--section', 'components']);
+  assert.equal(remoteCatalog.code, 0, remoteCatalog.stderr);
+  assert.match(remoteCatalog.stdout, /published catalogue · \d+ workflow\(s\) newer than this build/);
+  assert.doesNotMatch(remoteCatalog.stdout, /published catalogue · \d+ loop\(s\) newer than this build/);
+  const remoteInit = await remoteCli(['init', 'webhook-relay']);
+  assert.equal(remoteInit.code, 0, remoteInit.stderr);
+  assert.match(remoteInit.stdout, /a workflow makes requests and calls models on your key/);
+  assert.doesNotMatch(remoteInit.stdout, /a loop makes requests and calls models on your key/);
   const destination = join(cwd, 'relay.yaml');
   const install = (digest, version, target) => cli(['install',base+'/registry',digest,'webhook-relay',version,target]);
   const result = await install(hash(bytes),'1.1.0',destination);

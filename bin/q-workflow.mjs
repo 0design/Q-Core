@@ -425,7 +425,7 @@ function printComponents(components) {
       process.stdout.write(c.dim(`    unavailable: ${comp.reason}\n\n`));
       continue;
     }
-    const used = comp.usedBy?.length ? `used by ${comp.usedBy.length} loop(s)` : "used by none yet";
+    const used = comp.usedBy?.length ? `used by ${comp.usedBy.length} workflow(s)` : "used by none yet";
     process.stdout.write(`  ${c.bold(comp.id)} ${c.dim(`· ${comp.kind} · ${used}`)}\n`);
     process.stdout.write(`    ${comp.description}\n\n`);
   }
@@ -458,7 +458,7 @@ async function cmdCatalog(args, flags, opts = {}) {
     const extra = r.workflows.filter((l) => !local.workflows.some((k) => k.id === l.id));
     cat = { ...r, workflows: r.workflows };
     if (!flags.has("json")) {
-      process.stdout.write(c.dim(`published catalogue · ${extra.length} loop(s) newer than this build\n\n`));
+      process.stdout.write(c.dim(`published catalogue · ${extra.length} workflow(s) newer than this build\n\n`));
     }
   }
   const section = opts.section;
@@ -501,7 +501,7 @@ async function cmdInit(args, flags) {
   /* ── NOT IN THIS BUILD? LOOK IT UP IN THE PUBLISHED CATALOGUE ─────────────
      The package ships a snapshot of the catalogue as of its release; the
      published one keeps growing. Without this, "q-core init <something-new>"
-     would tell a person the loop does not exist when it plainly does on the
+     would tell a person the workflow does not exist when it plainly does on the
      site they just read it on. */
   if (!entry && !flags.has("offline")) {
     const rcat = await fetchRemoteCatalog();
@@ -526,7 +526,7 @@ async function cmdInit(args, flags) {
 
   if (!entry) {
     const hint = flags.has("offline") ? " (--offline: the published catalogue was not consulted)" : "";
-    fail(`no loop "${id}"${hint}.\n\nIn this build: ${cat.workflows.map((l) => l.id).join(", ")}`, EXIT_USAGE);
+    fail(`no workflow "${id}"${hint}.\n\nIn this build: ${cat.workflows.map((l) => l.id).join(", ")}`, EXIT_USAGE);
   }
 
   const dest = resolve(args[1] ?? process.cwd(), `${id}.yaml`);
@@ -539,7 +539,7 @@ async function cmdInit(args, flags) {
   process.stdout.write(`${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);
   if (remote) {
     /* Where a file came from is not a detail when the file will spend money. */
-    process.stdout.write(c.dim(`  downloaded from ${remote.url}\n  read it before you run it — a loop makes requests and calls models on your key.\n`));
+    process.stdout.write(c.dim(`  downloaded from ${remote.url}\n  read it before you run it — a workflow makes requests and calls models on your key.\n`));
   }
   process.stdout.write("\n");
   if (entry.needsEnv.length) {
@@ -555,7 +555,7 @@ async function cmdInit(args, flags) {
       }
       const sinks = missing.filter((v) => v !== "OPENROUTER_API_KEY");
       if (sinks.length) {
-        process.stdout.write(c.dim(`  Without ${sinks.join(", ")} the loop still runs; the result goes to .qf/out/ and says so.\n`));
+        process.stdout.write(c.dim(`  Without ${sinks.join(", ")} the workflow still runs; the result goes to .qf/out/ and says so.\n`));
       }
     }
   }

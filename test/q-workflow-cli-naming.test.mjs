@@ -6,10 +6,10 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const cli = resolve("bin/q-core.mjs");
-const invoke = (args, cwd = resolve(".")) => spawnSync(process.execPath, [cli, ...args], {
+const invoke = (args, cwd = resolve("."), env = {}) => spawnSync(process.execPath, [cli, ...args], {
   cwd,
   encoding: "utf8",
-  env: { ...process.env, QF_NO_UPDATE_CHECK: "1" },
+  env: { ...process.env, QF_NO_UPDATE_CHECK: "1", ...env },
 });
 
 const retiredRenderedTerm = /\b(?:before blaming|this|no human gate)\s+(?:the\s+)?loop\b/i;
@@ -72,4 +72,17 @@ steps:
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("catalog and missing-init wording call the product unit a workflow", () => {
+  const registryEnv = { QFACTORY_REGISTRY: resolve("registry") };
+  const catalog = invoke(["catalog", "--section", "components"], resolve("."), registryEnv);
+  assert.equal(catalog.status, 0, catalog.stderr);
+  assert.match(catalog.stdout, /used by \d+ workflow\(s\)|used by none yet/);
+  assert.doesNotMatch(catalog.stdout, /used by \d+ loop\(s\)/);
+
+  const missing = invoke(["init", "missing-workflow", "--offline"], resolve("."), registryEnv);
+  assert.equal(missing.status, 64);
+  assert.match(`${missing.stdout}${missing.stderr}`, /no workflow "missing-workflow"/);
+  assert.doesNotMatch(`${missing.stdout}${missing.stderr}`, /no loop "missing-workflow"/);
 });

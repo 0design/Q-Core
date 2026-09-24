@@ -11,7 +11,7 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.24", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.25", bin: {} }, []),
     /Q-Core name/,
   );
 });
@@ -98,7 +98,7 @@ test("reachable CLI output rejects product loop wording while generic control fl
   const cli = join(root, "bin/q-workflow.mjs");
   mkdirSync(dirname(cli), { recursive: true });
   try {
-    writeFileSync(cli, "q-core doctor checks this machine before blaming the loop.\n");
+    writeFileSync(cli, "published catalogue · ${extra.length} loop(s) newer than this build\n");
     assert.throws(() => verifyReachableCliProductNames(root), /product unit/);
     writeFileSync(cli, "const controlKind = 'loop'; // generic control flow\n");
     assert.doesNotThrow(() => verifyReachableCliProductNames(root));
