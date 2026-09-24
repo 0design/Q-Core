@@ -1,5 +1,5 @@
 /**
- * YAML reader for loop manifests — a documented SUBSET, not a YAML engine.
+ * YAML reader for workflow manifests — a documented SUBSET, not a YAML engine.
  *
  * WHY HAND-WRITTEN. The whole point of this package is that `q-core validate` and
  * `q-core run --dry-run` work on a clean machine with nothing installed: unpack the
@@ -22,8 +22,8 @@
  *   anchors &a / aliases *a · tags !!str · multiple documents · tab indentation
  *
  * A refusal names the line. Silently mis-reading a manifest is the one failure
- * this file must not have: the loop that results would still run, just not the
- * loop that was written.
+ * this file must not have: the workflow that results would still run, just not the
+ * workflow that was written.
  */
 
 export class YamlError extends Error {
@@ -246,7 +246,7 @@ export function parseYaml(text) {
   for (let i = start; i < lines.length; i++) {
     const t = lines[i].trim();
     if (t === "---" || t === "...") {
-      throw new YamlError("multiple YAML documents in one file — a manifest holds exactly one loop", i + 1);
+      throw new YamlError("multiple YAML documents in one file — a manifest holds exactly one workflow", i + 1);
     }
   }
 

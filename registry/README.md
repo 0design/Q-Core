@@ -1,6 +1,6 @@
 # QFactory Registry
 
-Registry has three content types: loop templates, components, and demos. Content type does not imply implementation or acceptance.
+Registry has three content types: workflow templates, components, and demos. Content type does not imply implementation or acceptance.
 
 - `workflows/`: executable YAML templates. Entries marked `reference-only` are not
   runnable Registry templates. Check each entry's declared readiness and exact
@@ -9,7 +9,7 @@ Registry has three content types: loop templates, components, and demos. Content
 - `demos/`: scenario descriptions and historical sample outputs. Historical output is not accepted user evidence. The previous Registry `examples/` directory has been consolidated here.
 - `composition.json`: the machine-readable composition for SDD, content-feed,
   Digest, aindf-check and Unslop. Each template reports its own component
-  readiness. determined is a reusable loop-component.
+  readiness. determined is a reusable workflow component.
 
 Root `examples/` belongs to the npm Core API package, not the Registry catalog. It contains caller requests and integration samples needed to use the API; it is not a second product-demo category.
 

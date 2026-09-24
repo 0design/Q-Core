@@ -4,7 +4,7 @@
  *   fetch          → Fetch / Source   — reads a source (RSS · HTTP · API)
  *   llm-call       → LLM-Call         — an isolated model request
  *   approval-gate  → Human-Gate (reviewer=human) OR Agent-Gate (reviewer=agent)
- *   api-request    → API-Request      — an outgoing request; A LOOP MAY END HERE
+ *   api-request    → API-Request      — an outgoing request; A WORKFLOW MAY END HERE
  *   fan-out        → handled by the driver, not here (it creates rows, not output)
  *
  * `schedule` is a TRIGGER, not a runner. `q-core run` performs one pass; whether it
@@ -189,7 +189,7 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     throw new CoreError(
       "AUTH_REQUIRED",
       `"${label}": no OpenRouter key (set ${keyRef}). ` +
-        `The engine will not substitute a mock inside a loop: invented text would travel down the chain as real.`,
+        `The engine will not substitute a mock inside a workflow: invented text would travel down the chain as real.`,
     );
   }
 
@@ -230,8 +230,8 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
  * One kind, two modes. Human-Gate and Agent-Gate differ only in WHO gives the
  * verdict; the shape (anchor · rubric · escalateOn) is shared.
  *
- * Human-Gate stops the run. It is NOT a required component of a loop — a loop
- * that ends in `api-request` and never meets a person is a valid loop.
+ * Human-Gate stops the run. It is NOT a required component of a workflow — a workflow
+ * that ends in `api-request` and never meets a person is a valid workflow.
  *
  * Agent-Gate is a machine check. Without a key it does NOT wave anything
  * through: a check that says "fine" because its tool was missing is worse than
@@ -322,7 +322,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
 
 /**
  * The request body. An explicit `body` wins; otherwise the last successful
- * output IN AN ENVELOPE — the receiver has to see WHICH run and WHICH loop sent
+ * output IN AN ENVELOPE — the receiver has to see WHICH run and WHICH workflow sent
  * this, or an inbox of digests is impossible to untangle.
  */
 function buildBody(step, ctx, t) {
@@ -348,9 +348,9 @@ export async function runApiRequest(step, ctx) {
      payload goes to `.qf/out/` instead and the CLI says so loudly.
 
      Why the difference is allowed to exist: the whole point of running locally
-     is that you can prove a loop end-to-end before you have the credentials for
+     is that you can prove a workflow end-to-end before you have the credentials for
      its real receiver. Firing a request at a URL with `{{env.TELEGRAM_BOT_TOKEN}}`
-     in it proves nothing and looks, in a log, exactly like a broken loop.
+     in it proves nothing and looks, in a log, exactly like a broken workflow.
 
      Why it is safe: it can only trigger on a reference that DOES NOT RESOLVE, so
      no run that would have succeeded behaves differently. It is documented in

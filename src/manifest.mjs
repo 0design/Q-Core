@@ -1,7 +1,7 @@
 /**
  * Manifest → the shape the engine already runs.
  *
- * This file is the whole reason the package exists. `SPEC-loop-manifest.md`
+ * This file is the whole reason the package exists. `SPEC-MANIFEST.md`
  * (stage 2) described a YAML format; nothing could read it, so a stranger could
  * write a perfectly valid manifest and had no way to run it. What comes out of
  * here is exactly `{ settings, steps }` as stored in `qf_loop_template` — the
@@ -9,7 +9,7 @@
  * and no translation layer: this reads THE format, or it refuses.
  *
  * ONE NORMALISATION MATTERS. `LoopStep.config` is `Record<string, string>` in the
- * database, because the loop builder stores everything as text. YAML gives real
+ * database, because the workflow builder stores everything as text. YAML gives real
  * numbers and booleans. They are stringified HERE, once, so that
  * `timeoutSec: 30` and `timeoutSec: "30"` are the same manifest — and so the
  * runner and the engine coerce from identical input.

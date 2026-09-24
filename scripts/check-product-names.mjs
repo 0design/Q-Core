@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.25"), "candidate version must identify Q-Core");
+  assert.ok(pkg.version.endsWith("-q-core.26"), "candidate version must identify Q-Core");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
@@ -25,6 +25,18 @@ export function verifyPackagedReadmeAliasBoundary(root) {
 
 const scannedRoots = ["src", "bin", "launchd", "examples", "contracts", "docs"];
 const scannedFiles = ["README.md", "CONTRIBUTING.md", "SPEC-MANIFEST.md", ".github/PULL_REQUEST_TEMPLATE.md", ".github/workflows/validate.yml"];
+const productProseFiles = [
+  "SPEC-MANIFEST.md",
+  "registry/README.md",
+  "src/catalog.mjs",
+  "src/config.mjs",
+  "src/cost.mjs",
+  "src/run.mjs",
+  "src/steps.mjs",
+  "src/template.mjs",
+  "src/update-check.mjs",
+  "src/yaml.mjs",
+];
 const hostSkillFiles = [
   "bin/q-core-host.mjs",
   "src/host.mjs",
@@ -60,6 +72,19 @@ export function assertNoRetiredProductNames(files) {
     assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);
     assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
     assert.equal(/\bloops?\s+(?:catalog|manifest|version|id)\b/i.test(inspectable), false, `${path} retains a retired product loop term`);
+  }
+}
+
+export function assertNoRetiredProductUnitTerms(files) {
+  const patterns = [
+    /\b(?:a|an|the|this|that|such|complete|valid|broken|feed|catalogue|catalog|pinned|selected|installed|target|old|new)\s+loops?\b/i,
+    /\b(?:names|overrides|share|run|send|starts|stops)\s+(?:the\s+)?loops?\b/i,
+    /\bloop(?:'s)?\s+(?:model|settings|builder|manifest|template)\b/i,
+  ];
+  for (const { path, source } of files) {
+    for (const pattern of patterns) {
+      assert.equal(pattern.test(source), false, `${path} retains loop as the product unit; use workflow`);
+    }
   }
 }
 
@@ -121,6 +146,7 @@ export function verifyProductNames(root = resolve(".")) {
   const activeSources = [...scannedRoots.flatMap((relative) => filesBelow(root, relative)), ...scannedFiles]
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assertNoRetiredProductNames(activeSources);
+  assertNoRetiredProductUnitTerms(productProseFiles.map((path) => ({ path, source: readFileSync(join(root, path), "utf8") })));
   verifyPackagedReadmeAliasBoundary(root);
   verifyWorkflowConsumerNames(root);
   verifyDemoNames(root);

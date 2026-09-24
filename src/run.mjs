@@ -12,11 +12,11 @@
  *
  * A run that stops at a human gate is not finished and not failed: it is
  * `waiting_human`, held on disk, and `q-core approve` continues it from exactly
- * there. The loop re-reads its own step list on every iteration, which is why a
+ * there. The workflow re-reads its own step list on every iteration, which is why a
  * run parked yesterday resumes today with nothing kept in memory.
  *
- * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a loop
- * that ends in `api-request` is a complete loop.
+ * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a workflow
+ * that ends in `api-request` is a complete workflow.
  */
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel } from "./steps.mjs";
@@ -52,8 +52,8 @@ export function resolveKnobs(settings = {}) {
     limits: settings.limits ?? null,
     exit: settings.exit ?? { kind: "always_done" },
     provenance: {
-      model: settings.model ? "loop settings" : process.env.OPENROUTER_MODEL ? "OPENROUTER_MODEL" : "not configured",
-      budget: "budgetUsd" in settings ? "loop settings" : "default",
+      model: settings.model ? "workflow settings" : process.env.OPENROUTER_MODEL ? "OPENROUTER_MODEL" : "not configured",
+      budget: "budgetUsd" in settings ? "workflow settings" : "default",
     },
   };
 }
@@ -145,13 +145,13 @@ export async function driveRun(run, opts = {}) {
 
   /* SENSITIVITY IS NOT IMPLEMENTED HERE — and it is refused, not ignored.
      The profile exists to stop irreversible or outbound steps and hand them to a
-     person. Running the loop anyway "because the local runner is simpler" would
+     person. Running the workflow anyway "because the local runner is simpler" would
      perform exactly the actions the knob was set to prevent, silently. */
   if (knobs.sensitivity) {
     throw new Error(
       "This manifest sets settings.sensitivity, which the local runner does not implement. " +
         "It is refused rather than ignored: the profile exists to hold back irreversible steps, " +
-        "and ignoring it would carry them out. Run this loop in the product, or remove the profile.",
+        "and ignoring it would carry them out. Run this workflow in the product, or remove the profile.",
     );
   }
 
@@ -241,7 +241,7 @@ export async function driveRun(run, opts = {}) {
     if (paidKind && knobs.budgetUsd !== null && spent >= knobs.budgetUsd) {
       next.status = "failed";
       next.gateReason = "budget";
-      next.errorText = `Run budget exhausted: spent $${spent.toFixed(4)} of the $${knobs.budgetUsd.toFixed(4)} ceiling (the loop's "budgetUsd" knob).`;
+      next.errorText = `Run budget exhausted: spent $${spent.toFixed(4)} of the $${knobs.budgetUsd.toFixed(4)} ceiling (the workflow's "budgetUsd" knob).`;
       next.startedAt = next.finishedAt = new Date().toISOString();
       run.status = "failed";
       run.summary = `Stopped by budget: $${spent.toFixed(4)} ≥ $${knobs.budgetUsd.toFixed(4)}.`;

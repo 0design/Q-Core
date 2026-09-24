@@ -3,7 +3,7 @@ import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyPackagedReadmeAliasBoundary, verifyProductNames, verifyReachableCliProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, assertNoRetiredProductUnitTerms, verifyDemoNames, verifyHostSkillNames, verifyPackageSurface, verifyPackagedReadmeAliasBoundary, verifyProductNames, verifyReachableCliProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -11,7 +11,7 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.25", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.26", bin: {} }, []),
     /Q-Core name/,
   );
 });
@@ -33,6 +33,16 @@ test("hostile qloops compatibility alias in any Core source is rejected", () => 
     () => assertNoRetiredProductNames([{ path: "src/agent.mjs", source: "export const legacy = 'qloops compatibility alias';" }]),
     /qloops compatibility alias/,
   );
+});
+
+test("Core product prose rejects a retired loop unit while control-flow loop stays valid", () => {
+  assert.throws(
+    () => assertNoRetiredProductUnitTerms([{ path: "SPEC-MANIFEST.md", source: "A workflow is written in a loop manifest." }]),
+    /product unit/,
+  );
+  assert.doesNotThrow(() => assertNoRetiredProductUnitTerms([
+    { path: "SPEC-MANIFEST.md", source: "A workflow may contain kind: loop with loop.maxIterations." },
+  ]));
 });
 
 test("Registry6 workflow consumers reject retired product loop terms while generic feedback loop remains valid", () => {

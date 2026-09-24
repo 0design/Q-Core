@@ -7,18 +7,18 @@
  * the manifest grew to six.
  *
  * WHAT IS DERIVED, and therefore cannot lie: step count, the kinds used, whether
- * a human gate is present, which environment variables the loop needs, the model
+ * a human gate is present, which environment variables the workflow needs, the model
  * and the budget ceiling.
  *
  * WHAT IS MEASURED: cost per run and tokens. These come from a REAL recorded run
  * committed next to the manifest (`examples/<id>.run.json`) — not from an
- * estimate. A loop with no recorded run says `measured: null` rather than
+ * estimate. A workflow with no recorded run says `measured: null` rather than
  * guessing, because "about a cent" is exactly the kind of number a reader would
  * hold us to.
  *
  * catalogVersion 2 adds two more sections, also generated:
  *   components  — contracts in `registry/components/`
- *   demos       — named runs in `registry/demos/`, each pointing at a loop
+ *   demos       — named runs in `registry/demos/`, each pointing at a workflow
  */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, basename, dirname } from "node:path";
@@ -54,7 +54,7 @@ export function describeWorkflow(file, { examplesDir } = {}) {
   /* Walk the WHOLE tree, not the flattened one. `flattenWorkflowSteps` deliberately
      omits the lane of a configured fan-out — its size is unknown until the
      source step has run. That is right for execution and wrong for a catalogue:
-     a loop whose only model call lives inside a lane would be listed as needing
+     a workflow whose only model call lives inside a lane would be listed as needing
      no key, and a reader would install it and hit the failure we could have
      told them about. */
   const all = [];

@@ -1,6 +1,6 @@
 # SPEC-MANIFEST — `q-core.workflow/v1`
 
-The file format a loop is written in, and exactly what the runner does with each
+The file format a workflow is written in, and exactly what the runner does with each
 field.
 
 **One rule governs this document: nothing is described here that the engine does
@@ -32,11 +32,11 @@ than one document per file, tab indentation, duplicate keys.
 
 ```yaml
 manifest: q-core.workflow/v1      # REQUIRED, verbatim
-id: content-feed          # REQUIRED — names the loop in state and logs
+id: content-feed          # REQUIRED — names the workflow in state and logs
 name: "Morning digest"    # defaults to id
 version: 1.0.0            # free-form
 description: >            # free-form
-  What this loop is for.
+  What this workflow is for.
 owner: oleg               # free-form
 enabled: true             # false ⇒ `q-core run` does nothing and says so
 triggers: [...]           # §3
@@ -115,7 +115,7 @@ costs the same in both homes.
 `settings.sensitivity` is part of the format and the product implements it. **The
 local runner refuses a manifest that sets one** rather than run it with the knob
 ignored: the profile exists to hold back irreversible and outbound steps, so
-ignoring it would carry them out. Run such a loop in the product, or remove the
+ignoring it would carry them out. Run such a workflow in the product, or remove the
 profile.
 
 ### 4.4 Windowed limits · exit criteria
@@ -170,7 +170,7 @@ The RSS reader is regex-based, not an XML parser. It handles CDATA, `<item>` and
 | `maxTokens` | | default 1200 |
 | `temperature` | | default 0.3 |
 | `role` | prepended as "You are the ⟨role⟩ agent…" | |
-| `model` | overrides the loop's model | |
+| `model` | overrides the workflow's model | |
 
 The step's **input is every prior successful output**, as JSON, capped at 60 000
 characters. Inside a fan-out lane, its own item comes first.
@@ -195,10 +195,10 @@ travel down the chain and out through the next request as if it were real.
 | `timeoutSec` | | default 30 |
 
 Without `body`, the last successful output is sent in an envelope
-`{runId, templateId, payload}` — a receiver has to know which run and which loop
+`{runId, templateId, payload}` — a receiver has to know which run and which workflow
 sent a thing.
 
-**A loop may end here.** This is a complete loop, not an unfinished one.
+**A workflow may end here.** This is a complete workflow, not an unfinished one.
 
 ### 5.4 `approval-gate` — Human-Gate or Agent-Gate
 
@@ -302,7 +302,7 @@ Resolved inside `url`, `body`, `headers`, `instructions` and `over`.
 arriving at a receiver is a visible failure; an empty string is a silent one.
 
 `{{env.…}}` exists so a manifest never carries a secret. A manifest is a file
-that goes into git — "share the loop" must not mean "share the bot token".
+that goes into git — "share the workflow" must not mean "share the bot token".
 
 ---
 
@@ -327,7 +327,7 @@ that goes into git — "share the loop" must not mean "share the bot token".
 ## 8. Memory
 
 There is none, between runs. No cursor, no "last seen", nowhere to put one. A
-feed loop sends what the feed holds now. Claiming otherwise would be the most
+feed workflow sends what the feed holds now. Claiming otherwise would be the most
 expensive kind of wrong.
 
 ---
@@ -335,7 +335,7 @@ expensive kind of wrong.
 ## 9. Divergences
 
 The runner and the product engine execute the same manifest identically, and a
-parity test (`scripts/loop-parity.ts`) enforces that across four cases: a loop
+parity test (`scripts/loop-parity.ts`) enforces that across four cases: a workflow
 with no human, a gate that holds, a budget that cuts, and a fan-out lane per
 item.
 

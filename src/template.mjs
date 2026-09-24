@@ -17,7 +17,7 @@ const ITEM_RE = /\{\{\s*(item|index)(?:\.([^}\s]+))?\s*\}\}/g;
  * `{{env.NAME}}` — a value from the environment.
  *
  * A manifest is a file that lives in git. A bot token, an API key, a chat id:
- * none of them may appear in its text, or "share your loop" turns into "share
+ * none of them may appear in its text, or "share your workflow" turns into "share
  * your secret". Referencing the environment is the only way to write
  * `https://api.telegram.org/bot<TOKEN>/sendMessage` without putting the token in.
  *
