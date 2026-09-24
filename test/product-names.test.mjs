@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
-import { assertNoRetiredProductNames, verifyPackageSurface, verifyProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
+import { assertNoRetiredProductNames, verifyHostSkillNames, verifyPackageSurface, verifyProductNames, verifyWorkflowConsumerNames } from "../scripts/check-product-names.mjs";
 
 test("Q-Core and workflow Registry surface has no qloops aliases", () => {
   assert.doesNotThrow(() => verifyProductNames());
@@ -32,6 +32,36 @@ test("Registry6 workflow consumers reject retired product loop terms while gener
     assert.throws(() => verifyWorkflowConsumerNames(root), /retired product loop term/);
     writeFileSync(file, "Close the feedback loop before reporting completion. kind: loop");
     assert.doesNotThrow(() => verifyWorkflowConsumerNames(root));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("host and skill entrypoints reject product loop wording while generic loop terminology remains valid", () => {
+  const root = mkdtempSync(join(tmpdir(), "q-core-host-skill-name-guard-"));
+  const files = [
+    "bin/q-core-host.mjs",
+    "src/host.mjs",
+    "src/skill.mjs",
+    "contracts/v1/host.md",
+    "contracts/v1/skill.md",
+    "examples/skill-caller.mjs",
+    "examples/skill-demo",
+    "test/host.test.mjs",
+    "test/skill.test.mjs",
+  ];
+  try {
+    for (const relative of files) {
+      const target = join(root, relative);
+      mkdirSync(dirname(target), { recursive: true });
+      cpSync(relative, target, { recursive: true });
+    }
+    const host = join(root, "src/host.mjs");
+    const source = readFileSync(host, "utf8");
+    writeFileSync(host, `${source}\n// The pinned loop is accepted by this host.\n`);
+    assert.throws(() => verifyHostSkillNames(root), /product unit/);
+    writeFileSync(host, `${source}\n// Close the feedback loop; control step kind: loop.\n`);
+    assert.doesNotThrow(() => verifyHostSkillNames(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

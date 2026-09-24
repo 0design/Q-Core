@@ -15,6 +15,20 @@ export function verifyPackageSurface(pkg, binFiles) {
 
 const scannedRoots = ["src", "bin", "launchd", "examples", "contracts", "docs"];
 const scannedFiles = ["README.md", "CONTRIBUTING.md", "SPEC-MANIFEST.md", ".github/PULL_REQUEST_TEMPLATE.md", ".github/workflows/validate.yml"];
+const hostSkillFiles = [
+  "bin/q-core-host.mjs",
+  "src/host.mjs",
+  "src/skill.mjs",
+  "contracts/v1/host.md",
+  "contracts/v1/skill.md",
+  "examples/skill-caller.mjs",
+  "examples/skill-demo/contract.json",
+  "examples/skill-demo/human-contract.json",
+  "examples/skill-demo/instructions.md",
+  "examples/skill-demo/verify.mjs",
+  "test/host.test.mjs",
+  "test/skill.test.mjs",
+];
 
 function filesBelow(root, relative) {
   const path = join(root, relative);
@@ -46,6 +60,22 @@ export function verifyWorkflowConsumerNames(root) {
   assertNoRetiredProductNames(files);
 }
 
+export function verifyHostSkillNames(root) {
+  const files = hostSkillFiles.map((path) => {
+    const absolute = join(root, path);
+    assert.equal(existsSync(absolute), true, `${path} must remain in the host/skill package surface`);
+    return { path, source: readFileSync(absolute, "utf8") };
+  });
+  assertNoRetiredProductNames(files);
+  for (const { path, source } of files) {
+    assert.equal(
+      /\b(?:a|an|the|this|that|selected|installed|pinned)\s+loops?\b|\bloops?\s+(?:is|are)\s+(?:disabled|enabled|installed|selected|pinned)\b/i.test(source),
+      false,
+      `${path} retains loop as the product unit; use workflow`,
+    );
+  }
+}
+
 export function verifyProductNames(root = resolve(".")) {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   verifyPackageSurface(pkg, readdirSync(join(root, "bin")));
@@ -58,6 +88,7 @@ export function verifyProductNames(root = resolve(".")) {
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assertNoRetiredProductNames(activeSources);
   verifyWorkflowConsumerNames(root);
+  verifyHostSkillNames(root);
 
   assert.equal(existsSync(join(root, "registry", "workflows")), true, "Registry must expose workflows/");
   assert.equal(existsSync(join(root, "registry", "loops")), false, "Registry must not retain loops/");

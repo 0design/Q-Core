@@ -48,8 +48,8 @@ export function createLocalHost(config) {
     insist(['manual','schedule','webhook'].includes(kind),'Unsupported host trigger');
     insist(typeof eventId === 'string' && /^[a-zA-Z0-9_.:-]{1,128}$/.test(eventId),'Bounded event ID required');
     const manifest=verify();
-    insist(manifest.enabled,'Loop is disabled');
-    insist(manifest.triggers.some(t=>t.kind===kind),'Trigger is not declared by this loop');
+    insist(manifest.enabled,'Workflow is disabled');
+    insist(manifest.triggers.some(t=>t.kind===kind),'Trigger is not declared by this workflow');
     const receipt=join(dir,hash({kind,eventId})+'.json');
     writeFileSync(lock,'',{flag:'wx',mode:0o600});
     try {
@@ -81,7 +81,7 @@ export function createLocalHost(config) {
       if(req.method!=='POST' || req.url!=='/trigger') {req.resume();return send(404,{error:'Not found'});}
       const actual=Buffer.from(req.headers.authorization??''), expected=Buffer.from('Bearer '+token);
       if(actual.length!==expected.length || !timingSafeEqual(actual,expected)) {req.resume();return send(401,{error:'Unauthorized'});}
-      // The webhook starts a pinned loop; its body cannot inject instructions/config.
+      // The webhook starts a pinned workflow; its body cannot inject instructions/config.
       let bytes=0; try { for await(const chunk of req) {bytes+=chunk.length;if(bytes>1024) throw Error('Body exceeds 1024 bytes');}
         const result=await dispatch('webhook',req.headers['x-qfactory-event-id']);send(202,result);
       } catch(e) {send(409,{error:e.message});}

@@ -1116,7 +1116,7 @@
       "id": "approval-gate",
       "name": "Approval gate",
       "kind": "step",
-      "description": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
+      "description": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
       "input": {
         "reviewer": {
           "type": "string",
@@ -1141,21 +1141,21 @@
         "mode": {
           "type": "string",
           "required": false,
-          "notes": "check is RESERVED — refused."
+          "notes": "check is RESERVED \u2014 refused."
         }
       },
       "output": {
         "pass": {
           "type": "boolean",
-          "notes": "reviewer: agent — the verdict."
+          "notes": "reviewer: agent \u2014 the verdict."
         },
         "reason": {
           "type": "string",
-          "notes": "reviewer: agent — why."
+          "notes": "reviewer: agent \u2014 why."
         },
         "status": {
           "type": "string",
-          "notes": "reviewer: human — the run is waiting_human until q-core approve continues it or --reject fails it."
+          "notes": "reviewer: human \u2014 the run is waiting_human until q-core approve continues it or --reject fails it."
         }
       },
       "needsEnv": [],
@@ -1200,7 +1200,7 @@
           }
         ]
       },
-      "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md §5.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through — it escalates to a human.",
+      "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
       "implementation": {
         "status": "implemented",
         "source": "src/steps.mjs",
@@ -1217,7 +1217,7 @@
         "instructions": {
           "type": "string",
           "required": true,
-          "notes": "templated. SPEC-MANIFEST.md §5.2."
+          "notes": "templated. SPEC-MANIFEST.md \u00a75.2."
         },
         "format": {
           "type": "string",
@@ -1237,7 +1237,7 @@
         "role": {
           "type": "string",
           "required": false,
-          "notes": "prepended as \"You are the ⟨role⟩ agent…\""
+          "notes": "prepended as \"You are the \u27e8role\u27e9 agent\u2026\""
         },
         "model": {
           "type": "string",
@@ -1248,7 +1248,7 @@
       "output": {
         "text": {
           "type": "string",
-          "notes": "format: text — {text, model}."
+          "notes": "format: text \u2014 {text, model}."
         },
         "model": {
           "type": "string",
@@ -1312,7 +1312,7 @@
       "id": "telegram-publish",
       "name": "Telegram publish",
       "kind": "composite",
-      "description": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md §5.3). Unset env vars do not fire a URL with braces in it — the runner writes to .qf/out/ and says so (SPEC §9).",
+      "description": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md \u00a75.3). Unset env vars do not fire a URL with braces in it \u2014 the runner writes to .qf/out/ and says so (SPEC \u00a79).",
       "input": {
         "text": {
           "type": "string",
@@ -1327,7 +1327,7 @@
         },
         "chatId": {
           "type": "string",
-          "notes": "Optional. The chat that was addressed. Not an engine field — the request body carries chat_id."
+          "notes": "Optional. The chat that was addressed. Not an engine field \u2014 the request body carries chat_id."
         }
       },
       "needsEnv": [
@@ -1368,7 +1368,7 @@
         "status": "pending",
         "evidence": []
       },
-      "value": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md §5.3). Unset env vars do not fire a URL with braces in it — the runner writes to .qf/out/ and says so (SPEC §9).",
+      "value": "A named recipe over api-request, not a new engine kind. POSTs to Telegram sendMessage with {{env.TELEGRAM_BOT_TOKEN}} and {{env.TELEGRAM_CHAT_ID}}. The runner still executes api-request (SPEC-MANIFEST.md \u00a75.3). Unset env vars do not fire a URL with braces in it \u2014 the runner writes to .qf/out/ and says so (SPEC \u00a79).",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",
@@ -1949,7 +1949,7 @@
     {
       "id": "digest-huyiks",
       "workflowId": "digest",
-      "name": "ХУЇКС: sourced digest",
+      "name": "\u0425\u0423\u0407\u041a\u0421: sourced digest",
       "description": "Four source pages to an approved Ukrainian digest with visible source checks. Embedded run evidence and detached public-candidate acceptance are reported separately.",
       "proof": "demos/digest-huyiks.txt",
       "resultUrl": null,
@@ -2021,8 +2021,8 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.21.tgz",
-    "artifactSha256": "3deda08d082ee34815f9283debc5dd906a755372634aae5a71df97c73b1f7248",
-    "integrity": "sha512-0SkvBpxVLkceEe17NLzYv4jJWrKC8iHKVc2QeUVlTxcGBSLDyUE+I5+Xnicvc7bkLy2nc7kEbHV8Q+wWnO5KFQ==",
+    "artifactSha256": "46a72dd82752a84304f33e8a501943927992166f9a76522b2d006d24f3e0de9a",
+    "integrity": "sha512-iP2SrrO+ZzZllrjHxIXNRhJaVbLeUeJuHs/76V3467qEXeUQIoiiuyeWp/yhCJJkilBkpK26T/PjhPqRVQ3gdg==",
     "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "consumer-integration-candidate",
