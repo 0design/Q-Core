@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// QF-NAMING-01 negative inventory guard (0D-372).
+// QF-NAMING-01 negative inventory guard.
 // Every token that contains "loop" in a tracked text file must be explained by
 // a classified allowlist rule: generic control flow / programming term,
 // immutable historical artifact, negative guard fixture, third-party name, or

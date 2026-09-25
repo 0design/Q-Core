@@ -1,6 +1,6 @@
 {
   "schema": "qf.naming-inventory-allowlist/v1",
-  "issue": "0D-372 QF-NAMING-01",
+  "issue": "QF-NAMING-01",
   "classes": {
     "generic-control-flow": { "transitional": false, "meaning": "The built-in control-flow step kind loop (SPEC 5.7), not the product unit." },
     "generic-term": { "transitional": false, "meaning": "General programming or networking vocabulary." },
