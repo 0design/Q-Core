@@ -41,12 +41,12 @@
   "author": "Oleg Kukharuk",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/0design/qloops.git"
+    "url": "git+https://github.com/0design/Q-Core.git"
   },
   "bugs": {
-    "url": "https://github.com/0design/qloops/issues"
+    "url": "https://github.com/0design/Q-Core/issues"
   },
-  "homepage": "https://github.com/0design/qloops#readme",
+  "homepage": "https://github.com/0design/Q-Core#readme",
   "exports": {
     ".": "./src/index.mjs",
     "./src/*": "./src/*",

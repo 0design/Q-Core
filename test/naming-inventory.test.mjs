@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { checkNamingInventory, classifyFiles, loadRules, summarize } from "../scripts/check-naming-inventory.mjs";
+import { checkNamingInventory, classifyFiles, loadRules, summarize, trackedFiles } from "../scripts/check-naming-inventory.mjs";
 
 const root = resolve(".");
 const allowlist = join(root, "scripts", "naming-inventory.allowlist.json");
@@ -27,10 +27,43 @@ test("a revived qloops alias or product loop in a new active file is rejected", 
   }
 });
 
-test("release mode refuses transitional remote identity until the coordinated rename", () => {
+test("release mode refuses a transitional class that default mode tolerates", () => {
+  const dir = mkdtempSync(join(tmpdir(), "q-naming-release-"));
+  try {
+    const file = join(dir, "allowlist.json");
+    writeFileSync(file, JSON.stringify({
+      schema: "qf.naming-inventory-allowlist/v1",
+      classes: { pending: { transitional: true } },
+      rules: [{ class: "pending", path: "^package\\.json$", token: "qloops", reason: "fixture" }],
+    }));
+    const files = [{ path: "package.json", source: '"url": "git+https://github.com/0design/qloops.git"' }];
+    const pendingRules = loadRules(file);
+    assert.equal(summarize(classifyFiles(files, pendingRules)).passed, true);
+    assert.equal(summarize(classifyFiles(files, pendingRules), { release: true }).passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the repository identity is Q-Core, not the retired qloops repository", () => {
   const files = [{ path: "package.json", source: '"url": "git+https://github.com/0design/qloops.git"' }];
-  assert.equal(summarize(classifyFiles(files, rules)).passed, true);
   assert.equal(summarize(classifyFiles(files, rules), { release: true }).passed, false);
+});
+
+test("a token rule does not excuse a different retired token on the same line", () => {
+  const files = [{ path: "src/run.mjs", source: 'if (step.kind === "loop") runQloopsAlias();' }];
+  assert.equal(summarize(classifyFiles(files, rules)).passed, false);
+});
+
+test("untracked, non-ignored files are inventoried before commit", () => {
+  const probe = join(root, "untracked-naming-probe.tmp.mjs");
+  writeFileSync(probe, "export const legacy = 'qloops';\n");
+  try {
+    assert.equal(trackedFiles(root).some((file) => file.path === "untracked-naming-probe.tmp.mjs"), true);
+    assert.equal(checkNamingInventory(root, allowlist).passed, false);
+  } finally {
+    rmSync(probe, { force: true });
+  }
 });
 
 test("allowlist rules need a declared class and a reason", () => {

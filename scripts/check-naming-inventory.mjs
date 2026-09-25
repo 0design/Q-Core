@@ -59,8 +59,11 @@ export function summarize(hits, { release = false } = {}) {
 }
 
 export function trackedFiles(root) {
-  return execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
+  // Tracked files plus untracked, non-ignored files, so a new file is caught
+  // before it is committed.
+  return execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
     .split("\u0000").filter(Boolean)
+    .filter((path, index, all) => all.indexOf(path) === index)
     .map((path) => {
       try { return { path, source: readFileSync(join(root, path), "utf8") }; } catch { return null; }
     })
