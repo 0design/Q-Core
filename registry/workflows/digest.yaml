@@ -1,8 +1,8 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: sources to an approved Ukrainian document"
-version: 0.1.0
-description: "Read four public sources, deduplicate, draft in your current agent, check citations and deliver the exact approved text once."
+version: 0.2.0
+description: "Read four public sources, deduplicate, draft a two-section Ukrainian digest with the fixed Saturday header in your current agent, check citations and format, and deliver the exact approved text once."
 owner: oleg
 enabled: true
 triggers:
@@ -50,13 +50,21 @@ steps:
       format: text
       instructions: |
         Write a concise Ukrainian digest from the selected sources array.
+        Begin the document byte-for-byte with this header line, then a blank line:
+        **Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**
+        Keep the header exactly as written: no space before "і", and the date is
+        plain text, never a link. Those two header links are the only links that
+        are not source citations.
+        After the header, return exactly two level-two sections, in this order:
+        ## Короткі інформаційні сигнали
+        ## Notable / impactful / important news
+        Use no other level-two headings; ### thematic sub-blocks are allowed.
         Group related source material into short thematic blocks. Put each cited
         source URL directly in the sentence or bullet that relies on it; do not
         replace inline citations with a standalone source list. Attribute every
-        claim to its source.
-        This is a generic QFactory document: use clear, lively Ukrainian but do
-        not imitate a private author's personal experience or present it as a
-        channel post.
+        claim to its source, and say briefly why it matters to the reader.
+        Do not invent social signals, reactions or popularity, and do not
+        imitate a private author's personal experience.
         Keep each claim with its own source item. Do not imply that separate
         dated items from one feed are the same update. If source metadata says
         textTruncated is true, name the affected source or sources in the
@@ -71,12 +79,15 @@ steps:
       draft: "{{steps.draft.output}}"
       sources: "{{steps.unique.output}}"
       language: uk
+      fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]'
+      requiredPrefix: "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**\n\n"
+      requiredHeadings: '["## Короткі інформаційні сигнали","## Notable / impactful / important news"]'
   - id: approval
     kind: approval-gate
     config:
       reviewer: human
       bind: sha256
-      anchor: "Approve the exact Ukrainian text and its cited-source limitations"
+      anchor: "Approve the exact Ukrainian text, its fixed header and date, both sections and its cited-source limitations"
   - id: delivery
     kind: api-request
     config:

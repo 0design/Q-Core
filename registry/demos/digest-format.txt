@@ -1,0 +1,43 @@
+Digest 0.2.0 format contract — controlled local run on an installed Core candidate
+
+Scope: controlled local installed Registry candidate run. It is not public-release or owner acceptance.
+Core: q-core 0.2.0-q-core.30, archive SHA-256 2d12ce6e4459637553685873ed9481f8e35036c76b622ac26515184939ae08d4
+Template: digest 0.2.0, manifest SHA-256 5c43d00d22d28cbade9e30799420b1782a4c6069f147b37117ccb5387ec00554
+Component under test: verify-sources 0.2.0 (fixedLinks, requiredPrefix, requiredHeadings)
+Route: fetch x4 -> parse-web -> deduplicate -> llm-call (cli caller) -> verify-sources -> approval-gate (sha256) -> api-request
+Inputs: four localhost HTML fixtures and a localhost receiver. The draft was written in advance by the calling
+agent through the caller-inference contract; Core launched no model process. Cost and tokens: unknown (null).
+QF_DIGEST_DATE=26.09
+
+Required header (SHA-256 d8478a29ba0283e99a8ce61840d84cb53711ac094771e7ae24e9998d6e63a626):
+**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**
+Required sections, in order: "## Короткі інформаційні сигнали", "## Notable / impactful / important news"
+
+Results
+PASS	D00	q-core install digest@0.2.0 from the pinned Registry16 catalog (exit 0)
+PASS	D01	lock pins the catalog SHA-256 and the manifest bytes
+PASS	D02	declared route = fetch -> fetch -> fetch -> fetch -> parse-web -> deduplicate -> llm-call -> verify-sources -> approval-gate -> api-request; inference step is provider: cli
+PASS	D03	template itself requires the exact header prefix, both sections and only the two header links beyond sources
+PASS	D10	run fetches 4 localhost sources, parses, deduplicates, then waits for the caller draft (exit 2)
+PASS	D11	draft with the exact header and both sections passes verify-sources and waits on approval (exit 2)
+PASS	D12	verify-sources recorded the format checks and the two fixed header links
+PASS	D13	no delivery before approval
+PASS	D14	approval with a hash that does not match the exact output is refused (exit 1)
+PASS	D15	exact approval -> one localhost delivery with receipt (exit 0, success, duplicatePrevented false)
+PASS	D16	receiver got the exact approved text (header first, byte-exact) and its artifactHash
+PASS	D20	repeat on unchanged sources: success with duplicatePrevented true; still exactly one delivery
+PASS	D30	rejected approval ends without delivery
+PASS	D40	header with a space before «і» (non-normative variant): refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D41	header with another date: refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D42	no header (sections only): refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D43	second section missing: refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D44	a third level-two section: refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D45	a URL outside the selected sources and header links: refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D46	QF_DIGEST_DATE unset: verify-sources refuses the unresolved header placeholder (exit 1)
+
+Accepted run 9ae7644d-d686-45d8-bd41-a1460a4f7d1b: artifactHash 62e44ad8d1409904bf9703b7f47263d0d25965d9eb783f972f0fa66a004a0f3b,
+receiver got the exact approved text with the header first. Repeat run d8feb80c-2dd2-4b1b-80e8-14a2fd45421e was
+duplicate-prevented. Rejected run e34fb1e4-4acc-470c-bdf3-7d377525a47a delivered nothing.
+
+Limits: these checks prove the format and link provenance of a draft, not its factual accuracy or editorial quality.
+Fixture sources are not real announcements. Nothing was posted to Telegram or any channel.

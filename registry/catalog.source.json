@@ -42,13 +42,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -131,13 +131,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -217,13 +217,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         },
         {
           "id": "approval-gate",
@@ -311,13 +311,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -401,13 +401,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -489,13 +489,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -572,7 +572,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -582,7 +582,7 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -664,13 +664,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -752,7 +752,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -762,7 +762,7 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.0.1"
         }
       ],
       "permissions": {
@@ -838,7 +838,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -913,7 +913,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -960,7 +960,7 @@
       "description": "Turn selected feed material into a useful editorial digest.",
       "value": "Turn selected feed material into a useful editorial digest.",
       "file": "workflows/digest.yaml",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -970,7 +970,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -988,7 +988,7 @@
         },
         {
           "id": "verify-sources",
-          "version": "0.1.0"
+          "version": "0.2.0"
         },
         {
           "id": "approval-gate",
@@ -1030,6 +1030,70 @@
       }
     },
     {
+      "id": "podcast-digest",
+      "name": "Podcast to Digest",
+      "description": "Turn a podcast transcript into a timestamped Ukrainian digest with the fixed Saturday header, stopping at your approval.",
+      "value": "Turn a podcast transcript into a timestamped Ukrainian digest with the fixed Saturday header, stopping at your approval.",
+      "file": "workflows/podcast-digest.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/podcast-digest.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.30",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-openrouter",
+          "version": "1.0.1"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.1.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "openrouter",
+        "callerReady": false
+      },
+      "permissions": {
+        "execution": "explicit-local-scope"
+      }
+    },
+    {
       "id": "sdd-pipeline",
       "name": "SDD pipeline",
       "description": "Turn an intent into an approved specification and a verified project change.",
@@ -1045,7 +1109,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1161,7 +1225,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1259,7 +1323,7 @@
         "release-watch"
       ],
       "author": "0design",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "license": "MIT",
       "origin": {
         "repository": "0design/QFactory.io",
@@ -1268,7 +1332,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1336,7 +1400,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1373,7 +1437,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1411,7 +1475,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1449,7 +1513,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1496,7 +1560,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1534,7 +1598,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1572,7 +1636,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1610,7 +1674,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1639,7 +1703,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1667,7 +1731,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1698,7 +1762,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1736,7 +1800,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1764,17 +1828,17 @@
     {
       "id": "verify-sources",
       "name": "Verify source links",
-      "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
-      "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+      "description": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
+      "value": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
       "kind": "step",
       "contentType": "component",
       "file": "components/verify-sources.json",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1789,6 +1853,13 @@
         "status": "accepted",
         "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
+          {
+            "file": "demos/digest-format.txt",
+            "sha256": "3decdb1bd8bee51ef079ea8e35029cb7888e93ea743707022c6b8b0112b2ca08",
+            "componentVersion": "0.2.0",
+            "coreVersion": "0.2.0-q-core.30",
+            "coreSha256": "2d12ce6e4459637553685873ed9481f8e35036c76b622ac26515184939ae08d4"
+          },
           {
             "file": "demos/digest-huyiks.txt",
             "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
@@ -1826,7 +1897,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1868,7 +1939,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1910,7 +1981,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1945,7 +2016,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1977,7 +2048,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.29",
+        "version": "0.2.0-q-core.30",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1996,20 +2067,20 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.25-registry.15-candidate",
+  "releaseVersion": "2026.09.26-registry.16-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.29",
+    "version": "0.2.0-q-core.30",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.29.tgz",
-    "artifactSha256": "246bb675e7c60795dfe02cc349185b015403d5053b23d982ffd509324b5d1fba",
-    "integrity": "sha512-hdV3dZ2povY1O/3GY0VQgGre5DLUOcNGyzQNglAvTYyeuSJ2aDeNjD2lz7P5olbM7DLlKcZFSuTOPcwD0r3WQg==",
+    "artifact": "vendor/q-core-0.2.0-q-core.30.tgz",
+    "artifactSha256": "2d12ce6e4459637553685873ed9481f8e35036c76b622ac26515184939ae08d4",
+    "integrity": "sha512-dA42z0Crea90J6nX74V6BEo61+yd036L7K/+Z03UuNWbfiO6mfFUL4G+rSAuCPwi3fgK2tD33xZ1cwAZuFtIAA==",
     "schemaSha256": "5f5ad7d0851b7650273193d907f9719139b2e96291c5d2240fa7ade0e22d6226",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.29 release-hygiene successor of Core.28: fail-closed SHA-256 install step in the README, release version pinned separately from the catalog hash, coded catalog errors, public-surface allowlist; same manifest and contract revision",
+    "source": "Core.30 successor of Core.29: only verify-sources is extended (optional fixedLinks, requiredPrefix and requiredHeadings format checks; exact Markdown link targets); same manifest validator, YAML parser, SPEC and request schema",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",

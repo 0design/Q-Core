@@ -16,7 +16,9 @@ export function workflowMetadata(manifest) {
     }
   }
   const gates = steps.filter(step => step.kind === 'approval-gate');
-  const openrouter = steps.some(step => step.kind === 'llm-call' && step.config?.provider !== 'cli') || gates.some(step => step.config?.reviewer === 'agent');
+  // An OpenRouter step needs the key in the environment unless it reads it from the Keychain (secretSource: keychain).
+  const envKey = step => step.config?.secretSource !== 'keychain';
+  const openrouter = steps.some(step => step.kind === 'llm-call' && step.config?.provider !== 'cli' && envKey(step)) || gates.some(step => step.config?.reviewer === 'agent' && envKey(step));
   return {
     steps: steps.length,
     kinds: [...new Set(steps.map(step => step.kind))],

@@ -2,7 +2,7 @@
   "id": "llm-call-openrouter",
   "name": "llm-call/openrouter",
   "kind": "step",
-  "description": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+  "description": "OpenRouter inference with an explicit model and a local secret reference from the environment or the macOS Keychain. This is not the current CLI agent.",
   "input": {
     "instructions": {
       "type": "string",
@@ -33,6 +33,16 @@
       "type": "string",
       "required": false,
       "notes": "overrides the workflow's model."
+    },
+    "secretSource": {
+      "type": "string",
+      "required": false,
+      "notes": "env | keychain. Default env. keychain reads the key from the local macOS Keychain (service com.qfactory.q-core.openrouter, account openrouter:<keyRef>; store it with q-core auth set openrouter); the key never appears in the workflow, environment or run record."
+    },
+    "keyRef": {
+      "type": "string",
+      "required": false,
+      "notes": "Uppercase secret alias, default OPENROUTER_API_KEY. With secretSource env it names the environment variable; with keychain it names the Keychain entry."
     }
   },
   "output": {
@@ -56,7 +66,7 @@
   "usedBy": [],
   "runtimeKind": "llm-call",
   "contentType": "component",
-  "value": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+  "value": "OpenRouter inference with an explicit model and a local secret reference from the environment or the macOS Keychain. This is not the current CLI agent.",
   "acceptance": {
     "status": "pending",
     "evidence": []

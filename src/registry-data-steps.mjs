@@ -3,6 +3,16 @@ import { resolveTemplate, resolveTemplateValue } from './template.mjs';
 
 const context = ctx => ({ priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, item: ctx.item, index: ctx.itemIndex });
 const value = (step, field, ctx) => resolveTemplateValue(step.config[field], context(ctx));
+const textValue = (step, field, ctx) => resolveTemplate(step.config[field], context(ctx));
+const stringList = (step, field, ctx) => {
+  if (!(field in step.config)) return [];
+  const raw = textValue(step, field, ctx);
+  let list;
+  try { list = JSON.parse(raw); }
+  catch { throw new Error(`${field} must be a JSON array of nonempty strings`); }
+  insist(Array.isArray(list) && list.every(item => typeof item === 'string' && item.length > 0), `${field} must be a JSON array of nonempty strings`);
+  return list;
+};
 const strip = html => html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<(script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&(?:nbsp|amp|quot|lt|gt);/g, s => ({'&nbsp;':' ', '&amp;':'&', '&quot;':'"', '&lt;':'<', '&gt;':'>'})[s]).replace(/\s+/g, ' ').trim();
 
 /** A deliberately small readable-text extractor, not a browser or a facts verifier. */
@@ -38,9 +48,45 @@ export function runVerifySources(step, ctx) {
   insist(typeof text === 'string' && text.trim() && text.length <= 16000, 'A bounded nonempty draft is required');
   insist(Array.isArray(sources) && sources.length > 0, 'Pinned source list required');
   const urls = new Set(sources.map(s => s.url));
-  const links = [...text.matchAll(/https?:\/\/[^\s<>"\]]+/g)].map(m => m[0].replace(/[).,;]+$/, ''));
-  insist(links.length > 0 && links.every(link => urls.has(link)), 'Draft includes an unverified URL or no source links');
+  const fixedLinks = stringList(step, 'fixedLinks', ctx);
+  insist(fixedLinks.every(url => /^https?:\/\//.test(url)), 'fixedLinks must be a JSON array of HTTP(S) URLs');
+  const requiredHeadings = stringList(step, 'requiredHeadings', ctx);
+  const requiredPrefix = step.config.requiredPrefix == null ? null : textValue(step, 'requiredPrefix', ctx);
+  insist(requiredPrefix === null || typeof requiredPrefix === 'string' && requiredPrefix.length > 0, 'requiredPrefix must be a nonempty string');
+  // An unset {{env.NAME}} stays in place by design; a contract that still carries
+  // a placeholder would silently require the literal braces, so refuse it.
+  insist(![requiredPrefix ?? '', ...fixedLinks, ...requiredHeadings].some(item => /\{\{[^{}]*\}\}/.test(item)), 'Format contract has an unresolved template placeholder');
+  if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
+  if (requiredHeadings.length > 0) {
+    insist(requiredHeadings.every(heading => /^## \S/.test(heading) && !/[\r\n]/.test(heading)), 'requiredHeadings must be level-two Markdown headings');
+    // Only the required level-two sections may exist; ### thematic sub-blocks inside them are allowed. Any other
+    // level-one/two heading form (ATX with up to three leading spaces, or a setext underline) is refused.
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, index) => insist(!(/^ {0,3}(?:=+|-+)[ \t]*$/.test(line) && index > 0 && lines[index - 1].trim() !== '' && !/^ {0,3}(?:[-*+]|\d+[.)])\s/.test(lines[index - 1])), 'Draft must contain exactly the required Markdown sections in order'));
+    insist(lines.filter(line => /^ {0,3}#{1,2}(?:[ \t]|$)/.test(line)).every(line => /^##(?!#)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
+    const headings = [...text.matchAll(/^##(?!#)[^\r\n]*$/gm)];
+    insist(headings.length === requiredHeadings.length && headings.every((heading, index) => heading[0] === requiredHeadings[index]), 'Draft must contain exactly the required Markdown sections in order');
+    headings.forEach((heading, index) => {
+      const body = text.slice(heading.index + heading[0].length, headings[index + 1]?.index ?? text.length);
+      insist(/\S/.test(body), `Required section is empty: ${heading[0]}`);
+    });
+  }
+  // Markdown link targets are read exactly, so text glued to the closing
+  // parenthesis (")і by") does not become part of the URL; bare URLs elsewhere.
+  const linkTargets = [];
+  const bare = text.replace(/\]\((https?:\/\/[^\s()<>]+)\)/g, (_, url) => { linkTargets.push(url); return '] '; });
+  const links = [...linkTargets, ...[...bare.matchAll(/https?:\/\/[^\s<>"\]]+/g)].map(m => m[0].replace(/[).,;]+$/, ''))];
+  // With a format contract, every other way to write a link is refused too: an uppercase scheme, a Markdown or
+  // reference link target that is not a plain http(s) URL, a scheme-less www. address, or a raw HTML link.
+  if (fixedLinks.length > 0 || requiredPrefix !== null || requiredHeadings.length > 0) {
+    const rest = bare.replace(/https?:\/\/[^\s<>"\]]+/g, ' ');
+    insist(!/[a-z][a-z0-9+.-]*:\/\//i.test(rest), 'Draft includes an unverified URL or no source links');
+    insist(!/\]\(\s*<?[^)\s]/.test(rest) && !/^ {0,3}\[[^\]]+\]:\s*\S/m.test(rest), 'Draft includes an unverified URL or no source links');
+    insist(!/\bwww\./i.test(rest) && !/<\s*a\b|\b(?:href|src)\s*=/i.test(rest), 'Draft includes an unverified URL or no source links');
+  }
+  const allowed = new Set([...urls, ...fixedLinks]);
+  insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), checks: ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited'], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections'])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }
