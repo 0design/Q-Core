@@ -126,8 +126,9 @@ export function describeWorkflow(file, { examplesDir } = {}) {
 
 /**
  * Where the published catalogue lives. Overridable, because a team will want
- * its own — point it at any host serving a `catalog.json` and the manifests it
- * names.
+ * its own — point it at an exact release directory serving a `catalog.json` and
+ * the manifests it names. A remote non-localhost URL must end in
+ * `releases/<version>`, and that version must equal the catalog's releaseVersion.
  */
 export const REMOTE_CATALOG_BASE = process.env.QCORE_CATALOG_URL?.replace(/\/+$/, "") ?? "";
 

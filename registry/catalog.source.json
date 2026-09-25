@@ -61,8 +61,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "bbfb2052c86fe95be130fc4d87c6af8ec757ba91f51d21bca681ad22367b3362",
       "value": "Find relevant brand mentions without reading every source item manually.",
@@ -151,8 +150,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "7a123c7e7a2be4ebf41c75c7f6c0eb99b94a4a245babb0722b0ead3bdc243526",
       "value": "Check how a configured spending limit stops a model-backed workflow before using it on real work.",
@@ -243,8 +241,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "318948e4c25539662c6d3a7dbc8550f0ec89a1d22e6c3f1350b8e8d7900f7fa3",
       "value": "Turn source material into a checked draft with an explicit approval step before delivery.",
@@ -334,8 +331,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "f9d588e3bbf9041e02e7057aae83d48b3c7e6f2a59b8d521064f8349ce9cb207",
       "value": "Condense a source feed into a readable update so the user does not need to review every item manually.",
@@ -424,8 +420,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "d771e462d1f40b06672a2b654153df8da3373190b209c3eb6e5f74e15c541864",
       "value": "Process multiple feed items consistently and collect the results without repeating the same manual steps.",
@@ -513,8 +508,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "cb730da45f69c57a3f4fbcf2a97df8339907d443b7fb9f4631ed12f308bad449",
       "value": "Produce a structured summary that a downstream service can consume without manual reformatting.",
@@ -600,8 +594,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "70e82b724ede0a7da8b3e25bd07bebd7a6198811d8653c271115dd269428d6c7",
       "value": "Surface relevant price updates without repeatedly checking the source manually.",
@@ -690,8 +683,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "053b60d872a176426d35ac9fd55b653a0ed889eb57362cffe17f841e8271361c",
       "value": "Summarize new software releases and highlight items worth reviewing without reading the full release feed.",
@@ -783,8 +775,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "d6ebf8ae34b6a888f99031f8da586c799f523855af96a60a8849d5ed14abbe0f",
       "value": "Check a draft against an explicit rubric before allowing the next workflow step.",
@@ -859,8 +850,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "fcfef0dedca7d769ebb21124a3ec9658e4576758277235b7a5549a8c15aba4a6",
       "value": "Move source data to a configured receiver without a manual copy-and-paste step.",
@@ -935,8 +925,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485",
       "value": "Verify bounded fan-out behavior before applying a workflow to a large input set.",
@@ -1023,8 +1012,7 @@
         "evidence": []
       },
       "evidence": {
-        "status": "candidate-tests",
-        "releaseAcceptance": "pending"
+        "status": "candidate-tests"
       },
       "executionProfile": {
         "inference": "cli",
@@ -1098,8 +1086,7 @@
         "evidence": []
       },
       "evidence": {
-        "status": "candidate-tests",
-        "releaseAcceptance": "pending"
+        "status": "candidate-tests"
       },
       "executionProfile": {
         "inference": "cli",
@@ -1182,14 +1169,13 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "ef49eccd8d35165c65bd733f350b9141b7045edec146c9cfb14b519fe7748a57",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -1290,8 +1276,7 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "contentType": "component",
       "acceptance": {
@@ -1359,8 +1344,7 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "581dc7a3c24e6ef9be97dd5958160ec928cbb775356797b5b3e4225cbb084f82",
       "contentType": "component",
@@ -1396,11 +1380,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-cli-step.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -1434,11 +1418,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-data-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -1485,7 +1469,7 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
@@ -1519,11 +1503,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
@@ -1557,11 +1541,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
@@ -1595,11 +1579,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-data-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -1723,11 +1707,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
@@ -1761,11 +1745,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
@@ -1799,11 +1783,11 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-data-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -1850,8 +1834,7 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "504571517a315e475b45b7fdd8ddf1e6bb1cc36ec0d251a2949d399bacd099a1",
       "contentType": "demo",
@@ -1893,8 +1876,7 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "44c66c38b9790cb45b8626a3eed708bb2ea810007f67ec4f64125ed830fd70fd",
       "contentType": "demo",
@@ -1936,8 +1918,7 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "contentType": "demo",
       "acceptance": {
@@ -1973,7 +1954,6 @@
       },
       "evidence": {
         "status": "local-live-proof",
-        "releaseAcceptance": "pending",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
       },
@@ -2006,7 +1986,6 @@
       },
       "evidence": {
         "status": "local-live-proof",
-        "releaseAcceptance": "pending",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
       },
@@ -2025,8 +2004,8 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.29.tgz",
-    "artifactSha256": "f52877ece00f88906f6d0a7594960635434a97ba777c545d6fe4457c2d899fcd",
-    "integrity": "sha512-SYE+hDQ0LSA33Y24I+bLpokCDZmzGCUx569NmAU8lVPPO3yMdQtbEnnV2R8RWI8GeFK1otCAzJINhaFJ4YYfFA==",
+    "artifactSha256": "246bb675e7c60795dfe02cc349185b015403d5053b23d982ffd509324b5d1fba",
+    "integrity": "sha512-hdV3dZ2povY1O/3GY0VQgGre5DLUOcNGyzQNglAvTYyeuSJ2aDeNjD2lz7P5olbM7DLlKcZFSuTOPcwD0r3WQg==",
     "schemaSha256": "5f5ad7d0851b7650273193d907f9719139b2e96291c5d2240fa7ade0e22d6226",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",

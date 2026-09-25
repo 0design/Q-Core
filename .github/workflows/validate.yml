@@ -14,7 +14,7 @@ name: validate
 
 on:
   pull_request:
-    paths: ["workflows/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json", "scripts/build-registry.mjs", ".github/workflows/validate.yml"]
+    paths: ["workflows/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json", "README.md", "contracts/**", "docs/**", "scripts/build-registry.mjs", "scripts/check-public-surface.mjs", "scripts/public-surface.allowlist.json", ".github/workflows/validate.yml"]
   push:
     branches: [main]
 
@@ -44,6 +44,9 @@ jobs:
 
       - name: tests
         run: node --test test/*.test.mjs
+
+      - name: public surface allowlist and private markers
+        run: node scripts/check-public-surface.mjs
 
       # The standalone Registry builder validates every manifest, metadata and
       # generated catalog without executing contributed workflows or using secrets.

@@ -134,7 +134,12 @@ test("release version is pinned separately from the catalog hash", async (t) => 
   // The matching release installs; an explicit --release must equal it.
   const own = releaseFixture(t, "fixture.14", "fixture.14");
   await assert.rejects(installPinned({ ...own.request, releaseVersion: "fixture.15" }), { code: "RELEASE_MISMATCH" });
-  await assert.rejects(installPinned({ ...own.request, releaseVersion: "fixture.14-candidate" }), { code: "RELEASE_MISMATCH" });
+  await assert.rejects(installPinned({ ...own.request, releaseVersion: "Fixture.14" }), { code: "RELEASE_MISMATCH" }, "malformed name");
+  await assert.rejects(installPinned({ ...own.request, releaseVersion: "latest" }), { code: "RELEASE_MISMATCH" }, "mutable alias");
+  const alias = releaseFixture(t, "current", "current");
+  await assert.rejects(installPinned(alias.request), { code: "RELEASE_MISMATCH" }, "mutable alias in the base path");
+  const candidate = releaseFixture(t, "fixture.14-candidate", "fixture.14-candidate");
+  assert.equal((await installPinned({ ...candidate.request, releaseVersion: "fixture.14-candidate" })).id, "synthetic", "an exact candidate name is consistent in both places");
   assert.equal((await installPinned({ ...own.request, releaseVersion: "fixture.14" })).id, "synthetic");
   // A remote non-localhost base must name its release; this is refused before any request is made.
   await assert.rejects(installPinned({ ...own.request, base: "https://registry.example.invalid", destination: join(own.dir, "x.yaml") }), { code: "RELEASE_REQUIRED" });

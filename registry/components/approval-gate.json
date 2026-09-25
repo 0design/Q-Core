@@ -55,7 +55,7 @@
   "value": "Human-Gate or Agent-Gate. SPEC-MANIFEST.md \u00a75.4. One kind, two modes; they differ only in who decides. reviewer: human parks the run as waiting_human. reviewer: agent is a machine check whose verdict is {pass, reason}; today that check is an LLM judge. mode: check is RESERVED and refused. A human gate is optional. Without a key the agent-gate does not wave anything through \u2014 it escalates to a human.",
   "acceptance": {
     "status": "accepted",
-    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
     "evidence": [
       {
         "file": "demos/digest-huyiks.txt",

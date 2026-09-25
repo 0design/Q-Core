@@ -78,11 +78,13 @@ export function parseCatalog(bytes) {
 export async function loadRelease(base, sha256, { releaseVersion } = {}) {
   insist(/^[a-f0-9]{64}$/.test(sha256), "Explicit catalog SHA256 required");
   insist(
-    releaseVersion === undefined || (typeof releaseVersion === "string" && RELEASE_VERSION.test(releaseVersion) && !/candidate|current|latest/i.test(releaseVersion)),
-    "Pinned release version must be an exact non-candidate version",
+    releaseVersion === undefined || (typeof releaseVersion === "string" && RELEASE_VERSION.test(releaseVersion)),
+    "Pinned release version is malformed (lowercase letters, digits, '.', '_' and '-' only)",
     "RELEASE_MISMATCH",
   );
   const fromBase = releaseFromBase(base);
+  for (const name of [releaseVersion, fromBase])
+    insist(!name || !/(?:^|[.-])(?:current|latest)$/i.test(name), `Release ${name} is a mutable alias, not an exact version`, "RELEASE_MISMATCH");
   insist(
     !releaseVersion || !fromBase || fromBase === releaseVersion,
     `Pinned release ${releaseVersion} differs from the Registry release path ${fromBase}`,
@@ -91,7 +93,7 @@ export async function loadRelease(base, sha256, { releaseVersion } = {}) {
   const expected = releaseVersion ?? fromBase;
   insist(
     expected || !isRemote(base) || isLocalhost(base),
-    "Remote Registry requires a versioned .../releases/<version> base or --release <version>",
+    "Remote Registry requires a versioned .../releases/<version> base (q-core install also accepts --release <version>)",
     "RELEASE_REQUIRED",
   );
   const bytes = await readAsset(base, "catalog.json");

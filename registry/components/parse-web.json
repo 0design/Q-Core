@@ -27,11 +27,11 @@
   "implementation": {
     "status": "implemented",
     "source": "src/registry-data-steps.mjs",
-    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+    "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
   },
   "acceptance": {
     "status": "accepted",
-    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
     "evidence": [
       {
         "file": "demos/digest-huyiks.txt",

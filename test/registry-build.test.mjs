@@ -56,3 +56,11 @@ test('Core export pin binds both SHA256 and npm integrity', () => {
   assert.doesNotThrow(() => assertCoreArtifact({ core }, body));
   assert.throws(() => assertCoreArtifact({ core: { ...core, integrity: `sha512-${Buffer.alloc(64).toString('base64')}` } }, body), /catalog pin/);
 });
+
+test('an immutable Registry release refuses time-bound acceptance claims', async () => {
+  const { assertNoMutableAcceptanceClaims } = await import('../scripts/build-registry.mjs');
+  assert.throws(() => assertNoMutableAcceptanceClaims({ evidence: { status: 'x', releaseAcceptance: 'pending' } }, 'fixture'), /releaseAcceptance/);
+  assert.throws(() => assertNoMutableAcceptanceClaims({ scope: 'Controlled run; public release and owner acceptance pending.' }, 'fixture'), /Time-bound acceptance claim/);
+  assert.throws(() => assertNoMutableAcceptanceClaims([{ note: 'Release acceptance: pending' }], 'fixture'), /Time-bound/);
+  assert.doesNotThrow(() => assertNoMutableAcceptanceClaims({ scope: 'Controlled run; this evidence is not public-release or owner acceptance.', acceptance: { status: 'pending' } }, 'fixture'));
+});

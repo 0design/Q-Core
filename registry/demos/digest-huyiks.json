@@ -21,7 +21,6 @@
   },
   "evidence": {
     "status": "local-live-proof",
-    "releaseAcceptance": "pending",
     "coreVersion": "0.2.0-core.16",
     "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
   },

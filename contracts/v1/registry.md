@@ -11,7 +11,7 @@ The release version is pinned separately from the catalog hash. When the base en
 `releases/<version>` or `--release <version>` is given, the catalog `releaseVersion` must
 equal it (both must agree when both are present), otherwise `RELEASE_MISMATCH`. A remote
 non-localhost base must name its release in one of these ways (`RELEASE_REQUIRED`), and
-candidate/current/latest names are refused. A truncated, non-UTF-8 or non-object catalog
+mutable aliases (`current`, `latest`) are refused in both places. A truncated, non-UTF-8 or non-object catalog
 with a matching hash fails with `CATALOG_INVALID`, never a raw parser error. The CLI prints
 `CODE: message` and exits 1.
 

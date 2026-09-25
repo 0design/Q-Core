@@ -36,6 +36,24 @@ export function assertEvidencePins(record, readFile, label) {
   };
   visit(record, '');
 }
+/* An immutable Registry release must not carry a claim that turns false later.
+   Owner and public acceptance live in write-once records outside the release, so a
+   JSON record may not say that release/owner/public acceptance is "pending". */
+export function assertNoMutableAcceptanceClaims(record, label) {
+  const visit = (value, path) => {
+    if (Array.isArray(value)) return value.forEach((item, index) => visit(item, `${path}[${index}]`));
+    if (typeof value === 'string') {
+      if (/\b(?:release|owner|public|user)\b[^.;]{0,40}\bacceptance\b[^.;]{0,20}\bpending\b/i.test(value)) throw Error(`Time-bound acceptance claim at ${label}${path}: ${value}`);
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'releaseAcceptance') throw Error(`Time-bound releaseAcceptance field at ${label}${path}`);
+      visit(child, `${path}.${key}`);
+    }
+  };
+  visit(record, '');
+}
 export function buildRegistry(sourceRoot = root) {
   const catalog = JSON.parse(readFileSync(resolve(sourceRoot, 'catalog.source.json')));
   const planned = loadPlannedCatalogEntries(sourceRoot);
@@ -78,6 +96,9 @@ export function buildRegistry(sourceRoot = root) {
     }
   }
   const composition = JSON.parse(readFileSync(resolve(sourceRoot, 'composition.json')));
+  assertNoMutableAcceptanceClaims(catalog, 'catalog.source');
+  assertNoMutableAcceptanceClaims(composition, 'composition');
+  for (const [file, body] of Object.entries(assets)) if (file.endsWith('.json')) assertNoMutableAcceptanceClaims(JSON.parse(body), file);
   if (composition.schemaVersion !== 1 || !Array.isArray(composition.templates)) throw Error('Invalid composition contract');
   const templateIds = new Set();
   for (const template of composition.templates) {

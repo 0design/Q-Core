@@ -425,14 +425,13 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "a05e27501e41b1fc84853d7c20b63eedb90dcad3461c6c4450150c1d0e25a512",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local Digest transport; public acceptance pending.",
+        "scope": "Controlled local Digest transport; this evidence is not public acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -514,8 +513,7 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "bd7e15f89e76f8360d2419532a2c890f7a796342cf67700d01fc7f97580163b6",
       "contentType": "component",
@@ -616,14 +614,13 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "2b1f253160e925d0a2948e6669aea37da178d081741a659fb297926bce76601c",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local Digest transport; public acceptance pending.",
+        "scope": "Controlled local Digest transport; this evidence is not public acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -686,8 +683,7 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "95e7ad8e07b0fbc07675e357929a484ad7b5198455bacbbf7a2bdd90712f0f22",
       "contentType": "component",
