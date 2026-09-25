@@ -82,6 +82,13 @@
     },
     {
       "class": "negative-guard",
+      "path": "^bin/q-workflow\\.mjs$",
+      "line": "renamedFormatHint|declares qloops|The manifest format was renamed|qloops\\.loop/\\* is now",
+      "reason": "CLI explains the retired manifest namespace when the fail-closed rejection reaches it; no alias",
+      "token": "^(qloops|qloops\\.loop/|\\.loop)$"
+    },
+    {
+      "class": "negative-guard",
       "path": "^scripts/(check-product-names|check-naming-inventory)\\.mjs$",
       "reason": "naming guards"
     },
@@ -92,7 +99,7 @@
     },
     {
       "class": "negative-guard",
-      "path": "^test/(product-names|naming-inventory|registry-digest|record-proof-naming)\\.test\\.mjs$",
+      "path": "^test/(product-names|naming-inventory|registry-digest|record-proof-naming|core31)\\.test\\.mjs$",
       "reason": "negative naming fixtures"
     },
     {

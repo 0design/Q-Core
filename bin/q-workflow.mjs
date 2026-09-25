@@ -75,12 +75,23 @@ Options
   --quiet       only errors
 
 Environment
-  OPENROUTER_API_KEY   required for llm-call and for an Agent-Gate
+  OPENROUTER_API_KEY   only for llm-call steps that use OpenRouter (provider is not
+                       cli) and for an Agent-Gate; caller inference (provider: cli)
+                       needs no key. With secretSource: keychain it is read from
+                       the macOS Keychain instead (q-core auth set openrouter)
   OPENROUTER_MODEL     default model when the manifest does not set one
   QCORE_WEBHOOK_URL    where catalogue workflows send their result
   TELEGRAM_BOT_TOKEN   used by workflows that publish to Telegram
   TELEGRAM_CHAT_ID     the chat those workflows publish to
   QF_NO_UPDATE_CHECK=1 turn off the version check
+
+Exit codes
+  0   success
+  1   failed (the run, a check or the command)
+  2   waiting: the run is paused on a human decision (approve) or on a caller
+      inference reply (reply); resume it, do not start a new run
+  64  usage error
+  130 cancelled
 `;
 
 /**
@@ -214,9 +225,11 @@ function printStep(s, quiet) {
   /* A digest that went to a file instead of Telegram is not a delivered digest.
      The run did its work, so this is not a failure — but it must never be quiet,
      or tomorrow nobody remembers why the channel is empty. */
-  if (s.output?.sink === "file") {
+  if (s.output?.sink === "file" && s.output.dispatched !== false) {
+    process.stdout.write(`      → delivered to ${s.output.file}\n`);
+  } else if (s.output?.sink === "file") {
     process.stdout.write(
-      `      ⚠ NOT SENT — ${s.output.missingEnv.join(", ")} not set in the environment.\n` +
+      `      ⚠ NOT SENT — ${(s.output.missingEnv ?? []).join(", ")} not set in the environment.\n` +
         `        Written to ${s.output.file} instead.\n`,
     );
   }
@@ -694,6 +707,15 @@ async function main() {
   return code;
 }
 
+/** renamedFormatHint: the retired manifest namespace was renamed, not versioned; say so instead of "older or newer". */
+function renamedFormatHint(message) {
+  return message.includes("declares qloops.loop/")
+    ? "The manifest format was renamed: qloops.loop/* is now q-core.workflow/v1. Change the first line to\n" +
+        "  `manifest: q-core.workflow/v1` and check the workflow against the current Registry; there is no\n" +
+        "  silent compatibility with the old name.\n"
+    : "";
+}
+
 /** Set exitCode and let Node flush pipe output; process.exit() can truncate JSON. */
 try {
   process.exitCode = await main();
@@ -701,7 +723,8 @@ try {
   if (e instanceof ExitSignal) {
     /* fail() has already reported the error and set the exit code. */
   } else if (e instanceof ManifestError) {
-    process.stderr.write(`✗ ${e.message}\n`);
+    const hint = renamedFormatHint(e.message);
+    process.stderr.write(hint ? `✗ ${hint}` : `✗ ${e.message}\n`);
     process.exitCode = EXIT_FAILED;
   } else {
     process.stderr.write(`✗ ${e instanceof Error ? e.message : String(e)}\n`);

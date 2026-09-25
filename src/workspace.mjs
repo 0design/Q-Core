@@ -21,7 +21,7 @@ export function scopedPath(workspace, path) {
       !relative(root, target)
         .split("/")
         .some((p) => p.startsWith(".")),
-    "Path outside allowed scope",
+    `Path outside allowed scope: ${path} (paths must stay inside the workspace, and hidden segments such as .qfactory/ or .git/ are never in scope; put the verifier and allowed files in a visible folder)`,
     "SCOPE_DENIED",
   );
   let part = root;

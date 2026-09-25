@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.30"), "candidate version must identify Q-Core");
+  assert.ok(pkg.version.endsWith("-q-core.31"), "candidate version must identify Q-Core");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
@@ -68,7 +68,9 @@ export function assertNoRetiredProductNames(files) {
     // The manifest deliberately rejects the retired namespace. It is not an
     // accepted alias, and keeping the exact rejected token makes that boundary
     // explicit for callers and tests.
-    const inspectable = path === "src/manifest.mjs"
+    // bin/q-workflow.mjs names the retired namespace only to explain the rename
+    // when that rejection reaches the CLI; it adds no alias.
+    const inspectable = path === "src/manifest.mjs" || path === "bin/q-workflow.mjs"
       ? source.replaceAll("qloops.loop", "")
       : source;
     assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);

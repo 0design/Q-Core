@@ -125,7 +125,7 @@
       "name": "Digest",
       "contentType": "workflow-template",
       "value": "Turn selected feed material into a useful editorial digest.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "status": "implementation-candidate",
       "inference": "cli",
       "dependencies": [
@@ -143,7 +143,7 @@
         },
         {
           "id": "verify-sources",
-          "version": "0.2.0"
+          "version": "0.3.0"
         },
         {
           "id": "approval-gate",
@@ -169,10 +169,10 @@
           "llm-call-cli@0.1.0",
           "parse-web@0.1.0",
           "deduplicate@0.1.0",
-          "verify-sources@0.2.0",
+          "verify-sources@0.3.0",
           "approval-gate@1.0.0",
           "fetch@1.0.0",
-          "api-request@1.0.0"
+          "api-request@1.1.0"
         ]
       },
       "builtinDependencies": [
@@ -182,7 +182,7 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         }
       ]
     },
@@ -408,7 +408,7 @@
         "wide-fanout"
       ],
       "author": "0design",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT",
       "origin": {
         "repository": "0design/QFactory.io",
@@ -417,7 +417,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.30",
+        "version": "0.2.0-q-core.31",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -433,6 +433,13 @@
         "status": "accepted",
         "scope": "Controlled local Digest transport; this evidence is not public acceptance.",
         "evidence": [
+          {
+            "file": "demos/digest-format.txt",
+            "sha256": "9376afefe987657f3222721fac6d34f82e7e40ac82440801eb3f25597a31b034",
+            "componentVersion": "1.1.0",
+            "coreVersion": "0.2.0-q-core.31",
+            "coreSha256": "914633fa39ff2d0eab914a92c0a23571730c3f2835fa9e0cca81d4d4e89f4f01"
+          },
           {
             "file": "demos/digest-huyiks.txt",
             "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
@@ -505,7 +512,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.30",
+        "version": "0.2.0-q-core.31",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -606,7 +613,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.30",
+        "version": "0.2.0-q-core.31",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -675,7 +682,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.30",
+        "version": "0.2.0-q-core.31",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],

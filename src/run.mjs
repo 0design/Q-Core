@@ -19,13 +19,13 @@
  * that ends in `api-request` is a complete workflow.
  */
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
-import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel } from "./steps.mjs";
+import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
 import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-steps.mjs";
 import { runWorkspaceRead, runSpecification, runWorkspaceApply, runVerifyArtifact, runDetermined, assertFreshWorkspaceArtifact } from "./registry-workspace-steps.mjs";
 import { snapshot, contextFiles } from './workspace.mjs';
 import { assertInferenceReply, invalidateInference } from "./caller-inference.mjs";
-import { resolveTemplate } from "./template.mjs";
+import { resolveTemplate, missingEnvRefs } from "./template.mjs";
 import { num, str } from "./config.mjs";
 import { resolveTemplateValue } from "./template.mjs";
 import { usdForTokens } from "./cost.mjs";
@@ -163,6 +163,29 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
   };
 }
 
+/** Unset or empty `{{env.NAME}}` references (no default) that a run cannot do without. An api-request without a
+ *  receiptKey is exempt as a whole: with its URL unset it writes to the .qf/out/ sink (SPEC §9). */
+export function requiredEnvMissing(steps) {
+  const missing = new Set();
+  for (const step of steps) {
+    if (step.kind === "api-request" && !step.config?.receiptKey) continue;
+    for (const value of Object.values(step.config ?? {})) for (const name of missingEnvRefs(value)) missing.add(name);
+  }
+  return [...missing];
+}
+
+/** file:/// destinations that are already resolvable are checked before the first step, not after an approval. */
+export function destinationProblems(steps) {
+  const problems = [];
+  for (const step of steps) {
+    if (step.kind !== "api-request" || typeof step.config?.url !== "string") continue;
+    const url = resolveTemplate(step.config.url, { priorOutputs: {} });
+    if (!/^file:/i.test(url) || /\{\{/.test(url)) continue;
+    try { checkFileDestination(url); } catch (e) { problems.push(`${step.stepId ?? step.id}: ${e.message}`); }
+  }
+  return problems;
+}
+
 /**
  * Drive a run to its next stopping point: success, failure, or a human gate.
  *
@@ -200,6 +223,30 @@ export async function driveRun(run, opts = {}) {
   const persist = () => {
     if (store) store.save(run);
   };
+
+  /* Required environment, checked once before the first step so a missing input
+     is named up front instead of surfacing as a literal "{{env.NAME}}" URL later.
+     A reference with a default ({{env.NAME:-value}}) is optional, and so is an
+     api-request URL without a receiptKey (it falls back to the .qf/out/ sink). */
+  if (!dryRun && run.steps.every((s) => s.status === "pending")) {
+    const missing = requiredEnvMissing(run.steps);
+    const problems = missing.length ? [] : destinationProblems(run.steps);
+    if (missing.length || problems.length) {
+      const now = new Date().toISOString();
+      const first = run.steps[0];
+      first.status = "failed";
+      first.startedAt = first.finishedAt = now;
+      first.errorText = missing.length
+        ? `Missing environment variables: ${missing.join(", ")}. Set them before running (q-core catalog shows what each workflow needs).`
+        : `Invalid delivery destination before any step ran: ${problems.join("; ")}`;
+      run.status = "failed";
+      run.summary = first.errorText;
+      run.finishedAt = now;
+      persist();
+      onStep(first);
+      return run;
+    }
+  }
 
   for (;;) {
     if (opts.signal?.aborted) {

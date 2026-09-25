@@ -26,7 +26,14 @@ const ITEM_RE = /\{\{\s*(item|index)(?:\.([^}\s]+))?\s*\}\}/g;
  * literal braces in a URL are visible, whereas an empty string would produce a
  * request to somewhere nobody can account for afterwards.
  */
-const ENV_RE = /\{\{\s*env\.([A-Z][A-Z0-9_]*)\s*\}\}/g;
+const ENV_RE = /\{\{\s*env\.([A-Z][A-Z0-9_]*)(?::-([^{}]*?))?\s*\}\}/g;
+
+/** `{{env.NAME:-default}}` — the default applies when NAME is unset or empty. */
+const envValue = (name, fallback) => {
+  const value = process.env[name];
+  if ((value === undefined || value === "") && fallback !== undefined) return fallback.trim();
+  return value;
+};
 
 /**
  * `{{run.costUsd}}` · `{{run.id}}` · `{{run.workflowId}}` — facts about THIS run,
@@ -95,7 +102,7 @@ export function resolveTemplate(text, ctx) {
     const v = lookupItemVar(name, path, ctx);
     return v === undefined ? match : stringify(v);
   });
-  const withEnv = withItems.replace(ENV_RE, (match, name) => process.env[name] ?? match);
+  const withEnv = withItems.replace(ENV_RE, (match, name, fallback) => envValue(name, fallback) ?? match);
   return withEnv.replace(RUN_RE, (match, field) => {
     const v = ctx.run?.[field];
     if (v === undefined || v === null) return match;
@@ -107,7 +114,8 @@ export function resolveTemplate(text, ctx) {
 export function missingEnvRefs(text) {
   const out = new Set();
   for (const m of String(text).matchAll(ENV_RE)) {
-    if (process.env[m[1]] === undefined) out.add(m[1]);
+    const value = envValue(m[1], m[2]);
+    if (value === undefined || value === "") out.add(m[1]);
   }
   return [...out];
 }
