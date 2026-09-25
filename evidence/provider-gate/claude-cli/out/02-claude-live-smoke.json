@@ -1,0 +1,28 @@
+{
+  "gate": "claude-cli-provider",
+  "coreVersion": "0.2.0-q-core.29",
+  "startedAt": "2026-09-25T22:23:36.047Z",
+  "finishedAt": "2026-09-25T22:23:38.329Z",
+  "requestedModel": "claude-haiku-4-5",
+  "outcome": "success",
+  "error": null,
+  "response": {
+    "provider": {
+      "kind": "claude",
+      "version": "2.1.156",
+      "requestedModel": "claude-haiku-4-5",
+      "model": "claude-haiku-4-5-20251001",
+      "payerScope": "local-cli",
+      "permissionMode": "default",
+      "tools": []
+    },
+    "usage": {
+      "tokensIn": 208,
+      "tokensOut": 62,
+      "costUsd": 0.001036,
+      "costKind": "cli-estimate"
+    },
+    "output": "```json\n{\"ok\":true}\n```",
+    "outputSha256": "3091fc821793b0828702bf02ec208c266ee3b777fbe625f880e75356242ba075"
+  }
+}
