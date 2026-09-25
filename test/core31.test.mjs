@@ -1,5 +1,5 @@
 // Core31: env defaults and the up-front missing-environment error, file:/// delivery, verify-sources Low fixes,
-// clearer scope/help/renamed-format messages and self-ignoring run state (E2E 0D-277 findings).
+// clearer scope/help/renamed-format messages and self-ignoring run state (end-to-end review findings).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync } from 'node:fs';
@@ -188,10 +188,10 @@ test('Digest 0.3 defaults to reachable official feeds, keeps the receiver and th
   assert.deepEqual(requiredEnvMissing(createRun(manifest).steps), ['QF_DIGEST_DATE', 'QF_DIGEST_RECEIVER_URL']);
 }));
 
-test('introLinks: the episode link only inline in the introduction sentence (decision 55)', () => {
+test('introLinks: the episode link only inline in the introduction sentence', () => {
   const header = '**H**\n\n';
   const video = 'https://video.example/watch?v=1';
-  const config = { requiredPrefix: header, requiredHeadings: '["## Сигнали","## Новини"]', introLinks: JSON.stringify([video]) };
+  const config = { requiredPrefix: header, requiredHeadings: '["## Сигнали","## Новини"]', introLinks: JSON.stringify([video]), requiredIntroPrefix: 'Цікаві тези із [' };
   const body = '\n\n## Сигнали\n\n- Сигнал і джерело https://example.org/a\n\n## Новини\n\n- Новина.\n';
   const good = `${header}Цікаві тези із [подкасту Автора](${video}) про нову модель.${body}`;
   assert.deepEqual(check(good, config).output.checks.slice(-1), ['intro-links-inline']);
@@ -202,8 +202,110 @@ test('introLinks: the episode link only inline in the introduction sentence (dec
     'URL as the link text': `${header}Цікаві тези із [${video}](${video}) про модель.${body}`,
     'link repeated in a section': `${good.replace('- Новина.', `- Новина [00:31](${video}).`)}`,
     'link missing': `${header}Цікаві тези із подкасту про модель.${body}`,
+    'labelled link inside a sentence': `${header}Цікаві тези з випуску. Посилання: [подкаст](${video}) — дивіться тут.${body}`,
+    'long label on its own line': `${header}Цікаві тези з випуску.\nДивіться повний випуск тут: [подкаст](${video})${body}`,
+    'link first on its own line': `${header}[Подкаст](${video}) дивіться тут зараз${body}`,
+    'two paragraphs': `${header}Цікаві тези із [подкасту Автора](${video}) про модель.\n\nЩе абзац.${body}`,
+    'different opening': `${header}Тези із [подкасту Автора](${video}) про нову модель.${body}`,
     'link only in a section': `${header}Цікаві тези з випуску про модель.${body.replace('- Новина.', `- Новина з [подкасту](${video}) і текстом.`)}`,
   };
-  for (const [name, text] of Object.entries(bad)) assert.throws(() => check(text, config), /Introduction (must link|link)|unverified URL/, name);
+  for (const [name, text] of Object.entries(bad)) assert.throws(() => check(text, config), /Introduction (must link|link)|introduction must|unverified URL/, name);
   assert.throws(() => check(good, { ...config, introLinks: '["{{env.Q31_UNSET_VIDEO}}"]' }), /HTTP\(S\)|unresolved/);
+});
+
+test('review fixes: an optional sink step is exempt as a whole, empty values count as missing, destinations are checked up front', async () => {
+  const sink = workflow(`manifest: q-core.workflow/v1
+id: sink-body
+name: Sink body
+steps:
+  - id: post
+    kind: api-request
+    config:
+      url: "https://api.telegram.org/bot{{env.Q31_BOT_TOKEN}}/sendMessage"
+      body: '{"chat_id":"{{env.Q31_CHAT_ID}}","text":"hi"}'
+`);
+  try {
+    await withEnv({ Q31_BOT_TOKEN: undefined, Q31_CHAT_ID: undefined }, async () => {
+      assert.deepEqual(requiredEnvMissing(createRun(sink.manifest).steps), []);
+      const run = createRun(sink.manifest);
+      await driveRun(run, { store: sink.store, settings: sink.manifest.settings });
+      assert.equal(run.status, 'success', run.summary);
+      assert.equal(run.steps[0].output.sink, 'file');
+      assert.equal(run.steps[0].output.dispatched, false);
+    });
+  } finally { rmSync(sink.dir, { recursive: true, force: true }); }
+  withEnv({ Q31_EMPTY: '' }, () => assert.deepEqual(missingEnvRefs('{{env.Q31_EMPTY}}'), ['Q31_EMPTY']));
+  const dest = workflow(`manifest: q-core.workflow/v1
+id: dest
+name: Dest
+steps:
+  - id: read
+    kind: fetch
+    config:
+      url: "https://example.invalid/never-fetched"
+  - id: deliver
+    kind: api-request
+    config:
+      url: "{{env.Q31_DEST}}"
+      receiptKey: "${'b'.repeat(64)}"
+`);
+  try {
+    for (const bad of [pathToFileURL(join(dest.dir, 'x.txt')).href, pathToFileURL(join(dest.dir, 'none', 'x.jsonl')).href, 'file://relative.jsonl']) {
+      await withEnv({ Q31_DEST: bad }, async () => {
+        const run = createRun(dest.manifest);
+        await driveRun(run, { store: dest.store, settings: dest.manifest.settings });
+        assert.equal(run.status, 'failed', bad);
+        assert.match(run.summary, /^Invalid delivery destination before any step ran/, bad);
+        assert.equal(run.steps[1].status, 'pending', 'the fetch never ran');
+      });
+    }
+  } finally { rmSync(dest.dir, { recursive: true, force: true }); }
+});
+
+test('review fixes: file delivery is JSON Lines only, never follows a symlinked file, and prints in human mode', async () => {
+  const { symlinkSync } = await import('node:fs');
+  const w = workflow(`manifest: q-core.workflow/v1
+id: file-text
+name: File text
+steps:
+  - id: deliver
+    kind: api-request
+    config:
+      url: "{{env.Q31_FILE}}"
+      body: 'plain text line'
+`);
+  try {
+    const out = join(w.dir, 'plain.jsonl');
+    await withEnv({ Q31_FILE: pathToFileURL(out).href }, async () => {
+      const run = createRun(w.manifest);
+      await driveRun(run, { store: w.store, settings: w.manifest.settings });
+      assert.equal(run.status, 'success', run.summary);
+      assert.equal(readFileSync(out, 'utf8'), '"plain text line"\n', 'a text body is JSON-encoded on one line');
+    });
+    const victim = join(w.dir, 'victim.txt');
+    writeFileSync(victim, 'keep\n');
+    symlinkSync(victim, join(w.dir, 'link.jsonl'));
+    await withEnv({ Q31_FILE: pathToFileURL(join(w.dir, 'link.jsonl')).href }, async () => {
+      const run = createRun(w.manifest);
+      await driveRun(run, { store: w.store, settings: w.manifest.settings });
+      assert.equal(run.status, 'failed');
+      assert.equal(readFileSync(victim, 'utf8'), 'keep\n');
+    });
+    const human = join(w.dir, 'human.jsonl');
+    const r = spawnSync(process.execPath, [BIN, 'run', w.file], { encoding: 'utf8', env: { ...process.env, QF_NO_UPDATE_CHECK: '1', Q31_FILE: pathToFileURL(human).href } });
+    assert.equal(r.status, 0, r.stderr + r.stdout);
+    assert.match(r.stdout, /→ delivered to .*human\.jsonl/);
+    assert.doesNotMatch(r.stdout + r.stderr, /NOT SENT|Cannot read properties/);
+  } finally { rmSync(w.dir, { recursive: true, force: true }); }
+});
+
+test('review fixes: the renamed-format message replaces "older or newer"', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'q-core31-renamed2-'));
+  try {
+    const file = join(dir, 'old.yaml');
+    writeFileSync(file, ['manifest: qloops', 'loop/v2'].join('.') + '\nid: old\nsteps:\n  - id: a\n    kind: fetch\n    config:\n      url: https://example.org\n');
+    const r = spawnSync(process.execPath, [BIN, 'validate', file], { encoding: 'utf8', env: { ...process.env, QF_NO_UPDATE_CHECK: '1' } });
+    assert.match(r.stderr, /^✗ The manifest format was renamed/);
+    assert.doesNotMatch(r.stderr, /older or newer/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

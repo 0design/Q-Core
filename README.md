@@ -56,7 +56,7 @@ the machine.
 | Surface | State |
 | --- | --- |
 | This Core `0.2.0-q-core.31` | Pinned by Registry `2026.09.26-registry.17` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
-| Registry workflows | `digest` 0.3.0 (official feeds by default, two sections and a fixed header checked before approval, HTTP or local-file delivery), `podcast-digest` 0.2.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
+| Registry workflows | `digest` 0.3.0 (official sources by default, two sections and a fixed header checked before approval, HTTP or local-file delivery), `podcast-digest` 0.2.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 
@@ -279,6 +279,17 @@ evidence, unknown rules and missing browser evidence cannot pass.
 `run` performs one pass; scheduling belongs to the caller/launchd. State is local
 in `.qf/`; no server/database is required. Legacy YAML agent-call and check mode
 remain reserved; the new APIs must not be presented as implemented YAML kinds.
+
+Additions since Core31 that SPEC-MANIFEST.md does not list yet:
+
+- `{{env.NAME:-default}}` uses `default` when `NAME` is unset or empty. Before the
+  first step a run names every required variable that is unset or empty
+  (`Missing environment variables: …`); an `api-request` without `receiptKey`
+  stays optional and falls back to `.qf/out/`.
+- An `api-request` URL may be `file:///absolute/path.jsonl`: each delivery appends
+  one JSON line, with the same `receiptKey` duplicate protection as HTTP. The
+  folder must exist; a symlinked file is refused. The destination is checked
+  before the first step.
 
 ## Verify
 

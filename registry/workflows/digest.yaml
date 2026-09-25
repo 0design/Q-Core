@@ -2,7 +2,7 @@ manifest: q-core.workflow/v1
 id: digest
 name: "Digest: sources to an approved Ukrainian document"
 version: 0.3.0
-description: "Read four public sources (official feeds by default), deduplicate, draft a two-section Ukrainian digest with the fixed Saturday header in your current agent, check citations and format, and deliver the exact approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM) and QF_DIGEST_RECEIVER_URL."
+description: "Read four public sources (official feeds and pages by default), deduplicate, draft a two-section Ukrainian digest with the fixed Saturday header in your current agent, check citations and format, and deliver the exact approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM) and QF_DIGEST_RECEIVER_URL."
 owner: oleg
 enabled: true
 triggers:

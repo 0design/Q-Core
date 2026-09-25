@@ -225,9 +225,11 @@ function printStep(s, quiet) {
   /* A digest that went to a file instead of Telegram is not a delivered digest.
      The run did its work, so this is not a failure — but it must never be quiet,
      or tomorrow nobody remembers why the channel is empty. */
-  if (s.output?.sink === "file") {
+  if (s.output?.sink === "file" && s.output.dispatched !== false) {
+    process.stdout.write(`      → delivered to ${s.output.file}\n`);
+  } else if (s.output?.sink === "file") {
     process.stdout.write(
-      `      ⚠ NOT SENT — ${s.output.missingEnv.join(", ")} not set in the environment.\n` +
+      `      ⚠ NOT SENT — ${(s.output.missingEnv ?? []).join(", ")} not set in the environment.\n` +
         `        Written to ${s.output.file} instead.\n`,
     );
   }
@@ -708,7 +710,7 @@ async function main() {
 /** renamedFormatHint: the retired manifest namespace was renamed, not versioned; say so instead of "older or newer". */
 function renamedFormatHint(message) {
   return message.includes("declares qloops.loop/")
-    ? "  The manifest format was renamed: qloops.loop/* is now q-core.workflow/v1. Change the first line to\n" +
+    ? "The manifest format was renamed: qloops.loop/* is now q-core.workflow/v1. Change the first line to\n" +
         "  `manifest: q-core.workflow/v1` and check the workflow against the current Registry; there is no\n" +
         "  silent compatibility with the old name.\n"
     : "";
@@ -721,7 +723,8 @@ try {
   if (e instanceof ExitSignal) {
     /* fail() has already reported the error and set the exit code. */
   } else if (e instanceof ManifestError) {
-    process.stderr.write(`✗ ${e.message}\n${renamedFormatHint(e.message)}`);
+    const hint = renamedFormatHint(e.message);
+    process.stderr.write(hint ? `✗ ${hint}` : `✗ ${e.message}\n`);
     process.exitCode = EXIT_FAILED;
   } else {
     process.stderr.write(`✗ ${e instanceof Error ? e.message : String(e)}\n`);

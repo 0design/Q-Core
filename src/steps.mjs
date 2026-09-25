@@ -19,9 +19,9 @@ import { resolveTemplate, resolveTemplateDeep, missingEnvRefs } from "./template
 import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
-import { appendFileSync, existsSync, lstatSync, statSync } from "node:fs";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { constants as fsConstants, closeSync, existsSync, fstatSync, lstatSync, openSync, realpathSync, statSync, writeSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 export { fetchWithRetry } from "./http.mjs";
 
 /** Cap on a response body we hold in memory and write into state. */
@@ -338,6 +338,22 @@ function buildBody(step, ctx, t) {
   }
 }
 
+/** A safe local delivery file: absolute file:/// URL, .jsonl name, an existing folder, and not an existing
+ *  directory or symlink. Returns the canonical path (used for duplicate receipts). */
+export function checkFileDestination(url) {
+  let path;
+  try { path = fileURLToPath(url.replace(/^file:/i, "file:")); } catch { throw new Error(`a file destination must be an absolute file:/// URL — got "${url}"`); }
+  if (!path.endsWith(".jsonl")) throw new Error(`a file destination must end with .jsonl — got "${path}"`);
+  const folder = dirname(path);
+  if (!existsSync(folder) || !statSync(folder).isDirectory()) throw new Error(`the folder of the file destination does not exist: ${folder}`);
+  // The canonical folder (symlinks resolved, e.g. /tmp -> /private/tmp) names the destination for receipts, so one
+  // file has one duplicate key however its URL is spelled; the file itself is never followed if it is a symlink.
+  const target = join(realpathSync(folder), basename(path));
+  if (existsSync(target) || (() => { try { return lstatSync(target).isSymbolicLink(); } catch { return false; } })())
+    if (!lstatSync(target).isFile() || lstatSync(target).isSymbolicLink()) throw new Error(`the file destination must be a regular file: ${target}`);
+  return target;
+}
+
 export async function runApiRequest(step, ctx) {
   const label = stepLabel(step);
   const t = tctx(ctx);
@@ -376,21 +392,22 @@ export async function runApiRequest(step, ctx) {
     };
   }
 
-  /* A local file destination: file:///absolute/path appends one delivery per line (JSON Lines).
-     Same receipt and duplicate rules as HTTP; the directory must already exist. */
-  if (/^file:\/\//i.test(url)) {
-    let path;
-    try { path = fileURLToPath(url); } catch { throw new Error(`"${label}": a file destination must be an absolute file:/// URL — got "${url}".`); }
-    if (!existsSync(dirname(path)) || !statSync(dirname(path)).isDirectory()) throw new Error(`"${label}": the folder of the file destination does not exist: ${dirname(path)}`);
-    if (existsSync(path)) insist(lstatSync(path).isFile() && !lstatSync(path).isSymbolicLink(), `"${label}": the file destination must be a regular file`);
+  /* A local file destination: file:///absolute/path.jsonl appends one JSON value per line. Same receipt and
+     duplicate rules as HTTP; the folder must exist and must not be reached through a symlink. */
+  if (/^file:/i.test(url)) {
+    const path = checkFileDestination(url);
     const payload = buildBody(step, ctx, t);
-    const line = typeof payload === "string" ? payload : JSON.stringify(payload);
+    const line = JSON.stringify(payload);
     const sendFile = async () => {
-      appendFileSync(path, `${line.replace(/\n/g, "\\n")}\n`, { mode: 0o600 });
-      return { output: { dispatched: true, sink: "file", url, file: path } };
+      const fd = openSync(path, fsConstants.O_WRONLY | fsConstants.O_APPEND | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW, 0o600);
+      try {
+        insist(fstatSync(fd).isFile(), `"${label}": the file destination must be a regular file`);
+        writeSync(fd, `${line}\n`);
+      } finally { closeSync(fd); }
+      return { output: { dispatched: true, sink: "file", url: pathToFileURL(path).href, file: path } };
     };
     if (!receiptKey) return sendFile();
-    return deliverOnce({ store: ctx.runStore, destination: { url, method: "APPEND" }, key: resolveTemplate(receiptKey, t), payloadHash: hash(line) }, sendFile);
+    return deliverOnce({ store: ctx.runStore, destination: { url: pathToFileURL(path).href, method: "APPEND" }, key: resolveTemplate(receiptKey, t), payloadHash: hash(line) }, sendFile);
   }
 
   if (!/^https?:\/\//i.test(url)) {

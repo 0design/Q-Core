@@ -114,7 +114,8 @@ export function resolveTemplate(text, ctx) {
 export function missingEnvRefs(text) {
   const out = new Set();
   for (const m of String(text).matchAll(ENV_RE)) {
-    if (envValue(m[1], m[2]) === undefined) out.add(m[1]);
+    const value = envValue(m[1], m[2]);
+    if (value === undefined || value === "") out.add(m[1]);
   }
   return [...out];
 }

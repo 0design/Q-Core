@@ -50,9 +50,10 @@ steps:
         **Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**
         Keep the header exactly as written: no space before "і", and the date is
         plain text, never a link.
-        After the header and a blank line, write one introduction sentence that
-        starts with "Цікаві тези із" and links the podcast inline on its name or
-        author, for example: Цікаві тези із [подкасту <назва або автор>]({{env.QF_PODCAST_VIDEO_URL}}) про ...
+        After the header and a blank line, write a one-paragraph introduction whose
+        first words are exactly "Цікаві тези із " followed by the podcast name or
+        author as the link text, for example:
+        Цікаві тези із [подкасту <назва або автор>]({{env.QF_PODCAST_VIDEO_URL}}) про ...
         This is the only place the episode link may appear; never put it on a line
         of its own and never add a separate "link" line.
         Then return exactly two level-two sections, in this order:
@@ -78,6 +79,7 @@ steps:
       language: uk
       fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]'
       introLinks: '["{{env.QF_PODCAST_VIDEO_URL}}"]'
+      requiredIntroPrefix: "Цікаві тези із ["
       requiredPrefix: "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**\n\n"
       requiredHeadings: '["## Короткі інформаційні сигнали","## Notable / impactful / important news"]'
       requiredEnvPatterns: '{"QF_DIGEST_DATE":"(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])"}'

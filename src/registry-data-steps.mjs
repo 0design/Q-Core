@@ -106,6 +106,11 @@ export function runVerifySources(step, ctx) {
     insist(requiredPrefix !== null && requiredHeadings.length > 0, 'introLinks require requiredPrefix and requiredHeadings');
     const start = requiredPrefix.length, end = text.indexOf(`\n${requiredHeadings[0]}`);
     const intro = end < 0 ? '' : text.slice(start, end);
+    // The introduction is one paragraph (no blank line, no list item, heading or quote inside it).
+    const paragraph = intro.trim();
+    insist(paragraph.length > 0 && !/\n\s*\n/.test(paragraph) && !paragraph.split('\n').some(l => /^\s*(?:[-*+>#]|\d+[.)])\s/.test(l)), 'The introduction must be one paragraph before the first section');
+    const introPrefix = step.config.requiredIntroPrefix == null ? null : textValue(step, 'requiredIntroPrefix', ctx);
+    if (introPrefix !== null) insist(paragraph.startsWith(introPrefix), `The introduction must begin with: ${introPrefix}`);
     for (const url of introLinks) {
       const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const inline = new RegExp(`\\[([^\\]\\n]+)\\]\\(${escaped}\\)`, 'g');
@@ -114,7 +119,8 @@ export function runVerifySources(step, ctx) {
       const [match, label] = inIntro[0];
       const line = intro.split('\n').find(l => l.includes(match));
       const words = line.replace(match, ' ').match(/[\p{L}\p{N}]+/gu) ?? [];
-      insist(!/^https?:/i.test(label.trim()) && words.length >= 3 && !/^\s*(?:[-*+]|\d+[.)])?\s*[\p{L}\s]{0,24}:\s*$/u.test(line.replace(match, '')), `Introduction link ${url} must sit inside a sentence, not on its own link line`);
+      const before = paragraph.slice(0, paragraph.indexOf(match));
+      insist(!/^https?:/i.test(label.trim()) && words.length >= 3 && !/[:：]\s*$/.test(before) && !/^\s*(?:[-*+]|\d+[.)])?\s*[\p{L}\s]{0,24}:\s*$/u.test(line.replace(match, '')), `Introduction link ${url} must sit inside a sentence, not on its own link line`);
     }
   }
   const allowed = new Set([...urls, ...fixedLinks, ...introLinks]);
