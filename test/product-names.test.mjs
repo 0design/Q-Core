@@ -11,7 +11,7 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.28", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.29", bin: {} }, []),
     /Q-Core name/,
   );
 });
@@ -47,7 +47,7 @@ test("Core product prose rejects a retired loop unit while control-flow loop sta
 
 test("Registry composition rejects stale builtin pins and product loop prose", () => {
   const root = mkdtempSync(join(tmpdir(), "q-core-composition-name-guard-"));
-  const pkg = { name: "q-core", version: "0.2.0-q-core.28" };
+  const pkg = { name: "q-core", version: "0.2.0-q-core.29" };
   const builtins = ["api-request", "fan-out", "fetch", "schedule"].map((id) => ({
     id,
     engine: { package: pkg.name, version: pkg.version, manifest: "q-core.workflow/v1" },

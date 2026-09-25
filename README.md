@@ -4,10 +4,34 @@ Local, dependency-free workflow runtime for Node.js >=20.3.
 
 ## Install a package
 
+Install only an archive whose SHA-256 you verified first. Take the archive URL and its
+`artifactSha256` from the `core` field of the exact Registry release catalog you pinned
+(for example `https://registry.qfactory.io/releases/<version>/catalog.json`), never from
+`latest` or a guessed npm version. The block below is fail-closed: it stops before
+`npm install` when the hash is missing, malformed or different, and it works with macOS
+`shasum`, Linux `sha256sum` or, when neither exists, Node.js itself.
+
+<!-- verify-install:start -->
 ```sh
-npm install /absolute/path/q-core.tgz
-npx q-core validate ./workflow.yaml
-npx q-core run ./workflow.yaml
+set -eu
+ARCHIVE=q-core-VERSION.tgz
+EXPECTED=ARTIFACT_SHA256_FROM_CATALOG
+case "$EXPECTED" in *[!0-9a-f]*|"") echo "Expected SHA-256 is not 64 lowercase hex characters; not installing" >&2; exit 1;; esac
+[ "${#EXPECTED}" -eq 64 ] || { echo "Expected SHA-256 is not 64 lowercase hex characters; not installing" >&2; exit 1; }
+if command -v shasum >/dev/null 2>&1; then ACTUAL=$(shasum -a 256 "$ARCHIVE" | cut -d' ' -f1)
+elif command -v sha256sum >/dev/null 2>&1; then ACTUAL=$(sha256sum "$ARCHIVE" | cut -d' ' -f1)
+else ACTUAL=$(node -e 'process.stdout.write(require("node:crypto").createHash("sha256").update(require("node:fs").readFileSync(process.argv[1])).digest("hex"))' "$ARCHIVE"); fi
+[ "$ACTUAL" = "$EXPECTED" ] || { echo "SHA-256 mismatch for $ARCHIVE; not installing" >&2; exit 1; }
+npm install --prefix .qfactory/tools "./$ARCHIVE"
+```
+<!-- verify-install:end -->
+
+On Windows PowerShell, compare `(Get-FileHash -Algorithm SHA256 .\q-core-VERSION.tgz).Hash.ToLower()`
+with the catalog value and run `npm install` only when they are equal.
+
+```sh
+./.qfactory/tools/node_modules/.bin/q-core validate ./workflow.yaml
+./.qfactory/tools/node_modules/.bin/q-core run ./workflow.yaml
 ```
 
 `q-core` is the only installed executable. No other CLI alias is provided. The package includes
@@ -15,9 +39,15 @@ runtime, schema, providers and synthetic contract fixtures. Install reusable wor
 from a versioned registry export.
 
 ```sh
-npx q-core install /absolute/registry-export CATALOG_SHA256 workflow-id 1.0.0 ./workflow.yaml
+./.qfactory/tools/node_modules/.bin/q-core install https://registry.qfactory.io/releases/VERSION CATALOG_SHA256 workflow-id 1.0.0 ./workflow.yaml
+./.qfactory/tools/node_modules/.bin/q-core install /absolute/registry-export CATALOG_SHA256 workflow-id 1.0.0 ./workflow.yaml --release VERSION
 ```
 
+The release version is pinned separately from the catalog hash: the catalog's
+`releaseVersion` must equal the `releases/<version>` segment of the Registry base and
+`--release` when given (`RELEASE_MISMATCH` otherwise); a remote non-localhost base must
+name its release (`RELEASE_REQUIRED`). A truncated or corrupt catalog fails with
+`CATALOG_INVALID`. Errors are printed as `CODE: message` with exit code 1.
 The catalog must pin this engine version. Installer verifies catalog bytes,
 manifest identity, checksums and exact dependencies, and writes `workflow.yaml.lock.json`.
 It never overwrites files. HTTPS registries are supported; HTTP is localhost-only.

@@ -1,11 +1,19 @@
 # Pinned registry consumption
 
-`q-core install <base> <catalog-sha256> <id> <version> <destination>` downloads,
+`q-core install <base> <catalog-sha256> <id> <version> <destination> [--release <version>]` downloads,
 checks and installs an exact workflow plus a sidecar origin/dependency lock. The base
 is an absolute export directory or static HTTPS directory containing catalog.json
 and workflows/components/demos subdirectories. HTTP is allowed only on localhost for
 controlled development. The Site /api/registry route is a different API layout;
 it is not automatically treated as a static export base.
+
+The release version is pinned separately from the catalog hash. When the base ends in
+`releases/<version>` or `--release <version>` is given, the catalog `releaseVersion` must
+equal it (both must agree when both are present), otherwise `RELEASE_MISMATCH`. A remote
+non-localhost base must name its release in one of these ways (`RELEASE_REQUIRED`), and
+candidate/current/latest names are refused. A truncated, non-UTF-8 or non-object catalog
+with a matching hash fails with `CATALOG_INVALID`, never a raw parser error. The CLI prints
+`CODE: message` and exits 1.
 
 The catalog must pin the installed q-core version exactly and q-core.workflow/v1. A newer
 local engine must not rewrite a downloaded catalog or silently accept the old pin.

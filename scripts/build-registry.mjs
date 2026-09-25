@@ -108,7 +108,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   };
   const coreIndex = process.argv.indexOf('--core-artifact');
   if (coreIndex >= 0) {
-    if (index < 0 || !process.argv[coreIndex + 1]) throw Error('Core artifact requires an export destination and input file');
+    if ((index < 0 && !process.argv.includes('--check')) || !process.argv[coreIndex + 1]) throw Error('Core artifact requires an export destination or --check, and an input file');
     const corePath = resolve(process.argv[coreIndex + 1]);
     if (!lstatSync(corePath).isFile() || lstatSync(corePath).isSymbolicLink()) throw Error('Unsafe Core artifact');
     const body = readFileSync(corePath);

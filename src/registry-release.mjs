@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, lstatSync, existsSync } from "node:fs";
 import { resolve, join, isAbsolute } from "node:path";
-import { hash, insist } from "./contracts.mjs";
+import { hash, insist, CoreError } from "./contracts.mjs";
 import { parseYaml } from "./yaml.mjs";
 import { validateManifest } from "./manifest.mjs";
 export async function readAsset(base, path) {
@@ -55,19 +55,61 @@ export async function readAsset(base, path) {
   insist(lstatSync(p).size <= 2000000, "Registry asset too large");
   return readFileSync(p);
 }
-export async function loadRelease(base, sha256) {
+const RELEASE_VERSION = /^[a-z0-9][a-z0-9._-]{0,127}$/;
+const isRemote = (base) => /^https?:\/\//.test(base);
+const isLocalhost = (base) => isRemote(base) && ["127.0.0.1", "localhost"].includes(new URL(base).hostname);
+/** Release version named by a `.../releases/<version>` Registry base (URL or directory), or null. */
+export function releaseFromBase(base) {
+  const path = isRemote(base) ? new URL(base).pathname : String(base ?? "");
+  const match = /\/releases\/([^/]+)\/?$/.exec(path);
+  return match ? match[1] : null;
+}
+/** Parse catalog bytes into an object or fail with a stable code (truncated/corrupt input). */
+export function parseCatalog(bytes) {
+  let catalog;
+  try {
+    catalog = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    throw new CoreError("CATALOG_INVALID", "Catalog is not valid UTF-8 JSON (truncated or corrupt)");
+  }
+  insist(catalog && typeof catalog === "object" && !Array.isArray(catalog), "Invalid catalog", "CATALOG_INVALID");
+  return catalog;
+}
+export async function loadRelease(base, sha256, { releaseVersion } = {}) {
   insist(/^[a-f0-9]{64}$/.test(sha256), "Explicit catalog SHA256 required");
+  insist(
+    releaseVersion === undefined || (typeof releaseVersion === "string" && RELEASE_VERSION.test(releaseVersion) && !/candidate|current|latest/i.test(releaseVersion)),
+    "Pinned release version must be an exact non-candidate version",
+    "RELEASE_MISMATCH",
+  );
+  const fromBase = releaseFromBase(base);
+  insist(
+    !releaseVersion || !fromBase || fromBase === releaseVersion,
+    `Pinned release ${releaseVersion} differs from the Registry release path ${fromBase}`,
+    "RELEASE_MISMATCH",
+  );
+  const expected = releaseVersion ?? fromBase;
+  insist(
+    expected || !isRemote(base) || isLocalhost(base),
+    "Remote Registry requires a versioned .../releases/<version> base or --release <version>",
+    "RELEASE_REQUIRED",
+  );
   const bytes = await readAsset(base, "catalog.json");
   insist(
     hash(bytes) === sha256,
     "Catalog checksum mismatch",
     "CHECKSUM_MISMATCH",
   );
-  const catalog = JSON.parse(bytes.toString("utf8"));
-  insist(catalog && typeof catalog === "object" && !Array.isArray(catalog), "Invalid catalog");
+  const catalog = parseCatalog(bytes);
   insist(
     typeof catalog.releaseVersion === "string" && catalog.releaseVersion.trim() && Array.isArray(catalog.workflows),
     "Versioned release required",
+    "CATALOG_INVALID",
+  );
+  insist(
+    !expected || catalog.releaseVersion === expected,
+    `Catalog release ${catalog.releaseVersion} does not match the pinned release ${expected}`,
+    "RELEASE_MISMATCH",
   );
   insist(
     catalog.core?.manifest === "q-core.workflow/v1",
@@ -113,8 +155,9 @@ export async function installPinned({
   id,
   version,
   destination,
+  releaseVersion,
 }) {
-  const catalog = await loadRelease(base, catalogSha256);
+  const catalog = await loadRelease(base, catalogSha256, { releaseVersion });
   const entry = catalog.workflows.find((e) => e.id === id && e.version === version);
   insist(entry, "Pinned workflow not found", "VERSION_NOT_FOUND");
   const resolved = [];
