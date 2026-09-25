@@ -41,8 +41,8 @@ nothing was executed.` Next to the manifest, `workflow.yaml.lock.json` records t
 exact hashes of the workflow and every component it uses. A wrong catalog hash stops
 the install with `Catalog checksum mismatch`, and existing files are never overwritten.
 
-A real run of `json-digest` calls a model and a webhook, so it needs
-`OPENROUTER_API_KEY` and `QCORE_WEBHOOK_URL`. `q-core catalog` lists what the
+A real run of `json-digest` reads a source URL, calls a model and posts to a webhook,
+so it needs `QCORE_SOURCE_URL`, `OPENROUTER_API_KEY` and `QCORE_WEBHOOK_URL`. `q-core catalog` lists what the
 installed build contains; `q-core doctor` checks the machine.
 
 ## What is available today
@@ -52,7 +52,7 @@ installed build contains; `q-core doctor` checks the machine.
 | Registry `2026.09.25-registry.14` (`current`) | Public, pinned by `catalogSha256`; pins Core `0.2.0-q-core.28` |
 | Core `0.2.0-q-core.28` | Downloadable from the Registry release with its SHA-256; not on npm |
 | Registry workflows | `digest` and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
-| Hosted MCP `https://qfactory.io/api/mcp` | Read-only: `catalog`, `search`, `get` over the pinned Registry release; it does not run workflows |
+| Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Can be ahead of `current` (Core 29 is a candidate for the next Registry release) |
 
 ## Honest limits
