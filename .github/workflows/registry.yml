@@ -19,7 +19,9 @@ jobs:
       - name: Build and exercise exact downloadable candidate
         run: |
           mkdir -p /tmp/core-package
-          npm pack --pack-destination /tmp/core-package --json > /tmp/core-package/pack.json
+          # prepack guards run explicitly; their stdout must not mix with the pack JSON.
+          npm run check:public-surface && npm run check:product-names
+          npm pack --ignore-scripts --pack-destination /tmp/core-package --json > /tmp/core-package/pack.json
           CORE_ARCHIVE=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/core-package/pack.json'))[0].filename")
           # Committed catalog and SHA256SUMS must equal a fresh build with the reproducible Core archive.
           node scripts/build-registry.mjs --check --core-artifact "/tmp/core-package/$CORE_ARCHIVE"
