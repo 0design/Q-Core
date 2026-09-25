@@ -76,7 +76,10 @@ export function runVerifySources(step, ctx) {
     // Only the required level-two sections may exist; ### thematic sub-blocks inside them are allowed. Any other
     // level-one/two heading form (ATX with up to three leading spaces, or a setext underline) is refused.
     const lines = text.split(/\r?\n/);
-    lines.forEach((line, index) => insist(!(/^ {0,3}(?:=+|-+)[ \t]*$/.test(line) && index > 0 && lines[index - 1].trim() !== '' && !/^ {0,3}(?:[-*+]|\d+[.)])\s/.test(lines[index - 1])), 'Draft must contain exactly the required Markdown sections in order'));
+    // A setext underline makes a heading only under a paragraph; under a list item (or its continuation) or a
+    // quote it is a thematic break, so it is allowed there.
+    const blockStart = index => { let i = index; while (i > 0 && lines[i - 1].trim() !== '') i -= 1; return lines[i]; };
+    lines.forEach((line, index) => insist(!(/^ {0,3}(?:=+|-+)[ \t]*$/.test(line) && index > 0 && lines[index - 1].trim() !== '' && !/^ {0,3}(?:(?:[-*+]|\d+[.)])\s|>)/.test(blockStart(index - 1))), 'Draft must contain exactly the required Markdown sections in order'));
     insist(lines.filter(line => /^ {0,3}#{1,2}(?:[ \t]|$)/.test(line)).every(line => /^##(?!#)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
     // A heading nested in a list item or a quote is not a section; refuse it rather than let it look like one.
     insist(!lines.some(line => /^\s*(?:(?:[-*+]|\d+[.)])\s+|>\s*)+#{1,6}(?:\s|$)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
@@ -90,7 +93,7 @@ export function runVerifySources(step, ctx) {
   // Markdown link targets are read exactly, so text glued to the closing
   // parenthesis (")і by") does not become part of the URL; bare URLs elsewhere.
   const linkTargets = [];
-  const bare = text.replace(/\]\((https?:\/\/[^\s()<>]+)\)/g, (_, url) => { linkTargets.push(url); return '] '; });
+  const bare = text.replace(/\]\((https?:\/\/[^\s()<>]+)(?:\s+"[^"\n]*")?\)/g, (_, url) => { linkTargets.push(url); return '] '; });
   const links = [...linkTargets, ...[...bare.matchAll(/https?:\/\/[^\s<>"\]]+/g)].map(m => m[0].replace(/[).,;]+$/, ''))];
   // With a format contract, every other way to write a link is refused too: an uppercase scheme, a Markdown or
   // reference link target that is not a plain http(s) URL, a scheme-less www. address, or a raw HTML link.
@@ -129,9 +132,39 @@ export function runVerifySources(step, ctx) {
       insist(!/^https?:/i.test(label.trim()) && words.length >= 3 && !/[:：]\s*$/.test(before) && !/^\s*(?:[-*+]|\d+[.)])?\s*[\p{L}\s]{0,24}:\s*$/u.test(line.replace(match, '')), `Introduction link ${url} must sit inside a sentence, not on its own link line`);
     }
   }
-  const allowed = new Set([...urls, ...fixedLinks, ...introLinks]);
+  // forbidLocalLinks: no localhost, private-network or file link may reach the final text.
+  const forbidLocal = step.config.forbidLocalLinks === 'true' || step.config.forbidLocalLinks === true || step.config.citation === 'timestamps';
+  if (forbidLocal) {
+    insist(!/\bfile:\//i.test(text), 'Draft includes a local link');
+    for (const link of links) {
+      let host = '';
+      try { host = new URL(link).hostname.toLowerCase(); } catch { host = ''; }
+      insist(host && !/^(localhost|0\.0\.0\.0|127(?:\.\d+){3}|\[?::1\]?|10(?:\.\d+){3}|192\.168(?:\.\d+){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d+){2})$/.test(host) && !host.endsWith('.localhost') && !host.endsWith('.local'), `Draft includes a local link: ${link}`);
+    }
+  }
+  // citation: "timestamps" — sources are cited by [mm:ss] markers that exist in the selected source text, not by
+  // their (possibly private) URLs; every cited paragraph or item in the required sections carries a marker.
+  const timestampCitations = step.config.citation === 'timestamps';
+  if (step.config.citation != null) insist(timestampCitations, 'citation must be "timestamps" when set');
+  if (timestampCitations) {
+    insist(requiredHeadings.length > 0, 'citation: timestamps requires requiredHeadings');
+    const known = new Set(sources.flatMap(source => String(source.text ?? '').match(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g) ?? []));
+    insist(known.size > 0, 'Selected sources carry no [mm:ss] markers');
+    const stamps = text.match(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g) ?? [];
+    insist(stamps.length > 0, 'Draft cites no [mm:ss] timestamp');
+    const unknown = stamps.filter(stamp => !known.has(stamp));
+    insist(unknown.length === 0, `Draft timestamps are not markers of the selected sources: ${[...new Set(unknown)].join(', ')}`);
+    const loose = text.replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g, ' ').match(/(?<![\d.:])\d{1,2}:\d{2}(?::\d{2})?(?![\d:])/g);
+    insist(!loose, `Draft writes timestamps outside the [mm:ss] form: ${(loose ?? []).slice(0, 3).join(', ')}`);
+    const body = text.slice(text.indexOf(`\n${requiredHeadings[0]}`));
+    const blocks = body.split(/\n\s*\n/).map(b => b.trim()).filter(b => b && !/^#{2,6}\s/.test(b) && /[\p{L}]{3}/u.test(b));
+    const items = blocks.flatMap(b => /^(?:[-*+]|\d+[.)])\s/m.test(b) ? b.split(/\n(?=\s*(?:[-*+]|\d+[.)])\s)/) : [b]);
+    const uncited = items.filter(item => !/\[\d{1,2}:\d{2}(?::\d{2})?\]/.test(item));
+    insist(uncited.length === 0, `Every item needs its own [mm:ss] timestamp; uncited: ${uncited[0]?.slice(0, 60)}`);
+  }
+  const allowed = new Set([...(timestampCitations ? [] : urls), ...fixedLinks, ...introLinks]);
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
-  insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
+  if (!timestampCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline'])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }

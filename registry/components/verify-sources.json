@@ -45,6 +45,16 @@
       "type": "json-string",
       "required": false,
       "notes": "JSON array of HTTP(S) URLs allowed only once each, as an inline Markdown link inside the introduction sentence between requiredPrefix and the first required section; a standalone or labelled link line, a bare URL or any other occurrence fails. Requires requiredPrefix and requiredHeadings."
+    },
+    "citation": {
+      "type": "string",
+      "required": false,
+      "notes": "\"timestamps\": sources are cited by [mm:ss] (or [h:mm:ss]) markers copied from the selected source text instead of their URLs; every marker must exist in the sources, every paragraph or list item in the required sections needs one, and no other time format is allowed. Implies forbidLocalLinks."
+    },
+    "forbidLocalLinks": {
+      "type": "string",
+      "required": false,
+      "notes": "\"true\": no localhost, private-network, .local or file: link may appear in the draft."
     }
   },
   "output": {
@@ -66,10 +76,10 @@
     "evidence": [
       {
         "file": "demos/digest-format.txt",
-        "sha256": "9376afefe987657f3222721fac6d34f82e7e40ac82440801eb3f25597a31b034",
-        "componentVersion": "0.3.0",
-        "coreVersion": "0.2.0-q-core.31",
-        "coreSha256": "914633fa39ff2d0eab914a92c0a23571730c3f2835fa9e0cca81d4d4e89f4f01"
+        "sha256": "dd7cf61b75222e6865b1ebd2757ba684537dd1467e76f68d1c8eca4a167fa3a4",
+        "componentVersion": "0.4.0",
+        "coreVersion": "0.2.0-q-core.32",
+        "coreSha256": "6b3ded729249fedab01b0150fc320f61a75f2e8be2c4d8ae2269c67f85025e9f"
       },
       {
         "file": "demos/digest-huyiks.txt",

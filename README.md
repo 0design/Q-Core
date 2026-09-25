@@ -55,8 +55,8 @@ the machine.
 
 | Surface | State |
 | --- | --- |
-| This Core `0.2.0-q-core.31` | Pinned by Registry `2026.09.26-registry.17` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
-| Registry workflows | `digest` 0.3.0 (official sources by default, two sections and a fixed header checked before approval, HTTP or local-file delivery), `podcast-digest` 0.2.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
+| This Core `0.2.0-q-core.32` | Pinned by Registry `2026.09.26-registry.18` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
+| Registry workflows | `digest` 0.3.0 (official sources by default, two sections and a fixed header checked before approval, HTTP or local-file delivery), `podcast-digest` 0.3.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 
