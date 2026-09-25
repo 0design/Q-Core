@@ -1,6 +1,6 @@
 {
   "name": "q-core",
-  "version": "0.2.0-q-core.27",
+  "version": "0.2.0-q-core.28",
   "license": "MIT",
   "description": "Run a QFactory workflow from a YAML manifest. No database, no server, no build step.",
   "type": "module",
@@ -17,6 +17,7 @@
     "proof": "node scripts/record-proof.mjs --all",
     "check:public-surface": "node scripts/check-public-surface.mjs",
     "check:product-names": "node scripts/check-product-names.mjs",
+    "check:naming-inventory": "node scripts/check-naming-inventory.mjs",
     "prepack": "npm run check:public-surface && npm run check:product-names",
     "test:registry-export": "node scripts/test-exact-registry-export.mjs",
     "test:package": "npm run check:public-surface && npm run check:product-names && node scripts/test-package.mjs && node scripts/test-content-package.mjs && npm run test:registry-export"

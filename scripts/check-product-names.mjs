@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.27"), "candidate version must identify Q-Core");
+  assert.ok(pkg.version.endsWith("-q-core.28"), "candidate version must identify Q-Core");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
@@ -75,6 +75,9 @@ export function assertNoRetiredProductNames(files) {
     assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
     assert.equal(/\bloop-id\b/i.test(inspectable), false, `${path} retains the retired loop-id contract`);
     assert.equal(/\bloops?\s+(?:catalog|manifest|version|id)\b/i.test(inspectable), false, `${path} retains a retired product loop term`);
+    assert.equal(/\bloop-input\b/i.test(inspectable), false, `${path} retains the retired loop-input trigger kind`);
+    assert.equal(/loop-engine|\bqf_loop_template\b|\bLoopStep\b|\bloop-parity\b/.test(inspectable), false, `${path} retains a retired loop engine name`);
+    assert.equal(/[a-z]Loops?(?:[A-Z]|\b)/.test(inspectable), false, `${path} retains a Loop identifier; use Workflow`);
   }
 }
 
@@ -83,6 +86,7 @@ export function assertNoRetiredProductUnitTerms(files) {
     /\b(?:a|an|the|this|that|such|complete|valid|broken|feed|catalogue|catalog|pinned|selected|installed|target|old|new)\s+loops?\b/i,
     /\b(?:names|overrides|share|run|send|starts|stops)\s+(?:the\s+)?loops?\b/i,
     /\bloop(?:'s)?\s+(?:model|settings|builder|manifest|template)\b/i,
+    /\b(?:the|a)\s+loop\s+(?:is|may|ends?|runs?)\b/i,
   ];
   for (const { path, source } of files) {
     for (const pattern of patterns) {
@@ -96,6 +100,15 @@ export function verifyWorkflowConsumerNames(root) {
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assert.ok(files.length > 0, "Registry must contain at least one workflow consumer");
   assertNoRetiredProductNames(files);
+}
+
+export function verifyComponentNames(root) {
+  const files = filesBelow(root, "registry/components")
+    .filter((path) => path.endsWith(".json"))
+    .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
+  assert.ok(files.length > 0, "Registry must contain component metadata");
+  assertNoRetiredProductNames(files);
+  assertNoRetiredProductUnitTerms(files);
 }
 
 export function verifyDemoNames(root) {
@@ -154,6 +167,7 @@ export function verifyRegistryComposition(root, pkg) {
   const source = readFileSync(path, "utf8");
   assertNoRetiredProductUnitTerms([{ path: "registry/composition.json", source }]);
   const composition = JSON.parse(source);
+  assert.equal(Object.keys(composition).some((key) => /loop/i.test(key)), false, "Registry composition keys must name workflows, not loops");
   const expectedBuiltinIds = new Set(["api-request", "fan-out", "fetch", "schedule"]);
   const builtins = composition.builtins?.filter((entry) => expectedBuiltinIds.has(entry.id)) ?? [];
   assert.equal(builtins.length, expectedBuiltinIds.size, "Registry composition must retain every active builtin pin");
@@ -178,6 +192,7 @@ export function verifyProductNames(root = resolve(".")) {
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));
   assertNoRetiredProductNames(activeSources);
   assertNoRetiredProductUnitTerms(productProseFiles.map((path) => ({ path, source: readFileSync(join(root, path), "utf8") })));
+  verifyComponentNames(root);
   verifyRegistryComposition(root, pkg);
   verifyPackagedReadmeAliasBoundary(root);
   verifyWorkflowConsumerNames(root);

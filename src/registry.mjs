@@ -277,6 +277,6 @@ export function enrichComponent(component, workflows) {
 
 export function enrichDemo(demo, workflows) {
   assertDemoWorkflowExists(demo, workflows);
-  const loop = workflows.find((l) => l.id === demo.workflowId);
-  return { ...demo, measured: loop.measured ?? null };
+  const workflow = workflows.find((entry) => entry.id === demo.workflowId);
+  return { ...demo, measured: workflow.measured ?? null };
 }

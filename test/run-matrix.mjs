@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Run each loop against controlled source and receiver scenarios.
+/** Run each workflow against controlled source and receiver scenarios.
  * Start test/fixture-server.mjs first. Each row reports expected and actual results.
- * Environment overrides change the fixture, not the loop manifest.
+ * Environment overrides change the fixture, not the workflow manifest.
  */
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync, existsSync, rmSync } from "node:fs";
@@ -49,8 +49,8 @@ async function receivedCount() {
   } catch { return -1; }
 }
 
-function runOne(loopFile, sc) {
-  const id = loopFile.replace(/\.yaml$/, "");
+function runOne(workflowFile, sc) {
+  const id = workflowFile.replace(/\.yaml$/, "");
   const env = { ...process.env, ...sc.env, QF_NO_UPDATE_CHECK: "1" };
   if (SOURCE_OVERRIDE[id]?.[sc.id]) env.QCORE_SOURCE_URL = SOURCE_OVERRIDE[id][sc.id];
   /* Remove Telegram credentials so fixture runs cannot send to a real channel. */
@@ -58,7 +58,7 @@ function runOne(loopFile, sc) {
   env.OPENROUTER_API_KEY = sc.noKey ? "" : KEY;
   if (!env.OPENROUTER_API_KEY) delete env.OPENROUTER_API_KEY;
 
-  const args = ["run", join(PKG, "registry", "workflows", loopFile), "--json", "--quiet"];
+  const args = ["run", join(PKG, "registry", "workflows", workflowFile), "--json", "--quiet"];
   if (sc.dry) args.push("--dry-run");
   const r = spawnSync("node", [QL, ...args], { env, encoding: "utf8", timeout: 120_000, maxBuffer: 64 * 1024 * 1024 });
 
@@ -76,10 +76,10 @@ function runOne(loopFile, sc) {
 
 /* Execute scenarios. */
 
-console.log(`# Loop run matrix\n`);
+console.log(`# Workflow run matrix\n`);
 console.log(`> Fixture: \`test/fixture-server.mjs\` at ${F}. Manifests are unchanged;`);
 console.log(`> the scenario changes only environment variables, so failures`);
-console.log(`> are handled by the original loop.\n`);
+console.log(`> are handled by the original workflow.\n`);
 console.log(`Workflows: **${workflows.length}** · scenarios: **${SCENARIOS.length}** · runs: **${workflows.length * SCENARIOS.length}**\n`);
 
 const rows = [];
@@ -94,7 +94,7 @@ for (const f of workflows) {
     const out = runOne(f, sc);
     const after = await receivedCount();
     const delivered = after - before;
-    rows.push({ loop: id, sc: sc.id, ...out, delivered });
+    rows.push({ workflow: id, sc: sc.id, ...out, delivered });
     console.log(
       `| ${sc.label} | ${sc.expect} | \`${out.exit}\` | **${out.status}** | ${out.done}/${out.steps} | ${out.cost ? "$" + Number(out.cost).toFixed(4) : "—"} | ${out.summary.replace(/\|/g, "\\|")} |`,
     );
@@ -117,5 +117,5 @@ console.log(`\nTotal reported cost: **$${spend.toFixed(4)}**\n`);
 const leaked = rows.filter((r) => r.status !== "success" && r.delivered > 0);
 console.log(`\n### Did an incomplete run deliver anything\n`);
 console.log(leaked.length
-  ? leaked.map((r) => `- ⚠️ **${r.loop} / ${r.sc}** — status \`${r.status}\`, receiver accepted ${r.delivered}`).join("\n")
+  ? leaked.map((r) => `- ⚠️ **${r.workflow} / ${r.sc}** — status \`${r.status}\`, receiver accepted ${r.delivered}`).join("\n")
   : `None. ${rows.filter((r) => r.status !== "success").length} unsuccessful runs; zero accepted requests.`);

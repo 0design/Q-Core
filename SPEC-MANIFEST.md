@@ -65,7 +65,7 @@ triggers:
 ```
 
 Kinds: `schedule` · `manual` · `webhook` · `signal` · `intent-input` ·
-`loop-input` · `event`.
+`workflow-input` · `event`.
 
 **The runner does not act on any of them.** `q-core run` performs one pass; `cron:`
 documents the intended cadence, and launchd or cron actually fires it (README
@@ -335,7 +335,7 @@ expensive kind of wrong.
 ## 9. Divergences
 
 The runner and the product engine execute the same manifest identically, and a
-parity test (`scripts/loop-parity.ts`) enforces that across four cases: a workflow
+parity test in the product engine enforces that across four cases: a workflow
 with no human, a gate that holds, a budget that cuts, and a fan-out lane per
 item.
 

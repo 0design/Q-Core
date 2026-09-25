@@ -32,7 +32,7 @@
     "model": {
       "type": "string",
       "required": false,
-      "notes": "overrides the loop's model."
+      "notes": "overrides the workflow's model."
     }
   },
   "output": {

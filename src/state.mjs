@@ -84,7 +84,7 @@ export class RunStore {
 
   /**
    * The outcome pointer. This is the failure notification: a monitor that only
-   * ever sees "nothing arrived today" cannot tell a broken loop from a quiet
+   * ever sees "nothing arrived today" cannot tell a broken workflow from a quiet
    * one, so the reason is written down even when — especially when — it failed.
    */
   saveLastRun(run) {

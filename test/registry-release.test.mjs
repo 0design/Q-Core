@@ -88,17 +88,17 @@ test('dependency graph rejects ambiguity, cycles, malformed sections and mismatc
   const body='manifest: q-core.workflow/v1\nid: target\nversion: 1.0.0\nsteps:\n  - id: gate\n    kind: approval-gate\n    config: { reviewer: human }\n';
   writeFileSync(join(dir,'workflows/target.yaml'),body);
   const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
-  const loop={id:'target',version:'1.0.0',file:'workflows/target.yaml',sha256:hash(body),dependencies:[]};
-  const base={releaseVersion:'test.1',core:{package:'q-core',version:pkg.version,manifest:'q-core.workflow/v1'},workflows:[loop],components:[]};
+  const workflow={id:'target',version:'1.0.0',file:'workflows/target.yaml',sha256:hash(body),dependencies:[]};
+  const base={releaseVersion:'test.1',core:{package:'q-core',version:pkg.version,manifest:'q-core.workflow/v1'},workflows:[workflow],components:[]};
   const cases=[
-    [{...base,workflows:[{...loop,dependencies:[{id:'target',version:'1.0.0'}]}]},/cycle/],
-    [{...base,workflows:[{...loop,dependencies:[{id:'target',version:'1.0.0'}]}],components:[{...loop,file:'components/target.json'}]},/Ambiguous/],
-    [{...base,workflows:[{...loop,dependencies:[{id:'missing',version:'1.0.0'}]}]},/Unresolved/],
+    [{...base,workflows:[{...workflow,dependencies:[{id:'target',version:'1.0.0'}]}]},/cycle/],
+    [{...base,workflows:[{...workflow,dependencies:[{id:'target',version:'1.0.0'}]}],components:[{...workflow,file:'components/target.json'}]},/Ambiguous/],
+    [{...base,workflows:[{...workflow,dependencies:[{id:'missing',version:'1.0.0'}]}]},/Unresolved/],
     [{...base,components:{}},/section/],
-    [{...base,workflows:[{...loop,dependencies:{}}]},/Dependencies/],
-    [{...base,workflows:[{...loop,dependencies:[{id:'missing',version:'latest'}]}]},/Dependencies/],
-    [{...base,workflows:[{...loop,file:'components/target.json'}]},/section and identity/],
-    [{...base,workflows:[{...loop,engine:{...base.core,version:'different'}}]},/engine differs/],
+    [{...base,workflows:[{...workflow,dependencies:{}}]},/Dependencies/],
+    [{...base,workflows:[{...workflow,dependencies:[{id:'missing',version:'latest'}]}]},/Dependencies/],
+    [{...base,workflows:[{...workflow,file:'components/target.json'}]},/section and identity/],
+    [{...base,workflows:[{...workflow,engine:{...base.core,version:'different'}}]},/engine differs/],
   ];
   for(const [catalog,error] of cases){
     const bytes=JSON.stringify(catalog);writeFileSync(join(dir,'catalog.json'),bytes);

@@ -4,11 +4,11 @@
  * This file is the whole reason the package exists. `SPEC-MANIFEST.md`
  * (stage 2) described a YAML format; nothing could read it, so a stranger could
  * write a perfectly valid manifest and had no way to run it. What comes out of
- * here is exactly `{ settings, steps }` as stored in `qf_loop_template` — the
+ * here is exactly `{ settings, steps }` as the product engine stores a workflow — the
  * same tree `flattenWorkflowSteps` and `driveRun` take. There is no second format
  * and no translation layer: this reads THE format, or it refuses.
  *
- * ONE NORMALISATION MATTERS. `LoopStep.config` is `Record<string, string>` in the
+ * ONE NORMALISATION MATTERS. A stored step `config` is `Record<string, string>` in the
  * database, because the workflow builder stores everything as text. YAML gives real
  * numbers and booleans. They are stringified HERE, once, so that
  * `timeoutSec: 30` and `timeoutSec: "30"` are the same manifest — and so the
@@ -28,7 +28,7 @@ export const MANIFEST_TAG = "q-core.workflow/v1";
 export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"];
 
 /** Trigger kinds — entry points, not steps. `schedule` is one of these, not a runner. */
-export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "loop-input", "event"];
+export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "workflow-input", "event"];
 
 /** Reserved in the format, deliberately NOT implemented (owner decision 2026-08-01). */
 export const RESERVED_KINDS = {

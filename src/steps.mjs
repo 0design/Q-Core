@@ -105,7 +105,7 @@ export async function runFetch(step, ctx) {
   try {
     res = await fetchWithRetry(
       url,
-      { headers: { "User-Agent": "q-factory-loop-engine/1" }, signal: ctx.signal },
+      { headers: { "User-Agent": "q-core-workflow-engine/1" }, signal: ctx.signal },
       { timeoutMs, retries: 2 },
     );
   } catch (e) {

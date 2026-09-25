@@ -1,0 +1,31 @@
+{
+  "schema": "qf.naming-inventory-allowlist/v1",
+  "issue": "0D-372 QF-NAMING-01",
+  "classes": {
+    "generic-control-flow": { "transitional": false, "meaning": "The built-in control-flow step kind loop (SPEC 5.7), not the product unit." },
+    "generic-term": { "transitional": false, "meaning": "General programming or networking vocabulary." },
+    "negative-guard": { "transitional": false, "meaning": "The retired name appears only so a guard or test can reject it." },
+    "historical-immutable": { "transitional": false, "meaning": "Recorded evidence or provenance pinned to a past revision; rewriting it would falsify history." },
+    "third-party": { "transitional": false, "meaning": "Another vendor's product name." },
+    "remote-identity-release-deferred": { "transitional": true, "meaning": "The real current GitHub repository 0design/qloops. Changes only in the coordinated remote rename release gate." }
+  },
+  "rules": [
+    { "class": "generic-term", "path": "^README\\.md$", "token": "^loopback$", "reason": "authenticated loopback webhook trigger" },
+    { "class": "generic-control-flow", "path": "^SPEC-MANIFEST\\.md$", "line": "Control flow|kind: loop|loop\\.maxIterations", "reason": "SPEC 5.7 control-flow kind" },
+    { "class": "generic-control-flow", "path": "^registry/README\\.md$", "line": "control-flow operators", "reason": "built-in control-flow component inventory" },
+    { "class": "generic-control-flow", "path": "^registry/(composition|catalog)\\.json$", "line": "\"id\": \"loop\"|if, switch, loop and each", "reason": "composition.builtins control-flow entry" },
+    { "class": "generic-control-flow", "path": "^src/(flatten|run|manifest)\\.mjs$", "line": "\"loop\"|a loop step", "reason": "engine control-flow kind" },
+    { "class": "generic-control-flow", "path": "^test/control-flow\\.test\\.mjs$", "reason": "control-flow kind tests" },
+    { "class": "generic-control-flow", "path": "^test/q-workflow-cli-naming\\.test\\.mjs$", "line": "generic|kind: loop|loop\\\\s\\+repeat|loop\\.yaml", "reason": "CLI keeps the generic control-flow kind" },
+    { "class": "negative-guard", "path": "^src/manifest\\.mjs$", "line": "family === \"qloops\\.loop\"", "reason": "manifest rejects the retired namespace fail-closed" },
+    { "class": "negative-guard", "path": "^scripts/(check-product-names|check-naming-inventory)\\.mjs$", "reason": "naming guards" },
+    { "class": "negative-guard", "path": "^scripts/naming-inventory\\.allowlist\\.json$", "reason": "this classification" },
+    { "class": "negative-guard", "path": "^test/(product-names|naming-inventory|registry-digest|record-proof-naming)\\.test\\.mjs$", "reason": "negative naming fixtures" },
+    { "class": "negative-guard", "path": "^test/manifest\\.test\\.mjs$", "line": "qloops", "reason": "retired manifest namespace rejection test" },
+    { "class": "negative-guard", "path": "^(scripts/test-registry-export|test/q-workflow-cli-naming\\.test)\\.mjs$", "line": "doesNotMatch|retiredRenderedTerm", "reason": "asserts retired CLI output is absent" },
+    { "class": "historical-immutable", "path": "^registry/catalog(\\.source)?\\.json$", "line": "\"path\": \"content/registry/loops/", "reason": "origin provenance path at 0design/QFactory.io revision e453b57" },
+    { "class": "third-party", "path": "^registry/demos/digest-huyiks\\.txt$", "token": "^Loops$", "reason": "Linear Loops, quoted in recorded digest output" },
+    { "class": "historical-immutable", "path": "^registry/demos/[a-z0-9-]+\\.txt$", "line": "loopId|loopVersion|\"loops/", "reason": "recorded 2026-09-19 Core16 acceptance transcript" },
+    { "class": "remote-identity-release-deferred", "path": "^(package\\.json|registry/catalog(\\.source)?\\.json|scripts/check-reviewed-release\\.mjs|test/test_registry_publish\\.py)$", "line": "0design/qloops", "reason": "current remote repository identity" }
+  ]
+}

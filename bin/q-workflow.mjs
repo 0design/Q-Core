@@ -421,7 +421,7 @@ const EXAMPLES_DIR = join(HERE, "..", "examples");
 
 const CATALOG_SECTIONS = new Set(["workflows", "components", "demos"]);
 
-function printLoops(workflows) {
+function printWorkflows(workflows) {
   process.stdout.write(`${c.bold(`${workflows.length} workflows ship with q-core ${PKG.version}`)}\n\n`);
   for (const l of workflows) {
     const cost = l.measured ? `$${l.measured.costUsd.toFixed(4)}/run` : "not measured yet";
@@ -492,7 +492,7 @@ async function cmdCatalog(args, flags, opts = {}) {
     return EXIT_OK;
   }
   const show = (name) => !section || section === name;
-  if (show("workflows")) printLoops(cat.workflows ?? []);
+  if (show("workflows")) printWorkflows(cat.workflows ?? []);
   if (show("components")) printComponents(cat.components ?? []);
   if (show("demos")) printDemos(cat.demos ?? []);
   if (show("workflows")) process.stdout.write(c.dim(`  q-core init <id>   copies one here\n`));

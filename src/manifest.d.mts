@@ -3,11 +3,11 @@
  *
  * Hand-written, because this package has no build step on purpose — `npm pack`
  * produces files you can run, not files you have to compile first. The one place
- * that consumes it from TypeScript is `scripts/loop-parity.ts`, and it should be
+ * that consumes it from TypeScript is the product-engine parity test, and it should be
  * type-checked like everything else rather than cast to any at the border.
  */
 
-/** A step exactly as `qf_loop_template.steps` stores it. */
+/** A step exactly as the product engine stores it for a workflow. */
 export interface WorkflowManifestStep {
   id: string;
   kind: string;

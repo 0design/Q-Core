@@ -11,7 +11,7 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.27", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.28", bin: {} }, []),
     /Q-Core name/,
   );
 });
@@ -47,7 +47,7 @@ test("Core product prose rejects a retired loop unit while control-flow loop sta
 
 test("Registry composition rejects stale builtin pins and product loop prose", () => {
   const root = mkdtempSync(join(tmpdir(), "q-core-composition-name-guard-"));
-  const pkg = { name: "q-core", version: "0.2.0-q-core.27" };
+  const pkg = { name: "q-core", version: "0.2.0-q-core.28" };
   const builtins = ["api-request", "fan-out", "fetch", "schedule"].map((id) => ({
     id,
     engine: { package: pkg.name, version: pkg.version, manifest: "q-core.workflow/v1" },
@@ -151,4 +151,25 @@ test("proof CLI rejects a retired workflow spelling but permits feedback loop", 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("Core28 guard rejects loop-input, loop engine names, Loop identifiers and component loop prose", () => {
+  for (const source of [
+    'export const TRIGGER_KINDS = ["intent-input", "loop-input"];',
+    'headers: { "User-Agent": "q-factory-loop-engine/1" }',
+    "function printLoops(workflows) {}",
+    '{ "reusableLoopComponents": [] }',
+    "as stored in qf_loop_template",
+  ]) {
+    assert.throws(() => assertNoRetiredProductNames([{ path: "src/x.mjs", source }]), /loop-input|loop engine|Loop identifier/, source);
+  }
+  assert.throws(
+    () => assertNoRetiredProductUnitTerms([{ path: "registry/components/x.json", source: '"notes": "overrides the loop\'s model."' }]),
+    /product unit/,
+  );
+  assert.throws(
+    () => assertNoRetiredProductUnitTerms([{ path: "registry/components/x.json", source: "when it is last, the loop is complete." }]),
+    /product unit/,
+  );
+  assert.doesNotThrow(() => assertNoRetiredProductNames([{ path: "src/x.mjs", source: 'if (step.kind === "loop") {} // workflow-input trigger' }]));
 });
