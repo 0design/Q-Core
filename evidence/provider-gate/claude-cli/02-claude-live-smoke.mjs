@@ -52,6 +52,7 @@ const evidence = {
 };
 let text = JSON.stringify(evidence, null, 2).replaceAll(cwd, "<tmp>");
 if (process.env.HOME) text = text.replaceAll(process.env.HOME, "~");
+if (/sk-(or|ant)-[A-Za-z0-9_-]{8,}/.test(text)) throw new Error("Refusing to write evidence: key-shaped value present");
 writeFileSync(target, text + "\n");
 process.stdout.write(text + "\n");
 process.exitCode = error ? 1 : 0;

@@ -1,0 +1,29 @@
+{
+  "note": "Outputs of one-shot or pre-call steps kept from the original run. Label strings only were substituted (gate name in 01/03). Applying the reverse substitution table (kept in the private tracker next to this evidence) to the current files reproduces originalSha256 byte-for-byte; this was verified before commit. 00, 02 and 02b were regenerated with neutral labels instead.",
+  "files": [
+    {
+      "file": "01-preflight.json",
+      "originalSha256": "05efccf171d2117be500c5aca7de3c45be10925bae4a96b9a96992e25af2328f",
+      "committedSha256": "04d1b626528660413df2d908d504806db13484684729693f63d37c955905ddda",
+      "labelsSubstituted": true
+    },
+    {
+      "file": "03-live-call.json",
+      "originalSha256": "02a394bc8585c94c2b577e299ebaed42cf8dafb9bc5ec46cc9701da727b0eef5",
+      "committedSha256": "0b2a14f30cf30f1dd46bd7b63963cb835b55d3ff20821ec9a2634ac5e4d26fcb",
+      "labelsSubstituted": true
+    },
+    {
+      "file": "03-live-call.started",
+      "originalSha256": "0010fdb0836dc15c9c1871ff79596de0c96166936ed33715ea273d7858de832a",
+      "committedSha256": "0010fdb0836dc15c9c1871ff79596de0c96166936ed33715ea273d7858de832a",
+      "labelsSubstituted": false
+    },
+    {
+      "file": "04-reconcile.json",
+      "originalSha256": "326fe7899c7836f905fc721ae80bd4148f8bbc784acc6392a76c9eae7649fefc",
+      "committedSha256": "326fe7899c7836f905fc721ae80bd4148f8bbc784acc6392a76c9eae7649fefc",
+      "labelsSubstituted": false
+    }
+  ]
+}

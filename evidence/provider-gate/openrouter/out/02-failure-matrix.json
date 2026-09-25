@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-09-25T20:36:51.326Z",
+  "checkedAt": "2026-09-25T20:44:22.110Z",
   "coreVersion": "0.2.0-q-core.29",
   "model": "mistralai/mistral-nemo",
   "summary": {
@@ -14,7 +14,7 @@
       "expect": "SECRET_MISSING",
       "pass": true,
       "outcome": "error",
-      "ms": 15,
+      "ms": 13,
       "code": "SECRET_MISSING",
       "message": "Configured protected secret is not stored",
       "networkAttempts": 0
@@ -46,7 +46,7 @@
       "expect": "AUTH_REQUIRED",
       "pass": true,
       "outcome": "error",
-      "ms": 130,
+      "ms": 96,
       "code": "AUTH_REQUIRED",
       "message": "OpenRouter 401 — invalid or revoked key"
     },
@@ -56,7 +56,7 @@
       "expect": "see check",
       "pass": true,
       "outcome": "error",
-      "ms": 97,
+      "ms": 260,
       "code": "PROVIDER_ERROR",
       "message": "OpenRouter 400 — request failed"
     },
@@ -99,7 +99,7 @@
       "expect": "see check",
       "pass": true,
       "outcome": "error",
-      "ms": 0,
+      "ms": 1,
       "code": "INVALID_REQUEST",
       "message": "Messages too large",
       "networkAttempts": 0
@@ -127,8 +127,8 @@
       "networkAttempts": 0
     },
     {
-      "id": "timeout-1ms-deadline",
-      "kind": "real-network",
+      "id": "timeout-1ms-client-deadline",
+      "kind": "real-client-deadline",
       "expect": "TIMEOUT",
       "pass": true,
       "outcome": "error",
@@ -196,7 +196,7 @@
       "expect": "see check",
       "pass": true,
       "outcome": "error",
-      "ms": 3,
+      "ms": 2,
       "code": "RATE_LIMITED",
       "message": "OpenRouter 429 — request failed",
       "networkAttempts": 3
@@ -207,7 +207,7 @@
       "expect": "see check",
       "pass": true,
       "outcome": "success",
-      "ms": 1,
+      "ms": 2,
       "result": {
         "requestId": "gen-stub",
         "model": "mistralai/mistral-nemo",
@@ -236,7 +236,7 @@
       "expect": "see check",
       "pass": true,
       "outcome": "success",
-      "ms": 1,
+      "ms": 0,
       "result": {
         "requestId": "gen-stub",
         "model": "mistralai/mistral-nemo",
@@ -334,7 +334,7 @@
       "expect": "INVALID_RESPONSE",
       "pass": true,
       "outcome": "error",
-      "ms": 1,
+      "ms": 2,
       "code": "INVALID_RESPONSE",
       "message": "OpenRouter response body invalid, timed out or too large",
       "networkAttempts": 1

@@ -1,59 +1,66 @@
 {
-  "runId": "8d9505fe-eedf-48ce-95c1-a1055418455c",
-  "workflowId": "qf-provider-budget-cap",
-  "workflowName": "Budget cap before OpenRouter",
-  "manifestFile": "budget-cap.yaml",
-  "trigger": "manual",
-  "status": "failed",
-  "summary": "Stopped by budget: $0.0000 ≥ $0.0000.",
-  "startedAt": "2026-09-25T20:37:00.479Z",
-  "finishedAt": "2026-09-25T20:37:00.480Z",
-  "costUsd": 0,
-  "tokensIn": 0,
-  "tokensOut": 0,
-  "steps": [
-    {
-      "seq": 0,
-      "stepId": "think",
-      "kind": "llm-call",
-      "name": "Bounded call",
-      "depth": 0,
-      "laneOf": null,
-      "config": {
+  "checkedAt": "2026-09-25T20:44:21.672Z",
+  "manifestSha256": "e5564786dfbea38439ac4776a05a99e1e2fbadf5a2efc55564160f6386b717f7",
+  "command": "q-core run budget-cap.yaml --json",
+  "exitCode": 1,
+  "pass": true,
+  "run": {
+    "runId": "db826869-9992-4c88-ae82-0700394d01a4",
+    "workflowId": "qf-provider-budget-cap",
+    "workflowName": "Budget cap before OpenRouter",
+    "manifestFile": "budget-cap.yaml",
+    "trigger": "manual",
+    "status": "failed",
+    "summary": "Stopped by budget: $0.0000 ≥ $0.0000.",
+    "startedAt": "2026-09-25T20:44:21.668Z",
+    "finishedAt": "2026-09-25T20:44:21.669Z",
+    "costUsd": 0,
+    "tokensIn": 0,
+    "tokensOut": 0,
+    "steps": [
+      {
+        "seq": 0,
+        "stepId": "think",
+        "kind": "llm-call",
         "name": "Bounded call",
-        "provider": "openrouter",
-        "secretSource": "keychain",
-        "maxTokens": "16",
-        "instructions": "Say: ok"
+        "depth": 0,
+        "laneOf": null,
+        "config": {
+          "name": "Bounded call",
+          "provider": "openrouter",
+          "secretSource": "keychain",
+          "maxTokens": "16",
+          "instructions": "Say: ok"
+        },
+        "then": null,
+        "else": null,
+        "cases": null,
+        "default": null,
+        "status": "failed",
+        "decision": null,
+        "gateReason": "budget",
+        "output": null,
+        "errorText": "Run budget exhausted: spent $0.0000 of the $0.0000 ceiling (the workflow's \"budgetUsd\" knob).",
+        "tokensIn": 0,
+        "tokensOut": 0,
+        "costUsd": 0,
+        "itemIndex": null,
+        "startedAt": "2026-09-25T20:44:21.669Z",
+        "finishedAt": "2026-09-25T20:44:21.669Z"
+      }
+    ],
+    "executionKnobs": {
+      "model": "mistralai/mistral-nemo",
+      "budgetUsd": 0,
+      "sensitivity": null,
+      "limits": null,
+      "exit": {
+        "kind": "always_done"
       },
-      "then": null,
-      "else": null,
-      "cases": null,
-      "default": null,
-      "status": "failed",
-      "decision": null,
-      "gateReason": "budget",
-      "output": null,
-      "errorText": "Run budget exhausted: spent $0.0000 of the $0.0000 ceiling (the workflow's \"budgetUsd\" knob).",
-      "tokensIn": 0,
-      "tokensOut": 0,
-      "costUsd": 0,
-      "itemIndex": null,
-      "startedAt": "2026-09-25T20:37:00.480Z",
-      "finishedAt": "2026-09-25T20:37:00.480Z"
-    }
-  ],
-  "executionKnobs": {
-    "model": "mistralai/mistral-nemo",
-    "budgetUsd": 0,
-    "sensitivity": null,
-    "limits": null,
-    "exit": {
-      "kind": "always_done"
-    },
-    "provenance": {
-      "model": "workflow settings",
-      "budget": "workflow settings"
+      "provenance": {
+        "model": "workflow settings",
+        "budget": "workflow settings"
+      }
     }
   }
 }

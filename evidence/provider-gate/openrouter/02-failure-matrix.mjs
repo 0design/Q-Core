@@ -67,9 +67,10 @@ await row("invalid-secretSource", "real", "INVALID_REQUEST", () =>
 await row("401-invalid-credential", "real-network", "AUTH_REQUIRED", () =>
   attempt(() => openRouter(base, { secretResolver: bogus })));
 
-// ── Model / caps (rejected before any network) ─────────────────────────
+// ── Invalid model: reaches OpenRouter with the stored key; 400, not billed ──
 await row("invalid-model-id", "real-network-stored-key", (r) => r.code === "PROVIDER_ERROR" && /OpenRouter 400/.test(r.message), () =>
   attempt(() => openRouter({ ...base, model: "qf-evidence/not-a-model", secretSource: "keychain" })));
+// ── Caps: rejected before any network ─────────────────────────────────
 for (const [id, patch] of [
   ["cap-maxTokens-over-32000", { maxTokens: 32001 }],
   ["cap-maxTokens-zero", { maxTokens: 0 }],
@@ -84,7 +85,7 @@ for (const [id, patch] of [
 }
 
 // ── Timeout / cancellation ────────────────────────────────────────────
-await row("timeout-1ms-deadline", "real-network", "TIMEOUT", () =>
+await row("timeout-1ms-client-deadline", "real-client-deadline", "TIMEOUT", () =>
   attempt(() => openRouter({ ...base, timeoutMs: 1 }, { secretResolver: bogus })));
 {
   const ac = new AbortController();

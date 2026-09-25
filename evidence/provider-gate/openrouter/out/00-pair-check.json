@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-09-25T20:44:41.715Z",
+  "tarball": {
+    "name": "q-core-0.2.0-q-core.29.tgz",
+    "sha256": "246bb675e7c60795dfe02cc349185b015403d5053b23d982ffd509324b5d1fba",
+    "registryPin": "246bb675e7c60795dfe02cc349185b015403d5053b23d982ffd509324b5d1fba",
+    "lockIntegrityMatches": true
+  },
+  "srcTree": {
+    "repository": {
+      "files": 40,
+      "sha256": "94aefedba1f64f6ecc0fa7ef1dbc70b102d18646a34fc388d7f77ccf4aabbe96"
+    },
+    "installedPackage": {
+      "files": 40,
+      "sha256": "94aefedba1f64f6ecc0fa7ef1dbc70b102d18646a34fc388d7f77ccf4aabbe96"
+    },
+    "identical": true
+  },
+  "status": "Unreleased candidate pair; release gates outside this evidence remain open.",
+  "pass": true
+}

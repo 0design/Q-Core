@@ -1,7 +1,7 @@
 // Claude CLI-agent provider failure matrix on the pinned Core29 adapter.
-// Rows use generated fake executables only (never the real Claude CLI), except the
-// nesting-guard row, which proves the adapter refuses to launch anything while an
-// active Claude Code session is detected.
+// Every row uses generated fake executables only (never the real Claude CLI),
+// including the nesting-guard rows, which prove the adapter refuses to launch
+// anything while CLAUDECODE or QCORE_DEPTH marks an active session.
 // Usage: QCORE_PKG=<pkg dir> CLAUDE_BIN=<real claude path> node 01-claude-matrix.mjs
 import { mkdtempSync, writeFileSync, chmodSync, mkdirSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -21,7 +21,7 @@ const realBin = process.env.CLAUDE_BIN ? realpathSync(process.env.CLAUDE_BIN) : 
 const dir = realpathSync(mkdtempSync(join(tmpdir(), "qf-claude-gate-")));
 const fake = (name, body) => {
   const p = join(dir, name);
-  writeFileSync(p, `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "${name === "old-version" ? "2.0.0" : "2.1.156"} (Claude Code)"; exit 0; fi\ncat >/dev/null\n${body}\n`);
+  writeFileSync(p, `#!/bin/sh\n${name.startsWith("probe-") ? body + "\n" : ""}if [ "$1" = "--version" ]; then echo "${name === "old-version" ? "2.0.0" : "2.1.156"} (Claude Code)"; exit 0; fi\ncat >/dev/null\n${body}\n`);
   chmodSync(p, 0o755);
   return p;
 };
@@ -59,15 +59,21 @@ const row = async (id, kind, check, fn) => {
   rows.push({ id, kind, pass: typeof check === "function" ? check(r) : r.code === check, ...r });
 };
 
-// Nesting guard: evaluated with the real session marker, before any launch.
-{
-  const saved = process.env.CLAUDECODE;
-  process.env.CLAUDECODE = "1";
-  await row("nesting-guard-in-active-claude-session", "real-guard", "UNSUPPORTED_NESTING", () =>
-    attempt(() => claude({ ...base, executable: realBin ?? "/usr/local/bin/claude" })));
-  if (saved === undefined) delete process.env.CLAUDECODE; else process.env.CLAUDECODE = saved;
+// Nesting guards: evaluated with a fake executable, so even a regressed guard could
+// never launch the real CLI. The live refusal with the real binary is recorded
+// separately by 02-claude-live-smoke.mjs's own precondition.
+for (const [id, key, value] of [["nesting-guard-CLAUDECODE", "CLAUDECODE", "1"], ["nesting-guard-QCORE_DEPTH", "QCORE_DEPTH", "1"]]) {
+  const saved = process.env[key];
+  process.env[key] = value;
+  await row(id, "guard", (r) => r.code === "UNSUPPORTED_NESTING" && r.launched === false, async () => {
+    const marker = join(dir, `launched-${key}`);
+    const probe = fake(`probe-${key}`, `touch ${marker}`);
+    const r = await attempt(() => claude({ ...base, executable: probe }));
+    return { ...r, launched: (await import("node:fs")).existsSync(marker) };
+  });
+  if (saved === undefined) delete process.env[key]; else process.env[key] = saved;
 }
-if (process.env.CLAUDECODE) throw new Error("Run the fake-executable rows in a process without CLAUDECODE (no real CLI is launched)");
+if (process.env.CLAUDECODE || Number(process.env.QCORE_DEPTH || 0) > 0) throw new Error("Start this script with CLAUDECODE/QCORE_DEPTH unset (env -u CLAUDECODE); only fake executables are launched");
 
 await row("missing-binary", "fake-exec", "MISSING_EXECUTABLE", () => attempt(() => claude({ ...base, executable: join(dir, "absent-claude") })));
 await row("relative-executable-rejected", "precheck", "INVALID_REQUEST", () => attempt(() => claude({ ...base, executable: "claude" })));
