@@ -59,10 +59,19 @@ under that license. Third-party assets and service terms remain separate.
 
 ## 3. Check your change locally
 
-Run these from the repository root, one at a time:
+The Registry pins the exact Core archive, so its checks take that archive as
+input. Build it once from the repository root (no network, no install):
 
 ```sh
-node scripts/build-registry.mjs --check
+core_dir=$(mktemp -d)
+npm pack --ignore-scripts --pack-destination "$core_dir" --json > "$core_dir/pack.json"
+core_archive="$core_dir/$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))[0].filename" "$core_dir/pack.json")"
+```
+
+Then run these in the same terminal session, one at a time:
+
+```sh
+node scripts/build-registry.mjs --check --core-artifact "$core_archive"
 npm test
 python3 -m unittest discover -s test -p test_registry_publish.py
 ```
@@ -70,12 +79,17 @@ python3 -m unittest discover -s test -p test_registry_publish.py
 Success means exit status 0. These checks do not need model keys or production
 credentials. They are not a substitute for running a real contributed workflow.
 
-If you changed Registry assets or source metadata, first regenerate the catalog:
+If you changed Registry assets or source metadata, first regenerate the catalog
+and checksums in place, then check again:
 
 ```sh
-node scripts/build-registry.mjs
-node scripts/build-registry.mjs --check
+node scripts/build-registry.mjs --export registry --core-artifact "$core_archive"
+node scripts/build-registry.mjs --check --core-artifact "$core_archive"
 ```
+
+The regeneration also copies the archive to `registry/vendor/`; that copy is
+ignored by Git. Do not run the builder without `--core-artifact`: it would drop
+the Core line from `registry/SHA256SUMS`.
 
 For a workflow, also validate your actual file (replace YOUR-WORKFLOW):
 
