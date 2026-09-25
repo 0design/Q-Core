@@ -48,7 +48,10 @@ jobs:
       # The standalone Registry builder validates every manifest, metadata and
       # generated catalog without executing contributed workflows or using secrets.
       - name: Registry manifests and generated catalog
-        run: node scripts/build-registry.mjs --check
+        run: |
+          mkdir -p /tmp/core-package
+          npm pack --ignore-scripts --pack-destination /tmp/core-package >/dev/null
+          node scripts/build-registry.mjs --check --core-artifact /tmp/core-package/q-core-$(node -p "require('./package.json').version").tgz
 
       # A manifest is meant to reference secrets, never to contain them.
       - name: no secrets committed
