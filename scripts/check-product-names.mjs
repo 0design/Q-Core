@@ -15,7 +15,7 @@ export function verifyPackageSurface(pkg, binFiles) {
 
 export function verifyPackagedReadmeAliasBoundary(root) {
   const source = readFileSync(join(root, "README.md"), "utf8");
-  assert.match(source, /`q-core` is the only installed executable\./, "README must state the single Q-Core executable");
+  assert.match(source, /Q-Core installs `q-core` and `q-core-host`\. No other CLI alias is provided\./, "README must name the installed Q-Core executables");
   assert.equal(
     /Both `q-core` and legacy `q-core` are installed\./.test(source),
     false,

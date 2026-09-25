@@ -17,7 +17,7 @@ Reusable workflows and components come from a versioned Registry, pinned by SHA-
 
 Q-Core is not published on npm. You install the Core archive that the current Registry
 release pins, and only after its SHA-256 matches. Copy this into an empty directory
-(macOS `shasum`; on Linux replace `shasum -a 256` with `sha256sum`):
+(it uses macOS `shasum`; on Linux replace `shasum -a 256` with `sha256sum`):
 
 ```sh
 set -eu
@@ -41,9 +41,11 @@ nothing was executed.` Next to the manifest, `workflow.yaml.lock.json` records t
 exact hashes of the workflow and every component it uses. A wrong catalog hash stops
 the install with `Catalog checksum mismatch`, and existing files are never overwritten.
 
-A real run of `json-digest` reads a source URL, calls a model and posts to a webhook,
-so it needs `QCORE_SOURCE_URL`, `OPENROUTER_API_KEY` and `QCORE_WEBHOOK_URL`. `q-core catalog` lists what the
-installed build contains; `q-core doctor` checks the machine.
+`json-digest` is a reference workflow: it shows the manifest format and the install
+path, not a measured result. A real run reads a source URL, calls a model and posts
+the result, so it needs `QCORE_SOURCE_URL` and `OPENROUTER_API_KEY`; without
+`QCORE_WEBHOOK_URL` the result is written to `.qf/out/`. `q-core doctor` checks
+the machine.
 
 ## What is available today
 
@@ -53,7 +55,8 @@ installed build contains; `q-core doctor` checks the machine.
 | Core `0.2.0-q-core.28` | Downloadable from the Registry release with its SHA-256; not on npm |
 | Registry workflows | `digest` and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
-| This repository's `main` | Can be ahead of `current` (Core 29 is a candidate for the next Registry release) |
+| Registry `2026.09.25-registry.15` | Published with Core `0.2.0-q-core.29`, not yet `current` |
+| This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 
 ## Honest limits
 
@@ -114,7 +117,7 @@ with the catalog value and run `npm install` only when they are equal.
 ./.qfactory/tools/node_modules/.bin/q-core run ./workflow.yaml
 ```
 
-`q-core` is the only installed executable. No other CLI alias is provided. The package includes
+Q-Core installs `q-core` and `q-core-host`. No other CLI alias is provided. The package includes
 runtime, schema, providers and synthetic contract fixtures. Install reusable workflows
 from a versioned registry export.
 

@@ -20,8 +20,8 @@ test("packaged README rejects a duplicate Q-Core legacy-alias claim", () => {
   const root = mkdtempSync(join(tmpdir(), "q-core-readme-name-guard-"));
   try {
     writeFileSync(join(root, "README.md"), "Both `q-core` and legacy `q-core` are installed.\n");
-    assert.throws(() => verifyPackagedReadmeAliasBoundary(root), /single Q-Core executable/);
-    writeFileSync(join(root, "README.md"), "`q-core` is the only installed executable. No other CLI alias is provided.\n");
+    assert.throws(() => verifyPackagedReadmeAliasBoundary(root), /installed Q-Core executables/);
+    writeFileSync(join(root, "README.md"), "Q-Core installs `q-core` and `q-core-host`. No other CLI alias is provided.\n");
     assert.doesNotThrow(() => verifyPackagedReadmeAliasBoundary(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
