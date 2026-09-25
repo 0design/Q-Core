@@ -1,0 +1,33 @@
+{
+  "checkedAt": "2026-09-25T20:38:58.039Z",
+  "requestId": "gen-1790368645-o6SauGM1AssNIHAHpm7d",
+  "generation": {
+    "httpStatus": 200,
+    "totalCost": 8.2e-7,
+    "model": "mistralai/mistral-nemo",
+    "providerName": "Io Net",
+    "tokensPrompt": 13,
+    "tokensCompletion": 1,
+    "nativeTokensPrompt": 13,
+    "nativeTokensCompletion": 2,
+    "finishReason": "stop"
+  },
+  "keyAccount": {
+    "httpStatus": 200,
+    "usage": 8.2e-7,
+    "usageDaily": 8.2e-7,
+    "usageMonthly": 8.2e-7,
+    "limit": 5,
+    "limitRemaining": 4.99999918,
+    "isFreeTier": false
+  },
+  "ledger": {
+    "authorizationUsd": 5,
+    "paidCallsUnderGate": 1,
+    "responseCostUsd": 8.2064e-7,
+    "generationCostUsd": 8.2e-7,
+    "spentUsd": 8.2e-7,
+    "remainingOfAuthorizationUsd": 4.99999918,
+    "costSourcesAgree": true
+  }
+}

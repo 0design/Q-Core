@@ -1,0 +1,166 @@
+{
+  "checkedAt": "2026-09-25T20:38:38.412Z",
+  "coreVersion": "0.2.0-q-core.29",
+  "realCliLaunched": false,
+  "summary": {
+    "total": 15,
+    "pass": 15
+  },
+  "rows": [
+    {
+      "id": "nesting-guard-in-active-claude-session",
+      "kind": "real-guard",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "UNSUPPORTED_NESTING",
+      "message": "Nesting guard active; use a caller-owned broker outside the active CLI session"
+    },
+    {
+      "id": "missing-binary",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 2,
+      "code": "MISSING_EXECUTABLE",
+      "message": "Unable to start configured executable"
+    },
+    {
+      "id": "relative-executable-rejected",
+      "kind": "precheck",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "Explicit Claude model required"
+    },
+    {
+      "id": "missing-model-rejected",
+      "kind": "precheck",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "Explicit Claude model required"
+    },
+    {
+      "id": "unreviewed-cli-version",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 423,
+      "code": "UNSUPPORTED_CLI",
+      "message": "Claude CLI version has not been reviewed (supported: 2.1.156)"
+    },
+    {
+      "id": "auth-failure-no-fallback",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 291,
+      "code": "AUTH_REQUIRED",
+      "message": "Claude invocation failed; no fallback was attempted"
+    },
+    {
+      "id": "invalid-output",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 316,
+      "code": "INVALID_RESPONSE",
+      "message": "Claude did not return a valid JSON result"
+    },
+    {
+      "id": "permission-denied",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 335,
+      "code": "PERMISSION_DENIED",
+      "message": "Claude requested an unavailable tool"
+    },
+    {
+      "id": "empty-result",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 263,
+      "code": "INVALID_RESPONSE",
+      "message": "Claude result is empty"
+    },
+    {
+      "id": "success-shape",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "success",
+      "ms": 256,
+      "result": {
+        "model": "claude-stub-model",
+        "usage": {
+          "tokensIn": 12,
+          "tokensOut": 4,
+          "costUsd": 0.0001,
+          "costKind": "cli-estimate"
+        },
+        "permissionMode": "default",
+        "tools": []
+      }
+    },
+    {
+      "id": "missing-usage-is-null",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "success",
+      "ms": 281,
+      "result": {
+        "model": null,
+        "usage": {
+          "tokensIn": null,
+          "tokensOut": null,
+          "costUsd": null,
+          "costKind": "cli-estimate"
+        },
+        "permissionMode": "default",
+        "tools": []
+      }
+    },
+    {
+      "id": "timeout-kills-process-tree",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 1502,
+      "code": "TIMEOUT",
+      "message": "Subprocess deadline exceeded",
+      "survivors": 0
+    },
+    {
+      "id": "cancel-kills-process-tree",
+      "kind": "fake-exec",
+      "pass": true,
+      "outcome": "error",
+      "ms": 402,
+      "code": "CANCELLED",
+      "message": "Subprocess cancelled",
+      "survivors": 0
+    },
+    {
+      "id": "timeout-over-300000-rejected",
+      "kind": "precheck",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "Claude timeoutMs must be 1..300000"
+    },
+    {
+      "id": "input-over-128000-bytes-rejected",
+      "kind": "precheck",
+      "pass": true,
+      "outcome": "error",
+      "ms": 1,
+      "code": "INVALID_REQUEST",
+      "message": "Input exceeds 128000 bytes"
+    }
+  ]
+}

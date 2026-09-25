@@ -1,0 +1,27 @@
+manifest: q-core.workflow/v1
+
+# Provider-gate evidence: a zero workflow ceiling must stop the OpenRouter step before
+# the protected credential is read or any request leaves the machine.
+id: qf-provider-budget-cap
+name: "Budget cap before OpenRouter"
+version: 1.0.0
+description: Zero budget in front of one keychain-backed OpenRouter llm-call.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  model: mistralai/mistral-nemo
+  budgetUsd: 0
+
+steps:
+  - id: think
+    kind: llm-call
+    config:
+      name: "Bounded call"
+      provider: openrouter
+      secretSource: keychain
+      maxTokens: "16"
+      instructions: "Say: ok"

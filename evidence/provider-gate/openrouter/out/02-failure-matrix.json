@@ -1,0 +1,343 @@
+{
+  "checkedAt": "2026-09-25T20:36:51.326Z",
+  "coreVersion": "0.2.0-q-core.29",
+  "model": "mistralai/mistral-nemo",
+  "summary": {
+    "total": 28,
+    "pass": 28
+  },
+  "paidInferenceCalls": 0,
+  "rows": [
+    {
+      "id": "missing-key-other-keyRef-keychain",
+      "kind": "real-keychain",
+      "expect": "SECRET_MISSING",
+      "pass": true,
+      "outcome": "error",
+      "ms": 15,
+      "code": "SECRET_MISSING",
+      "message": "Configured protected secret is not stored",
+      "networkAttempts": 0
+    },
+    {
+      "id": "missing-key-env-no-fallback",
+      "kind": "real",
+      "expect": "AUTH_REQUIRED",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "AUTH_REQUIRED",
+      "message": "Missing secret reference QF_EVIDENCE_ABSENT_KEY",
+      "networkAttempts": 0
+    },
+    {
+      "id": "invalid-secretSource",
+      "kind": "real",
+      "expect": "INVALID_REQUEST",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "Invalid secretSource"
+    },
+    {
+      "id": "401-invalid-credential",
+      "kind": "real-network",
+      "expect": "AUTH_REQUIRED",
+      "pass": true,
+      "outcome": "error",
+      "ms": 130,
+      "code": "AUTH_REQUIRED",
+      "message": "OpenRouter 401 — invalid or revoked key"
+    },
+    {
+      "id": "invalid-model-id",
+      "kind": "real-network-stored-key",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 97,
+      "code": "PROVIDER_ERROR",
+      "message": "OpenRouter 400 — request failed"
+    },
+    {
+      "id": "cap-maxTokens-over-32000",
+      "kind": "real-precheck",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "maxTokens must be 1..32000",
+      "networkAttempts": 0
+    },
+    {
+      "id": "cap-maxTokens-zero",
+      "kind": "real-precheck",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "maxTokens must be 1..32000",
+      "networkAttempts": 0
+    },
+    {
+      "id": "cap-retries-over-10",
+      "kind": "real-precheck",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "retries must be 0..10",
+      "networkAttempts": 0
+    },
+    {
+      "id": "cap-messages-over-128000-bytes",
+      "kind": "real-precheck",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "Messages too large",
+      "networkAttempts": 0
+    },
+    {
+      "id": "missing-payerScope",
+      "kind": "real-precheck",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "Explicit payerScope required",
+      "networkAttempts": 0
+    },
+    {
+      "id": "missing-model",
+      "kind": "real-precheck",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_REQUEST",
+      "message": "model required",
+      "networkAttempts": 0
+    },
+    {
+      "id": "timeout-1ms-deadline",
+      "kind": "real-network",
+      "expect": "TIMEOUT",
+      "pass": true,
+      "outcome": "error",
+      "ms": 2,
+      "code": "TIMEOUT",
+      "message": "OpenRouter unreachable"
+    },
+    {
+      "id": "cancel-pre-aborted",
+      "kind": "real",
+      "expect": "CANCELLED",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "CANCELLED",
+      "message": "OpenRouter cancelled"
+    },
+    {
+      "id": "cancel-in-flight",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 20,
+      "code": "CANCELLED",
+      "message": "OpenRouter cancelled",
+      "networkAttempts": 1
+    },
+    {
+      "id": "429-retries-0",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "RATE_LIMITED",
+      "message": "OpenRouter 429 — request failed",
+      "networkAttempts": 1
+    },
+    {
+      "id": "500-retries-0",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "PROVIDER_ERROR",
+      "message": "OpenRouter 500 — request failed",
+      "networkAttempts": 1
+    },
+    {
+      "id": "503-retries-0",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "PROVIDER_ERROR",
+      "message": "OpenRouter 503 — request failed",
+      "networkAttempts": 1
+    },
+    {
+      "id": "429-retries-2-bounded-to-3-attempts",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 3,
+      "code": "RATE_LIMITED",
+      "message": "OpenRouter 429 — request failed",
+      "networkAttempts": 3
+    },
+    {
+      "id": "503-then-success-retries-1",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "success",
+      "ms": 1,
+      "result": {
+        "requestId": "gen-stub",
+        "model": "mistralai/mistral-nemo",
+        "usage": {
+          "tokensIn": 5,
+          "tokensOut": 1,
+          "costUsd": 1e-7
+        }
+      },
+      "networkAttempts": 2
+    },
+    {
+      "id": "400-not-retried",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "PROVIDER_ERROR",
+      "message": "OpenRouter 400 — request failed",
+      "networkAttempts": 1
+    },
+    {
+      "id": "success-with-usage-cost",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "success",
+      "ms": 1,
+      "result": {
+        "requestId": "gen-stub",
+        "model": "mistralai/mistral-nemo",
+        "usage": {
+          "tokensIn": 5,
+          "tokensOut": 1,
+          "costUsd": 1e-7
+        }
+      },
+      "networkAttempts": 1
+    },
+    {
+      "id": "missing-usage-and-cost-are-null",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "success",
+      "ms": 0,
+      "result": {
+        "requestId": "gen-stub",
+        "model": "mistralai/mistral-nemo",
+        "usage": {
+          "tokensIn": null,
+          "tokensOut": null,
+          "costUsd": null
+        }
+      },
+      "networkAttempts": 1
+    },
+    {
+      "id": "invalid-metrics-are-null",
+      "kind": "stub",
+      "expect": "see check",
+      "pass": true,
+      "outcome": "success",
+      "ms": 0,
+      "result": {
+        "requestId": "gen-stub",
+        "model": "mistralai/mistral-nemo",
+        "usage": {
+          "tokensIn": 3,
+          "tokensOut": null,
+          "costUsd": null
+        }
+      },
+      "networkAttempts": 1
+    },
+    {
+      "id": "malformed-json",
+      "kind": "stub",
+      "expect": "INVALID_RESPONSE",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_RESPONSE",
+      "message": "OpenRouter response body invalid, timed out or too large",
+      "networkAttempts": 1
+    },
+    {
+      "id": "empty-completion",
+      "kind": "stub",
+      "expect": "INVALID_RESPONSE",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_RESPONSE",
+      "message": "OpenRouter returned an empty completion or invalid response",
+      "networkAttempts": 1
+    },
+    {
+      "id": "error-field-in-200",
+      "kind": "stub",
+      "expect": "INVALID_RESPONSE",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "INVALID_RESPONSE",
+      "message": "OpenRouter returned an empty completion or invalid response",
+      "networkAttempts": 1
+    },
+    {
+      "id": "truncated-finish-length",
+      "kind": "stub",
+      "expect": "OUTPUT_LIMIT",
+      "pass": true,
+      "outcome": "error",
+      "ms": 0,
+      "code": "OUTPUT_LIMIT",
+      "message": "OpenRouter completion truncated",
+      "networkAttempts": 1
+    },
+    {
+      "id": "oversized-body-over-512000",
+      "kind": "stub",
+      "expect": "INVALID_RESPONSE",
+      "pass": true,
+      "outcome": "error",
+      "ms": 1,
+      "code": "INVALID_RESPONSE",
+      "message": "OpenRouter response body invalid, timed out or too large",
+      "networkAttempts": 1
+    }
+  ]
+}

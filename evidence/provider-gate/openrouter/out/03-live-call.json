@@ -1,0 +1,74 @@
+{
+  "gate": "openrouter-provider",
+  "coreVersion": "0.2.0-q-core.29",
+  "coreSha256": "246bb675e7c60795dfe02cc349185b015403d5053b23d982ffd509324b5d1fba",
+  "startedAt": "2026-09-25T20:37:25.284Z",
+  "finishedAt": "2026-09-25T20:37:25.851Z",
+  "call": {
+    "maxTokens": 16,
+    "temperature": 0,
+    "retries": 0,
+    "timeoutMs": 30000,
+    "payerScope": "local-byok",
+    "keyRef": "OPENROUTER_API_KEY",
+    "secretSource": "keychain",
+    "model": "mistralai/mistral-nemo",
+    "inputBytes": 106,
+    "attemptsAllowed": 1
+  },
+  "outcome": "success",
+  "error": null,
+  "response": {
+    "requestId": "gen-1790368645-o6SauGM1AssNIHAHpm7d",
+    "provider": {
+      "kind": "openrouter",
+      "version": "1",
+      "requestedModel": "mistralai/mistral-nemo",
+      "model": "mistralai/mistral-nemo",
+      "payerScope": "local-byok"
+    },
+    "usage": {
+      "tokensIn": 13,
+      "tokensOut": 2,
+      "costUsd": 8.2064e-7
+    },
+    "output": "ok",
+    "outputSha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df"
+  },
+  "generation": {
+    "httpStatus": 404,
+    "totalCost": null,
+    "model": null,
+    "providerName": null,
+    "tokensPrompt": null,
+    "tokensCompletion": null,
+    "nativeTokensPrompt": null,
+    "nativeTokensCompletion": null,
+    "finishReason": null
+  },
+  "keyAccount": {
+    "before": {
+      "httpStatus": 200,
+      "usage": 0,
+      "usageDaily": 0,
+      "usageMonthly": 0,
+      "limit": 5,
+      "limitRemaining": 5,
+      "isFreeTier": false
+    },
+    "after": {
+      "httpStatus": 200,
+      "usage": 0,
+      "usageDaily": 0,
+      "usageMonthly": 0,
+      "limit": 5,
+      "limitRemaining": 5,
+      "isFreeTier": false
+    }
+  },
+  "ledger": {
+    "worstCaseUsd": 0.00002822,
+    "reportedCostUsd": 8.2064e-7,
+    "keyUsageDeltaUsd": 0
+  }
+}

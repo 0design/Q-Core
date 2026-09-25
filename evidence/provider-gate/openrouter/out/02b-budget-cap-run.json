@@ -1,0 +1,59 @@
+{
+  "runId": "8d9505fe-eedf-48ce-95c1-a1055418455c",
+  "workflowId": "qf-provider-budget-cap",
+  "workflowName": "Budget cap before OpenRouter",
+  "manifestFile": "budget-cap.yaml",
+  "trigger": "manual",
+  "status": "failed",
+  "summary": "Stopped by budget: $0.0000 ≥ $0.0000.",
+  "startedAt": "2026-09-25T20:37:00.479Z",
+  "finishedAt": "2026-09-25T20:37:00.480Z",
+  "costUsd": 0,
+  "tokensIn": 0,
+  "tokensOut": 0,
+  "steps": [
+    {
+      "seq": 0,
+      "stepId": "think",
+      "kind": "llm-call",
+      "name": "Bounded call",
+      "depth": 0,
+      "laneOf": null,
+      "config": {
+        "name": "Bounded call",
+        "provider": "openrouter",
+        "secretSource": "keychain",
+        "maxTokens": "16",
+        "instructions": "Say: ok"
+      },
+      "then": null,
+      "else": null,
+      "cases": null,
+      "default": null,
+      "status": "failed",
+      "decision": null,
+      "gateReason": "budget",
+      "output": null,
+      "errorText": "Run budget exhausted: spent $0.0000 of the $0.0000 ceiling (the workflow's \"budgetUsd\" knob).",
+      "tokensIn": 0,
+      "tokensOut": 0,
+      "costUsd": 0,
+      "itemIndex": null,
+      "startedAt": "2026-09-25T20:37:00.480Z",
+      "finishedAt": "2026-09-25T20:37:00.480Z"
+    }
+  ],
+  "executionKnobs": {
+    "model": "mistralai/mistral-nemo",
+    "budgetUsd": 0,
+    "sensitivity": null,
+    "limits": null,
+    "exit": {
+      "kind": "always_done"
+    },
+    "provenance": {
+      "model": "workflow settings",
+      "budget": "workflow settings"
+    }
+  }
+}

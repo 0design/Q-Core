@@ -1,0 +1,97 @@
+{
+  "checkedAt": "2026-09-25T20:36:00.795Z",
+  "core": {
+    "version": "0.2.0-q-core.29",
+    "tarball": "q-core-0.2.0-q-core.29.tgz",
+    "sha256": "246bb675e7c60795dfe02cc349185b015403d5053b23d982ffd509324b5d1fba",
+    "registryPin": "246bb675e7c60795dfe02cc349185b015403d5053b23d982ffd509324b5d1fba",
+    "pairMatches": true
+  },
+  "credential": {
+    "provider": "openrouter",
+    "keyRef": "OPENROUTER_API_KEY",
+    "secretSource": "keychain",
+    "stored": true
+  },
+  "keyAccount": {
+    "httpStatus": 200,
+    "usage": 0,
+    "usageDaily": 0,
+    "usageMonthly": 0,
+    "limit": 5,
+    "limitRemaining": 5,
+    "isFreeTier": false
+  },
+  "budget": {
+    "authorizationUsd": 5,
+    "targetCeilingUsd": 0.5,
+    "perCallCapUsd": 0.01,
+    "historicalConsumptionUsdByThisGate": 0,
+    "note": "No paid OpenRouter call was made under this gate before this run (the key was absent until 2026-09-25). keyAccount.usage is the account-level consumption of this key as OpenRouter reports it."
+  },
+  "model": {
+    "id": "mistralai/mistral-nemo",
+    "endpoints": [
+      {
+        "provider": "DekaLLM",
+        "promptPerToken": 1.8e-8,
+        "completionPerToken": 3e-8,
+        "requestUsd": 0,
+        "status": 0
+      },
+      {
+        "provider": "DeepInfra",
+        "promptPerToken": 1.9e-8,
+        "completionPerToken": 3e-8,
+        "requestUsd": 0,
+        "status": 0
+      },
+      {
+        "provider": "Parasail",
+        "promptPerToken": 3e-8,
+        "completionPerToken": 3e-8,
+        "requestUsd": 0,
+        "status": 0
+      },
+      {
+        "provider": "Novita",
+        "promptPerToken": 4e-8,
+        "completionPerToken": 1.7e-7,
+        "requestUsd": 0,
+        "status": -5
+      },
+      {
+        "provider": "Io Net",
+        "promptPerToken": 4.048e-8,
+        "completionPerToken": 1.472e-7,
+        "requestUsd": 0,
+        "status": 0
+      },
+      {
+        "provider": "Mistral",
+        "promptPerToken": 1.5e-7,
+        "completionPerToken": 1.5e-7,
+        "requestUsd": 0,
+        "status": 0
+      }
+    ],
+    "maxPromptUsdPerMTok": 0.15,
+    "maxCompletionUsdPerMTok": 0.16999999999999998
+  },
+  "callConfig": {
+    "maxTokens": 16,
+    "temperature": 0,
+    "retries": 0,
+    "timeoutMs": 30000,
+    "payerScope": "local-byok",
+    "keyRef": "OPENROUTER_API_KEY",
+    "secretSource": "keychain",
+    "inputBytes": 106,
+    "attempts": 1
+  },
+  "worstCaseUsd": {
+    "perAttempt": 0.00002822,
+    "total": 0.00002822
+  },
+  "decision": "GO: one bounded call is within the per-call cap and the $5 authorization"
+}
