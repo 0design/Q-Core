@@ -14,7 +14,6 @@ name: validate
 
 on:
   pull_request:
-    paths: ["workflows/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json", "README.md", "contracts/**", "docs/**", "scripts/build-registry.mjs", "scripts/check-public-surface.mjs", "scripts/public-surface.allowlist.json", ".github/workflows/validate.yml"]
   push:
     branches: [main]
 
