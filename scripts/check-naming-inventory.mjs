@@ -33,15 +33,16 @@ export function loadRules(file) {
 export function classifyFiles(files, rules) {
   const hits = [];
   for (const { path, source } of files) {
-    if (source.includes("\u0000")) continue;
-    source.split("\n").forEach((line, index) => {
+    // The path itself is inventory too (for example vendor tarball names).
+    const lines = source.includes("\u0000") ? [] : source.split("\n");
+    [path, ...lines].forEach((line, index) => {
       for (const match of line.matchAll(TOKEN)) {
         const token = match[0];
         const rule = rules.find((candidate) =>
           candidate.pathRe.test(path) &&
           (!candidate.lineRe || candidate.lineRe.test(line)) &&
           (!candidate.tokenRe || candidate.tokenRe.test(token)));
-        hits.push({ path, line: index + 1, token, class: rule?.class ?? null, transitional: rule?.transitional ?? false });
+        hits.push({ path, line: index, token, class: rule?.class ?? null, transitional: rule?.transitional ?? false });
       }
     });
   }
