@@ -98,9 +98,9 @@
     {
       "class": "negative-guard",
       "path": "^test/manifest\\.test\\.mjs$",
-      "line": "qloops",
+      "line": "validateManifest\\(parseYaml\\(`manifest: qloops\\.loop/v2\\\\nid: t|^test\\(\"rejects the retired qloops namespace\"|^  const legacy = \"qloops\\.loop/v1\";$|the manifest declares qloops\\\\\\.loop\\\\/v1/\\);$",
       "reason": "retired manifest namespace rejection test",
-      "token": "^(qloops|qloops\\.loop|qloops\\.loop/v[12]|\\.loop)$"
+      "token": "^(qloops|qloops\\.loop/v[12]|\\.loop)$"
     },
     {
       "class": "negative-guard",

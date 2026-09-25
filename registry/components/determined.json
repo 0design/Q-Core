@@ -40,7 +40,7 @@
     "evidence": [
       {
         "file": "demos/sdd-verified-change.txt",
-        "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+        "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
         "componentVersion": "0.1.0",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"

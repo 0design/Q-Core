@@ -78,3 +78,8 @@ test("allowlist rules need a declared class and a reason", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a bare qloops identifier in the manifest negative test file is not excused", () => {
+  const files = [{ path: "test/manifest.test.mjs", source: "const qloops = false;" }];
+  assert.equal(summarize(classifyFiles(files, rules)).passed, false);
+});

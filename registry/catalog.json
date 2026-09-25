@@ -1508,7 +1508,7 @@
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -1517,7 +1517,7 @@
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "f6e17319f431066bb45ea4ec06d6a028c94841325f6c6987f14f3773b7005833"
+      "sha256": "5d0b13db9fdcfb73c4c432cb860c9934ef6b8e4511c1b897c599a5bba7a7de5d"
     },
     {
       "id": "workspace-apply",
@@ -1547,7 +1547,7 @@
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -1556,7 +1556,7 @@
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "ac4c0db750266b0e8bc051c8f852ad376983855b83fa5981b402a529af9413a6"
+      "sha256": "6b6178a8c34fcf346974148355cde1edcf56c17686e9b40ef48cd0283983ebd9"
     },
     {
       "id": "verify-artifact",
@@ -1586,7 +1586,7 @@
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -1595,7 +1595,7 @@
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "d73c39ac264d430db8c82abbbd3715ccb1a1dd054ea8c942493c3846465ba0f0"
+      "sha256": "de1ab11fe261d11e264e90b813d3e0bed50d5c3506f8da966bd905a5ac36966b"
     },
     {
       "id": "deduplicate",
@@ -1757,14 +1757,14 @@
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
           }
         ]
       },
-      "sha256": "2c550e2e6439e7ed3b4946d3c12ea8284e81010bc0aae4f216a673f898ce249e"
+      "sha256": "e31d6c0e492053f10d5717113d815ed4877c12b92cb6122a4a362e8f5e2ff9f4"
     },
     {
       "id": "specification",
@@ -1796,14 +1796,14 @@
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
           }
         ]
       },
-      "sha256": "66ada5dbbd8f8dfd0ffd4b4014a0d67829eddec555cec03baeacd0bf319be3d8"
+      "sha256": "7e3366c6e31d505432eb9cd48b02926065cb7fa7023888cd972ed0d8dbefe187"
     },
     {
       "id": "verify-sources",
@@ -2846,5 +2846,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "9e23a2daecf30ad7c33f8625eedba5596a5bc489fff4c94c7fd0038ba175d650"
+  "releaseSha256": "7d6e0c9481eb8c101e3d76b74586fe6839d8e58214654a99a4f447259dcc0ba3"
 }

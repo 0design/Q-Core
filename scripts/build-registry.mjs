@@ -15,6 +15,27 @@ export function assertCoreArtifact(catalog, body) {
       sha(body) !== catalog.core.artifactSha256 || sri(body) !== catalog.core.integrity)
     throw Error('Core artifact does not match catalog pin');
 }
+/* Evidence pins must name the exact bytes shipped in this Registry. Walks any
+   record for evidence[] items carrying { file, sha256 } and compares them with
+   the file under the Registry root. */
+export function assertEvidencePins(record, readFile, label) {
+  const visit = (value, path) => {
+    if (Array.isArray(value)) return value.forEach((item, index) => visit(item, `${path}[${index}]`));
+    if (!value || typeof value !== 'object') return;
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'evidence' && Array.isArray(child)) {
+        child.forEach((item, index) => {
+          if (item && typeof item === 'object' && typeof item.file === 'string' && typeof item.sha256 === 'string') {
+            const actual = sha(readFile(item.file));
+            if (actual !== item.sha256) throw Error(`Evidence pin mismatch at ${label}${path}.evidence[${index}] (${item.file}): pinned ${item.sha256}, actual ${actual}`);
+          }
+        });
+      }
+      visit(child, `${path}.${key}`);
+    }
+  };
+  visit(record, '');
+}
 export function buildRegistry(sourceRoot = root) {
   const catalog = JSON.parse(readFileSync(resolve(sourceRoot, 'catalog.source.json')));
   const planned = loadPlannedCatalogEntries(sourceRoot);
@@ -41,6 +62,8 @@ export function buildRegistry(sourceRoot = root) {
         Object.assign(entry, workflowMetadata(manifest));
       }
       if (entry.proof) asset(entry.proof);
+      assertEvidencePins(entry, asset, `${key} catalog`);
+      if (file.endsWith('.json')) assertEvidencePins(JSON.parse(asset(file)), asset, `${key} file`);
       asset(`authors/${entry.author}.json`);
     }
   }
