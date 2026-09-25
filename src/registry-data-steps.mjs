@@ -59,7 +59,11 @@ export function runVerifySources(step, ctx) {
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
   if (requiredHeadings.length > 0) {
     insist(requiredHeadings.every(heading => /^## \S/.test(heading) && !/[\r\n]/.test(heading)), 'requiredHeadings must be level-two Markdown headings');
-    // Level-two only: ### thematic sub-blocks inside a section are allowed.
+    // Only the required level-two sections may exist; ### thematic sub-blocks inside them are allowed. Any other
+    // level-one/two heading form (ATX with up to three leading spaces, or a setext underline) is refused.
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line, index) => insist(!(/^ {0,3}(?:=+|-+)[ \t]*$/.test(line) && index > 0 && lines[index - 1].trim() !== '' && !/^ {0,3}(?:[-*+]|\d+[.)])\s/.test(lines[index - 1])), 'Draft must contain exactly the required Markdown sections in order'));
+    insist(lines.filter(line => /^ {0,3}#{1,2}(?:[ \t]|$)/.test(line)).every(line => /^##(?!#)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
     const headings = [...text.matchAll(/^##(?!#)[^\r\n]*$/gm)];
     insist(headings.length === requiredHeadings.length && headings.every((heading, index) => heading[0] === requiredHeadings[index]), 'Draft must contain exactly the required Markdown sections in order');
     headings.forEach((heading, index) => {
@@ -72,6 +76,14 @@ export function runVerifySources(step, ctx) {
   const linkTargets = [];
   const bare = text.replace(/\]\((https?:\/\/[^\s()<>]+)\)/g, (_, url) => { linkTargets.push(url); return '] '; });
   const links = [...linkTargets, ...[...bare.matchAll(/https?:\/\/[^\s<>"\]]+/g)].map(m => m[0].replace(/[).,;]+$/, ''))];
+  // With a format contract, every other way to write a link is refused too: an uppercase scheme, a Markdown or
+  // reference link target that is not a plain http(s) URL, a scheme-less www. address, or a raw HTML link.
+  if (fixedLinks.length > 0 || requiredPrefix !== null || requiredHeadings.length > 0) {
+    const rest = bare.replace(/https?:\/\/[^\s<>"\]]+/g, ' ');
+    insist(!/[a-z][a-z0-9+.-]*:\/\//i.test(rest), 'Draft includes an unverified URL or no source links');
+    insist(!/\]\(\s*<?[^)\s]/.test(rest) && !/^ {0,3}\[[^\]]+\]:\s*\S/m.test(rest), 'Draft includes an unverified URL or no source links');
+    insist(!/\bwww\./i.test(rest) && !/<\s*a\b|\b(?:href|src)\s*=/i.test(rest), 'Draft includes an unverified URL or no source links');
+  }
   const allowed = new Set([...urls, ...fixedLinks]);
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');

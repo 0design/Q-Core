@@ -111,6 +111,8 @@ test('verify-sources accepts the exact fixed header links and both sections', ()
 
 test('verify-sources format contract fails closed on every deviation', () => withDate('26.09', () => {
   const ok = `${HEADER('26.09')}\n\n${SECTIONS}`;
+  const allowed = `${ok}\n---\n\n- Список після роздільника й [посилання](https://example.org/a).\n`;
+  assert.doesNotThrow(() => check(allowed), 'a thematic break after a blank line is not a heading');
   const cases = {
     'space before і': [ok.replace(')і by', ') і by'), /required literal prefix/],
     'other date': [ok.replace('🧋26.09', '🧋27.09'), /required literal prefix/],
@@ -123,6 +125,15 @@ test('verify-sources format contract fails closed on every deviation', () => wit
     'invented link': [`${ok}\nДив. https://invented.example/`, /unverified URL/],
     'fixed link used as a lookalike': [`${ok}\nhttps://t.me/xyiikc/962`, /unverified URL/],
     'source not cited': [ok.replace('https://example.org/a', 'https://t.me/xyiikc'), /cite each selected source/],
+    'setext level-two heading': [`${ok}\nЗайва\n---\n\n- Текст.\n`, /required Markdown sections/],
+    'setext level-one heading': [`${ok}\nЗайва\n===\n\n- Текст.\n`, /required Markdown sections/],
+    'indented ATX section': [`${ok}\n   ## Зайва\n\n- Текст.\n`, /required Markdown sections/],
+    'level-one section': [`${ok}\n# Зайва\n\n- Текст.\n`, /required Markdown sections/],
+    'uppercase scheme': [`${ok}\n[x](HTTPS://evil.example/)\n`, /unverified URL/],
+    'scheme-relative Markdown target': [`${ok}\n[x](//evil.example/)\n`, /unverified URL/],
+    'reference-style link': [`${ok}\n[x]: evil.example\n`, /unverified URL/],
+    'scheme-less www address': [`${ok}\nДив. www.evil.example\n`, /unverified URL/],
+    'raw HTML link': [`${ok}\n<a href="//evil.example">x</a>\n`, /unverified URL/],
   };
   for (const [name, [text, error]] of Object.entries(cases)) assert.throws(() => check(text), error, name);
 }));
@@ -133,12 +144,17 @@ test('verify-sources refuses an unresolved format placeholder instead of matchin
   assert.throws(() => check(`${HEADER('26.09')}\n\n${SECTIONS}`, { ...FORMAT, fixedLinks: 'not json' }), /JSON array/);
 }));
 
-test('verify-sources without format fields keeps the Core29 source-link behavior', () => {
+test('verify-sources without format fields keeps Core29 source-link checks, except exact Markdown link targets', () => {
   const plain = 'Дайджест і сигнали: https://example.org/a та [b](https://example.org/b).';
   const result = check(plain, {});
   assert.deepEqual(result.output.checks, ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited']);
   assert.equal('fixedLinks' in result.output, false);
   assert.throws(() => check(`${plain} [ХУЇКС](https://t.me/xyiikc)`, {}), /unverified URL/);
+  // The two intended differences from Core29: a target glued to text is read exactly, and a target is never trimmed.
+  assert.doesNotThrow(() => check('Дайджест і [a](https://example.org/a)і [b](https://example.org/b).', {}));
+  assert.throws(() => check('Дайджест і [a](https://example.org/a.) https://example.org/b', {}), /unverified URL/);
+  // Without a format contract, prose mentioning www. is not refused (Core29 behavior).
+  assert.doesNotThrow(() => check(`${plain} Див. www.example.org`, {}));
 });
 
 test('Podcast→Digest manifest pins OpenRouter through the Keychain, the same format contract and no delivery', () => {
