@@ -2,6 +2,8 @@
 
 **Workflows that make your coding agent show a checked result, not just say "done".**
 
+![QFactory quickstart: copy the prompt on qfactory.io, paste it into your coding agent, and get a checked result](https://raw.githubusercontent.com/0design/Q-Core/main/docs/assets/quickstart.gif)
+
 Q-Core is the local engine behind [QFactory](https://qfactory.io). A workflow is a
 versioned YAML manifest: its steps, checks, human gates, allowed repairs and stop
 condition are written down, and every run leaves local evidence you can inspect.
