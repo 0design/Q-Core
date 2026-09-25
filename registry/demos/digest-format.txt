@@ -1,7 +1,7 @@
 Digest 0.3.0 contract — controlled local run on an installed Core candidate
 
 Scope: controlled local installed Registry candidate run. It is not public-release or owner acceptance.
-Core: q-core 0.2.0-q-core.31, archive SHA-256 20f24f8bb7816b5b41c1464c53dd61c934b80a28970fbc8fb659d4da343ec4ca
+Core: q-core 0.2.0-q-core.31, archive SHA-256 914633fa39ff2d0eab914a92c0a23571730c3f2835fa9e0cca81d4d4e89f4f01
 Template: digest 0.3.0, manifest SHA-256 338dee7f7f9412e57033936045bdd0a224009b1bb9d1acca5880c49270cdb9e9
 Components under test: verify-sources 0.3.0 (fixedLinks, requiredPrefix, requiredHeadings, requiredEnvPatterns) and api-request 1.1.0 (file:/// delivery with receipts)
 Route: fetch x4 -> parse-web -> deduplicate -> llm-call (cli caller) -> verify-sources -> approval-gate (sha256) -> api-request
@@ -42,9 +42,9 @@ PASS	D51	without source variables the installed Core resolves the template to th
 PASS	D60	file:/// receiver: exact approval appends exactly one JSON line with the exact text and artifactHash; HTTP receiver untouched
 PASS	D61	repeat into the same file: duplicatePrevented, still one line
 
-Accepted run df1f7000-85d6-4281-96db-d32d6f39c472: artifactHash dbf0064ffe508de2dee1089768ae521f5436a8919cd834939abf45886f93682d,
-receiver got the exact approved text with the header first. Repeat run 650b9715-16a4-4ffe-897b-ebed9a464e10 was
-duplicate-prevented. Rejected run 2672aed5-ce7a-4332-b3d0-292148dacda1 delivered nothing.
+Accepted run 6ed9afd2-5be3-420b-85de-9d5e606e50a5: artifactHash 42a36f8cdeec1b00f1d2996d2486596657016d73ce46b8d9991c8ca3253c1db5,
+receiver got the exact approved text with the header first. Repeat run c1952c80-15da-4afd-b91a-4b870166f139 was
+duplicate-prevented. Rejected run 1b8a9b7c-369b-4cf6-93e1-d1ebace35420 delivered nothing.
 
 Limits: these checks prove the format and link provenance of a draft, not its factual accuracy or editorial quality.
 Fixture sources are not real announcements. Row D51 resolves the default feeds with the installed Core; it does not fetch them. Nothing was posted to Telegram or any channel.

@@ -108,9 +108,15 @@ export function runVerifySources(step, ctx) {
     const intro = end < 0 ? '' : text.slice(start, end);
     // The introduction is one paragraph (no blank line, no list item, heading or quote inside it).
     const paragraph = intro.trim();
-    insist(paragraph.length > 0 && !/\n\s*\n/.test(paragraph) && !paragraph.split('\n').some(l => /^\s*(?:[-*+>#]|\d+[.)])\s/.test(l)), 'The introduction must be one paragraph before the first section');
+    // The introduction is one line: no blank line, no second line, no list item, heading or quote.
+    insist(paragraph.length > 0 && !paragraph.includes('\n') && !/^\s*(?:[-*+>#]|\d+[.)])\s/.test(paragraph), 'The introduction must be one paragraph on one line before the first section');
     const introPrefix = step.config.requiredIntroPrefix == null ? null : textValue(step, 'requiredIntroPrefix', ctx);
     if (introPrefix !== null) insist(paragraph.startsWith(introPrefix), `The introduction must begin with: ${introPrefix}`);
+    // With a required opening that ends in "[", the first link of the introduction must be the introduction link itself.
+    if (introPrefix !== null && introPrefix.endsWith('[')) {
+      const first = paragraph.slice(introPrefix.length - 1).match(/^\[[^\]\n]+\]\((https?:\/\/[^\s()<>]+)\)/);
+      insist(first && introLinks.includes(first[1]), 'The introduction must open with the introduction link right after its required words');
+    }
     for (const url of introLinks) {
       const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const inline = new RegExp(`\\[([^\\]\\n]+)\\]\\(${escaped}\\)`, 'g');

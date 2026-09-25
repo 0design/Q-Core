@@ -341,6 +341,7 @@ function buildBody(step, ctx, t) {
 /** A safe local delivery file: absolute file:/// URL, .jsonl name, an existing folder, and not an existing
  *  directory or symlink. Returns the canonical path (used for duplicate receipts). */
 export function checkFileDestination(url) {
+  if (!/^file:\/\/\//i.test(url)) throw new Error(`a file destination must be an absolute file:/// URL — got "${url}"`);
   let path;
   try { path = fileURLToPath(url.replace(/^file:/i, "file:")); } catch { throw new Error(`a file destination must be an absolute file:/// URL — got "${url}"`); }
   if (!path.endsWith(".jsonl")) throw new Error(`a file destination must end with .jsonl — got "${path}"`);

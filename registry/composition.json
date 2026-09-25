@@ -435,10 +435,10 @@
         "evidence": [
           {
             "file": "demos/digest-format.txt",
-            "sha256": "426b9d0d3180e6079f2f7c47f11d7ec631e9e487f89061aea8654c2caa2e11a6",
+            "sha256": "9376afefe987657f3222721fac6d34f82e7e40ac82440801eb3f25597a31b034",
             "componentVersion": "1.1.0",
             "coreVersion": "0.2.0-q-core.31",
-            "coreSha256": "20f24f8bb7816b5b41c1464c53dd61c934b80a28970fbc8fb659d4da343ec4ca"
+            "coreSha256": "914633fa39ff2d0eab914a92c0a23571730c3f2835fa9e0cca81d4d4e89f4f01"
           },
           {
             "file": "demos/digest-huyiks.txt",

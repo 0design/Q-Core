@@ -205,6 +205,8 @@ test('introLinks: the episode link only inline in the introduction sentence', ()
     'labelled link inside a sentence': `${header}Цікаві тези з випуску. Посилання: [подкаст](${video}) — дивіться тут.${body}`,
     'long label on its own line': `${header}Цікаві тези з випуску.\nДивіться повний випуск тут: [подкаст](${video})${body}`,
     'link first on its own line': `${header}[Подкаст](${video}) дивіться тут зараз${body}`,
+    'brand link first, episode link on a second line': `${header}Цікаві тези із [ХУЇКС](https://t.me/xyiikc) випуску.\n[Подкаст](${video}) дивіться тут зараз${body}`,
+    'episode link on a second line of the paragraph': `${header}Цікаві тези із [подкасту Автора](https://t.me/xyiikc) і коротко.\nПовний випуск тут [подкаст](${video})${body}`,
     'two paragraphs': `${header}Цікаві тези із [подкасту Автора](${video}) про модель.\n\nЩе абзац.${body}`,
     'different opening': `${header}Тези із [подкасту Автора](${video}) про нову модель.${body}`,
     'link only in a section': `${header}Цікаві тези з випуску про модель.${body.replace('- Новина.', `- Новина з [подкасту](${video}) і текстом.`)}`,
@@ -250,7 +252,7 @@ steps:
       receiptKey: "${'b'.repeat(64)}"
 `);
   try {
-    for (const bad of [pathToFileURL(join(dest.dir, 'x.txt')).href, pathToFileURL(join(dest.dir, 'none', 'x.jsonl')).href, 'file://relative.jsonl']) {
+    for (const bad of [pathToFileURL(join(dest.dir, 'x.txt')).href, pathToFileURL(join(dest.dir, 'none', 'x.jsonl')).href, 'file://relative.jsonl', 'file:relative.jsonl']) {
       await withEnv({ Q31_DEST: bad }, async () => {
         const run = createRun(dest.manifest);
         await driveRun(run, { store: dest.store, settings: dest.manifest.settings });
