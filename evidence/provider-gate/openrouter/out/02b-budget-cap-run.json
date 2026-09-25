@@ -1,19 +1,19 @@
 {
-  "checkedAt": "2026-09-25T20:44:21.672Z",
-  "manifestSha256": "e5564786dfbea38439ac4776a05a99e1e2fbadf5a2efc55564160f6386b717f7",
+  "checkedAt": "2026-09-25T20:46:47.805Z",
+  "manifestSha256": "9750c96997f2ef6169386d5650bf60cffb03fa408a69796e2c84e019f9fbc18b",
   "command": "q-core run budget-cap.yaml --json",
   "exitCode": 1,
   "pass": true,
   "run": {
-    "runId": "db826869-9992-4c88-ae82-0700394d01a4",
+    "runId": "8fc359fa-8bd2-4744-867e-3d54bf03bda1",
     "workflowId": "qf-provider-budget-cap",
     "workflowName": "Budget cap before OpenRouter",
     "manifestFile": "budget-cap.yaml",
     "trigger": "manual",
     "status": "failed",
     "summary": "Stopped by budget: $0.0000 ≥ $0.0000.",
-    "startedAt": "2026-09-25T20:44:21.668Z",
-    "finishedAt": "2026-09-25T20:44:21.669Z",
+    "startedAt": "2026-09-25T20:46:47.801Z",
+    "finishedAt": "2026-09-25T20:46:47.802Z",
     "costUsd": 0,
     "tokensIn": 0,
     "tokensOut": 0,
@@ -29,6 +29,7 @@
           "name": "Bounded call",
           "provider": "openrouter",
           "secretSource": "keychain",
+          "keyRef": "QF_EVIDENCE_ABSENT_KEY",
           "maxTokens": "16",
           "instructions": "Say: ok"
         },
@@ -45,8 +46,8 @@
         "tokensOut": 0,
         "costUsd": 0,
         "itemIndex": null,
-        "startedAt": "2026-09-25T20:44:21.669Z",
-        "finishedAt": "2026-09-25T20:44:21.669Z"
+        "startedAt": "2026-09-25T20:46:47.802Z",
+        "finishedAt": "2026-09-25T20:46:47.802Z"
       }
     ],
     "executionKnobs": {

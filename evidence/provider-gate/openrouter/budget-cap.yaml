@@ -23,5 +23,8 @@ steps:
       name: "Bounded call"
       provider: openrouter
       secretSource: keychain
+      # Absent on purpose: if a future Core regressed the budget check, the step
+      # would fail with SECRET_MISSING instead of making a paid call.
+      keyRef: QF_EVIDENCE_ABSENT_KEY
       maxTokens: "16"
       instructions: "Say: ok"
