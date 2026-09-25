@@ -1,5 +1,7 @@
 # QFactory Registry
 
+New here? Follow the [step-by-step contribution guide](../docs/contributing/guide.md) to fork, validate, and submit a change.
+
 Registry has three content types: workflow templates, components, and demos. Content type does not imply implementation or acceptance.
 
 - `workflows/`: executable YAML templates. Entries marked `reference-only` are not
