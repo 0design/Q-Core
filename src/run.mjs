@@ -25,7 +25,7 @@ import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-s
 import { runWorkspaceRead, runSpecification, runWorkspaceApply, runVerifyArtifact, runDetermined, assertFreshWorkspaceArtifact } from "./registry-workspace-steps.mjs";
 import { snapshot, contextFiles } from './workspace.mjs';
 import { assertInferenceReply, invalidateInference } from "./caller-inference.mjs";
-import { resolveTemplate } from "./template.mjs";
+import { resolveTemplate, missingEnvRefs } from "./template.mjs";
 import { num, str } from "./config.mjs";
 import { resolveTemplateValue } from "./template.mjs";
 import { usdForTokens } from "./cost.mjs";
@@ -169,6 +169,19 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
  * @param {object} run    the run record (mutated and persisted as it advances)
  * @param {object} opts   { store, apiKey, dryRun, onStep }
  */
+/** Unset `{{env.NAME}}` references (no default) that a run cannot do without. */
+export function requiredEnvMissing(steps) {
+  const missing = new Set();
+  for (const step of steps) {
+    const optionalUrl = step.kind === "api-request" && !step.config?.receiptKey;
+    for (const [key, value] of Object.entries(step.config ?? {})) {
+      if (optionalUrl && key === "url") continue;
+      for (const name of missingEnvRefs(value)) missing.add(name);
+    }
+  }
+  return [...missing];
+}
+
 export async function driveRun(run, opts = {}) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
   let inferenceReply = opts.inferenceReply;
@@ -200,6 +213,27 @@ export async function driveRun(run, opts = {}) {
   const persist = () => {
     if (store) store.save(run);
   };
+
+  /* Required environment, checked once before the first step so a missing input
+     is named up front instead of surfacing as a literal "{{env.NAME}}" URL later.
+     A reference with a default ({{env.NAME:-value}}) is optional, and so is an
+     api-request URL without a receiptKey (it falls back to the .qf/out/ sink). */
+  if (!dryRun && run.steps.every((s) => s.status === "pending")) {
+    const missing = requiredEnvMissing(run.steps);
+    if (missing.length) {
+      const now = new Date().toISOString();
+      const first = run.steps[0];
+      first.status = "failed";
+      first.startedAt = first.finishedAt = now;
+      first.errorText = `Missing environment variables: ${missing.join(", ")}. Set them before running (q-core catalog shows what each workflow needs).`;
+      run.status = "failed";
+      run.summary = first.errorText;
+      run.finishedAt = now;
+      persist();
+      onStep(first);
+      return run;
+    }
+  }
 
   for (;;) {
     if (opts.signal?.aborted) {

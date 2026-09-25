@@ -1,8 +1,8 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: sources to an approved Ukrainian document"
-version: 0.2.0
-description: "Read four public sources, deduplicate, draft a two-section Ukrainian digest with the fixed Saturday header in your current agent, check citations and format, and deliver the exact approved text once."
+version: 0.3.0
+description: "Read four public sources (official feeds by default), deduplicate, draft a two-section Ukrainian digest with the fixed Saturday header in your current agent, check citations and format, and deliver the exact approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM) and QF_DIGEST_RECEIVER_URL."
 owner: oleg
 enabled: true
 triggers:
@@ -13,25 +13,25 @@ steps:
   - id: openai
     kind: fetch
     config:
-      url: "{{env.QF_DIGEST_OPENAI_URL}}"
+      url: "{{env.QF_DIGEST_OPENAI_URL:-https://openai.com/news/rss.xml}}"
       format: text
       maxBodyBytes: 2000000
   - id: anthropic
     kind: fetch
     config:
-      url: "{{env.QF_DIGEST_ANTHROPIC_URL}}"
+      url: "{{env.QF_DIGEST_ANTHROPIC_URL:-https://www.anthropic.com/news}}"
       format: text
       maxBodyBytes: 2000000
   - id: linear
     kind: fetch
     config:
-      url: "{{env.QF_DIGEST_LINEAR_URL}}"
+      url: "{{env.QF_DIGEST_LINEAR_URL:-https://linear.app/rss/changelog.xml}}"
       format: text
       maxBodyBytes: 2000000
   - id: figma
     kind: fetch
     config:
-      url: "{{env.QF_DIGEST_FIGMA_URL}}"
+      url: "{{env.QF_DIGEST_FIGMA_URL:-https://www.figma.com/blog/feed/atom.xml}}"
       format: text
       maxBodyBytes: 2000000
   - id: readable
@@ -82,6 +82,7 @@ steps:
       fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]'
       requiredPrefix: "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**\n\n"
       requiredHeadings: '["## Короткі інформаційні сигнали","## Notable / impactful / important news"]'
+      requiredEnvPatterns: '{"QF_DIGEST_DATE":"(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])"}'
   - id: approval
     kind: approval-gate
     config:

@@ -1,9 +1,9 @@
-Digest 0.2.0 format contract — controlled local run on an installed Core candidate
+Digest 0.3.0 contract — controlled local run on an installed Core candidate
 
 Scope: controlled local installed Registry candidate run. It is not public-release or owner acceptance.
-Core: q-core 0.2.0-q-core.30, archive SHA-256 2d12ce6e4459637553685873ed9481f8e35036c76b622ac26515184939ae08d4
-Template: digest 0.2.0, manifest SHA-256 5c43d00d22d28cbade9e30799420b1782a4c6069f147b37117ccb5387ec00554
-Component under test: verify-sources 0.2.0 (fixedLinks, requiredPrefix, requiredHeadings)
+Core: q-core 0.2.0-q-core.31, archive SHA-256 a36e7ae8fd616948894ad094be438b7cb974e3231520046f472be97b4f7fb684
+Template: digest 0.3.0, manifest SHA-256 d87fc772d62fc1ecff0655939b09ed65f7127e0a6eae256e80d1dcda04926f37
+Components under test: verify-sources 0.3.0 (fixedLinks, requiredPrefix, requiredHeadings, requiredEnvPatterns) and api-request 1.1.0 (file:/// delivery with receipts)
 Route: fetch x4 -> parse-web -> deduplicate -> llm-call (cli caller) -> verify-sources -> approval-gate (sha256) -> api-request
 Inputs: four localhost HTML fixtures and a localhost receiver. The draft was written in advance by the calling
 agent through the caller-inference contract; Core launched no model process. Cost and tokens: unknown (null).
@@ -14,10 +14,10 @@ Required header (SHA-256 d8478a29ba0283e99a8ce61840d84cb53711ac094771e7ae24e9998
 Required sections, in order: "## Короткі інформаційні сигнали", "## Notable / impactful / important news"
 
 Results
-PASS	D00	q-core install digest@0.2.0 from the pinned Registry16 catalog (exit 0)
+PASS	D00	q-core install digest@0.3.0 from the pinned Registry17 catalog (exit 0)
 PASS	D01	lock pins the catalog SHA-256 and the manifest bytes
 PASS	D02	declared route = fetch -> fetch -> fetch -> fetch -> parse-web -> deduplicate -> llm-call -> verify-sources -> approval-gate -> api-request; inference step is provider: cli
-PASS	D03	template itself requires the exact header prefix, both sections and only the two header links beyond sources
+PASS	D03	template itself requires the exact header prefix, both sections, only the two header links beyond sources and a DD.MM date
 PASS	D10	run fetches 4 localhost sources, parses, deduplicates, then waits for the caller draft (exit 2)
 PASS	D11	draft with the exact header and both sections passes verify-sources and waits on approval (exit 2)
 PASS	D12	verify-sources recorded the format checks and the two fixed header links
@@ -26,18 +26,25 @@ PASS	D14	approval with a hash that does not match the exact output is refused (e
 PASS	D15	exact approval -> one localhost delivery with receipt (exit 0, success, duplicatePrevented false)
 PASS	D16	receiver got the exact approved text (header first, byte-exact) and its artifactHash
 PASS	D20	repeat on unchanged sources: success with duplicatePrevented true; still exactly one delivery
-PASS	D30	rejected approval ends without delivery
+PASS	D30	rejection bound to the exact output fails the run at the gate; delivery never runs
 PASS	D40	header with a space before «і» (non-normative variant): refused by verify-sources (exit 1), approval never opened, no delivery
 PASS	D41	header with another date: refused by verify-sources (exit 1), approval never opened, no delivery
 PASS	D42	no header (sections only): refused by verify-sources (exit 1), approval never opened, no delivery
 PASS	D43	second section missing: refused by verify-sources (exit 1), approval never opened, no delivery
 PASS	D44	a third level-two section: refused by verify-sources (exit 1), approval never opened, no delivery
 PASS	D45	a URL outside the selected sources and header links: refused by verify-sources (exit 1), approval never opened, no delivery
-PASS	D46	QF_DIGEST_DATE unset: verify-sources refuses the unresolved header placeholder (exit 1)
+PASS	D47	a heading nested in a list item: refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D48	a scheme-less address with a path: refused by verify-sources (exit 1), approval never opened, no delivery
+PASS	D46	QF_DIGEST_DATE unset: the run fails before the first step and names the variable (no literal placeholder reaches a check)
+PASS	D49	QF_DIGEST_DATE not in DD.MM form (26.9): refused before approval (exit 1)
+PASS	D50	QF_DIGEST_RECEIVER_URL unset: the run fails before the first step and names the variable
+PASS	D51	without source variables the installed Core resolves the template to the default official feeds (https://openai.com/news/rss.xml, https://www.anthropic.com/news, https://linear.app/rss/changelog.xml, https://www.figma.com/blog/feed/atom.xml)
+PASS	D60	file:/// receiver: exact approval appends exactly one JSON line with the exact text and artifactHash; HTTP receiver untouched
+PASS	D61	repeat into the same file: duplicatePrevented, still one line
 
-Accepted run 9ae7644d-d686-45d8-bd41-a1460a4f7d1b: artifactHash 62e44ad8d1409904bf9703b7f47263d0d25965d9eb783f972f0fa66a004a0f3b,
-receiver got the exact approved text with the header first. Repeat run d8feb80c-2dd2-4b1b-80e8-14a2fd45421e was
-duplicate-prevented. Rejected run e34fb1e4-4acc-470c-bdf3-7d377525a47a delivered nothing.
+Accepted run ee85d5c1-133d-42af-9c08-efc06f7bffd8: artifactHash 647055c30a1aa3e1aefbd94497833628730f0014d768d41fd03b53a0d9c3791a,
+receiver got the exact approved text with the header first. Repeat run 1a5af4d7-28d7-4480-98e1-362064380900 was
+duplicate-prevented. Rejected run 573ed7d7-5701-4f1a-8ee7-1b3d9a5d1aac delivered nothing.
 
 Limits: these checks prove the format and link provenance of a draft, not its factual accuracy or editorial quality.
-Fixture sources are not real announcements. Nothing was posted to Telegram or any channel.
+Fixture sources are not real announcements. Row D51 resolves the default feeds with the installed Core; it does not fetch them. Nothing was posted to Telegram or any channel.

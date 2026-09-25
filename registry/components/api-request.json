@@ -7,7 +7,7 @@
     "url": {
       "type": "string",
       "required": true,
-      "notes": "templated. SPEC-MANIFEST.md §5.3."
+      "notes": "templated. SPEC-MANIFEST.md §5.3. http(s):// sends a request; file:///absolute/path.jsonl appends one delivery per line locally (Core31+), with the same receiptKey duplicate protection. The folder must exist."
     },
     "method": {
       "type": "string",

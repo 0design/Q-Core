@@ -51,11 +51,25 @@ export function runVerifySources(step, ctx) {
   const fixedLinks = stringList(step, 'fixedLinks', ctx);
   insist(fixedLinks.every(url => /^https?:\/\//.test(url)), 'fixedLinks must be a JSON array of HTTP(S) URLs');
   const requiredHeadings = stringList(step, 'requiredHeadings', ctx);
+  // introLinks: URLs allowed only once each, as an inline Markdown link inside the introduction sentence
+  // (between requiredPrefix and the first required section), never as a standalone link line.
+  const introLinks = stringList(step, 'introLinks', ctx);
+  insist(introLinks.every(url => /^https?:\/\//.test(url)), 'introLinks must be a JSON array of HTTP(S) URLs');
+  // requiredEnvPatterns: {"NAME": "regex"} — each variable must be set and match fully (e.g. a DD.MM date).
+  if (step.config.requiredEnvPatterns != null) {
+    let patterns;
+    try { patterns = JSON.parse(step.config.requiredEnvPatterns); } catch { patterns = null; }
+    insist(patterns && typeof patterns === 'object' && !Array.isArray(patterns) && Object.entries(patterns).every(([name, re]) => /^[A-Z][A-Z0-9_]*$/.test(name) && typeof re === 'string' && re.length > 0), 'requiredEnvPatterns must be a JSON object of NAME to regular expression');
+    for (const [name, re] of Object.entries(patterns)) {
+      const value = process.env[name];
+      insist(typeof value === 'string' && new RegExp(`^(?:${re})$`).test(value), `Environment variable ${name} must match ${re}`);
+    }
+  }
   const requiredPrefix = step.config.requiredPrefix == null ? null : textValue(step, 'requiredPrefix', ctx);
   insist(requiredPrefix === null || typeof requiredPrefix === 'string' && requiredPrefix.length > 0, 'requiredPrefix must be a nonempty string');
   // An unset {{env.NAME}} stays in place by design; a contract that still carries
   // a placeholder would silently require the literal braces, so refuse it.
-  insist(![requiredPrefix ?? '', ...fixedLinks, ...requiredHeadings].some(item => /\{\{[^{}]*\}\}/.test(item)), 'Format contract has an unresolved template placeholder');
+  insist(![requiredPrefix ?? '', ...fixedLinks, ...requiredHeadings, ...introLinks].some(item => /\{\{[^{}]*\}\}/.test(item)), 'Format contract has an unresolved template placeholder');
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
   if (requiredHeadings.length > 0) {
     insist(requiredHeadings.every(heading => /^## \S/.test(heading) && !/[\r\n]/.test(heading)), 'requiredHeadings must be level-two Markdown headings');
@@ -64,6 +78,8 @@ export function runVerifySources(step, ctx) {
     const lines = text.split(/\r?\n/);
     lines.forEach((line, index) => insist(!(/^ {0,3}(?:=+|-+)[ \t]*$/.test(line) && index > 0 && lines[index - 1].trim() !== '' && !/^ {0,3}(?:[-*+]|\d+[.)])\s/.test(lines[index - 1])), 'Draft must contain exactly the required Markdown sections in order'));
     insist(lines.filter(line => /^ {0,3}#{1,2}(?:[ \t]|$)/.test(line)).every(line => /^##(?!#)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
+    // A heading nested in a list item or a quote is not a section; refuse it rather than let it look like one.
+    insist(!lines.some(line => /^\s*(?:(?:[-*+]|\d+[.)])\s+|>\s*)+#{1,6}(?:\s|$)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
     const headings = [...text.matchAll(/^##(?!#)[^\r\n]*$/gm)];
     insist(headings.length === requiredHeadings.length && headings.every((heading, index) => heading[0] === requiredHeadings[index]), 'Draft must contain exactly the required Markdown sections in order');
     headings.forEach((heading, index) => {
@@ -78,15 +94,32 @@ export function runVerifySources(step, ctx) {
   const links = [...linkTargets, ...[...bare.matchAll(/https?:\/\/[^\s<>"\]]+/g)].map(m => m[0].replace(/[).,;]+$/, ''))];
   // With a format contract, every other way to write a link is refused too: an uppercase scheme, a Markdown or
   // reference link target that is not a plain http(s) URL, a scheme-less www. address, or a raw HTML link.
-  if (fixedLinks.length > 0 || requiredPrefix !== null || requiredHeadings.length > 0) {
+  if (fixedLinks.length > 0 || introLinks.length > 0 || requiredPrefix !== null || requiredHeadings.length > 0) {
     const rest = bare.replace(/https?:\/\/[^\s<>"\]]+/g, ' ');
     insist(!/[a-z][a-z0-9+.-]*:\/\//i.test(rest), 'Draft includes an unverified URL or no source links');
     insist(!/\]\(\s*<?[^)\s]/.test(rest) && !/^ {0,3}\[[^\]]+\]:\s*\S/m.test(rest), 'Draft includes an unverified URL or no source links');
     insist(!/\bwww\./i.test(rest) && !/<\s*a\b|\b(?:href|src)\s*=/i.test(rest), 'Draft includes an unverified URL or no source links');
+    // A scheme-less address with a path (t.me/x, example.com/page) is auto-linked by many clients.
+    insist(!/(?<![\w@/.-])(?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s)\]]*/i.test(rest), 'Draft includes an unverified URL or no source links');
   }
-  const allowed = new Set([...urls, ...fixedLinks]);
+  if (introLinks.length > 0) {
+    insist(requiredPrefix !== null && requiredHeadings.length > 0, 'introLinks require requiredPrefix and requiredHeadings');
+    const start = requiredPrefix.length, end = text.indexOf(`\n${requiredHeadings[0]}`);
+    const intro = end < 0 ? '' : text.slice(start, end);
+    for (const url of introLinks) {
+      const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const inline = new RegExp(`\\[([^\\]\\n]+)\\]\\(${escaped}\\)`, 'g');
+      const everywhere = [...text.matchAll(inline)], inIntro = [...intro.matchAll(inline)];
+      insist(inIntro.length === 1 && everywhere.length === 1 && links.filter(link => link === url).length === 1, `Introduction must link ${url} exactly once, inline, and nowhere else`);
+      const [match, label] = inIntro[0];
+      const line = intro.split('\n').find(l => l.includes(match));
+      const words = line.replace(match, ' ').match(/[\p{L}\p{N}]+/gu) ?? [];
+      insist(!/^https?:/i.test(label.trim()) && words.length >= 3 && !/^\s*(?:[-*+]|\d+[.)])?\s*[\p{L}\s]{0,24}:\s*$/u.test(line.replace(match, '')), `Introduction link ${url} must sit inside a sentence, not on its own link line`);
+    }
+  }
+  const allowed = new Set([...urls, ...fixedLinks, ...introLinks]);
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections'])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline'])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }

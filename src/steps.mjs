@@ -19,6 +19,9 @@ import { resolveTemplate, resolveTemplateDeep, missingEnvRefs } from "./template
 import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
+import { appendFileSync, existsSync, lstatSync, statSync } from "node:fs";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 export { fetchWithRetry } from "./http.mjs";
 
 /** Cap on a response body we hold in memory and write into state. */
@@ -373,8 +376,25 @@ export async function runApiRequest(step, ctx) {
     };
   }
 
+  /* A local file destination: file:///absolute/path appends one delivery per line (JSON Lines).
+     Same receipt and duplicate rules as HTTP; the directory must already exist. */
+  if (/^file:\/\//i.test(url)) {
+    let path;
+    try { path = fileURLToPath(url); } catch { throw new Error(`"${label}": a file destination must be an absolute file:/// URL — got "${url}".`); }
+    if (!existsSync(dirname(path)) || !statSync(dirname(path)).isDirectory()) throw new Error(`"${label}": the folder of the file destination does not exist: ${dirname(path)}`);
+    if (existsSync(path)) insist(lstatSync(path).isFile() && !lstatSync(path).isSymbolicLink(), `"${label}": the file destination must be a regular file`);
+    const payload = buildBody(step, ctx, t);
+    const line = typeof payload === "string" ? payload : JSON.stringify(payload);
+    const sendFile = async () => {
+      appendFileSync(path, `${line.replace(/\n/g, "\\n")}\n`, { mode: 0o600 });
+      return { output: { dispatched: true, sink: "file", url, file: path } };
+    };
+    if (!receiptKey) return sendFile();
+    return deliverOnce({ store: ctx.runStore, destination: { url, method: "APPEND" }, key: resolveTemplate(receiptKey, t), payloadHash: hash(line) }, sendFile);
+  }
+
   if (!/^https?:\/\//i.test(url)) {
-    throw new Error(`"${label}": url must start with http(s):// — template resolution produced "${url}".`);
+    throw new Error(`"${label}": url must start with http(s):// or be a file:/// destination — template resolution produced "${url}".`);
   }
   const method = oneOf(step.config, "method", ["GET", "POST", "PUT", "PATCH", "DELETE"]) ?? "POST";
 

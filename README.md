@@ -32,6 +32,7 @@ ART=$(node -p 'require("./catalog.json").core.artifact')
 curl -fsS -o q-core.tgz "$BASE/releases/$REL/$ART"
 [ "$(shasum -a 256 q-core.tgz | cut -d' ' -f1)" = "$(node -p 'require("./catalog.json").core.artifactSha256')" ] || { echo "Core SHA-256 mismatch; not installing" >&2; exit 1; }
 npm install --silent --prefix .qfactory/tools ./q-core.tgz
+mkdir -p .qfactory && printf '*\n' > .qfactory/.gitignore
 Q=./.qfactory/tools/node_modules/.bin/q-core
 $Q install "$BASE/releases/$REL" "$(node -p 'require("./current.json").catalogSha256')" json-digest 1.1.0 ./workflow.yaml
 $Q validate ./workflow.yaml
@@ -40,7 +41,8 @@ $Q run ./workflow.yaml --dry-run
 
 You should see the three planned steps and `SUCCESS: Planned 3/3 steps — dry run,
 nothing was executed.` Next to the manifest, `workflow.yaml.lock.json` records the
-exact hashes of the workflow and every component it uses. A wrong catalog hash stops
+exact hashes of the workflow and every component it uses. `.qfactory/` (tools) and `.qf/`
+(run state, created beside the manifest) ignore themselves in git. A wrong catalog hash stops
 the install with `Catalog checksum mismatch`, and existing files are never overwritten.
 
 `json-digest` is a reference workflow: it shows the manifest format and the install
@@ -53,8 +55,8 @@ the machine.
 
 | Surface | State |
 | --- | --- |
-| This Core `0.2.0-q-core.30` | Pinned by Registry `2026.09.26-registry.16` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
-| Registry workflows | `digest` 0.2.0 (two sections and a fixed header, checked before approval), `podcast-digest` 0.1.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
+| This Core `0.2.0-q-core.31` | Pinned by Registry `2026.09.26-registry.17` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
+| Registry workflows | `digest` 0.3.0 (official feeds by default, two sections and a fixed header checked before approval, HTTP or local-file delivery), `podcast-digest` 0.2.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 
@@ -106,6 +108,7 @@ elif command -v sha256sum >/dev/null 2>&1; then ACTUAL=$(sha256sum "$ARCHIVE" | 
 else ACTUAL=$(node -e 'process.stdout.write(require("node:crypto").createHash("sha256").update(require("node:fs").readFileSync(process.argv[1])).digest("hex"))' "$ARCHIVE"); fi
 [ "$ACTUAL" = "$EXPECTED" ] || { echo "SHA-256 mismatch for $ARCHIVE; not installing" >&2; exit 1; }
 npm install --prefix .qfactory/tools "./$ARCHIVE"
+if [ -d .qfactory ]; then printf '*\n' > .qfactory/.gitignore; fi   # keep the installed tools out of git
 ```
 <!-- verify-install:end -->
 
