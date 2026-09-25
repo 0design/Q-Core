@@ -11,7 +11,7 @@ test("Q-Core and workflow Registry surface has no qloops aliases", () => {
 
 test("old qloops package name is rejected by the negative naming guard", () => {
   assert.throws(
-    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.29", bin: {} }, []),
+    () => verifyPackageSurface({ name: "qloops", version: "0.2.0-q-core.30", bin: {} }, []),
     /Q-Core name/,
   );
 });
@@ -20,8 +20,8 @@ test("packaged README rejects a duplicate Q-Core legacy-alias claim", () => {
   const root = mkdtempSync(join(tmpdir(), "q-core-readme-name-guard-"));
   try {
     writeFileSync(join(root, "README.md"), "Both `q-core` and legacy `q-core` are installed.\n");
-    assert.throws(() => verifyPackagedReadmeAliasBoundary(root), /single Q-Core executable/);
-    writeFileSync(join(root, "README.md"), "`q-core` is the only installed executable. No other CLI alias is provided.\n");
+    assert.throws(() => verifyPackagedReadmeAliasBoundary(root), /installed Q-Core executables/);
+    writeFileSync(join(root, "README.md"), "Q-Core installs `q-core` and `q-core-host`. No other CLI alias is provided.\n");
     assert.doesNotThrow(() => verifyPackagedReadmeAliasBoundary(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -47,7 +47,7 @@ test("Core product prose rejects a retired loop unit while control-flow loop sta
 
 test("Registry composition rejects stale builtin pins and product loop prose", () => {
   const root = mkdtempSync(join(tmpdir(), "q-core-composition-name-guard-"));
-  const pkg = { name: "q-core", version: "0.2.0-q-core.29" };
+  const pkg = { name: "q-core", version: "0.2.0-q-core.30" };
   const builtins = ["api-request", "fan-out", "fetch", "schedule"].map((id) => ({
     id,
     engine: { package: pkg.name, version: pkg.version, manifest: "q-core.workflow/v1" },

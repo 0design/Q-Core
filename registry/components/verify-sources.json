@@ -3,13 +3,13 @@
   "name": "Verify source links",
   "kind": "step",
   "contentType": "component",
-  "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
-  "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+  "description": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
+  "value": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
   "input": {
     "draft": {
       "type": "reference",
       "required": true,
-      "notes": "Text or {text}, at most 16000 characters."
+      "notes": "Text or {text}, at most 16000 characters. Markdown link targets are read exactly; bare URLs are read from the remaining text."
     },
     "sources": {
       "type": "reference",
@@ -20,12 +20,27 @@
       "type": "string",
       "required": false,
       "notes": "uk checks Ukrainian text markers; not a language-quality or fact-check guarantee."
+    },
+    "fixedLinks": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON array of fixed HTTP(S) presentation links (for example a fixed header) allowed in addition to selected-source URLs. Every other link must be a selected source, and every selected source must still be cited. May use {{env.NAME}}; an unresolved placeholder fails."
+    },
+    "requiredPrefix": {
+      "type": "string",
+      "required": false,
+      "notes": "Byte-exact literal prefix the draft must begin with, checked before any approval gate. May use {{env.NAME}}; an unresolved placeholder fails."
+    },
+    "requiredHeadings": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON array of exact level-two Markdown headings. When set, the draft must contain exactly these ## headings in this order, each with nonempty content; ### sub-headings are allowed."
     }
   },
   "output": {
     "result": {
       "type": "object",
-      "notes": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee."
+      "notes": "{text, artifactHash, sourceHash, fixedLinks?, checks, limitation}. Checks selected citation URLs, optional fixed links and optional literal format contracts; not a factual-accuracy guarantee."
     }
   },
   "needsEnv": [],
@@ -39,6 +54,13 @@
     "status": "accepted",
     "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
     "evidence": [
+      {
+        "file": "demos/digest-format.txt",
+        "sha256": "6a3899956b500ba2fe89c694124f69986207b9a13f9cc6446c2e720b945dbd2f",
+        "componentVersion": "0.2.0",
+        "coreVersion": "0.2.0-q-core.30",
+        "coreSha256": "7ef3731174ea20838bc0b0e7f6641a1186df863fcb193e0aff77a0a5954d67f2"
+      },
       {
         "file": "demos/digest-huyiks.txt",
         "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
