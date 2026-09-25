@@ -1093,7 +1093,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "170686a8ccf623840c809607266829423ec120f8a2be44bd0728002c9e17b072",
+      "sha256": "2f7072f5994cf0767558b902b54db88f29688a41b3096a137f728aaa3cf11ee9",
       "steps": 7,
       "kinds": [
         "fetch",
@@ -1899,10 +1899,10 @@
         "evidence": [
           {
             "file": "demos/digest-format.txt",
-            "sha256": "dd7cf61b75222e6865b1ebd2757ba684537dd1467e76f68d1c8eca4a167fa3a4",
+            "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
             "componentVersion": "0.4.0",
             "coreVersion": "0.2.0-q-core.32",
-            "coreSha256": "6b3ded729249fedab01b0150fc320f61a75f2e8be2c4d8ae2269c67f85025e9f"
+            "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
           },
           {
             "file": "demos/digest-huyiks.txt",
@@ -1913,7 +1913,7 @@
           }
         ]
       },
-      "sha256": "b1c6f3b30bfb3b67fd5f2fd80dcfe52984dc79c9bddc55fa95f0d08b330fa7b9"
+      "sha256": "ed6228df996334ecc909fda18caaf170a3d64e338f5ad851d1cab62b617da48d"
     }
   ],
   "demos": [
@@ -2123,8 +2123,8 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.32.tgz",
-    "artifactSha256": "6b3ded729249fedab01b0150fc320f61a75f2e8be2c4d8ae2269c67f85025e9f",
-    "integrity": "sha512-QvNchowSxsf2BxIaNNAHQKqBm+zBqWnXWEcmugGdg4DMLfW+8+QG2F6MYBblCF2z1pLKdgBRiqRHEUT3OPbbXA==",
+    "artifactSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e",
+    "integrity": "sha512-1bFpfPMQMAVAu/aRm2gQlNvnfq023aF4GmIsVBCwnQrhEnqAtM6JRagk416QLQ7qHrYhXW4nBe0vtSbFnVsJJw==",
     "schemaSha256": "5f5ad7d0851b7650273193d907f9719139b2e96291c5d2240fa7ade0e22d6226",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
@@ -2573,10 +2573,10 @@
           "evidence": [
             {
               "file": "demos/digest-format.txt",
-              "sha256": "dd7cf61b75222e6865b1ebd2757ba684537dd1467e76f68d1c8eca4a167fa3a4",
+              "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
               "componentVersion": "1.1.0",
               "coreVersion": "0.2.0-q-core.32",
-              "coreSha256": "6b3ded729249fedab01b0150fc320f61a75f2e8be2c4d8ae2269c67f85025e9f"
+              "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
             },
             {
               "file": "demos/digest-huyiks.txt",
@@ -2911,5 +2911,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "165e075a1177044d6cc270f3ef66cec668510a2534921db6ca21be866e99bcab"
+  "releaseSha256": "019e8c3f963dd7db9b81b443295d3c83670a8f50b374b1828a81bba3659ed691"
 }

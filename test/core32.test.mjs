@@ -65,3 +65,23 @@ test('podcast-digest 0.3.0 cites by timestamps, forbids local links and keeps th
   for (const rule of [/One thesis per item/, /copied exactly from the\s+transcript/, /Do not link the transcript parts/, /\(як у відео\)/, /Do not present a date, deadline or offer mentioned in the episode as\s+current/, /do not call a\s+video a podcast/])
     assert.match(instructions, rule);
 });
+
+test('review round 1: nested setext headings, ### blocks without markers, local addresses anywhere, heading-first drafts', () => {
+  const format = { requiredHeadings: '["## Сигнали","## Новини"]' };
+  const sources = { sources: [{ url: 'https://example.org/a', text: 'A' }] };
+  const ok = '## Сигнали\n\n- Сигнал і джерело https://example.org/a\n\n## Новини\n\n- Новина.\n';
+  for (const extra of ['- Сигнал\n  Зайва секція\n  ---', '- Сигнал\n  Зайва секція\n  ===', '> Цитата\n> ---'])
+    assert.throws(() => check(`${ok}\n${extra}\n`, format, sources), /required Markdown sections/, extra);
+  for (const fine of ['Абзац\n- пункт\n---', '- пункт\n---', '- пункт\n ---'])
+    assert.doesNotThrow(() => check(`${ok}\n${fine}\n`, format, sources), fine);
+  for (const text of [OK.replace('### Тести\n\n', '### Тести\nТеза без маркера.\n\n'), OK.replace('### Тести\n\n', '### Тести\n- Пункт без маркера\n- Ще пункт\n\n')])
+    assert.throws(() => check(text), /Every item needs its own/);
+  for (const local of ['127.0.0.1:5000/episode/part-1', 'localhost:5000/x', 'printer.local.', 'localhost.', '169.254.1.1', '100.64.0.1', '[телеграм](https://t.me/xyiikc "http://127.0.0.1:5000/x")'])
+    assert.throws(() => check(OK.replace('про модель [00:10]', `про модель ${local} [00:10]`)), /local (link|address)|unverified URL/, local);
+  for (const host of ['[::ffff:127.0.0.1]', '[fe80::1]', '[fc00::1]', 'localhost.'])
+    assert.throws(() => check(OK.replace('[00:10]', `[00:10] http://${host}/x`), { ...FORMAT, fixedLinks: JSON.stringify([`http://${host}/x`]) }), /local (link|address)/, host);
+  assert.doesNotThrow(() => check(OK.replace('про модель [00:10]', 'про модель у співвідношенні 1:10 [00:10]')), 'a 1:10 ratio is not a timestamp');
+  const headingFirst = OK.replace(`${header}${intro}`, '');
+  const { requiredPrefix, introLinks, requiredIntroPrefix, ...headingOnly } = FORMAT;
+  assert.throws(() => check(headingFirst.replace(' [00:31]', ''), headingOnly), /Every item needs its own/);
+});

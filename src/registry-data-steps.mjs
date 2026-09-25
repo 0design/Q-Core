@@ -78,8 +78,19 @@ export function runVerifySources(step, ctx) {
     const lines = text.split(/\r?\n/);
     // A setext underline makes a heading only under a paragraph; under a list item (or its continuation) or a
     // quote it is a thematic break, so it is allowed there.
-    const blockStart = index => { let i = index; while (i > 0 && lines[i - 1].trim() !== '') i -= 1; return lines[i]; };
-    lines.forEach((line, index) => insist(!(/^ {0,3}(?:=+|-+)[ \t]*$/.test(line) && index > 0 && lines[index - 1].trim() !== '' && !/^ {0,3}(?:(?:[-*+]|\d+[.)])\s|>)/.test(blockStart(index - 1))), 'Draft must contain exactly the required Markdown sections in order'));
+    // Context of a line = the contiguous non-blank lines above it. Under a list item an underline indented into the
+    // item's content (2+ spaces) makes a heading inside the item, so it is refused; at column 0–1 it is a break.
+    // Inside a quote, a "> ---" underline makes a heading inside the quote and is refused too.
+    const context = index => { let i = index; while (i > 0 && lines[i - 1].trim() !== '') i -= 1; return lines.slice(i, index); };
+    lines.forEach((line, index) => {
+      if (index === 0 || lines[index - 1].trim() === '') return;
+      const above = context(index);
+      if (/^\s*>\s*(?:=+|-+)[ \t]*$/.test(line) && /^\s*>/.test(lines[index - 1]) && /[^>\s]/.test(lines[index - 1].replace(/^\s*>/, '')))
+        insist(false, 'Draft must contain exactly the required Markdown sections in order');
+      if (!/^ {0,3}(?:=+|-+)[ \t]*$/.test(line)) return;
+      const listOrQuote = above.some(l => /^ {0,3}(?:(?:[-*+]|\d+[.)])\s|>)/.test(l));
+      insist(listOrQuote && /^ ?(?:=+|-+)/.test(line), 'Draft must contain exactly the required Markdown sections in order');
+    });
     insist(lines.filter(line => /^ {0,3}#{1,2}(?:[ \t]|$)/.test(line)).every(line => /^##(?!#)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
     // A heading nested in a list item or a quote is not a section; refuse it rather than let it look like one.
     insist(!lines.some(line => /^\s*(?:(?:[-*+]|\d+[.)])\s+|>\s*)+#{1,6}(?:\s|$)/.test(line)), 'Draft must contain exactly the required Markdown sections in order');
@@ -135,12 +146,21 @@ export function runVerifySources(step, ctx) {
   // forbidLocalLinks: no localhost, private-network or file link may reach the final text.
   const forbidLocal = step.config.forbidLocalLinks === 'true' || step.config.forbidLocalLinks === true || step.config.citation === 'timestamps';
   if (forbidLocal) {
-    insist(!/\bfile:\//i.test(text), 'Draft includes a local link');
+    const LOCAL_V4 = /^(?:0\.0\.0\.0|127(?:\.\d+){3}|10(?:\.\d+){3}|192\.168(?:\.\d+){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d+){2}|169\.254(?:\.\d+){2}|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d+){2})$/;
+    const isLocalHost = raw => {
+      const host = raw.toLowerCase().replace(/\.$/, '').replace(/^\[|\]$/g, '');
+      return host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || LOCAL_V4.test(host)
+        || /^(?:::1|::|::ffff:.*|fe[89ab][0-9a-f]:.*|f[cd][0-9a-f]{2}:.*)$/.test(host);
+    };
+    insist(!/\bfile:/i.test(text), 'Draft includes a local link');
     for (const link of links) {
       let host = '';
-      try { host = new URL(link).hostname.toLowerCase(); } catch { host = ''; }
-      insist(host && !/^(localhost|0\.0\.0\.0|127(?:\.\d+){3}|\[?::1\]?|10(?:\.\d+){3}|192\.168(?:\.\d+){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d+){2})$/.test(host) && !host.endsWith('.localhost') && !host.endsWith('.local'), `Draft includes a local link: ${link}`);
+      try { host = new URL(link).hostname; } catch { host = ''; }
+      insist(host && !isLocalHost(host), `Draft includes a local link: ${link}`);
     }
+    // Also without a scheme and anywhere in the text (for example inside a link title).
+    const bareHost = /(?<![\w.@-])(localhost\.?|[\w-]+\.localhost\.?|[\w-]+\.local\.?|\d{1,3}(?:\.\d{1,3}){3})(?=[:/\s)\]"'`,;]|$)/gi;
+    for (const m of text.matchAll(bareHost)) insist(!isLocalHost(m[1]), `Draft includes a local address: ${m[1]}`);
   }
   // citation: "timestamps" — sources are cited by [mm:ss] markers that exist in the selected source text, not by
   // their (possibly private) URLs; every cited paragraph or item in the required sections carries a marker.
@@ -154,10 +174,14 @@ export function runVerifySources(step, ctx) {
     insist(stamps.length > 0, 'Draft cites no [mm:ss] timestamp');
     const unknown = stamps.filter(stamp => !known.has(stamp));
     insist(unknown.length === 0, `Draft timestamps are not markers of the selected sources: ${[...new Set(unknown)].join(', ')}`);
-    const loose = text.replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g, ' ').match(/(?<![\d.:])\d{1,2}:\d{2}(?::\d{2})?(?![\d:])/g);
+    // A two-digit mm:ss outside square brackets is a timestamp in the wrong form (write a time of day as 14.30).
+    const loose = text.replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g, ' ').match(/(?<![\d.:])\d{2}:\d{2}(?::\d{2})?(?![\d:])/g);
     insist(!loose, `Draft writes timestamps outside the [mm:ss] form: ${(loose ?? []).slice(0, 3).join(', ')}`);
-    const body = text.slice(text.indexOf(`\n${requiredHeadings[0]}`));
-    const blocks = body.split(/\n\s*\n/).map(b => b.trim()).filter(b => b && !/^#{2,6}\s/.test(b) && /[\p{L}]{3}/u.test(b));
+    const first = text.search(new RegExp(`^${requiredHeadings[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm'));
+    insist(first >= 0, 'Draft must contain exactly the required Markdown sections in order');
+    const body = text.slice(first);
+    // Heading lines are removed, not the blocks that follow them, so a thesis under a ### title still needs a marker.
+    const blocks = body.split(/\n\s*\n/).map(b => b.split('\n').filter(l => !/^ {0,3}#{1,6}\s/.test(l)).join('\n').trim()).filter(b => b && /[\p{L}]{3}/u.test(b));
     const items = blocks.flatMap(b => /^(?:[-*+]|\d+[.)])\s/m.test(b) ? b.split(/\n(?=\s*(?:[-*+]|\d+[.)])\s)/) : [b]);
     const uncited = items.filter(item => !/\[\d{1,2}:\d{2}(?::\d{2})?\]/.test(item));
     insist(uncited.length === 0, `Every item needs its own [mm:ss] timestamp; uncited: ${uncited[0]?.slice(0, 60)}`);

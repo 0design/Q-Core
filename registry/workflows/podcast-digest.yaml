@@ -38,7 +38,7 @@ steps:
       secretSource: keychain
       keyRef: OPENROUTER_API_KEY
       format: text
-      maxTokens: 2500
+      maxTokens: 4000
       temperature: 0.2
       instructions: |
         You receive the prior step outputs as JSON. Use only the "unique" step's
@@ -62,11 +62,13 @@ steps:
         ## Короткі інформаційні сигнали
         ## Notable / impactful / important news
         Use no other level-two headings; ### thematic sub-blocks are allowed.
-        One thesis per item: never merge different thoughts into one item.
+        One thesis per item: never merge different thoughts into one item. Keep
+        the digest short: at most 12 items in total across both sections.
         Every item ends with the [mm:ss] marker(s) copied exactly from the
         transcript that start the segment(s) it relies on, for example [05:12].
         Use only markers that appear in the transcript, keep the square brackets,
-        write no other time format, and never make a timestamp a link.
+        write no other time format (a time of day is written like 14.30), and
+        never make a timestamp a link.
         Do not link the transcript parts; the markers are the citations.
         Attribute claims to the speaker without repeating the same phrase: vary
         or omit "у випуску кажуть" when the attribution is already clear. A

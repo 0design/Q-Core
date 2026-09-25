@@ -76,10 +76,10 @@
     "evidence": [
       {
         "file": "demos/digest-format.txt",
-        "sha256": "dd7cf61b75222e6865b1ebd2757ba684537dd1467e76f68d1c8eca4a167fa3a4",
+        "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
         "componentVersion": "0.4.0",
         "coreVersion": "0.2.0-q-core.32",
-        "coreSha256": "6b3ded729249fedab01b0150fc320f61a75f2e8be2c4d8ae2269c67f85025e9f"
+        "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
       },
       {
         "file": "demos/digest-huyiks.txt",
