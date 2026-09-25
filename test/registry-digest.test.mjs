@@ -12,7 +12,7 @@ const provider = { kind: 'caller', agent: 'codex', model: 'test-double', payerSc
 test('actual Digest manifest enforces pending inference, exact approval and durable duplicate/uncertain receipts', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-registry-digest-'));
   const file = join(root, 'digest.yaml');
-  copyFileSync(new URL('../registry/loops/digest.yaml', import.meta.url), file);
+  copyFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), file);
   let deliveries = 0, fail = false;
   const server = createServer((req, res) => {
     if (req.url === '/receive') { deliveries++; req.resume(); res.writeHead(fail ? 503 : 200); res.end('receipt'); }
@@ -73,4 +73,14 @@ test('source components refuse hallucinated links, empty sources and normalize d
   const unique = runDeduplicate({ config: { source: '{{steps.parsed.output}}' } }, context);
   assert.equal(unique.output.removed, 1);
   assert.throws(() => runVerifySources({ config: { draft: '{{steps.draft.output}}', sources: '{{steps.parsed.output}}', language: 'uk' } }, context), /unverified URL/);
+});
+
+test('Digest is a Q-Core workflow consumer without retired product aliases', () => {
+  const source = readFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), 'utf8');
+  assert.match(source, /^manifest: q-core\.workflow\/v1$/m);
+  assert.match(source, /Put each cited\s+source URL directly in the sentence or bullet that relies on it/i);
+  assert.match(source, /do not\s+replace inline citations with a standalone source list/i);
+  assert.match(source, /do\s+not\s+imitate a private author's personal experience or present it as a\s+channel post/i);
+  assert.match(source, /If source metadata says\s+textTruncated is true, name the affected source or sources/i);
+  assert.doesNotMatch(source, /\bqloops?\b|\bloopId\b|\bloops?\s+(?:catalog|manifest|version|id)\b/i);
 });

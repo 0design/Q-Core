@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # =============================================================================
 # PARITY CASE D — fan-out expands the same lane, item for item.

@@ -1,46 +1,73 @@
-# qloops
+# q-core
 
-Local, dependency-free loop runtime for Node.js >=20.3. The current reviewed
-delivery candidate is `0.2.0-core.19`; it is not an npm release or production
-acceptance.
+Local, dependency-free workflow runtime for Node.js >=20.3.
 
-## Install a reviewed local package
+## Install a package
+
+Install only an archive whose SHA-256 you verified first. Take the archive URL and its
+`artifactSha256` from the `core` field of the exact Registry release catalog you pinned
+(for example `https://registry.qfactory.io/releases/<version>/catalog.json`), never from
+`latest` or a guessed npm version. The block below is fail-closed: it stops before
+`npm install` when the hash is missing, malformed or different, and it works with macOS
+`shasum`, Linux `sha256sum` or, when neither exists, Node.js itself.
+
+<!-- verify-install:start -->
+```sh
+set -eu
+ARCHIVE=q-core-VERSION.tgz
+EXPECTED=ARTIFACT_SHA256_FROM_CATALOG
+case "$EXPECTED" in *[!0-9a-f]*|"") echo "Expected SHA-256 is not 64 lowercase hex characters; not installing" >&2; exit 1;; esac
+[ "${#EXPECTED}" -eq 64 ] || { echo "Expected SHA-256 is not 64 lowercase hex characters; not installing" >&2; exit 1; }
+if command -v shasum >/dev/null 2>&1; then ACTUAL=$(shasum -a 256 "$ARCHIVE" | cut -d' ' -f1)
+elif command -v sha256sum >/dev/null 2>&1; then ACTUAL=$(sha256sum "$ARCHIVE" | cut -d' ' -f1)
+else ACTUAL=$(node -e 'process.stdout.write(require("node:crypto").createHash("sha256").update(require("node:fs").readFileSync(process.argv[1])).digest("hex"))' "$ARCHIVE"); fi
+[ "$ACTUAL" = "$EXPECTED" ] || { echo "SHA-256 mismatch for $ARCHIVE; not installing" >&2; exit 1; }
+npm install --prefix .qfactory/tools "./$ARCHIVE"
+```
+<!-- verify-install:end -->
+
+On Windows PowerShell, compare `(Get-FileHash -Algorithm SHA256 .\q-core-VERSION.tgz).Hash.ToLower()`
+with the catalog value and run `npm install` only when they are equal.
 
 ```sh
-npm install /absolute/path/qloops-0.2.0-core.19.tgz
-npx qloops validate ./loop.yaml
-npx qloops run ./loop.yaml
+./.qfactory/tools/node_modules/.bin/q-core validate ./workflow.yaml
+./.qfactory/tools/node_modules/.bin/q-core run ./workflow.yaml
 ```
 
-Both `qloops` and legacy `qloop` are installed. No `qf` alias. The package includes
-runtime, schema, providers and synthetic contract fixtures. Canonical loops live
-in an independent registry, not a neighboring private source checkout.
+`q-core` is the only installed executable. No other CLI alias is provided. The package includes
+runtime, schema, providers and synthetic contract fixtures. Install reusable workflows
+from a versioned registry export.
 
 ```sh
-npx qloops install /absolute/registry-export CATALOG_SHA256 loop-id 1.0.0 ./loop.yaml
+./.qfactory/tools/node_modules/.bin/q-core install https://registry.qfactory.io/releases/VERSION CATALOG_SHA256 workflow-id 1.0.0 ./workflow.yaml
+./.qfactory/tools/node_modules/.bin/q-core install /absolute/registry-export CATALOG_SHA256 workflow-id 1.0.0 ./workflow.yaml --release VERSION
 ```
 
+The release version is pinned separately from the catalog hash: the catalog's
+`releaseVersion` must equal the `releases/<version>` segment of the Registry base and
+`--release` when given (`RELEASE_MISMATCH` otherwise); a remote non-localhost base must
+name its release (`RELEASE_REQUIRED`). A truncated or corrupt catalog fails with
+`CATALOG_INVALID`. Errors are printed as `CODE: message` with exit code 1.
 The catalog must pin this engine version. Installer verifies catalog bytes,
-manifest identity, checksums and exact dependencies, and writes `loop.yaml.lock.json`.
+manifest identity, checksums and exact dependencies, and writes `workflow.yaml.lock.json`.
 It never overwrites files. HTTPS registries are supported; HTTP is localhost-only.
 No implicit mutable remote catalog is used. Legacy remote discovery requires both
-`QLOOP_CATALOG_URL` and `QLOOP_CATALOG_SHA256`. `QFACTORY_REGISTRY` is an explicitly
+`QCORE_CATALOG_URL` and `QCORE_CATALOG_SHA256`. `QFACTORY_REGISTRY` is an explicitly
 trusted local development overlay, not a verified release install.
 
 ## Agent -> Core -> CLI -> result
 
 ```sh
-npx qloops agent request.json
+npx q-core agent request.json
 # or pipe bounded JSON on stdin
-npx qloops agent - < request.json
+npx q-core agent - < request.json
 ```
 
 See `contracts/v1/fixtures.json` for a complete request and
 `contracts/v1/request.schema.json` for the structural schema. `validateRequest`
 adds path and authorization checks. Substitute real absolute workspace, Node and
 CLI paths. `sdd-pipeline@1.0.0` runs the built-in SDD capability;
-`synthetic-sdd@1.0.0` is its test alias. Canonical registry acceptance still
-requires the site to wire and pin its own manifest.
+`synthetic-sdd@1.0.0` is its test alias. A consumer must pin the manifest it runs.
 
 The first call returns `needs_human` with a spec and approval hash. Review the
 specification, verifier, exact file scope and context. Resume the same request
@@ -85,7 +112,7 @@ Set this provider in an agent or content request (choose your real absolute CLI 
 ```
 
 The path above was verified on this Mac. A standalone installation of the exact
-reviewed CLI works too; qloops does not install or replace it. Run that executable's
+reviewed CLI works too; q-core does not install or replace it. Run that executable's
 `login status` first. ChatGPT authentication is required; saved API-key auth is
 rejected, API-key environment variables are not forwarded, and API/provider/model
 fallback is disabled. A legacy CLI is rejected with `UNSUPPORTED_CLI`.
@@ -106,13 +133,13 @@ cost; use deadlines and repair limits for subscription workflows.
 
 The value beyond scheduling is the reusable workflow: versioned scope, explicit
 approval, independent verification, bounded repair and resumable evidence.
-A scheduler can launch qloops; for a simple recurring prompt, a built-in scheduled
+A scheduler can launch q-core; for a simple recurring prompt, a built-in scheduled
 task may already be enough. See [Codex integration details](docs/codex.md).
 
 ## Reusable providers
 
 ```js
-import { openRouter } from 'qloops';
+import { openRouter } from 'q-core';
 const result = await openRouter({
   messages: [{ role: 'user', content: 'Summarize this synthetic input.' }],
   model: 'YOUR_EXPLICIT_MODEL', keyRef: 'OPENROUTER_API_KEY',
@@ -141,33 +168,27 @@ and [synthetic request example](examples/content-request.json). They describe lo
 configuration, exact-text approval, repeat/dedup and uncertain-delivery recovery
 without requiring a source checkout. The SDD request schema is not a Content schema.
 
-Parent-agent limitation: the tested Codex workspace-write shell currently denies
-its nested CLI's local app-server initialization. `CLI_ENVIRONMENT_DENIED` asks for
-a supported caller arrangement, without bypassing the sandbox. Standalone Core
-proofs do not imply this parent environment works; see [Codex execution boundaries](docs/codex.md#execution-boundary).
-
-`qloops content request.json` uses `qf.content-request/v1`: explicit sources,
+`q-core content request.json` uses `qf.content-request/v1`: explicit sources,
 allowedOrigins, profile, provider, receipt-aware webhook receiver and deadline.
 `runContent` exports the same orchestration with caller-injected capabilities.
 Source identity dedup, source-attribution checks, exact draft/receiver approval,
 durable receipt and ambiguous-send reconciliation are implemented. Receiver JSON
 must be `{ "id": "unique-receipt", "delivered": true }`. A file sink is not a
-Telegram receipt. Only synthetic/local receivers were exercised here.
+Telegram receipt. Configure and approve the receiver for each delivery.
 
 `determined` exports A2D-style plan-bound execute/verify/repair. Existing
 `a2done`, `a2d`, or `.a2d` users must follow the [public migration guide](docs/a2d-migration.md):
-qloops deliberately provides no `a2d` binary/MCP alias and does not import old
+q-core deliberately provides no `a2d` binary/MCP alias and does not import old
 state, approvals, or completion evidence automatically. `qualityCheck`
 exports aindf-check (ds-readiness/UI composition) and unslop with hard/soft split,
 versioned findings, explicit coverage and optional recipe transport. `loadAindf`
-and `loadUnslop` load checksum-pinned upstream installations; no canon is copied.
-Missing DS, stale evidence, unknown rules and missing browser evidence cannot pass.
-See delivery documentation for upstream/version and acceptance limitations.
+and `loadUnslop` load checksum-pinned upstream installations. Missing DS, stale
+evidence, unknown rules and missing browser evidence cannot pass.
 
 ## Legacy YAML commands
 
-`qloop validate`, `run [--dry-run]`, `status`, `approve [--reject]`, `catalog`,
-`init` and `doctor` remain available for `qloops.loop/v1`. Step kinds and fields are in
+`q-core validate`, `run [--dry-run]`, `status`, `approve [--reject]`, `catalog`,
+`init` and `doctor` remain available for `q-core.workflow/v1`. Step kinds and fields are in
 [SPEC-MANIFEST.md](./SPEC-MANIFEST.md). Legacy JSON is not the new agent envelope.
 `run` performs one pass; scheduling belongs to the caller/launchd. State is local
 in `.qf/`; no server/database is required. Legacy YAML agent-call and check mode
@@ -181,12 +202,13 @@ npm run test:package
 ```
 
 Tests cover real localhost HTTP, subprocess fixtures, installed callers, negative
-paths, approval and resume. Fixtures are not live inference evidence. The
-2026-09-07 real Claude attempt failed with expired OAuth; reauthenticate using the
-CLI's own login flow before rerunning live acceptance. No live OpenRouter call was
-made without a configured key. Local release evidence is in [Linear](https://linear.app/0dhaus/issue/0D-263).
+paths, approval and resume. Package verification is limited to these local checks.
+The public-surface check also scans every tracked source file for private workspace
+references, including files excluded from the npm package. `docs/delivery/` is
+generated local receipt storage and has a separate invariant: only its `.gitkeep`
+may be tracked.
 
-MIT. No remote push, npm publish or production deployment is implied.
+MIT.
 
 ### determined consumer
 
@@ -199,6 +221,6 @@ It demonstrates real failing/passing subprocess checks with a scripted executor.
 
 Explicit current-agent inference for SDD and Content: [caller protocol](contracts/v1/caller-inference.md). No automatic provider fallback; Core retains approval, execution and independent verification.
 
-Local manual, UTC schedule, and authenticated loopback webhook triggers use `qloops-host`; see [host contract](contracts/v1/host.md). The host does not install a daemon or supply model inference.
+Local manual, UTC schedule, and authenticated loopback webhook triggers use `q-core-host`; see [host contract](contracts/v1/host.md). The host does not install a daemon or supply model inference.
 
 `runSkill` enforces the explicit criteria of a pinned authored skill bundle with independent Node verifiers and version-bound human review. See [skill contract](contracts/v1/skill.md) and `examples/skill-caller.mjs`; arbitrary prose is not automatically machine-verifiable.

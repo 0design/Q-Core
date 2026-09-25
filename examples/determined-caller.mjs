@@ -4,10 +4,10 @@ import {mkdtempSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
-import {determined,hash} from 'qloops';
-import {subprocess} from 'qloops/src/subprocess.mjs';
+import {determined,hash} from 'q-core';
+import {subprocess} from 'q-core/src/subprocess.mjs';
 
-const workspace=mkdtempSync(join(tmpdir(),'qloops-determined-'));
+const workspace=mkdtempSync(join(tmpdir(),'q-core-determined-'));
 const target=join(workspace,'value.mjs');
 const verifier=join(workspace,'verify.mjs');
 writeFileSync(verifier,`import assert from 'node:assert/strict';import {add} from './value.mjs';

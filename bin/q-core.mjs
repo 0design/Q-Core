@@ -4,7 +4,7 @@ if (process.argv[2] === "auth") {
     const { hasKeychainSecret, removeKeychainSecret, setKeychainSecret } = await import("../src/secrets.mjs");
     const [operation, provider, keyRef = "OPENROUTER_API_KEY", ...extra] = process.argv.slice(3);
     if (!operation || provider !== "openrouter" || extra.length || !["set", "status", "remove"].includes(operation))
-      throw new Error("Usage: qloops auth <set|status|remove> openrouter [KEY_REF]");
+      throw new Error("Usage: q-core auth <set|status|remove> openrouter [KEY_REF]");
     if (operation === "set") {
       await setKeychainSecret({ provider, keyRef });
       process.stdout.write(JSON.stringify({ provider, keyRef, stored: true }) + "\n");
@@ -28,19 +28,25 @@ if (process.argv[2] === "auth") {
 } else if (process.argv[2] === "install") {
   try {
     const { installPinned } = await import("../src/registry-release.mjs");
-    const [base, catalogSha256, id, version, destination] =
-      process.argv.slice(3);
-    if (!destination)
+    const args = process.argv.slice(3);
+    let releaseVersion;
+    const at = args.indexOf("--release");
+    if (at >= 0) {
+      releaseVersion = args[at + 1];
+      args.splice(at, 2);
+    }
+    const [base, catalogSha256, id, version, destination, ...extra] = args;
+    if (!destination || extra.length || (at >= 0 && !releaseVersion))
       throw new Error(
-        "Usage: qloops install <registry-directory-or-URL> <catalog-sha256> <id> <version> <destination>",
+        "Usage: q-core install <registry-directory-or-URL> <catalog-sha256> <id> <version> <destination> [--release <version>]",
       );
     console.log(
       JSON.stringify(
-        await installPinned({ base, catalogSha256, id, version, destination }),
+        await installPinned({ base, catalogSha256, id, version, destination, releaseVersion }),
       ),
     );
   } catch (e) {
-    console.error(e.message);
+    console.error(e?.code ? `${e.code}: ${e.message}` : e.message);
     process.exitCode = 1;
   }
-} else await import("./qloop.mjs");
+} else await import("./q-workflow.mjs");

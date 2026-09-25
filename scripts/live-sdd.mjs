@@ -19,7 +19,7 @@ writeFileSync(
 const request = {
   protocolVersion: "qf.agent/v1",
   requestId: "controlled-live-sdd",
-  loop: { id: "sdd-pipeline", version: "1.0.0" },
+  workflow: { id: "sdd-pipeline", version: "1.0.0" },
   intent:
     "Implement arithmetic add(a,b) in value.mjs. The independent verifier checks positive and negative inputs. Only value.mjs is writable.",
   workspace,

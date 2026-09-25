@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contentTypes": [
-    "loop-template",
+    "workflow-template",
     "component",
     "demo"
   ],
@@ -10,7 +10,7 @@
     {
       "id": "sdd-pipeline",
       "name": "SDD pipeline",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Turn an intent into an approved specification and a verified project change.",
       "version": "0.1.0",
       "status": "implementation-candidate",
@@ -74,7 +74,7 @@
     {
       "id": "content-feed",
       "name": "Content feed",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Collect and normalize relevant source material without reviewing every source manually.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -123,7 +123,7 @@
     {
       "id": "digest",
       "name": "Digest",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Turn selected feed material into a useful editorial digest.",
       "version": "0.1.0",
       "status": "implementation-candidate",
@@ -189,7 +189,7 @@
     {
       "id": "aindf-check",
       "name": "aindf-check",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Distinguish DS readiness from compliance of a concrete composition.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -234,7 +234,7 @@
     {
       "id": "unslop",
       "name": "Unslop",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Find design-canon violations without copying the canon.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -284,7 +284,7 @@
     {
       "id": "annotation-fix",
       "name": "Fix website annotations",
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "value": "Apply website feedback and return evidence to each original annotation.",
       "version": "0.1.0",
       "status": "contract-only",
@@ -346,7 +346,7 @@
       }
     }
   ],
-  "reusableLoopComponents": [
+  "reusableWorkflowComponents": [
     "determined"
   ],
   "builtins": [
@@ -354,7 +354,7 @@
       "id": "api-request",
       "name": "API request",
       "kind": "step",
-      "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
+      "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A workflow may end here. This is a complete workflow, not an unfinished one. SPEC does not enumerate response fields.",
       "input": {
         "url": {
           "type": "string",
@@ -390,7 +390,7 @@
       "output": {
         "response": {
           "type": "object",
-          "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the loop is complete."
+          "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the workflow is complete."
         }
       },
       "needsEnv": [],
@@ -416,23 +416,22 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.29",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "a05e27501e41b1fc84853d7c20b63eedb90dcad3461c6c4450150c1d0e25a512",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local Digest transport; public acceptance pending.",
+        "scope": "Controlled local Digest transport; this evidence is not public acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -443,7 +442,7 @@
           }
         ]
       },
-      "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
+      "value": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A workflow may end here. This is a complete workflow, not an unfinished one. SPEC does not enumerate response fields.",
       "implementation": {
         "status": "implemented",
         "source": "src/steps.mjs",
@@ -505,17 +504,16 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.29",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "bd7e15f89e76f8360d2419532a2c890f7a796342cf67700d01fc7f97580163b6",
       "contentType": "component",
@@ -607,23 +605,22 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.29",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "2b1f253160e925d0a2948e6669aea37da178d081741a659fb297926bce76601c",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local Digest transport; public acceptance pending.",
+        "scope": "Controlled local Digest transport; this evidence is not public acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -646,7 +643,7 @@
       "id": "schedule",
       "name": "Schedule",
       "kind": "trigger",
-      "description": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. qloop run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
+      "description": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. q-core run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
       "input": {
         "cron": {
           "type": "string",
@@ -677,17 +674,16 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.29",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "95e7ad8e07b0fbc07675e357929a484ad7b5198455bacbbf7a2bdd90712f0f22",
       "contentType": "component",
@@ -695,7 +691,7 @@
         "status": "pending",
         "evidence": []
       },
-      "value": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. qloop run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
+      "value": "A trigger, not a runner step. SPEC-MANIFEST.md §5.6 / §3: triggers are inputs, not steps; they never appear in steps:. The runner does not act on any trigger. q-core run performs one pass; cron: documents the intended cadence, and launchd or cron actually fires it.",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",

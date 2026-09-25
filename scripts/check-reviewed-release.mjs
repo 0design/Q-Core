@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 const commit = process.argv[2];
 if (!/^[a-f0-9]{40}$/.test(commit ?? '')) throw Error('Full commit required');
 const repository = process.env.GITHUB_REPOSITORY;
-if (repository !== '0design/qloops') throw Error('Unexpected repository');
+if (repository !== '0design/Q-Core') throw Error('Unexpected repository');
 execFileSync('git', ['merge-base', '--is-ancestor', commit, 'origin/main']);
 const api = path => JSON.parse(execFileSync('gh', ['api', path], { encoding: 'utf8' }));
 const prs = api(`repos/${repository}/commits/${commit}/pulls`);

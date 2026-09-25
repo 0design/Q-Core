@@ -1,4 +1,4 @@
-# Specification workflow extension (candidate revision 3)
+# Specification workflow extension
 
 SDD accepts an optional `specification: {summary, criteria, plan}` input. This
 imports the provided specification without model generation. A previous external
@@ -69,6 +69,4 @@ human outcomes is 2; malformed requests keep exit 64.
 
 Existing request fields and provider contracts remain supported. New fields must
 be understood by a consumer before adoption; previous tarballs do not implement
-this extension. The core.3 installed-package live proof is recorded in
-`docs/delivery/specification-live.json` in the source repository. Consumer repin
-and cross-track acceptance remain separate gates.
+this extension.

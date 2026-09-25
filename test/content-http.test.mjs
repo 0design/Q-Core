@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import { runContentRequest } from "../src/content-runner.mjs";
 for (const kind of ["claude", "codex"])
   test(`${kind}: content sources -> CLI fixture -> check -> approval -> real local receiver; three deliveries, dedup and failure`, async (t) => {
-    const workspace = mkdtempSync(join(tmpdir(), "qloops-content-http-"));
+    const workspace = mkdtempSync(join(tmpdir(), "q-core-content-http-"));
     t.after(() => rmSync(workspace, { recursive: true, force: true }));
     let sends = 0,
       fail = false;
@@ -102,7 +102,7 @@ for (const kind of ["claude", "codex"])
   });
 
 test('content deadline bounds response bodies and emits a typed human stop',async t=>{
-  const workspace=mkdtempSync(join(tmpdir(),'qloops-content-deadline-'));t.after(()=>rmSync(workspace,{recursive:true,force:true}));
+  const workspace=mkdtempSync(join(tmpdir(),'q-core-content-deadline-'));t.after(()=>rmSync(workspace,{recursive:true,force:true}));
   const server=createServer((req,res)=>{res.writeHead(200,{'Content-Type':'text/plain'});res.write('partial');});
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
   t.after(()=>{server.closeAllConnections();return new Promise(r=>server.close(r));});

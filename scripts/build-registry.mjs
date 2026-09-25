@@ -3,27 +3,68 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { loadManifest } from '../src/manifest.mjs';
-import { loopMetadata } from './registry-loop-metadata.mjs';
+import { loadPlannedCatalogEntries } from '../src/registry.mjs';
+import { workflowMetadata } from './registry-workflow-metadata.mjs';
 import { componentReadiness } from './registry-readiness.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../registry');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const sri = bytes => `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 export function assertCoreArtifact(catalog, body) {
-  if (catalog.core.artifact !== `vendor/qloops-${catalog.core.version}.tgz` ||
+  if (catalog.core.artifact !== `vendor/q-core-${catalog.core.version}.tgz` ||
       sha(body) !== catalog.core.artifactSha256 || sri(body) !== catalog.core.integrity)
     throw Error('Core artifact does not match catalog pin');
 }
+/* Evidence pins must name the exact bytes shipped in this Registry. Walks any
+   record for evidence[] items carrying { file, sha256 } and compares them with
+   the file under the Registry root. */
+export function assertEvidencePins(record, readFile, label) {
+  const visit = (value, path) => {
+    if (Array.isArray(value)) return value.forEach((item, index) => visit(item, `${path}[${index}]`));
+    if (!value || typeof value !== 'object') return;
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'evidence' && Array.isArray(child)) {
+        child.forEach((item, index) => {
+          if (item && typeof item === 'object' && typeof item.file === 'string' && typeof item.sha256 === 'string') {
+            const actual = sha(readFile(item.file));
+            if (actual !== item.sha256) throw Error(`Evidence pin mismatch at ${label}${path}.evidence[${index}] (${item.file}): pinned ${item.sha256}, actual ${actual}`);
+          }
+        });
+      }
+      visit(child, `${path}.${key}`);
+    }
+  };
+  visit(record, '');
+}
+/* An immutable Registry release must not carry a claim that turns false later.
+   Owner and public acceptance live in write-once records outside the release, so a
+   JSON record may not say that release/owner/public acceptance is "pending". */
+export function assertNoMutableAcceptanceClaims(record, label) {
+  const visit = (value, path) => {
+    if (Array.isArray(value)) return value.forEach((item, index) => visit(item, `${path}[${index}]`));
+    if (typeof value === 'string') {
+      if (/\b(?:release|owner|public|user)\b[^.;]{0,40}\bacceptance\b[^.;]{0,20}\bpending\b/i.test(value)) throw Error(`Time-bound acceptance claim at ${label}${path}: ${value}`);
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'releaseAcceptance') throw Error(`Time-bound releaseAcceptance field at ${label}${path}`);
+      visit(child, `${path}.${key}`);
+    }
+  };
+  visit(record, '');
+}
 export function buildRegistry(sourceRoot = root) {
   const catalog = JSON.parse(readFileSync(resolve(sourceRoot, 'catalog.source.json')));
+  const planned = loadPlannedCatalogEntries(sourceRoot);
   const assets = {};
   const ids = new Set();
   function asset(file) {
-    if (!/^(loops|components|demos|authors|examples)\/[a-z0-9-]+\.(yaml|json|txt)$/.test(file)) throw Error('Unsafe registry path');
+    if (!/^(workflows|components|demos|authors|examples)\/[a-z0-9-]+\.(yaml|json|txt)$/.test(file)) throw Error('Unsafe registry path');
     if (lstatSync(resolve(sourceRoot, file.split('/')[0])).isSymbolicLink() || lstatSync(resolve(sourceRoot, file)).isSymbolicLink()) throw Error('Registry symlink');
     return assets[file] ??= readFileSync(resolve(sourceRoot, file));
   }
-  for (const section of ['loops', 'components', 'demos']) {
+  for (const section of ['workflows', 'components', 'demos']) {
     for (const entry of catalog[section]) {
       const key = `${section}/${entry.id}`;
       if (!/^[a-z0-9-]+$/.test(entry.id) || ids.has(key)) throw Error('Invalid or duplicate entry');
@@ -32,27 +73,42 @@ export function buildRegistry(sourceRoot = root) {
       if (entry.engine?.version !== catalog.core.version) throw Error('Engine pin mismatch');
       const file = entry.file ?? `${key}.json`;
       entry.sha256 = sha(asset(file));
-      if (section === 'loops') {
-        if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Loop value is required');
+      if (section === 'workflows') {
+        if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Workflow value is required');
         const manifest = loadManifest(resolve(sourceRoot, file));
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
-        Object.assign(entry, loopMetadata(manifest));
+        Object.assign(entry, workflowMetadata(manifest));
       }
       if (entry.proof) asset(entry.proof);
+      assertEvidencePins(entry, asset, `${key} catalog`);
+      if (file.endsWith('.json')) assertEvidencePins(JSON.parse(asset(file)), asset, `${key} file`);
       asset(`authors/${entry.author}.json`);
     }
   }
+  for (const entry of planned) {
+    const section = `${entry.section}s`;
+    const catalogEntry = catalog[section].find((candidate) => candidate.id === entry.id);
+    if (!catalogEntry) throw Error(`Planned ${entry.section} is missing from catalog source: ${entry.id}`);
+    for (const key of ['file', 'name', 'description', 'status', 'launch', 'reason']) {
+      if (catalogEntry[key] !== entry[key]) {
+        throw Error(`Planned ${entry.section} ${entry.id} disagrees with planned.json at ${key}`);
+      }
+    }
+  }
   const composition = JSON.parse(readFileSync(resolve(sourceRoot, 'composition.json')));
+  assertNoMutableAcceptanceClaims(catalog, 'catalog.source');
+  assertNoMutableAcceptanceClaims(composition, 'composition');
+  for (const [file, body] of Object.entries(assets)) if (file.endsWith('.json')) assertNoMutableAcceptanceClaims(JSON.parse(body), file);
   if (composition.schemaVersion !== 1 || !Array.isArray(composition.templates)) throw Error('Invalid composition contract');
   const templateIds = new Set();
   for (const template of composition.templates) {
-    if (!template.id || templateIds.has(template.id) || template.contentType !== 'loop-template' || !template.value?.trim()) throw Error('Invalid template contract');
+    if (!template.id || templateIds.has(template.id) || template.contentType !== 'workflow-template' || !template.value?.trim()) throw Error('Invalid template contract');
     templateIds.add(template.id);
     template.readiness = componentReadiness(template, [...catalog.components, ...(composition.builtins ?? [])]);
   }
-  for (const entry of [...catalog.loops, ...catalog.components]) componentReadiness(entry, [...catalog.components, ...(composition.builtins ?? [])]);
+  for (const entry of [...catalog.workflows, ...catalog.components]) componentReadiness(entry, [...catalog.components, ...(composition.builtins ?? [])]);
   catalog.composition = composition;
-  for (const demo of catalog.demos) if (!catalog.loops.some(loop => loop.id === demo.loopId) && !composition.templates.some(template => template.id === demo.loopId)) throw Error('Missing demo loop');
+  for (const demo of catalog.demos) if (!catalog.workflows.some(workflow => workflow.id === demo.workflowId) && !composition.templates.some(template => template.id === demo.workflowId)) throw Error('Missing demo workflow');
   delete catalog.releaseSha256;
   catalog.releaseSha256 = sha(JSON.stringify(catalog));
   return { catalog, assets };
@@ -61,23 +117,34 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const { catalog, assets } = buildRegistry();
   const index = process.argv.indexOf('--export');
   const destination = index < 0 ? root : resolve(process.argv[index + 1]);
-  const files = { 'catalog.json': JSON.stringify(catalog, null, 2) + '\n', ...assets, 'composition.json': JSON.stringify(catalog.composition, null, 2) + '\n', LICENSE: readFileSync(resolve(root, 'LICENSE')) };
+  /* Planned entries are a canonical part of the Registry boundary. Export their
+     explicit classification with the raw records so an installed Core can make
+     the same discoverable-but-forbidden decision as the source checkout. */
+  const files = {
+    'catalog.json': JSON.stringify(catalog, null, 2) + '\n',
+    ...assets,
+    'composition.json': JSON.stringify(catalog.composition, null, 2) + '\n',
+    'planned.json': readFileSync(resolve(root, 'planned.json')),
+    LICENSE: readFileSync(resolve(root, 'LICENSE')),
+  };
   const coreIndex = process.argv.indexOf('--core-artifact');
   if (coreIndex >= 0) {
-    if (index < 0 || !process.argv[coreIndex + 1]) throw Error('Core artifact requires an export destination and input file');
+    if ((index < 0 && !process.argv.includes('--check')) || !process.argv[coreIndex + 1]) throw Error('Core artifact requires an export destination or --check, and an input file');
     const corePath = resolve(process.argv[coreIndex + 1]);
     if (!lstatSync(corePath).isFile() || lstatSync(corePath).isSymbolicLink()) throw Error('Unsafe Core artifact');
     const body = readFileSync(corePath);
     assertCoreArtifact(catalog, body);
     files[catalog.core.artifact] = body;
   }
+  const checksums = Object.entries(files).map(([file, body]) => `${sha(body)}  ${file}`).sort().join('\n') + '\n';
   if (process.argv.includes('--check')) {
     if (readFileSync(resolve(root, 'catalog.json'), 'utf8') !== files['catalog.json']) throw Error('Generated catalog drift');
+    if (readFileSync(resolve(root, 'SHA256SUMS'), 'utf8') !== checksums) throw Error('Generated checksum drift');
   } else {
     for (const [file, body] of Object.entries(files)) {
       const path = resolve(destination, file); mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, body);
     }
-    writeFileSync(resolve(destination, 'SHA256SUMS'), Object.entries(files).map(([file, body]) => `${sha(body)}  ${file}`).sort().join('\n') + '\n');
+    writeFileSync(resolve(destination, 'SHA256SUMS'), checksums);
   }
-  console.log(JSON.stringify({ version: catalog.releaseVersion, entries: catalog.loops.length + catalog.components.length + catalog.demos.length }));
+  console.log(JSON.stringify({ version: catalog.releaseVersion, entries: catalog.workflows.length + catalog.components.length + catalog.demos.length }));
 }

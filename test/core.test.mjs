@@ -16,13 +16,13 @@ import { openRouter } from "../src/providers/openrouter.mjs";
 import { hash, validateRequest } from "../src/contracts.mjs";
 import { lockWorkspace } from "../src/workspace.mjs";
 const setup = (t) => {
-  const dir = mkdtempSync(join(tmpdir(), "qloops-core-"));
+  const dir = mkdtempSync(join(tmpdir(), "q-core-core-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   writeFileSync(join(dir, "value.txt"), "old");
   return {
     protocolVersion: "qf.agent/v1",
     requestId: "fixture",
-    loop: { id: "synthetic-sdd", version: "1.0.0" },
+    workflow: { id: "synthetic-sdd", version: "1.0.0" },
     intent: "Write new to value.txt",
     workspace: dir,
     allowedPaths: ["value.txt"],
@@ -147,16 +147,16 @@ test("exclusive workspace lock and recursion guard", async (t) => {
     "WORKSPACE_LOCKED",
   );
   lock.release();
-  const old = process.env.QLOOPS_DEPTH;
-  process.env.QLOOPS_DEPTH = "1";
+  const old = process.env.QCORE_DEPTH;
+  process.env.QCORE_DEPTH = "1";
   try {
     assert.equal(
       (await runAgent(r, { generate })).error.code,
       "UNSUPPORTED_NESTING",
     );
   } finally {
-    if (old === undefined) delete process.env.QLOOPS_DEPTH;
-    else process.env.QLOOPS_DEPTH = old;
+    if (old === undefined) delete process.env.QCORE_DEPTH;
+    else process.env.QCORE_DEPTH = old;
   }
 });
 test("subprocess bounded output, missing executable, timeout and cancellation", async () => {
@@ -189,7 +189,7 @@ test("Claude caller verifies exact argv, context stdin, scoped env and stdout er
     calls++;
     assert.equal(cmd, "/fixture/claude");
     assert.equal(opts.cwd, "/fixture");
-    assert.equal(opts.env.QLOOPS_DEPTH, "1");
+    assert.equal(opts.env.QCORE_DEPTH, "1");
     assert.equal(opts.env.OPENROUTER_API_KEY, undefined);
     if (calls === 1) return { code: 0, stdout: "2.1.156 (Claude Code)" };
     assert.deepEqual(args, claudeArgs("sonnet"));
@@ -294,7 +294,7 @@ test("OpenRouter actual model, unknown usage, malformed and missing auth", async
 test("CLI malformed caller has one envelope and exit 64", async () => {
   const p = await subprocess(
     process.execPath,
-    [resolve("bin/qloops.mjs"), "agent", "-"],
+    [resolve("bin/q-core.mjs"), "agent", "-"],
     { input: "{bad" },
   );
   assert.equal(p.code, 64);
@@ -303,12 +303,12 @@ test("CLI malformed caller has one envelope and exit 64", async () => {
 });
 test("CLI malformed content has one bounded envelope and no input leak", async () => {
   const secret = "secret-content-fragment";
-  const dir = mkdtempSync(join(tmpdir(), "qloops-content-cli-"));
+  const dir = mkdtempSync(join(tmpdir(), "q-core-content-cli-"));
   const file = join(dir, "request.json");
   writeFileSync(file, `{\"source\": \"${secret}`);
   const p = await subprocess(
     process.execPath,
-    [resolve("bin/qloops.mjs"), "content", file],
+    [resolve("bin/q-core.mjs"), "content", file],
   );
   rmSync(dir, { recursive: true, force: true });
   assert.equal(p.code, 64);
@@ -352,10 +352,10 @@ test("verifier command is bound into resume evidence", async (t) => {
   assert.equal(resumed.status, "needs_human");
   assert.equal(resumed.error.code, "WORKSPACE_CHANGED");
 });
-test("contract rejects unpinned loop and unsafe request", (t) => {
+test("contract rejects unpinned workflow and unsafe request", (t) => {
   const r = setup(t);
   for (const patch of [
-    { loop: { id: "synthetic-sdd", version: "latest" } },
+    { workflow: { id: "synthetic-sdd", version: "latest" } },
     { allowedPaths: ["../x"] },
     { allowedTools: [] },
     { deadlineMs: 0 },

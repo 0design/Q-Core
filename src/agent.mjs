@@ -101,7 +101,7 @@ export async function runAgent(
     stateWritable = false;
   try {
     r = validateRequest(r);
-    if ((process.env.CLAUDECODE && r.provider.kind !== "caller") || Number(process.env.QLOOPS_DEPTH || 0) > 0)
+    if ((process.env.CLAUDECODE && r.provider.kind !== "caller") || Number(process.env.QCORE_DEPTH || 0) > 0)
       throw new CoreError(
         "UNSUPPORTED_NESTING",
         "Active nesting guard; use an explicit caller-owned broker",
@@ -421,7 +421,7 @@ export async function runAgent(
         );
         const checked = await launch(r.verifier.command, r.verifier.args, {
           cwd: r.workspace,
-          env: scopedEnvironment({ QLOOPS_DEPTH: "1", QLOOPS_RUN_ID: runId }),
+          env: scopedEnvironment({ QCORE_DEPTH: "1", QCORE_RUN_ID: runId }),
           signal: combined,
           timeoutMs: r.deadlineMs,
         });

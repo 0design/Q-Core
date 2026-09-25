@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # Verify bounded fan-out behavior before applying a workflow to a large input set.
 # No model inference is required.
@@ -23,7 +23,7 @@ steps:
     kind: fetch
     config:
       name: "Read feed"
-      url: "{{env.QLOOP_SOURCE_URL}}"
+      url: "{{env.QCORE_SOURCE_URL}}"
       format: rss
       limit: "60"
       timeoutSec: "20"
@@ -40,7 +40,7 @@ steps:
         config:
           name: "Post entry"
           method: POST
-          url: "{{env.QLOOP_WEBHOOK_URL}}"
+          url: "{{env.QCORE_WEBHOOK_URL}}"
           expect: "2xx"
           timeoutSec: "20"
           body: '{"i":"{{index}}","title":"{{item.title}}"}'

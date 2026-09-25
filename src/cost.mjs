@@ -18,7 +18,7 @@ const PRICE_PER_MTOK = {
   /* Verified against https://openrouter.ai/api/v1/models on 2026-08-01, not
      remembered. `anthropic/claude-3.5-haiku` used to sit here and DOES NOT
      EXIST on OpenRouter — a manifest naming it got a 404 from the provider,
-     caught by running a catalogue loop rather than by reading it. */
+     caught by running a catalogue workflow rather than by reading it. */
   "anthropic/claude-3-haiku": [0.25, 1.25],
   "anthropic/claude-haiku-4.5": [1, 5],
   "anthropic/claude-sonnet-4": [3, 15],

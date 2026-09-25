@@ -17,7 +17,7 @@ const ITEM_RE = /\{\{\s*(item|index)(?:\.([^}\s]+))?\s*\}\}/g;
  * `{{env.NAME}}` — a value from the environment.
  *
  * A manifest is a file that lives in git. A bot token, an API key, a chat id:
- * none of them may appear in its text, or "share your loop" turns into "share
+ * none of them may appear in its text, or "share your workflow" turns into "share
  * your secret". Referencing the environment is the only way to write
  * `https://api.telegram.org/bot<TOKEN>/sendMessage` without putting the token in.
  *
@@ -29,7 +29,7 @@ const ITEM_RE = /\{\{\s*(item|index)(?:\.([^}\s]+))?\s*\}\}/g;
 const ENV_RE = /\{\{\s*env\.([A-Z][A-Z0-9_]*)\s*\}\}/g;
 
 /**
- * `{{run.costUsd}}` · `{{run.id}}` · `{{run.loopId}}` — facts about THIS run,
+ * `{{run.costUsd}}` · `{{run.id}}` · `{{run.workflowId}}` — facts about THIS run,
  * as they stand at the moment the step executes.
  *
  * `costUsd` is what the run has spent SO FAR — every step before this one. On
@@ -40,7 +40,7 @@ const ENV_RE = /\{\{\s*env\.([A-Z][A-Z0-9_]*)\s*\}\}/g;
  * It is a running total, not a forecast: a step in the middle sees only what
  * came before it, which is the only number that is actually known there.
  */
-const RUN_RE = /\{\{\s*run\.(id|loopId|costUsd)\s*\}\}/g;
+const RUN_RE = /\{\{\s*run\.(id|workflowId|costUsd)\s*\}\}/g;
 
 
 function getByPath(value, path) {

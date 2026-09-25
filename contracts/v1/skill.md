@@ -1,4 +1,4 @@
-# Pinned skill execution candidate — qf.skill/v1
+# Pinned skill execution — qf.skill/v1
 
 `loadSkill({file,sha256})` reads an explicitly approved authored bundle contract.
 `runSkill({skill,workspace,allowedPaths,maxRepairAttempts?,approval?,signal?},
@@ -47,7 +47,7 @@ not a person's identity; the integration must obtain and preserve real consent.
 
 Run `node examples/skill-caller.mjs` from an installed package for a controlled
 fault-injection example. It deliberately omits Risks, repairs it, and exercises
-synthetic explicit review and stale-review rejection. These are real subprocess
-checks on authored files; the example does not pretend to call a model or record
-an owner's approval. SDK integration is available; a Registry step kind and
-hosted fresh-chat orchestration are not claimed by this candidate.
+synthetic explicit review and stale-review rejection. The example uses real
+subprocess checks on authored files, but does not call a model or obtain a real
+human decision. This API does not add a Registry step kind or hosted fresh-chat
+orchestration.

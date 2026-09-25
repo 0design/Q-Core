@@ -7,7 +7,7 @@ import {loadUnslop,upstreamDigest,designSystemDigest} from '../src/upstream-adap
 import {hash} from '../src/contracts.mjs';
 // Deliberately minimal authored adapter fixture, not copied upstream canon.
 function setup(t,source='export const detect=()=>({scanned:1,rulesRun:1,findings:[]});'){
-  const root=mkdtempSync(join(tmpdir(),'qloops-upstream-fixture-'));
+  const root=mkdtempSync(join(tmpdir(),'q-core-upstream-fixture-'));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   mkdirSync(join(root,'scripts'));mkdirSync(join(root,'scripts/rules'));mkdirSync(join(root,'references'));
   writeFileSync(join(root,'package.json'),JSON.stringify({name:'unslop',version:'fixture',type:'module'}));

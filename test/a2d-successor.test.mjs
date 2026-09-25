@@ -32,7 +32,7 @@ test("historical A2D command, binary and package subpath fail closed", () => {
   ).join("\n");
   assert.doesNotMatch(implementation, /\.a2d/);
   assert.doesNotMatch(implementation, /["']a2d["']/);
-  const cli = spawnSync(process.execPath, [resolve(root, "bin/qloops.mjs"), "a2d"], {
+  const cli = spawnSync(process.execPath, [resolve(root, "bin/q-core.mjs"), "a2d"], {
     encoding: "utf8",
     env: { ...process.env, QF_NO_UPDATE_CHECK: "1" },
   });

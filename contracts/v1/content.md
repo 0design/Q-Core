@@ -1,16 +1,15 @@
 # Content request, approval and receipt contract
 
-Available since qloops@0.2.0-core.9; current contract revision 6. This publishes the existing
-Content interface without a runtime/schema change. Use the installed package's
-[synthetic request](../../examples/content-request.json); no private source checkout
-is required. This document is the field contract; the SDD request schema does not
-validate Content. There is no separate Content JSON-schema validator in this release.
+Use the installed package's [synthetic request](../../examples/content-request.json);
+no source checkout is required. This document is the field contract; the SDD
+request schema does not validate Content. There is no separate Content JSON-schema
+validator.
 
 ## Invocation and results
 
-`qloops content /absolute/path/request.json` reads a UTF-8 JSON file, at most
+`q-core content /absolute/path/request.json` reads a UTF-8 JSON file, at most
 128000 bytes. Content CLI does **not** accept `-`/stdin. From JavaScript:
-`import { runContentRequest } from 'qloops'`, then
+`import { runContentRequest } from 'q-core'`, then
 `await runContentRequest(request, {env: process.env, signal})` (options optional).
 This is the concrete HTTP/model/webhook adapter. `runContent` is a different
 callback-based API; do not pass it the HTTP request below.
@@ -39,7 +38,7 @@ no_new_sources means nothing was sent; delivery success includes a receipt.
 | approval | Omit for drafting. Then `{hash: "returned SHA256", decision: "approve"}` or `"reject"` for the exact returned draft and receiver |
 
 Do not include secrets or raw authorization tokens. Do not invent `resumeRunId`,
-`specification`, `verifier`, `allowedPaths`, `loop`, `source.text` or a scheduling
+`specification`, `verifier`, `allowedPaths`, `workflow`, `source.text` or a scheduling
 field: those do not configure this HTTP API. Source text is fetched on every call,
 including approval/replay. GET has no source-auth/header adapter; provide permitted
 readable endpoints. Responses are bounded to64000 bytes and normalized source text
@@ -49,16 +48,17 @@ RSS/article extraction or Telegram/LinkedIn API adapter.
 Provider descriptors:
 
 - Codex: `{kind:"codex", model:"explicit-model", executable:"/absolute/codex",
-  payerScope:"local-cli"}`. Reviewed version/auth/limits from the package's Codex
-  contract apply. The example model was verified locally, not guaranteed available
-  for every account. Configure it explicitly; never silently choose another payer.
-- Claude: same CLI fields with kind `claude`. Adapter exists; Claude acceptance is
-  deferred until after Codex stabilization. Active nesting guards remain enforced.
+  payerScope:"local-cli"}`. The executable, model, authentication and account
+  limits must be available in the caller's environment. Configure it explicitly;
+  never silently choose another payer.
+- Claude: same CLI fields with kind `claude`. The executable and selected model
+  must be available in the caller's environment. Active nesting guards remain
+  enforced.
 - OpenRouter: `{kind:"openrouter",model:"explicit-provider/model",
   keyRef:"OPENROUTER_API_KEY",payerScope:"local-byok",secretSource:"env"}`.
   `secretSource` may be `env` (the backwards-compatible default) or `keychain`;
-  the protected local store is resolved without putting the secret in JSON. Live
-  proof still requires access/budget.
+  the protected local store is resolved without putting the secret in JSON. Access
+  and billing are provided by the caller.
 
 Receiver: `{kind:"webhook",url:"https://permitted.example/receive",
 id:"stable-channel-identity",keyRef:"OPTIONAL_RECEIVER_TOKEN"}`. keyRef is optional,
@@ -72,7 +72,7 @@ receiver adapter versions are internally `1`; do not invent your own version pin
    path placeholders, confirm the explicit model and start a controlled source/
    receiver server implementing the contract below. Port8787 is an example only;
    the package does not automatically start a server. Keep all test data synthetic.
-2. Run `qloops content request.json`. A valid draft returns needs_human with
+2. Run `q-core content request.json`. A valid draft returns needs_human with
    `nextAction:{type:"approve_publication",hash,text,receiver}`. No send yet.
    Show **that exact text and destination** to the user, including source URLs.
 3. After explicit approval, add `approval:{hash:<returned hash>,decision:"approve"}`
@@ -123,7 +123,7 @@ runId; overlapping uncertain inputs can return a null runId with the blocking ke
 JS reconciliation is explicit; there is no reconciliation CLI command:
 
 ```js
-import { reconcilePublication } from 'qloops';
+import { reconcilePublication } from 'q-core';
 const result = await reconcilePublication(
   { workspace, runId, idempotencyKey },
   { lookup: async ({ receiver, idempotencyKey }) => {
@@ -153,7 +153,6 @@ inspect a deadline/cap. These are instructions, not automatic permission changes
 An attribution check failure can return needs_human with evidence and no action:
 show the findings for editorial correction. No generic retry means “publish”.
 
-The installed-example package proof covers draft/approval/exact text/receipt/replay,
-changed-input stale approval/rejection, missing receiver key and uncertain send.
-It uses a subprocess model fixture and real localhost HTTP, explicitly not owner
-Content acceptance. Real sources/profile/channel plus owner acceptance remain open.
+The installed example uses synthetic inputs, a subprocess model fixture and a
+localhost receiver. Before sending real content, configure the real sources and
+receiver, and obtain explicit approval for the exact draft and destination.

@@ -49,7 +49,7 @@ export function validateRequest(r) {
   const keys = [
     "protocolVersion",
     "requestId",
-    "loop",
+    "workflow",
     "intent",
     "workspace",
     "allowedPaths",
@@ -83,9 +83,9 @@ export function validateRequest(r) {
     "Invalid requestId",
   );
   insist(
-    ["synthetic-sdd", "sdd-pipeline"].includes(r.loop?.id) &&
-      r.loop?.version === "1.0.0",
-    "Unsupported or unpinned loop",
+    ["synthetic-sdd", "sdd-pipeline"].includes(r.workflow?.id) &&
+      r.workflow?.version === "1.0.0",
+    "Unsupported or unpinned workflow",
   );
   insist(
     typeof r.intent === "string" && r.intent.trim() && r.intent.length <= 32000,

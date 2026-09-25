@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 id: sdd-pipeline
 name: "SDD: approved specification to verified change"
 version: 0.1.0

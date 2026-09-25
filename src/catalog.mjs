@@ -2,30 +2,30 @@
  * The catalogue — one file that both the CLI and the website read.
  *
  * `catalog.json` is GENERATED from the manifests, never hand-written. A
- * catalogue maintained by hand drifts from the loops it describes within a
+ * catalogue maintained by hand drifts from the workflows it describes within a
  * month, and the drift is invisible: the page keeps claiming four steps after
  * the manifest grew to six.
  *
  * WHAT IS DERIVED, and therefore cannot lie: step count, the kinds used, whether
- * a human gate is present, which environment variables the loop needs, the model
+ * a human gate is present, which environment variables the workflow needs, the model
  * and the budget ceiling.
  *
  * WHAT IS MEASURED: cost per run and tokens. These come from a REAL recorded run
  * committed next to the manifest (`examples/<id>.run.json`) — not from an
- * estimate. A loop with no recorded run says `measured: null` rather than
+ * estimate. A workflow with no recorded run says `measured: null` rather than
  * guessing, because "about a cent" is exactly the kind of number a reader would
  * hold us to.
  *
  * catalogVersion 2 adds two more sections, also generated:
  *   components  — contracts in `registry/components/`
- *   demos       — named runs in `registry/demos/`, each pointing at a loop
+ *   demos       — named runs in `registry/demos/`, each pointing at a workflow
  */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, basename, dirname } from "node:path";
 import { loadManifest } from "./manifest.mjs";
 import { loadRelease, readAsset } from "./registry-release.mjs";
 import { hash, insist } from "./contracts.mjs";
-import { flattenLoopSteps } from "./flatten.mjs";
+import { flattenWorkflowSteps } from "./flatten.mjs";
 import { resolveKnobs } from "./run.mjs";
 import { loadRegistry, enrichComponent, enrichDemo } from "./registry.mjs";
 
@@ -47,14 +47,14 @@ export function envRefsOf(manifest) {
 }
 
 /** One catalogue entry, derived from the manifest plus any recorded run. */
-export function describeLoop(file, { examplesDir } = {}) {
+export function describeWorkflow(file, { examplesDir } = {}) {
   const m = loadManifest(file);
   const knobs = resolveKnobs(m.settings);
 
-  /* Walk the WHOLE tree, not the flattened one. `flattenLoopSteps` deliberately
+  /* Walk the WHOLE tree, not the flattened one. `flattenWorkflowSteps` deliberately
      omits the lane of a configured fan-out — its size is unknown until the
      source step has run. That is right for execution and wrong for a catalogue:
-     a loop whose only model call lives inside a lane would be listed as needing
+     a workflow whose only model call lives inside a lane would be listed as needing
      no key, and a reader would install it and hit the failure we could have
      told them about. */
   const all = [];
@@ -66,7 +66,7 @@ export function describeLoop(file, { examplesDir } = {}) {
   };
   walk(m.steps);
 
-  const flat = flattenLoopSteps(m.steps);
+  const flat = flattenWorkflowSteps(m.steps);
   const kinds = [...new Set(all.map((s) => s.kind))];
   const gates = all.filter((s) => s.kind === "approval-gate");
   const lanes = all.filter((s) => s.kind === "fan-out" && String(s.config?.over ?? "").trim());
@@ -100,7 +100,7 @@ export function describeLoop(file, { examplesDir } = {}) {
     id: m.id,
     name: m.name,
     description: m.description.trim().replace(/\s+/g, " "),
-    file: `loops/${basename(file)}`,
+    file: `workflows/${basename(file)}`,
     version: m.version,
     /** Steps in the recipe as written. A fan-out lane counts once here — how
      *  many times it actually runs depends on the feed, and `fansOut` says so. */
@@ -126,16 +126,17 @@ export function describeLoop(file, { examplesDir } = {}) {
 
 /**
  * Where the published catalogue lives. Overridable, because a team will want
- * its own — point it at any host serving a `catalog.json` and the manifests it
- * names.
+ * its own — point it at an exact release directory serving a `catalog.json` and
+ * the manifests it names. A remote non-localhost URL must end in
+ * `releases/<version>`, and that version must equal the catalog's releaseVersion.
  */
-export const REMOTE_CATALOG_BASE = process.env.QLOOP_CATALOG_URL?.replace(/\/+$/, "") ?? "";
+export const REMOTE_CATALOG_BASE = process.env.QCORE_CATALOG_URL?.replace(/\/+$/, "") ?? "";
 
 /** Legacy discovery is explicitly configured and pinned. New consumers use
- * qloops install, which also verifies exact dependencies and records a lock. */
+ * q-core install, which also verifies exact dependencies and records a lock. */
 export async function fetchRemoteCatalog(base = REMOTE_CATALOG_BASE) {
   if (!base) return null;
-  return loadRelease(base, process.env.QLOOP_CATALOG_SHA256);
+  return loadRelease(base, process.env.QCORE_CATALOG_SHA256);
 }
 export async function fetchRemoteManifest(entry, base = REMOTE_CATALOG_BASE) {
   const bytes = await readAsset(base, entry.file);
@@ -143,29 +144,35 @@ export async function fetchRemoteManifest(entry, base = REMOTE_CATALOG_BASE) {
   return { text: bytes.toString('utf8'), url: `${base}/${entry.file}` };
 }
 
-/** Overlay from QFactory.io content/registry, else bundled loops/ (may be absent). */
+/** Overlay from QFactory.io content/registry, else bundled workflows/ (may be absent). */
 export function resolveCatalogRoots({ env = process.env, here } = {}) {
   const overlay = env.QFACTORY_REGISTRY;
   if (overlay) {
-    return { loopsDir: join(overlay, "loops"), registryDir: overlay };
+    return { workflowsDir: join(overlay, "workflows"), registryDir: overlay };
   }
   return {
-    loopsDir: join(here, "..", "loops"),
+    workflowsDir: join(here, "..", "workflows"),
     registryDir: join(here, "..", "registry"),
   };
 }
 
-/** Build the whole catalogue from loops/ plus registry/{components,demos}/. */
-export function buildCatalog(loopsDir, { examplesDir, version = 2, registryDir } = {}) {
-  const files = existsSync(loopsDir)
-    ? readdirSync(loopsDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml")).sort()
+/** Build the whole catalogue from workflows/ plus registry/{components,demos}/. */
+export function buildCatalog(workflowsDir, { examplesDir, version = 2, registryDir } = {}) {
+  const files = existsSync(workflowsDir)
+    ? readdirSync(workflowsDir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml")).sort()
     : [];
-  const loops = files.map((f) => describeLoop(join(loopsDir, f), { examplesDir }));
-  const registry = loadRegistry(registryDir ?? join(dirname(loopsDir), "registry"));
+  const workflows = files.map((f) => describeWorkflow(join(workflowsDir, f), { examplesDir }));
+  const registry = loadRegistry(registryDir ?? join(dirname(workflowsDir), "registry"));
+  const plannedComponents = registry.planned
+    .filter((entry) => entry.section === "component")
+    .map((entry) => ({ ...entry, contentType: "component" }));
+  const plannedDemos = registry.planned
+    .filter((entry) => entry.section === "demo")
+    .map((entry) => ({ ...entry, contentType: "demo" }));
   return {
     catalogVersion: version,
-    loops,
-    components: registry.components.map((c) => enrichComponent(c, loops)),
-    demos: registry.demos.map((d) => enrichDemo(d, loops)),
+    workflows,
+    components: [...registry.components.map((c) => enrichComponent(c, workflows)), ...plannedComponents],
+    demos: [...registry.demos.map((d) => enrichDemo(d, workflows)), ...plannedDemos],
   };
 }

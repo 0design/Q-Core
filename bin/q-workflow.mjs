@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 /**
- * qloop — run one loop from one file. Installed as `qloop`.
+ * q-core — run one workflow from one file. Installed as `q-core`.
  *
- *   qloop validate <manifest>          read it, check it, say what it would do
- *   qloop run <manifest>               one pass, for real
- *   qloop run <manifest> --dry-run     one pass with no side effects at all
- *   qloops run <manifest> --caller-provider <provider.json> --json
+ *   q-core validate <manifest>          read it, check it, say what it would do
+ *   q-core run <manifest>               one pass, for real
+ *   q-core run <manifest> --dry-run     one pass with no side effects at all
+ *   q-core run <manifest> --caller-provider <provider.json> --json
                                     start explicit CLI caller inference
-  qloops reply <manifest> <runId> <reply.json> --json
+  q-core reply <manifest> <runId> <reply.json> --json
                                     submit the exact pending job response
-  qloop status [<manifest>]          what the last runs did
- *   qloop approve <manifest> [runId]   continue a run parked at a human gate
+  q-core clarify <manifest> <runId> <answers.json> --json
+                                    submit exact answers to a paused SDD clarification
+  q-core status [<manifest>]          what the last runs did
+ *   q-core approve <manifest> [runId]   continue a run parked at a human gate
  *
- * `qloop run` performs ONE PASS. It is not a scheduler and does not pretend to be
+ * `q-core run` performs ONE PASS. It is not a scheduler and does not pretend to be
  * one: repetition is launchd or cron, on the user's machine, where they can see
  * it. README §Scheduling has the two commands.
  *
@@ -28,7 +30,7 @@ import { fileURLToPath } from "node:url";
 import { loadManifest, validateManifest, ManifestError } from "../src/manifest.mjs";
 import { createRun, driveRun, resumeRun, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
 import { RunStore } from "../src/state.mjs";
-import { flattenLoopSteps } from "../src/flatten.mjs";
+import { flattenWorkflowSteps } from "../src/flatten.mjs";
 import { checkForUpdate, updateNotice } from "../src/update-check.mjs";
 import { buildCatalog, fetchRemoteCatalog, fetchRemoteManifest, REMOTE_CATALOG_BASE, resolveCatalogRoots } from "../src/catalog.mjs";
 import { parseYaml } from "../src/yaml.mjs";
@@ -46,36 +48,38 @@ const c = {
   bold: (s) => (process.stdout.isTTY ? `\x1b[1m${s}\x1b[0m` : s),
 };
 
-const USAGE = `qloop ${PKG.version} — run a QFactory loop from a YAML manifest.
+const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML manifest.
 
-  qloop catalog                     loops, components, and demos in this build
-  qloop catalog --section <name>    one section: loops | components | demos
-  qloop init <id> [dir]             copy one loop here, ready to edit
-  qloop validate <manifest>         check the manifest and print the plan
-  qloop run <manifest> [--dry-run]  execute one pass
-  qloops run <manifest> --caller-provider <provider.json> --json
+  q-core catalog                     workflows, components, and demos in this build
+  q-core catalog --section <name>    one section: workflows | components | demos
+  q-core init <id> [dir]             copy one workflow here, ready to edit
+  q-core validate <manifest>         check the manifest and print the plan
+  q-core run <manifest> [--dry-run]  execute one pass
+  q-core run <manifest> --caller-provider <provider.json> --json
                                     start explicit CLI caller inference
-  qloops reply <manifest> <runId> <reply.json> --json
+  q-core reply <manifest> <runId> <reply.json> --json
                                     submit the exact pending job response
-  qloop status [<manifest>]         show recent runs
-  qloop approve <manifest> [runId]  continue a run held at a human gate
+  q-core clarify <manifest> <runId> <answers.json> --json
+                                    submit exact answers to a paused SDD clarification
+  q-core status [<manifest>]         show recent runs
+  q-core approve <manifest> [runId]  continue a run held at a human gate
                                     (--reject to refuse it)
-  qloop doctor                      check this machine before blaming the loop
+  q-core doctor                      check this machine before blaming the workflow
 
-Installed as qloop. There is no qf alias — that name belongs to @q-factory/bridge.
+Installed as q-core. There is no qf alias — that name belongs to @q-factory/bridge.
 
 Options
   --dry-run     resolve and order every step, perform no side effects
   --json        machine-readable output
-  --section     catalog section to print (loops, components, demos)
+  --section     catalog section to print (workflows, components, demos)
   --quiet       only errors
 
 Environment
   OPENROUTER_API_KEY   required for llm-call and for an Agent-Gate
   OPENROUTER_MODEL     default model when the manifest does not set one
-  QLOOP_WEBHOOK_URL    where catalogue loops send their result
-  TELEGRAM_BOT_TOKEN   used by loops that publish to Telegram
-  TELEGRAM_CHAT_ID     the chat those loops publish to
+  QCORE_WEBHOOK_URL    where catalogue workflows send their result
+  TELEGRAM_BOT_TOKEN   used by workflows that publish to Telegram
+  TELEGRAM_CHAT_ID     the chat those workflows publish to
   QF_NO_UPDATE_CHECK=1 turn off the version check
 `;
 
@@ -145,7 +149,7 @@ function parseArgs(argv) {
 /* ── validate ───────────────────────────────────────────────────────────── */
 
 function describePlan(manifest) {
-  const flat = flattenLoopSteps(manifest.steps);
+  const flat = flattenWorkflowSteps(manifest.steps);
   const knobs = resolveKnobs(manifest.settings);
 
   const lines = [];
@@ -154,7 +158,7 @@ function describePlan(manifest) {
   lines.push("");
   const triggers = manifest.triggers.length
     ? manifest.triggers.map((t) => (t.kind === "schedule" ? `schedule "${t.cron}" UTC` : t.kind)).join(" · ")
-    : "none declared — this loop only runs when you run it";
+    : "none declared — this workflow only runs when you run it";
   lines.push(`  triggers   ${triggers}`);
   lines.push(`  model      ${knobs.model} ${c.dim(`(${knobs.provenance.model})`)}`);
   lines.push(
@@ -173,26 +177,26 @@ function describePlan(manifest) {
   lines.push("");
   lines.push(
     hasHumanGate
-      ? `  ${c.dim("this loop stops for a human — `qloop approve` continues it")}`
-      : `  ${c.dim("no human gate — this loop runs to the end on its own")}`,
+      ? `  ${c.dim("this workflow stops for a human — `q-core approve` continues it")}`
+      : `  ${c.dim("no human gate — this workflow runs to the end on its own")}`,
   );
   return lines.join("\n");
 }
 
 async function cmdValidate(args, flags) {
   const file = args[0];
-  if (!file) fail("qloop validate <manifest>", EXIT_USAGE);
+  if (!file) fail("q-core validate <manifest>", EXIT_USAGE);
   const manifest = loadManifest(file);
   if (flags.has("json")) {
     process.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
     return EXIT_OK;
   }
-  process.stdout.write(`✓ ${shortPath(file)} is a valid qloops.loop/v1 manifest\n\n`);
+  process.stdout.write(`✓ ${shortPath(file)} is a valid q-core.workflow/v1 manifest\n\n`);
   process.stdout.write(`${describePlan(manifest)}\n`);
   if (manifest.settings.sensitivity) {
     process.stdout.write(
       "\n  NOTE: settings.sensitivity is part of the format but not implemented by this runner.\n" +
-        "  `qloop run` will refuse this manifest rather than ignore the profile.\n",
+        "  `q-core run` will refuse this manifest rather than ignore the profile.\n",
     );
   }
   return EXIT_OK;
@@ -220,7 +224,7 @@ function printStep(s, quiet) {
 
 async function cmdRun(args, flags, opts) {
   const file = args[0];
-  if (!file) fail("qloop run <manifest> [--dry-run]", EXIT_USAGE);
+  if (!file) fail("q-core run <manifest> [--dry-run]", EXIT_USAGE);
   const dryRun = flags.has("dry-run");
   const quiet = flags.has("quiet") || flags.has("json");
   const manifest = loadManifest(file);
@@ -287,9 +291,10 @@ async function cmdRun(args, flags, opts) {
     process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
     if (result.costUsd) process.stdout.write(`  cost $${Number(result.costUsd).toFixed(4)} · ${result.tokensIn}+${result.tokensOut} tokens\n`);
     if (!dryRun) process.stdout.write(c.dim(`  state ${shortPath(join(store.dir, "runs", `${result.runId}.json`))}\n`));
-    if (result.status === 'waiting_inference') process.stdout.write(`\n  Continue with: qloops reply ${file} ${result.runId} <reply.json>\n`);
+    if (result.status === 'waiting_inference') process.stdout.write(`\n  Continue with: q-core reply ${file} ${result.runId} <reply.json>\n`);
     if (result.status === "waiting_human") {
-      process.stdout.write(`\n  Continue with:  qloop approve ${file} ${result.runId}\n`);
+      if (result.pendingClarification) process.stdout.write(`\n  Continue with: q-core clarify ${file} ${result.runId} <answers.json>\n`);
+      else process.stdout.write(`\n  Continue with:  q-core approve ${file} ${result.runId}\n`);
     }
   }
 
@@ -305,7 +310,7 @@ function readBoundedJson(file) {
 }
 async function cmdReply(args) {
   const [file, runId, replyFile] = args;
-  if (!file || !runId || !replyFile) fail('qloops reply <manifest> <runId> <reply.json>', EXIT_USAGE);
+  if (!file || !runId || !replyFile) fail('q-core reply <manifest> <runId> <reply.json>', EXIT_USAGE);
   const store = new RunStore(file);
   const run = store.load(runId);
   if (!run || run.status !== 'waiting_inference' || !run.pendingInference) fail('Run is not waiting for CLI inference');
@@ -316,9 +321,21 @@ async function cmdReply(args) {
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
+async function cmdClarify(args) {
+  const [file, runId, answersFile] = args;
+  if (!file || !runId || !answersFile) fail('q-core clarify <manifest> <runId> <answers.json>', EXIT_USAGE);
+  const store = new RunStore(file), run = store.load(runId);
+  if (!run || run.status !== 'waiting_human' || !run.pendingClarification) fail('Run is not waiting for SDD clarification answers');
+  if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
+  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, clarification: readBoundedJson(answersFile) });
+  store.saveLastRun(result);
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
+}
+
 async function cmdPaused(args, action) {
   const [file, runId] = args;
-  if (!file || !runId) fail(`qloops ${action} <manifest> <runId>`, EXIT_USAGE);
+  if (!file || !runId) fail(`q-core ${action} <manifest> <runId>`, EXIT_USAGE);
   const store = new RunStore(file), run = store.load(runId);
   if (!run) fail('Unknown run');
   const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
@@ -331,7 +348,7 @@ async function cmdPaused(args, action) {
 
 async function cmdStatus(args, flags) {
   const file = args[0] ?? findManifestNearby();
-  if (!file) fail("qloop status <manifest> — or run it from a directory holding one", EXIT_USAGE);
+  if (!file) fail("q-core status <manifest> — or run it from a directory holding one", EXIT_USAGE);
   const store = new RunStore(file);
   const last = store.lastRun();
   const runs = store.listRuns(10);
@@ -350,7 +367,7 @@ async function cmdStatus(args, flags) {
     const mark = { success: "✓", failed: "✗", cancelled: "■", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
     const when = String(r.startedAt).replace("T", " ").slice(0, 19);
     process.stdout.write(`  ${mark} ${when}  ${r.status.padEnd(14)} ${r.summary ?? ""}\n`);
-    if (r.status === "waiting_human") process.stdout.write(c.dim(`      qloop approve ${file} ${r.runId}\n`));
+    if (r.status === "waiting_human") process.stdout.write(c.dim(`      q-core approve ${file} ${r.runId}\n`));
   }
   if (last?.status === "failed") {
     process.stdout.write(`\n  ${c.bold("last run FAILED")}: ${last.reason ?? last.summary}\n`);
@@ -371,7 +388,7 @@ function findManifestNearby() {
 
 async function cmdApprove(args, flags, opts) {
   const file = args[0];
-  if (!file) fail("qloop approve <manifest> [runId] [--reject]", EXIT_USAGE);
+  if (!file) fail("q-core approve <manifest> [runId] [--reject]", EXIT_USAGE);
   const store = new RunStore(file);
   const runId = args[1] ?? store.listRuns(50).find((r) => r.status === "waiting_human")?.runId;
   if (!runId) fail("no run is waiting on a human here.");
@@ -398,15 +415,15 @@ async function cmdApprove(args, flags, opts) {
 /* ── catalog · init ─────────────────────────────────────────────────────── */
 
 const CATALOG_ROOTS = resolveCatalogRoots({ here: HERE });
-const LOOPS_DIR = CATALOG_ROOTS.loopsDir;
+const WORKFLOWS_DIR = CATALOG_ROOTS.workflowsDir;
 const REGISTRY_DIR = CATALOG_ROOTS.registryDir;
 const EXAMPLES_DIR = join(HERE, "..", "examples");
 
-const CATALOG_SECTIONS = new Set(["loops", "components", "demos"]);
+const CATALOG_SECTIONS = new Set(["workflows", "components", "demos"]);
 
-function printLoops(loops) {
-  process.stdout.write(`${c.bold(`${loops.length} loops ship with qloop ${PKG.version}`)}\n\n`);
-  for (const l of loops) {
+function printWorkflows(workflows) {
+  process.stdout.write(`${c.bold(`${workflows.length} workflows ship with q-core ${PKG.version}`)}\n\n`);
+  for (const l of workflows) {
     const cost = l.measured ? `$${l.measured.costUsd.toFixed(4)}/run` : "not measured yet";
     const shape = l.fansOut ? `${l.steps} steps, a lane per item (max ${l.maxItems})` : `${l.steps} steps`;
     process.stdout.write(`  ${c.bold(l.id)} ${c.dim(`· ${shape} · ${cost}`)}\n`);
@@ -419,7 +436,13 @@ function printLoops(loops) {
 function printComponents(components) {
   process.stdout.write(`${c.bold(`${components.length} components`)}\n\n`);
   for (const comp of components) {
-    const used = comp.usedBy?.length ? `used by ${comp.usedBy.length} loop(s)` : "used by none yet";
+    if (comp.status === "planned" && comp.launch === "forbidden") {
+      process.stdout.write(`  ${c.bold(comp.id)} ${c.dim("· planned · launch forbidden")}\n`);
+      process.stdout.write(`    ${comp.description}\n`);
+      process.stdout.write(c.dim(`    unavailable: ${comp.reason}\n\n`));
+      continue;
+    }
+    const used = comp.usedBy?.length ? `used by ${comp.usedBy.length} workflow(s)` : "used by none yet";
     process.stdout.write(`  ${c.bold(comp.id)} ${c.dim(`· ${comp.kind} · ${used}`)}\n`);
     process.stdout.write(`    ${comp.description}\n\n`);
   }
@@ -428,6 +451,12 @@ function printComponents(components) {
 function printDemos(demos) {
   process.stdout.write(`${c.bold(`${demos.length} demos`)}\n\n`);
   for (const d of demos) {
+    if (d.status === "planned" && d.launch === "forbidden") {
+      process.stdout.write(`  ${c.bold(d.id)} ${c.dim("· planned · launch forbidden")}\n`);
+      process.stdout.write(`    ${d.description}\n`);
+      process.stdout.write(c.dim(`    unavailable: ${d.reason}\n\n`));
+      continue;
+    }
     const live = d.live ? "live" : "not live";
     const proof = d.proof ? `proof ${d.proof}` : "no proof";
     process.stdout.write(`  ${c.bold(d.id)} ${c.dim(`· ${d.name} · ${proof} · ${live}`)}\n`);
@@ -436,26 +465,26 @@ function printDemos(demos) {
 }
 
 async function cmdCatalog(args, flags, opts = {}) {
-  const local = buildCatalog(LOOPS_DIR, { examplesDir: EXAMPLES_DIR, registryDir: REGISTRY_DIR });
+  const local = buildCatalog(WORKFLOWS_DIR, { examplesDir: EXAMPLES_DIR, registryDir: REGISTRY_DIR });
   let cat = local;
   /* `--remote` shows what has been published since this build shipped. Off by
      default: a listing command must not need the network to answer. */
   if (flags.has("remote")) {
     const r = await fetchRemoteCatalog();
     if (!r) fail(`could not reach the published catalogue at ${REMOTE_CATALOG_BASE}`);
-    const extra = r.loops.filter((l) => !local.loops.some((k) => k.id === l.id));
-    cat = { ...r, loops: r.loops };
+    const extra = r.workflows.filter((l) => !local.workflows.some((k) => k.id === l.id));
+    cat = { ...r, workflows: r.workflows };
     if (!flags.has("json")) {
-      process.stdout.write(c.dim(`published catalogue · ${extra.length} loop(s) newer than this build\n\n`));
+      process.stdout.write(c.dim(`published catalogue · ${extra.length} workflow(s) newer than this build\n\n`));
     }
   }
   const section = opts.section;
   if (section != null && section !== "") {
     if (!CATALOG_SECTIONS.has(section)) {
-      fail(`unknown catalog section "${section}". Use loops, components, or demos.`, EXIT_USAGE);
+      fail(`unknown catalog section "${section}". Use workflows, components, or demos.`, EXIT_USAGE);
     }
   } else if (section === "") {
-    fail("qloop catalog --section loops|components|demos", EXIT_USAGE);
+    fail("q-core catalog --section workflows|components|demos", EXIT_USAGE);
   }
   if (flags.has("json")) {
     const payload = section ? { catalogVersion: cat.catalogVersion, [section]: cat[section] ?? [] } : cat;
@@ -463,31 +492,37 @@ async function cmdCatalog(args, flags, opts = {}) {
     return EXIT_OK;
   }
   const show = (name) => !section || section === name;
-  if (show("loops")) printLoops(cat.loops ?? []);
+  if (show("workflows")) printWorkflows(cat.workflows ?? []);
   if (show("components")) printComponents(cat.components ?? []);
   if (show("demos")) printDemos(cat.demos ?? []);
-  if (show("loops")) process.stdout.write(c.dim(`  qloop init <id>   copies one here\n`));
+  if (show("workflows")) process.stdout.write(c.dim(`  q-core init <id>   copies one here\n`));
   return EXIT_OK;
 }
 
 async function cmdInit(args, flags) {
   const id = args[0];
-  const cat = buildCatalog(LOOPS_DIR, { examplesDir: EXAMPLES_DIR, registryDir: REGISTRY_DIR });
+  const cat = buildCatalog(WORKFLOWS_DIR, { examplesDir: EXAMPLES_DIR, registryDir: REGISTRY_DIR });
   if (!id) {
-    fail(`qloop init <id>\n\nAvailable: ${cat.loops.map((l) => l.id).join(", ")}`, EXIT_USAGE);
+    fail(`q-core init <id>\n\nAvailable: ${cat.workflows.map((l) => l.id).join(", ")}`, EXIT_USAGE);
   }
 
-  let entry = cat.loops.find((l) => l.id === id);
+  let entry = cat.workflows.find((l) => l.id === id);
   let remote = null;
+
+  const planned = [...(cat.components ?? []), ...(cat.demos ?? [])]
+    .find((candidate) => candidate.id === id && candidate.status === "planned" && candidate.launch === "forbidden");
+  if (planned) {
+    fail(`${id} is planned in this registry and cannot be initialized or run: ${planned.reason}`, EXIT_USAGE);
+  }
 
   /* ── NOT IN THIS BUILD? LOOK IT UP IN THE PUBLISHED CATALOGUE ─────────────
      The package ships a snapshot of the catalogue as of its release; the
-     published one keeps growing. Without this, "qloop init <something-new>"
-     would tell a person the loop does not exist when it plainly does on the
+     published one keeps growing. Without this, "q-core init <something-new>"
+     would tell a person the workflow does not exist when it plainly does on the
      site they just read it on. */
   if (!entry && !flags.has("offline")) {
     const rcat = await fetchRemoteCatalog();
-    const rentry = rcat?.loops.find((l) => l.id === id);
+    const rentry = rcat?.workflows.find((l) => l.id === id);
     if (rentry) {
       const got = await fetchRemoteManifest(rentry).catch((e) => {
         fail(`"${id}" is in the published catalogue, but it could not be downloaded — ${e.message}`);
@@ -508,7 +543,7 @@ async function cmdInit(args, flags) {
 
   if (!entry) {
     const hint = flags.has("offline") ? " (--offline: the published catalogue was not consulted)" : "";
-    fail(`no loop "${id}"${hint}.\n\nIn this build: ${cat.loops.map((l) => l.id).join(", ")}`, EXIT_USAGE);
+    fail(`no workflow "${id}"${hint}.\n\nIn this build: ${cat.workflows.map((l) => l.id).join(", ")}`, EXIT_USAGE);
   }
 
   const dest = resolve(args[1] ?? process.cwd(), `${id}.yaml`);
@@ -516,12 +551,12 @@ async function cmdInit(args, flags) {
      person already edited — the manifest IS their work, not scaffolding. */
   if (existsSync(dest)) fail(`${shortPath(dest)} already exists — not overwriting it.`);
   if (remote) writeFileSync(dest, remote.text, "utf8");
-  else copyFileSync(join(LOOPS_DIR, basename(entry.file)), dest);
+  else copyFileSync(join(WORKFLOWS_DIR, basename(entry.file)), dest);
 
   process.stdout.write(`${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);
   if (remote) {
     /* Where a file came from is not a detail when the file will spend money. */
-    process.stdout.write(c.dim(`  downloaded from ${remote.url}\n  read it before you run it — a loop makes requests and calls models on your key.\n`));
+    process.stdout.write(c.dim(`  downloaded from ${remote.url}\n  read it before you run it — a workflow makes requests and calls models on your key.\n`));
   }
   process.stdout.write("\n");
   if (entry.needsEnv.length) {
@@ -537,11 +572,11 @@ async function cmdInit(args, flags) {
       }
       const sinks = missing.filter((v) => v !== "OPENROUTER_API_KEY");
       if (sinks.length) {
-        process.stdout.write(c.dim(`  Without ${sinks.join(", ")} the loop still runs; the result goes to .qf/out/ and says so.\n`));
+        process.stdout.write(c.dim(`  Without ${sinks.join(", ")} the workflow still runs; the result goes to .qf/out/ and says so.\n`));
       }
     }
   }
-  process.stdout.write(`\n  Next:  qloop run ${shortPath(dest)} --dry-run\n`);
+  process.stdout.write(`\n  Next:  q-core run ${shortPath(dest)} --dry-run\n`);
   return EXIT_OK;
 }
 
@@ -555,16 +590,16 @@ async function cmdDoctor(args, flags) {
   const add = (level, label, detail) => checks.push({ level, label, detail });
 
   const major = Number(process.versions.node.split(".")[0]);
-  add(major >= 20 ? "ok" : "fail", `Node ${process.versions.node}`, major >= 20 ? "" : "qloop needs Node 20 or newer");
-  add("ok", `qloop ${PKG.version}`, shortPath(join(HERE, "qloop.mjs")));
+  add(major >= 20 ? "ok" : "fail", `Node ${process.versions.node}`, major >= 20 ? "" : "q-core needs Node 20 or newer");
+  add("ok", `q-core ${PKG.version}`, shortPath(join(HERE, "q-core.mjs")));
 
   /* Names only, never values. A doctor command that prints a token into a
      terminal — and then into a screenshot in a bug report — is a leak. */
   const ENV_NOTES = {
     OPENROUTER_API_KEY: "no model calls will run without it — the step fails rather than inventing text",
-    QLOOP_WEBHOOK_URL: "catalogue loops will write to .qf/out/ instead of sending",
-    TELEGRAM_BOT_TOKEN: "Telegram loops will write to .qf/out/ instead of sending",
-    TELEGRAM_CHAT_ID: "Telegram loops will write to .qf/out/ instead of sending",
+    QCORE_WEBHOOK_URL: "catalogue workflows will write to .qf/out/ instead of sending",
+    TELEGRAM_BOT_TOKEN: "Telegram workflows will write to .qf/out/ instead of sending",
+    TELEGRAM_CHAT_ID: "Telegram workflows will write to .qf/out/ instead of sending",
   };
   for (const [v, why] of Object.entries(ENV_NOTES)) {
     add(process.env[v] ? "ok" : "warn", v, process.env[v] ? "set" : `not set — ${why}`);
@@ -579,7 +614,7 @@ async function cmdDoctor(args, flags) {
   }
 
   try {
-    const probe = join(process.cwd(), `.qloop-write-probe-${process.pid}`);
+    const probe = join(process.cwd(), `.q-core-write-probe-${process.pid}`);
     writeFileSync(probe, "");
     unlinkSync(probe);
     add("ok", "write access here", process.cwd());
@@ -600,7 +635,7 @@ async function cmdDoctor(args, flags) {
   if (flags.has("json")) {
     process.stdout.write(`${JSON.stringify(checks, null, 2)}\n`);
   } else {
-    process.stdout.write(`${c.bold("qloop doctor")}\n\n`);
+    process.stdout.write(`${c.bold("q-core doctor")}\n\n`);
     for (const ch of checks) {
       const mark = { ok: "✓", warn: "·", fail: "✗" }[ch.level];
       process.stdout.write(`  ${mark} ${ch.label}${ch.detail ? c.dim(`  ${ch.detail}`) : ""}\n`);
@@ -626,6 +661,7 @@ const commands = {
   validate: cmdValidate,
   run: cmdRun,
   reply: cmdReply,
+  clarify: cmdClarify,
   cancel: args => cmdPaused(args, 'cancel'),
   resume: args => cmdPaused(args, 'resume'),
   status: cmdStatus,

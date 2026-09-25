@@ -1,5 +1,5 @@
-// Operational metadata is derived from the validated manifest, never hand-kept.
-export function loopMetadata(manifest) {
+// Operational metadata is derived from the validated workflow manifest, never hand-kept.
+export function workflowMetadata(manifest) {
   const steps = [];
   function walk(branch) {
     for (const step of branch ?? []) {

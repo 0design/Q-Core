@@ -17,7 +17,8 @@ const stateFile=join(evidence,'session.json');
 const prior=existsSync(stateFile)?JSON.parse(readFileSync(stateFile)):null;
 if(prior&&!reply) throw Error('Existing session: supply explicit reply file');
 if(!prior&&reply) throw Error('Initial run must use unmodified Site prompt');
-const source=resolve(process.env.QF_GOLDEN_PROMPTS??'/Users/oleg.design/PORN/projects/QFactory.io/repo/QFactory.io/docs/delivery/golden-path-2026-09-10');
+if(!process.env.QF_GOLDEN_PROMPTS) throw Error('Set QF_GOLDEN_PROMPTS to the golden-path prompt directory');
+const source=resolve(process.env.QF_GOLDEN_PROMPTS);
 const prompt=readFileSync(reply?resolve(reply):join(source,mode+'.txt'),'utf8');
 if(!prior){
   const pins=JSON.parse(readFileSync(join(source,'prompts.json')));

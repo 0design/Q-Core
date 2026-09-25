@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "agentation",
+      "section": "component",
+      "file": "components/agentation.json",
+      "name": "Agentation",
+      "description": "Read website annotations and report verified resolutions through Agentation MCP.",
+      "status": "planned",
+      "launch": "forbidden",
+      "reason": "No verified raw component contract exists yet."
+    },
+    {
+      "id": "annotation-review",
+      "section": "demo",
+      "file": "demos/annotation-review.json",
+      "name": "Annotation review queue",
+      "description": "Offline annotation review remains discoverable, but has no verified raw demo contract or proof.",
+      "status": "planned",
+      "launch": "forbidden",
+      "reason": "No verified raw demo contract or proof exists yet."
+    }
+  ]
+}

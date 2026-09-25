@@ -20,10 +20,10 @@ const workspace = join(sandbox,'workspace'); mkdirSync(workspace);
 const before = 'export const add=()=>0;\n';
 writeFileSync(join(workspace,'value.mjs'),before);
 writeFileSync(join(workspace,'verify.mjs'),"import assert from 'node:assert/strict';import {add} from './value.mjs';assert.equal(add(2,3),5);assert.equal(add(-2,1),-1);assert.equal(add(0,0),0);console.log('3 independent assertions passed');\n");
-const request = {protocolVersion:'qf.agent/v1',requestId:'claude-installed-proof',loop:{id:'sdd-pipeline',version:'1.0.0'},intent:'Implement arithmetic add(a,b) in value.mjs. Only value.mjs is writable. The independent verifier is already provided.',workspace,allowedPaths:['value.mjs'],allowedTools:[process.execPath],provider:{kind:'claude',model,executable:'/usr/local/bin/claude',payerScope:'local-cli'},deadlineMs:90000,maxRepairAttempts:1,verifier:{command:process.execPath,args:['verify.mjs']}};
+const request = {protocolVersion:'qf.agent/v1',requestId:'claude-installed-proof',workflow:{id:'sdd-pipeline',version:'1.0.0'},intent:'Implement arithmetic add(a,b) in value.mjs. Only value.mjs is writable. The independent verifier is already provided.',workspace,allowedPaths:['value.mjs'],allowedTools:[process.execPath],provider:{kind:'claude',model,executable:'/usr/local/bin/claude',payerScope:'local-cli'},deadlineMs:90000,maxRepairAttempts:1,verifier:{command:process.execPath,args:['verify.mjs']}};
 const outputs=[];
 async function call(r) {
-  const p=await exec(process.execPath,[join(sandbox,'node_modules/qloops/bin/qloops.mjs'),'agent','-'],JSON.stringify(r));
+  const p=await exec(process.execPath,[join(sandbox,'node_modules/q-core/bin/q-core.mjs'),'agent','-'],JSON.stringify(r));
   const result=JSON.parse(p.stdout); outputs.push({exit:p.code,result}); return result;
 }
 let result = await call(request);

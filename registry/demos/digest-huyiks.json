@@ -1,6 +1,6 @@
 {
   "id": "digest-huyiks",
-  "loopId": "digest",
+  "workflowId": "digest",
   "name": "\u0425\u0423\u0407\u041a\u0421: sourced digest",
   "description": "Four source pages to an approved Ukrainian digest with visible source checks. Embedded run evidence and detached public-candidate acceptance are reported separately.",
   "proof": "demos/digest-huyiks.txt",
@@ -11,9 +11,9 @@
   "version": "0.1.0",
   "license": "MIT",
   "engine": {
-    "package": "qloops",
+    "package": "q-core",
     "version": "0.2.0-core.16",
-    "manifest": "qloops.loop/v1"
+    "manifest": "q-core.workflow/v1"
   },
   "dependencies": [],
   "permissions": {
@@ -21,7 +21,6 @@
   },
   "evidence": {
     "status": "local-live-proof",
-    "releaseAcceptance": "pending",
     "coreVersion": "0.2.0-core.16",
     "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
   },

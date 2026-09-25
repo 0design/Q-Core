@@ -1,22 +1,26 @@
 {
-  "name": "qloops",
-  "version": "0.2.0-core.19",
+  "name": "q-core",
+  "version": "0.2.0-q-core.29",
   "license": "MIT",
-  "description": "Run a QFactory loop from a YAML manifest. No database, no server, no build step.",
+  "description": "Run a QFactory workflow from a YAML manifest. No database, no server, no build step.",
   "type": "module",
   "bin": {
-    "qloops": "bin/qloops.mjs",
-    "qloop": "bin/qloop.mjs",
-    "qloops-host": "bin/qloops-host.mjs"
+    "q-core": "bin/q-core.mjs",
+    "q-core-host": "bin/q-core-host.mjs"
   },
   "engines": {
     "node": ">=20.3.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "catalog": "node -e \"import('./src/catalog.mjs').then(async({buildCatalog})=>{const{writeFileSync}=await import('node:fs');writeFileSync('catalog.json',JSON.stringify(buildCatalog('loops',{examplesDir:'examples'}),null,2)+'\\n')})\"",
+    "catalog": "node -e \"import('./src/catalog.mjs').then(async({buildCatalog})=>{const{writeFileSync}=await import('node:fs');writeFileSync('catalog.json',JSON.stringify(buildCatalog('workflows',{examplesDir:'examples'}),null,2)+'\\n')})\"",
     "proof": "node scripts/record-proof.mjs --all",
-    "test:package": "node scripts/test-package.mjs && node scripts/test-content-package.mjs"
+    "check:public-surface": "node scripts/check-public-surface.mjs",
+    "check:product-names": "node scripts/check-product-names.mjs",
+    "check:naming-inventory": "node scripts/check-naming-inventory.mjs",
+    "prepack": "npm run check:public-surface && npm run check:product-names",
+    "test:registry-export": "node scripts/test-exact-registry-export.mjs",
+    "test:package": "npm run check:public-surface && npm run check:product-names && node scripts/test-package.mjs && node scripts/test-content-package.mjs && npm run test:registry-export"
   },
   "files": [
     "bin/",
@@ -37,12 +41,12 @@
   "author": "Oleg Kukharuk",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/0design/qloops.git"
+    "url": "git+https://github.com/0design/Q-Core.git"
   },
   "bugs": {
-    "url": "https://github.com/0design/qloops/issues"
+    "url": "https://github.com/0design/Q-Core/issues"
   },
-  "homepage": "https://github.com/0design/qloops#readme",
+  "homepage": "https://github.com/0design/Q-Core#readme",
   "exports": {
     ".": "./src/index.mjs",
     "./src/*": "./src/*",

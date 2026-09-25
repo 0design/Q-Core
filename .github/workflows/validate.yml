@@ -1,4 +1,4 @@
-# Gate for contributed loops.
+# Gate for contributed workflows.
 #
 # ON ACTIONS MINUTES: this repository is PUBLIC, and public repositories get
 # GitHub-hosted runners for free. The house rule about preferring ssh/local over
@@ -6,7 +6,7 @@
 # quota. It does not apply here, and a pull request from a stranger has no other
 # place to be checked.
 #
-# WHAT THIS CANNOT DO: run a loop. That needs a model key, and a key does not go
+# WHAT THIS CANNOT DO: run a workflow. That needs a model key, and a key does not go
 # into a workflow triggered by a fork. Running it is the maintainer's step before
 # merge — which is why the catalogue distinguishes "measured" from "not run yet".
 
@@ -14,7 +14,7 @@ name: validate
 
 on:
   pull_request:
-    paths: ["loops/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json", "scripts/build-registry.mjs", ".github/workflows/validate.yml"]
+    paths: ["workflows/**", "registry/**", "src/**", "bin/**", "test/**", "catalog.json", "package.json", "README.md", "contracts/**", "docs/**", "scripts/build-registry.mjs", "scripts/check-public-surface.mjs", "scripts/public-surface.allowlist.json", ".github/workflows/validate.yml"]
   push:
     branches: [main]
 
@@ -38,17 +38,23 @@ jobs:
         run: |
           deps=$(node -p "Object.keys(require('./package.json').dependencies||{}).length")
           if [ "$deps" != "0" ]; then
-            echo "::error::package.json declares $deps dependency/ies. qloop ships with none — that is why it runs on a clean machine."
+            echo "::error::package.json declares $deps dependency/ies. q-core ships with none — that is why it runs on a clean machine."
             exit 1
           fi
 
       - name: tests
         run: node --test test/*.test.mjs
 
+      - name: public surface allowlist and private markers
+        run: node scripts/check-public-surface.mjs
+
       # The standalone Registry builder validates every manifest, metadata and
-      # generated catalog without executing contributed loops or using secrets.
+      # generated catalog without executing contributed workflows or using secrets.
       - name: Registry manifests and generated catalog
-        run: node scripts/build-registry.mjs --check
+        run: |
+          mkdir -p /tmp/core-package
+          npm pack --ignore-scripts --pack-destination /tmp/core-package >/dev/null
+          node scripts/build-registry.mjs --check --core-artifact /tmp/core-package/q-core-$(node -p "require('./package.json').version").tgz
 
       # A manifest is meant to reference secrets, never to contain them.
       - name: no secrets committed

@@ -1,11 +1,11 @@
 import { readFileSync, writeFileSync, lstatSync, existsSync } from "node:fs";
 import { resolve, join, isAbsolute } from "node:path";
-import { hash, insist } from "./contracts.mjs";
+import { hash, insist, CoreError } from "./contracts.mjs";
 import { parseYaml } from "./yaml.mjs";
 import { validateManifest } from "./manifest.mjs";
 export async function readAsset(base, path) {
   insist(
-    /^(catalog\.json|(?:loops|components|demos|authors|examples)\/[a-z0-9-]+\.(?:yaml|json|txt))$/.test(
+    /^(catalog\.json|(?:workflows|components|demos|authors|examples)\/[a-z0-9-]+\.(?:yaml|json|txt))$/.test(
       path,
     ),
     "Unsafe registry asset path",
@@ -55,22 +55,66 @@ export async function readAsset(base, path) {
   insist(lstatSync(p).size <= 2000000, "Registry asset too large");
   return readFileSync(p);
 }
-export async function loadRelease(base, sha256) {
+const RELEASE_VERSION = /^[a-z0-9][a-z0-9._-]{0,127}$/;
+const isRemote = (base) => /^https?:\/\//.test(base);
+const isLocalhost = (base) => isRemote(base) && ["127.0.0.1", "localhost"].includes(new URL(base).hostname);
+/** Release version named by a `.../releases/<version>` Registry base (URL or directory), or null. */
+export function releaseFromBase(base) {
+  const path = isRemote(base) ? new URL(base).pathname : String(base ?? "");
+  const match = /\/releases\/([^/]+)\/?$/.exec(path);
+  return match ? match[1] : null;
+}
+/** Parse catalog bytes into an object or fail with a stable code (truncated/corrupt input). */
+export function parseCatalog(bytes) {
+  let catalog;
+  try {
+    catalog = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    throw new CoreError("CATALOG_INVALID", "Catalog is not valid UTF-8 JSON (truncated or corrupt)");
+  }
+  insist(catalog && typeof catalog === "object" && !Array.isArray(catalog), "Invalid catalog", "CATALOG_INVALID");
+  return catalog;
+}
+export async function loadRelease(base, sha256, { releaseVersion } = {}) {
   insist(/^[a-f0-9]{64}$/.test(sha256), "Explicit catalog SHA256 required");
+  insist(
+    releaseVersion === undefined || (typeof releaseVersion === "string" && RELEASE_VERSION.test(releaseVersion)),
+    "Pinned release version is malformed (lowercase letters, digits, '.', '_' and '-' only)",
+    "RELEASE_MISMATCH",
+  );
+  const fromBase = releaseFromBase(base);
+  for (const name of [releaseVersion, fromBase])
+    insist(!name || !/(?:^|[.-])(?:current|latest)$/i.test(name), `Release ${name} is a mutable alias, not an exact version`, "RELEASE_MISMATCH");
+  insist(
+    !releaseVersion || !fromBase || fromBase === releaseVersion,
+    `Pinned release ${releaseVersion} differs from the Registry release path ${fromBase}`,
+    "RELEASE_MISMATCH",
+  );
+  const expected = releaseVersion ?? fromBase;
+  insist(
+    expected || !isRemote(base) || isLocalhost(base),
+    "Remote Registry requires a versioned .../releases/<version> base (q-core install also accepts --release <version>)",
+    "RELEASE_REQUIRED",
+  );
   const bytes = await readAsset(base, "catalog.json");
   insist(
     hash(bytes) === sha256,
     "Catalog checksum mismatch",
     "CHECKSUM_MISMATCH",
   );
-  const catalog = JSON.parse(bytes.toString("utf8"));
-  insist(catalog && typeof catalog === "object" && !Array.isArray(catalog), "Invalid catalog");
+  const catalog = parseCatalog(bytes);
   insist(
-    typeof catalog.releaseVersion === "string" && catalog.releaseVersion.trim() && Array.isArray(catalog.loops),
+    typeof catalog.releaseVersion === "string" && catalog.releaseVersion.trim() && Array.isArray(catalog.workflows),
     "Versioned release required",
+    "CATALOG_INVALID",
   );
   insist(
-    catalog.core?.manifest === "qloops.loop/v1",
+    !expected || catalog.releaseVersion === expected,
+    `Catalog release ${catalog.releaseVersion} does not match the pinned release ${expected}`,
+    "RELEASE_MISMATCH",
+  );
+  insist(
+    catalog.core?.manifest === "q-core.workflow/v1",
     "Incompatible manifest contract",
     "ENGINE_INCOMPATIBLE",
   );
@@ -78,12 +122,12 @@ export async function loadRelease(base, sha256) {
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   );
   insist(
-    catalog.core?.package === "qloops" && catalog.core.version === pkg.version,
+    catalog.core?.package === "q-core" && catalog.core.version === pkg.version,
     "Registry must pin installed engine version",
     "ENGINE_INCOMPATIBLE",
   );
   const seen = new Set();
-  for (const section of ["loops", "components", "demos"]) {
+  for (const section of ["workflows", "components", "demos"]) {
     insist(catalog[section] === undefined || (Array.isArray(catalog[section]) && catalog[section].length <= 1000), "Invalid registry section");
     for (const e of catalog[section] ?? []) {
       insist(e && typeof e === "object" && !Array.isArray(e), "Invalid registry entry");
@@ -91,7 +135,7 @@ export async function loadRelease(base, sha256) {
         e.dependencies.every(d => d && typeof d.id === "string" && /^[a-z0-9-]+$/.test(d.id) &&
           /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(d.version ?? ""))), "Dependencies require exact identities");
       if (e.file !== undefined)
-        insist(e.file === `${section}/${e.id}.${section === "loops" ? "yaml" : "json"}`, "Registry file must match its section and identity");
+        insist(e.file === `${section}/${e.id}.${section === "workflows" ? "yaml" : "json"}`, "Registry file must match its section and identity");
       insist(
         typeof e.id === "string" && /^[a-z0-9-]+$/.test(e.id) &&
           /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(e.version ?? ""),
@@ -113,18 +157,19 @@ export async function installPinned({
   id,
   version,
   destination,
+  releaseVersion,
 }) {
-  const catalog = await loadRelease(base, catalogSha256);
-  const entry = catalog.loops.find((e) => e.id === id && e.version === version);
-  insist(entry, "Pinned loop not found", "VERSION_NOT_FOUND");
+  const catalog = await loadRelease(base, catalogSha256, { releaseVersion });
+  const entry = catalog.workflows.find((e) => e.id === id && e.version === version);
+  insist(entry, "Pinned workflow not found", "VERSION_NOT_FOUND");
   const resolved = [];
   const visiting = new Set();
-  async function verify(e, section = "loops") {
+  async function verify(e, section = "workflows") {
     const key = `${section}/${e.id}@${e.version}`;
     if (resolved.some((x) => x.key === key)) return;
     insist(!visiting.has(key), "Dependency cycle");
     visiting.add(key);
-    const path = e.file ?? `${section}/${e.id}.${section === "loops" ? "yaml" : "json"}`;
+    const path = e.file ?? `${section}/${e.id}.${section === "workflows" ? "yaml" : "json"}`;
     const bytes = await readAsset(base, path);
     insist(
       hash(bytes) === e.sha256,
@@ -134,7 +179,7 @@ export async function installPinned({
     for (const dep of e.dependencies ?? []) {
       const matches = [
         ...(catalog.components ?? []).map((e) => [e, "components"]),
-        ...catalog.loops.map((e) => [e, "loops"]),
+        ...catalog.workflows.map((e) => [e, "workflows"]),
       ].filter(([x]) => x.id === dep.id && x.version === dep.version);
       insist(
         matches.length > 0,

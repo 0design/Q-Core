@@ -21,7 +21,7 @@ try {
   const pack=await exec('npm',['pack',root,'--ignore-scripts','--json']);assert.equal(pack.code,0,pack.stderr);
   const packed=JSON.parse(pack.stdout)[0],tarball=join(sandbox,packed.filename);
   assert.equal((await exec('npm',['install','--ignore-scripts','--no-audit','--no-fund',tarball])).code,0);
-  const installed=join(sandbox,'node_modules/qloops');
+  const installed=join(sandbox,'node_modules/q-core');
   const contract=readFileSync(join(installed,'contracts/v1/content.md'),'utf8');
   assert.ok(contract.includes('qf.content-request/v1')&&contract.includes('approve_publication')&&contract.includes('Idempotency-Key'));
   const example=JSON.parse(readFileSync(join(installed,'examples/content-request.json'),'utf8'));
@@ -40,7 +40,7 @@ try {
     sources:example.sources.map(s=>({...s,url:origin+'/source/1'}))};
   async function call(request) {
     const file=join(sandbox,'request.json');writeFileSync(file,JSON.stringify(request),{mode:0o600});
-    const p=await exec(process.execPath,[join(installed,'bin/qloops.mjs'),'content',file]);
+    const p=await exec(process.execPath,[join(installed,'bin/q-core.mjs'),'content',file]);
     assert.ok(p.stdout.trim(),p.stderr);const result=JSON.parse(p.stdout);
     assert.equal(result.protocolVersion,'qf.content/v1');assert.equal(p.code,{success:0,failed:1,needs_human:2,cancelled:130}[result.status]);
     outputs.push({exit:p.code,result});return result;
@@ -63,11 +63,10 @@ try {
   const uncertain=await call({...third,approval:{hash:thirdDraft.nextAction.hash,decision:'approve'}});
   assert.equal(uncertain.nextAction.type,'reconcile_receipt');assert.equal(received.length,2);
   assert.equal((await call(third)).nextAction.type,'reconcile_receipt');assert.equal(received.length,2);
-  const evidence={date:new Date().toISOString(),package:packed.version,artifactSha256:hash(readFileSync(tarball)),
+  const evidence={package:packed.version,artifactSha256:hash(readFileSync(tarball)),
     evidenceKind:'clean-installed shipped Content request example; Codex subprocess fixture; real localhost HTTP only; not live inference or owner acceptance',
     contractSha256:hash(contract),exampleSha256:hash(readFileSync(join(installed,'examples/content-request.json'))),
     checks:{exactText:true,approvalRequired:true,receipt:true,dedup:true,staleApprovalRejected:true,rejection:true,missingKey:true,uncertainReplayNoResend:true},outputs};
-  writeFileSync(join(root,'docs/delivery/content-contract-package.json'),JSON.stringify(evidence,null,2)+'\n');
   console.log(JSON.stringify({package:packed.version,artifactSha256:evidence.artifactSha256,checks:evidence.checks}));
 } finally {
   if(server.listening) await new Promise(r=>server.close(r));

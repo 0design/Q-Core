@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Controlled HTTP fixtures for loop tests.
+/** Controlled HTTP fixtures for workflow tests.
  * Sources cover valid, empty, malformed, oversized, slow and failed responses.
  * Receivers record accepted and rejected attempts for independent assertions.
  * Inspect /_received and reset through /_reset.

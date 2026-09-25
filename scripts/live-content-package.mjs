@@ -25,7 +25,7 @@ try {
   const base={protocolVersion:'qf.content-request/v1',requestId:'live-content',workspace,allowedOrigins:[origin],deadlineMs:90000,
     provider:{kind:'codex',model,executable:'/Applications/ChatGPT.app/Contents/Resources/codex',payerScope:'local-cli'},
     receiver:{kind:'webhook',id:'synthetic-local-test',url:origin+'/sink'},profile:{language:'Ukrainian',tone:'factual',instructions:'One short factual paragraph. Label the content as a synthetic test. Include the supplied source URL verbatim.'}};
-  const call=async request=>{const path=join(sandbox,'request.json');writeFileSync(path,JSON.stringify(request),{mode:0o600});const r=await run(process.execPath,[join(sandbox,'node_modules/qloops/bin/qloops.mjs'),'content',path]);assert.ok(r.stdout.trim(),r.stderr);const out=JSON.parse(r.stdout);results.push({exit:r.code,result:out});return out;};
+  const call=async request=>{const path=join(sandbox,'request.json');writeFileSync(path,JSON.stringify(request),{mode:0o600});const r=await run(process.execPath,[join(sandbox,'node_modules/q-core/bin/q-core.mjs'),'content',path]);assert.ok(r.stdout.trim(),r.stderr);const out=JSON.parse(r.stdout);results.push({exit:r.code,result:out});return out;};
   for(let i=1;i<=3;i++){
     const request={...base,sources:[{id:'source-'+i,url:origin+'/source-'+i}]};
     const draft=await call(request);assert.equal(draft.nextAction?.type,'approve_publication',JSON.stringify(draft));assert.equal(received.length,i-1);

@@ -6,7 +6,7 @@ const validArtifact = (artifact) =>
 
 /** A2D plan-time verifier mechanics: AND completion on one immutable artifact.
  * Host callbacks own authorized execution/persistence; this reducer never
- * evaluates code. Original provenance: https://linear.app/0dhaus/issue/0D-263. */
+ * evaluates code. */
 export async function determined(
   { criteria, maxRepairAttempts = 0, signal },
   { execute, verify, getArtifact } = {},

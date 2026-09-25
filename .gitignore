@@ -6,3 +6,5 @@ node_modules/
 .qf/
 *.log
 __pycache__/
+docs/delivery/*
+!docs/delivery/.gitkeep

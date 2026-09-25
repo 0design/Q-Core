@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/** Run each loop against controlled source and receiver scenarios.
+/** Run each workflow against controlled source and receiver scenarios.
  * Start test/fixture-server.mjs first. Each row reports expected and actual results.
- * Environment overrides change the fixture, not the loop manifest.
+ * Environment overrides change the fixture, not the workflow manifest.
  */
 import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync, existsSync, rmSync } from "node:fs";
@@ -10,19 +10,19 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = join(HERE, "..");
-const QL = join(PKG, "bin", "qloop.mjs");
+const QL = join(PKG, "bin", "q-core.mjs");
 const F = `http://127.0.0.1:${process.env.FIXTURE_PORT ?? 19900}`;
 const KEY = process.env.OPENROUTER_API_KEY ?? "";
 
 /** Expectations are defined before execution. */
 const SCENARIOS = [
-  { id: "happy",       label: "healthy",              env: { QLOOP_SOURCE_URL: `${F}/feed/ok`,        QLOOP_WEBHOOK_URL: `${F}/sink` }, expect: "success" },
-  { id: "src-500",     label: "source returns 500",       env: { QLOOP_SOURCE_URL: `${F}/status/500`,     QLOOP_WEBHOOK_URL: `${F}/sink` }, expect: "failed" },
-  { id: "src-empty",   label: "empty feed",      env: { QLOOP_SOURCE_URL: `${F}/feed/empty`,     QLOOP_WEBHOOK_URL: `${F}/sink` }, expect: "failed" },
-  { id: "src-garbage", label: "HTML instead of RSS",         env: { QLOOP_SOURCE_URL: `${F}/feed/malformed`, QLOOP_WEBHOOK_URL: `${F}/sink` }, expect: "failed" },
-  { id: "sink-500",    label: "receiver rejects",        env: { QLOOP_SOURCE_URL: `${F}/feed/ok`,        QLOOP_WEBHOOK_URL: `${F}/sink/reject` }, expect: "failed" },
-  { id: "no-key",      label: "missing model key",       env: { QLOOP_SOURCE_URL: `${F}/feed/ok`,        QLOOP_WEBHOOK_URL: `${F}/sink` }, noKey: true, expect: "depends" },
-  { id: "dry",         label: "--dry-run",                env: { QLOOP_SOURCE_URL: `${F}/feed/ok`,        QLOOP_WEBHOOK_URL: `${F}/sink` }, dry: true, expect: "success" },
+  { id: "happy",       label: "healthy",              env: { QCORE_SOURCE_URL: `${F}/feed/ok`,        QCORE_WEBHOOK_URL: `${F}/sink` }, expect: "success" },
+  { id: "src-500",     label: "source returns 500",       env: { QCORE_SOURCE_URL: `${F}/status/500`,     QCORE_WEBHOOK_URL: `${F}/sink` }, expect: "failed" },
+  { id: "src-empty",   label: "empty feed",      env: { QCORE_SOURCE_URL: `${F}/feed/empty`,     QCORE_WEBHOOK_URL: `${F}/sink` }, expect: "failed" },
+  { id: "src-garbage", label: "HTML instead of RSS",         env: { QCORE_SOURCE_URL: `${F}/feed/malformed`, QCORE_WEBHOOK_URL: `${F}/sink` }, expect: "failed" },
+  { id: "sink-500",    label: "receiver rejects",        env: { QCORE_SOURCE_URL: `${F}/feed/ok`,        QCORE_WEBHOOK_URL: `${F}/sink/reject` }, expect: "failed" },
+  { id: "no-key",      label: "missing model key",       env: { QCORE_SOURCE_URL: `${F}/feed/ok`,        QCORE_WEBHOOK_URL: `${F}/sink` }, noKey: true, expect: "depends" },
+  { id: "dry",         label: "--dry-run",                env: { QCORE_SOURCE_URL: `${F}/feed/ok`,        QCORE_WEBHOOK_URL: `${F}/sink` }, dry: true, expect: "success" },
 ];
 
 /** Source formats that differ from the default scenario. */
@@ -38,7 +38,7 @@ const SOURCE_OVERRIDE = {
   "wide-fanout":   { happy: `${F}/feed/huge`, "sink-500": `${F}/feed/huge`, "no-key": `${F}/feed/huge`, dry: `${F}/feed/huge` },
 };
 
-const loops = readdirSync(join(PKG, "registry", "loops")).filter((f) => f.endsWith(".yaml")).sort();
+const workflows = readdirSync(join(PKG, "registry", "workflows")).filter((f) => f.endsWith(".yaml")).sort();
 
 async function reset() { await fetch(`${F}/_reset`, { method: "POST" }).catch(() => {}); }
 async function receivedCount() {
@@ -49,16 +49,16 @@ async function receivedCount() {
   } catch { return -1; }
 }
 
-function runOne(loopFile, sc) {
-  const id = loopFile.replace(/\.yaml$/, "");
+function runOne(workflowFile, sc) {
+  const id = workflowFile.replace(/\.yaml$/, "");
   const env = { ...process.env, ...sc.env, QF_NO_UPDATE_CHECK: "1" };
-  if (SOURCE_OVERRIDE[id]?.[sc.id]) env.QLOOP_SOURCE_URL = SOURCE_OVERRIDE[id][sc.id];
+  if (SOURCE_OVERRIDE[id]?.[sc.id]) env.QCORE_SOURCE_URL = SOURCE_OVERRIDE[id][sc.id];
   /* Remove Telegram credentials so fixture runs cannot send to a real channel. */
   env.TELEGRAM_BOT_TOKEN = ""; env.TELEGRAM_CHAT_ID = "";
   env.OPENROUTER_API_KEY = sc.noKey ? "" : KEY;
   if (!env.OPENROUTER_API_KEY) delete env.OPENROUTER_API_KEY;
 
-  const args = ["run", join(PKG, "registry", "loops", loopFile), "--json", "--quiet"];
+  const args = ["run", join(PKG, "registry", "workflows", workflowFile), "--json", "--quiet"];
   if (sc.dry) args.push("--dry-run");
   const r = spawnSync("node", [QL, ...args], { env, encoding: "utf8", timeout: 120_000, maxBuffer: 64 * 1024 * 1024 });
 
@@ -76,14 +76,14 @@ function runOne(loopFile, sc) {
 
 /* Execute scenarios. */
 
-console.log(`# Loop run matrix\n`);
+console.log(`# Workflow run matrix\n`);
 console.log(`> Fixture: \`test/fixture-server.mjs\` at ${F}. Manifests are unchanged;`);
 console.log(`> the scenario changes only environment variables, so failures`);
-console.log(`> are handled by the original loop.\n`);
-console.log(`Loops: **${loops.length}** · scenarios: **${SCENARIOS.length}** · runs: **${loops.length * SCENARIOS.length}**\n`);
+console.log(`> are handled by the original workflow.\n`);
+console.log(`Workflows: **${workflows.length}** · scenarios: **${SCENARIOS.length}** · runs: **${workflows.length * SCENARIOS.length}**\n`);
 
 const rows = [];
-for (const f of loops) {
+for (const f of workflows) {
   const id = f.replace(/\.yaml$/, "");
   console.log(`\n## ${id}\n`);
   console.log(`| scenario | expected | exit | status | steps | $ | run summary |`);
@@ -94,7 +94,7 @@ for (const f of loops) {
     const out = runOne(f, sc);
     const after = await receivedCount();
     const delivered = after - before;
-    rows.push({ loop: id, sc: sc.id, ...out, delivered });
+    rows.push({ workflow: id, sc: sc.id, ...out, delivered });
     console.log(
       `| ${sc.label} | ${sc.expect} | \`${out.exit}\` | **${out.status}** | ${out.done}/${out.steps} | ${out.cost ? "$" + Number(out.cost).toFixed(4) : "—"} | ${out.summary.replace(/\|/g, "\\|")} |`,
     );
@@ -117,5 +117,5 @@ console.log(`\nTotal reported cost: **$${spend.toFixed(4)}**\n`);
 const leaked = rows.filter((r) => r.status !== "success" && r.delivered > 0);
 console.log(`\n### Did an incomplete run deliver anything\n`);
 console.log(leaked.length
-  ? leaked.map((r) => `- ⚠️ **${r.loop} / ${r.sc}** — status \`${r.status}\`, receiver accepted ${r.delivered}`).join("\n")
+  ? leaked.map((r) => `- ⚠️ **${r.workflow} / ${r.sc}** — status \`${r.status}\`, receiver accepted ${r.delivered}`).join("\n")
   : `None. ${rows.filter((r) => r.status !== "success").length} unsuccessful runs; zero accepted requests.`);

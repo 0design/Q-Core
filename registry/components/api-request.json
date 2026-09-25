@@ -2,7 +2,7 @@
   "id": "api-request",
   "name": "API request",
   "kind": "step",
-  "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A loop may end here. This is a complete loop, not an unfinished one. SPEC does not enumerate response fields.",
+  "description": "An outgoing request. SPEC-MANIFEST.md §5.3. Without body, the last successful output is sent in an envelope {runId, templateId, payload}. A workflow may end here. This is a complete workflow, not an unfinished one. SPEC does not enumerate response fields.",
   "input": {
     "url": {
       "type": "string",
@@ -38,7 +38,7 @@
   "output": {
     "response": {
       "type": "object",
-      "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the loop is complete."
+      "notes": "SPEC-MANIFEST.md §5.3 does not list output fields. The step performs the request; when it is last, the workflow is complete."
     }
   },
   "needsEnv": [],

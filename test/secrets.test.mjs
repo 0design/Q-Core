@@ -14,7 +14,7 @@ import { CoreError } from "../src/contracts.mjs";
 test("Keychain identity is fixed and retrieval never puts a secret in argv", async () => {
   const identity = keychainIdentity("openrouter", "OPENROUTER_API_KEY");
   assert.deepEqual(identity, {
-    service: "com.qfactory.qloops.openrouter",
+    service: "com.qfactory.q-core.openrouter",
     account: "openrouter:OPENROUTER_API_KEY",
   });
   let seen;
@@ -26,7 +26,7 @@ test("Keychain identity is fixed and retrieval never puts a secret in argv", asy
   });
   assert.equal(secret, "fixture-secret");
   assert.equal(seen.command, "/usr/bin/security");
-  assert.deepEqual(seen.args, ["find-generic-password", "-a", "openrouter:OPENROUTER_API_KEY", "-s", "com.qfactory.qloops.openrouter", "-w"]);
+  assert.deepEqual(seen.args, ["find-generic-password", "-a", "openrouter:OPENROUTER_API_KEY", "-s", "com.qfactory.q-core.openrouter", "-w"]);
   assert.equal("fixture-secret" in seen.options, false);
   const controller = new AbortController();
   await getKeychainSecret({ platform: "darwin" }, {
@@ -40,11 +40,11 @@ test("Keychain identity is fixed and retrieval never puts a secret in argv", asy
 
 test("Keychain keyRef is a bounded logical alias", () => {
   assert.throws(
-    () => keychainIdentity("openrouter", `QLOOPS_${"A".repeat(123)}`),
+    () => keychainIdentity("openrouter", `QCORE_${"A".repeat(123)}`),
     { code: "INVALID_REQUEST" },
   );
   assert.equal(
-    keychainIdentity("openrouter", `QLOOPS_${"A".repeat(121)}`).account.length > 0,
+    keychainIdentity("openrouter", `QCORE_${"A".repeat(121)}`).account.length > 0,
     true,
   );
 });
@@ -68,7 +68,7 @@ test("Keychain set uses protected interactive prompt and rejects piped input", a
     interactive: async (actual) => { args = actual; },
   });
   assert.deepEqual(result, { stored: true });
-  assert.deepEqual(args, ["add-generic-password", "-U", "-a", "openrouter:OPENROUTER_API_KEY", "-s", "com.qfactory.qloops.openrouter", "-w"]);
+  assert.deepEqual(args, ["add-generic-password", "-U", "-a", "openrouter:OPENROUTER_API_KEY", "-s", "com.qfactory.q-core.openrouter", "-w"]);
   await assert.rejects(setKeychainSecret({ platform: "darwin" }, {
     isInteractive: () => false,
     interactive: async () => { throw new Error("must not prompt"); },

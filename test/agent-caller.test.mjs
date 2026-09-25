@@ -14,17 +14,17 @@ import { subprocess, scopedEnvironment } from "../src/subprocess.mjs";
 const caller = async (r) => {
   const p = await subprocess(
     process.execPath,
-    [resolve("bin/qloops.mjs"), "agent", "-"],
+    [resolve("bin/q-core.mjs"), "agent", "-"],
     {
       input: JSON.stringify(r),
-      env: scopedEnvironment({ QLOOPS_TEST_SECRET: "must-not-leak" }),
+      env: scopedEnvironment({ QCORE_TEST_SECRET: "must-not-leak" }),
       timeoutMs: 5000,
     },
   );
   return { ...p, result: JSON.parse(p.stdout) };
 };
 const setup = (t) => {
-  const workspace = mkdtempSync(join(tmpdir(), "qloops-caller-"));
+  const workspace = mkdtempSync(join(tmpdir(), "q-core-caller-"));
   t.after(() => rmSync(workspace, { recursive: true, force: true }));
   writeFileSync(join(workspace, "value.mjs"), "export const add=()=>0;");
   writeFileSync(
@@ -34,7 +34,7 @@ const setup = (t) => {
   return {
     protocolVersion: "qf.agent/v1",
     requestId: "caller",
-    loop: { id: "synthetic-sdd", version: "1.0.0" },
+    workflow: { id: "synthetic-sdd", version: "1.0.0" },
     intent: "Implement add",
     workspace,
     allowedPaths: ["value.mjs"],
@@ -50,7 +50,7 @@ const setup = (t) => {
     verifier: { command: process.execPath, args: ["verify.mjs"] },
   };
 };
-test("real caller -> qloops -> subprocess fixture -> approved change -> verifier -> resume", async (t) => {
+test("real caller -> q-core -> subprocess fixture -> approved change -> verifier -> resume", async (t) => {
   const r = setup(t);
   let p = await caller(r);
   assert.equal(p.code, 2);
@@ -142,7 +142,7 @@ test("Codex local client denial is an actionable stop with no lost run or file c
 
 test("active Claude caller gets a handoff instruction without launching a child or removing guard", async (t) => {
   const r = setup(t);
-  const p = await subprocess(process.execPath, [resolve("bin/qloops.mjs"), "agent", "-"], {
+  const p = await subprocess(process.execPath, [resolve("bin/q-core.mjs"), "agent", "-"], {
     input: JSON.stringify(r), env: scopedEnvironment({CLAUDECODE:"fixture-active-session"}), timeoutMs: 5000,
   });
   const result = JSON.parse(p.stdout);

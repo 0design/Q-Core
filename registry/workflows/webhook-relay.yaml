@@ -1,4 +1,4 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # Move source data to a configured receiver without a manual copy-and-paste step.
 # No model inference is required.
@@ -23,7 +23,7 @@ steps:
     kind: fetch
     config:
       name: "Read source"
-      url: "{{env.QLOOP_SOURCE_URL}}"
+      url: "{{env.QCORE_SOURCE_URL}}"
       format: json
       timeoutSec: "20"
 
@@ -32,7 +32,7 @@ steps:
     config:
       name: "Forward it"
       method: POST
-      url: "{{env.QLOOP_WEBHOOK_URL}}"
+      url: "{{env.QCORE_WEBHOOK_URL}}"
       expect: "2xx"
       timeoutSec: "20"
       body: '{"forwarded":"{{steps.Read source.output.json}}","run":"{{run.id}}"}'
