@@ -6,6 +6,10 @@ function assertReadOnlyPermissions(source, workflow) {
   assert.ok(match, `${workflow} must declare permissions before jobs`);
   const entries = match[1].trim().split("\n").map(line => line.trim());
   assert.deepEqual(entries, ["contents: read"], `${workflow} must declare exactly read-only contents permission`);
+  // Job-level permissions would override the workflow-level read-only default.
+  const jobs = source.slice(source.search(/^jobs:/m));
+  assert.doesNotMatch(jobs, /^\s+permissions:/m, `${workflow} must not declare job-level permissions`);
+  assert.doesNotMatch(source, /\bwrite-all\b|:\s*write\b/, `${workflow} must not grant any write permission`);
 }
 
 export function assertContributionPrWorkflows({ validate, registry }) {

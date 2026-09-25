@@ -35,5 +35,11 @@ test("workflow policy rejects restored filters, privileged triggers, secrets, an
       () => assertContributionPrWorkflows(name === "baseline" ? { validate: writeEnabled, registry } : { validate, registry: writeEnabled }),
       /must declare exactly read-only contents permission/,
     );
+    const jobWrite = workflow.replace(/(\n    runs-on: [^\n]+\n)/, "$1    permissions:\n      contents: write\n");
+    assert.notEqual(jobWrite, workflow);
+    assert.throws(
+      () => assertContributionPrWorkflows(name === "baseline" ? { validate: jobWrite, registry } : { validate, registry: jobWrite }),
+      /must not declare job-level permissions/,
+    );
   }
 });
