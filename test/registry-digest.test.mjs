@@ -26,7 +26,7 @@ test('Digest is a Q-Core workflow consumer without retired product aliases', () 
   const source = readFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), 'utf8');
   assert.match(source, /^manifest: q-core\.workflow\/v1$/m);
   assert.match(source, /Cite as inline Markdown links/i);
-  assert.match(source, /exactly one cluster per item/i);
+  assert.match(source, /never merge two unrelated clusters into one item/i);
   assert.match(source, /do not invent social signals/i);
   assert.match(source, /imitate a private author's personal experience/i);
   assert.match(source, /Name sources only by their item number n/i);

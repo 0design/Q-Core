@@ -126,6 +126,8 @@ const DIGEST_FORMAT = {
 const OVERVIEW = `Лабораторії гальмують найпотужніші моделі через агентів ([Media](${A}), [Blog](${B})). Паралельно споживчі агенти на кшталт Muse викликають питання приватності, і це вже 2.5-й такий сигнал ([Media](${C})).`;
 const CASES = `- **Пауза OpenAI** — тренування призупинено ([Media](${A}), [Blog](${B})).\n- **Muse** — файлова система виявилась відкритою ([Media](${C})).\n`;
 const DIGEST = `${HEADER('26.09')}\n\n## Загальна картина\n\n${OVERVIEW}\n\n## Кейси\n\n${CASES}`;
+// Digest 0.5 (Core36): a nested list after the header instead of two labelled sections.
+const NESTED = `${HEADER('26.09')}\n\n- Лабораторії гальмують найпотужніші моделі через агентів ([Media](${A}), [Blog](${B})).\n  - Muse: файлова система виявилась відкритою ([Media](${C})).\n`;
 const verify = (text, config = DIGEST_FORMAT, sources = SELECTED) => runVerifySources({ config: { draft: '{{steps.draft.output}}', sources: '{{steps.clusters.output}}', language: 'uk', ...config } }, { priorOutputs: { clusters: sources, draft: { text } }, priorStepNames: {} });
 
 test('verify-sources citation: links — every thesis links a selected source; not every source must be cited', () => {
@@ -232,7 +234,8 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1', '0.4.2'].includes(manifest.version));
+  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0'].includes(manifest.version));
+  const draftText = manifest.version.startsWith('0.5') ? NESTED : DIGEST;
   // Offline: the key comes from the test, not the Keychain; everything else is the shipped manifest.
   for (const step of manifest.steps) if (step.kind === 'llm-call') { assert.equal(step.config.secretSource, 'keychain'); step.config.secretSource = 'env'; }
   const feeds = manifest.steps.filter(s => s.kind === 'fetch');
@@ -245,7 +248,7 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
   ] });
   let modelCalls = 0;
   const handler = url => {
-    if (url.startsWith('https://openrouter.ai')) { modelCalls += 1; return completion(modelCalls % 2 === 1 ? clusters : DIGEST); }
+    if (url.startsWith('https://openrouter.ai')) { modelCalls += 1; return completion(modelCalls % 2 === 1 ? clusters : draftText); }
     if (url === 'https://media.example/feed') return new Response(MEDIA);
     if (url === 'https://blog.example/atom') return new Response(BLOG);
     return new Response(rss([['Stale', 'https://empty.example/stale', 'Mon, 01 Sep 2026 00:00:00 +0000', 'Old.']]));
@@ -261,7 +264,7 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
     const clusterInput = JSON.parse(calls.find(c => c.url.startsWith('https://openrouter.ai')).body.messages[1].content);
     assert.deepEqual(Object.keys(clusterInput), ['sources', 'removed', 'sourceHash'], 'the cluster call sees the deduplicated items only');
     assert.equal(step('clusters').output.clusters[0].independentOutlets, 2);
-    assert.equal(step('checks').output.text, DIGEST.trim());
+    assert.equal(step('checks').output.text, draftText.trim());
     assert.ok(step('cluster').costUsd > 0 && step('draft').costUsd > 0);
     const approvalHash = step('approval').output.approvalHash;
     await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: '0'.repeat(64) }), /Approval/);
