@@ -16,9 +16,9 @@
  *   script (no terminal, agent environment), and a blind `yes |` or piped answer
  *   (the code is random per call and is read only from the terminal).
  * - It is not an identity service. A process of the same OS user can still get
- *   around it deliberately: remove the markers and drive a pseudo-terminal, import
- *   the library and call resumeRun with a forged record outside an agent session,
- *   or edit the unsigned run state on disk. The instructions forbid all of these.
+ *   around it deliberately: remove the markers and drive a pseudo-terminal, remove
+ *   the markers and call resumeRun with a forged record, or edit the unsigned run
+ *   state on disk. The instructions forbid all of these.
  * - POSIX terminals only (macOS, Linux). There is no Windows console path yet.
  */
 import { openSync, closeSync, readSync, writeSync } from "node:fs";

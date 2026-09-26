@@ -223,7 +223,7 @@ test("the one-time code never reaches this process's stdout or stderr", () => {
   assert.doesNotMatch(out.join("") + err.join(""), /QZ7K2M/);
 });
 
-test("resumeRun inside an agent session accepts no host record, only the terminal record", async () => {
+test("resumeRun inside an agent session accepts no record, not even a forged terminal record", async () => {
   const dir = mkdtempSync(join(tmpdir(), "core35-agent-lib-"));
   try {
     const file = join(dir, "gate.yaml");
@@ -233,7 +233,8 @@ test("resumeRun inside an agent session accepts no host record, only the termina
     const approvalHash = run.steps[0].output.approvalHash;
     process.env.CLAUDECODE = "1";
     try {
-      await assert.rejects(resumeRun(run, { decision: "approve", approvalHash, confirmation: { channel: "embedding-host" }, store }), (e) => e.code === "HUMAN_CONFIRMATION_REQUIRED" && /CLAUDECODE/.test(e.message));
+      for (const channel of ["embedding-host", "tty-code"])
+        await assert.rejects(resumeRun(run, { decision: "approve", approvalHash, confirmation: { channel }, store }), (e) => e.code === "HUMAN_CONFIRMATION_REQUIRED" && /CLAUDECODE/.test(e.message), channel);
     } finally { delete process.env.CLAUDECODE; }
     assert.equal(store.load(run.runId).status, "waiting_human");
   } finally {

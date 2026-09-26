@@ -258,14 +258,14 @@ human gate carries the same `nextAction` (`q-core run`, `reply`, `clarify`, `res
 user to run that command in their own terminal and waits; it never runs it itself.
 The library `resumeRun` requires a `confirmation` record (`{channel, ...}`) and stores
 its channel on the gate step; `q-core approve` records `tty-code`. Inside an agent
-session `resumeRun` accepts no other channel. An embedding host that passes its own
+session `resumeRun` accepts no record at all. An embedding host that passes its own
 record is responsible for having asked a person.
 
 Limits: this stops an agent that runs `q-core approve` itself or from its own script,
 and a blind or piped answer. It is not an identity service: a process of the same OS
 user can still get around it on purpose (remove the markers and drive a
-pseudo-terminal; import the library outside an agent session and pass a forged record
-or a forged `tty-code`; edit the unsigned run state under `.qf/`). Instructions to
+pseudo-terminal; remove the markers and import the library with a forged record; edit
+the unsigned run state under `.qf/`). Instructions to
 agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
 Windows consoles are refused. The `q-core agent` / `q-core content` JSON protocols keep
 their documented model: `approval` there is an assertion by the trusted local caller.

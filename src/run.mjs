@@ -847,13 +847,13 @@ export function waitingGate(run, approvalHash) {
  * (src/human-confirmation.mjs); an embedding host passes its own record
  * ({ channel, ... }) and is responsible for having asked a person. There is no
  * default: a caller that has no human decision cannot continue the gate. Inside an
- * agent session only the terminal record (tty-code) is accepted.
+ * agent session no record is accepted (q-core approve has already refused there).
  */
 export async function resumeRun(run, { decision, approvalHash, confirmation, ...opts }) {
   insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
   insist(confirmation && typeof confirmation.channel === 'string' && confirmation.channel.trim() && (confirmation.decision ?? decision) === decision,
     'A human gate continues only with a human confirmation record (q-core approve asks at the terminal)', 'HUMAN_CONFIRMATION_REQUIRED');
-  const marker = confirmation.channel === 'tty-code' ? null : agentSessionMarker(process.env);
+  const marker = agentSessionMarker(process.env);
   insist(!marker, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal`, 'HUMAN_CONFIRMATION_REQUIRED');
   const gate = waitingGate(run, approvalHash);
   gate.decision = decision;
