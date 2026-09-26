@@ -241,6 +241,31 @@ One kind, two modes; they differ only in *who* decides.
 `--reject` fails it. **A human gate is optional** — nothing in the format or the
 engine assumes a run must meet a person.
 
+**Only a person decides a human gate (Core 35).** `q-core approve` (and `--reject`)
+asks on the controlling terminal: it prints the subject and a fresh one-time code to
+`/dev/tty` (never to stdout or stderr) and continues only when the same code is typed
+back there. It refuses, exits 2 and leaves the run waiting when
+- an agent-session marker is set (`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `AI_AGENT`,
+  `CODEX_SANDBOX`, `CODEX_SANDBOX_NETWORK_DISABLED`, `CODEX_THREAD_ID`, `CURSOR_AGENT`,
+  `GEMINI_CLI`, `OPENCODE`);
+- stdin or stdout is not a terminal (a pipe, a file, an agent's command runner);
+- the process has no controlling terminal, or the code does not match.
+
+The refusal names the exact command for the person (`--json` adds `nextAction`
+`ask_human_to_approve`, `humanOnly: true`), and `q-core run --json` returns the same
+`nextAction` when a run parks at a human gate. An agent shows the subject, asks the
+user to run that command in their own terminal and waits; it never runs it itself.
+The library `resumeRun` requires a `confirmation` record (`{channel, ...}`) and stores
+its channel on the gate step; `q-core approve` records `tty-code`. An embedding host
+that passes its own record is responsible for having asked a person.
+
+Limits: this stops an agent that runs `q-core approve` itself or from its own script,
+and a blind or piped answer. It is not an identity service: a process of the same OS
+user that deliberately removes the markers and drives a pseudo-terminal can still
+answer, and run state on disk is not signed. POSIX terminals only (macOS, Linux);
+Windows consoles are refused. The `q-core agent` / `q-core content` JSON protocols keep
+their documented model: `approval` there is an assertion by the trusted local caller.
+
 **`reviewer: agent`** is a machine check whose verdict is `{pass, reason}`.
 Today that check is an LLM judge; `mode: check` (a real, non-model checker) is
 reserved and a manifest claiming it is refused. Without a key the gate does
@@ -346,7 +371,7 @@ that goes into git — "share the workflow" must not mean "share the bot token".
 - **No `continue_on_error` / `optional`.** One unreachable source fails the run.
   This is a known cost, not an oversight.
 - A run parked at a gate is neither failed nor finished: it is held on disk and
-  `q-core approve` resumes it from exactly there.
+  `q-core approve`, run by a person at a terminal, resumes it from exactly there.
 
 ---
 
@@ -434,6 +459,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
 - A human `approval-gate` with `bind: sha256` requires `q-core approve <manifest>
   <runId> --approval-hash <hash>` (also for rejection). The displayed hash binds
   the exact persisted subject; a mismatched/stale subject cannot be approved.
+  From Core 35 the command takes the decision only from a person at a terminal
+  (one-time code on `/dev/tty`); see `reviewer: human` above.
 - `api-request` may declare `receiptKey` resolving to a SHA-256 source identity.
   Persistent receipt is claimed before sending; delivered repeats return the
   receipt without a new request. Failure/interruption is uncertain and requires

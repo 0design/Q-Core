@@ -26,7 +26,7 @@ test('Registry SDD manifest preserves spec approval, repairs a real failed file 
     await answer(run, spec); assert.equal(run.status, 'waiting_human');
     return run;
   }
-  async function approve(run) { const gate = run.steps.find(s => s.status === 'waiting_human'); await resumeRun(run, { ...opts, decision: 'approve', approvalHash: gate.output.approvalHash }); }
+  async function approve(run) { const gate = run.steps.find(s => s.status === 'waiting_human'); await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: gate.output.approvalHash }); }
   try {
     const run = await start();
     await approve(run);
@@ -68,7 +68,7 @@ test('failed verification reaches needs_human at zero repair bound and a direct 
     assert.equal(run.status, 'waiting_human');
     assert.equal(readFileSync(join(root, 'value.txt'), 'utf8'), 'original');
     const approvalHash = run.steps.find(s => s.status === 'waiting_human').output.approvalHash;
-    await resumeRun(run, { ...opts, decision: 'approve', approvalHash });
+    await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash });
     await answer({ files: [{ path: 'value.txt', content: 'changed' }] });
     assert.equal(run.status, 'needs_human');
     assert.equal(run.repairHistory.length, 1);

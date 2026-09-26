@@ -1,7 +1,7 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: many sources to one approved Ukrainian trend digest"
-version: 0.4.0
+version: 0.4.1
 description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header: one overall trend (2-4 sentences) and 2-3 cases, every thesis linked to its sources. Checks citations and format, stops at an exact human approval, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
@@ -154,8 +154,8 @@ steps:
         Avoid abbreviations with dots (write "тощо", not "т.д.").
         "Кейси": a bulleted list of 2 or 3 items, exactly one cluster per item
         (never combine two clusters in one item), thesis style: a short bold
-        label, then at most two short sentences and 45 words on what happened
-        and why it matters to people who build with AI. Each item links every
+        label, then a concise statement of what happened and why it matters to
+        people who build with AI, without filler. Each item links every
         source of its cluster. No two items say the same thing, and an item
         does not repeat the overview. Write every paragraph and every list item
         on one line.
@@ -185,7 +185,6 @@ steps:
       requiredHeadings: '["## Загальна картина","## Кейси"]'
       sectionSentences: '{"## Загальна картина":"2..4"}'
       sectionItems: '{"## Кейси":"2..3"}'
-      itemMaxWords: '{"## Кейси":60}'
       oneClusterPerItem: '["## Кейси"]'
       requiredEnvPatterns: '{"QF_DIGEST_DATE":"(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])"}'
   - id: approval
