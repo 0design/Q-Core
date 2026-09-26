@@ -192,7 +192,8 @@ export async function openRouter(
   const usage = {
     tokensIn: metric(json?.usage?.prompt_tokens),
     tokensOut: metric(json?.usage?.completion_tokens),
-    costUsd: metric(json?.usage?.cost),
+    // The last attempt's figure is not the call's cost when an earlier attempt may have been billed.
+    costUsd: unknownBilling ? null : metric(json?.usage?.cost),
     ...(unknownBilling ? { billingUnknown: true } : {}),
   };
   const billed = (code, message) => {

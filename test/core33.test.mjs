@@ -347,3 +347,10 @@ test("an unknown spend does not stop a human gate (it calls no model); it still 
   const toAgent = await withFetch(() => reply({ model: UNKNOWN }), () => run(manifest([llm("a", { model: UNKNOWN }), agent], { budgetUsd: 1 })));
   assert.equal(toAgent.steps[1].gateReason, "budget");
 });
+
+test("openRouter(): after an attempt without an answer, a successful retry reports costUsd null (billingUnknown), so every caller sees unknown", async () => {
+  const out = await withFetch((n, url, init) => n === 1
+    ? new Promise((_, reject) => { const keep = setTimeout(() => reject(new Error("timeout did not fire")), 10_000); init.signal.addEventListener("abort", () => { clearTimeout(keep); reject(init.signal.reason); }); })
+    : reply({ cost: 0.001 }), () => openRouter({ ...call(), retries: 1, timeoutMs: 1000, delaysMs: [0] }, env));
+  assert.deepEqual([out.usage.costUsd, out.usage.billingUnknown], [null, true]);
+});
