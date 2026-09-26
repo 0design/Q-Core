@@ -55,8 +55,8 @@ the machine.
 
 | Surface | State |
 | --- | --- |
-| This Core `0.2.0-q-core.32` | Pinned by Registry `2026.09.26-registry.18` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
-| Registry workflows | `digest` 0.3.0 (official sources by default, two sections and a fixed header checked before approval, HTTP or local-file delivery), `podcast-digest` 0.3.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
+| This Core `0.2.0-q-core.33` | Pinned by Registry `2026.09.26-registry.19` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
+| Registry workflows | `digest` 0.3.0 (official sources by default, two sections and a fixed header checked before approval, HTTP or local-file delivery), `podcast-digest` 0.3.1 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 
@@ -239,6 +239,11 @@ typed, provider/model fallback is never implicit. `site-funded` labels payer sco
 but does not implement the site's $10 quota. The site must reserve before calling.
 `chatOnce` remains a compatible wrapper over this adapter; `llm-call` is supported.
 Legacy token/cost estimates are not equivalent to provider-billed usage.
+`maxCallCostUsd` is an optional per-call cap: the worst case of every attempt at the
+model's listed price must fit, and an unlisted model is refused (`COST_UNKNOWN`).
+In a workflow, a model step records the provider's reported cost, else the listed
+price of the model that answered, else `null`; the run budget treats `null` as
+unknown, not zero (see SPEC-MANIFEST.md §4.2 and §5.2).
 
 HTTP transport retries network/timeout/429/5xx failures with bounded backoff;
 ordinary 4xx fail fast. Caller cancellation stops request/backoff without retry.

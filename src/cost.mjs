@@ -1,57 +1,72 @@
 /**
- * Tokens → USD. The runner's copy of the rate table in `lib/cost/estimate.ts`.
+ * Tokens → USD, used for two things only:
  *
- * The figure matters for one reason only: the budget knob cuts BEFORE a paid
- * step, and it cuts on this number. If the two homes priced a run differently,
- * the same manifest would stop at a different step depending on where it ran —
- * which would make the parity test a lie even while it passed.
+ *   1. What a finished OpenRouter step cost, when the provider did NOT report a
+ *      cost itself. The provider's own `usage.cost` always wins (see
+ *      `stepCostUsd`). The table below is a fallback for the exact model that
+ *      answered; it never prices one model at another model's rate.
+ *   2. The worst case of a call BEFORE it is made (`worstCaseCallUsd`), for the
+ *      per-call money cap `maxCallCostUsd`.
  *
- * ⚠️ Carried over verbatim, including its known quirk: the engine's
- * `usdForTokens` bills at the DEFAULT model's rate, not the rate of the model the
- * step actually used. Reproduced here rather than corrected — a runner that is
- * "more correct" than the engine still disagrees with it, and the point of this
- * file is agreement. Fixing it is a change to both, at once, on purpose.
+ * An unknown model has NO price here. Its cost is `null` (unknown), never an
+ * invented figure: a made-up rate either under-reports spend or looks like a
+ * receipt that never existed. Budget safety does not depend on guessing — the
+ * runner stops before the next paid step while any spend is unknown (see the
+ * budget gate in run.mjs), and a per-call cap refuses a model it cannot price.
  */
 
-/** USD per 1M tokens: [prompt, completion]. Source: OpenRouter's public price list. */
+/** USD per 1M tokens: [prompt, completion]. Source: OpenRouter's public model list
+    (https://openrouter.ai/api/v1/models), checked on 2026-09-26. Models that
+    left the list are removed rather than kept at a stale price. */
 const PRICE_PER_MTOK = {
-  /* Verified against https://openrouter.ai/api/v1/models on 2026-08-01, not
-     remembered. `anthropic/claude-3.5-haiku` used to sit here and DOES NOT
-     EXIST on OpenRouter — a manifest naming it got a 404 from the provider,
-     caught by running a catalogue workflow rather than by reading it. */
-  "anthropic/claude-3-haiku": [0.25, 1.25],
   "anthropic/claude-haiku-4.5": [1, 5],
   "anthropic/claude-sonnet-4": [3, 15],
   "anthropic/claude-sonnet-4.5": [3, 15],
   "anthropic/claude-sonnet-4.6": [3, 15],
+  "anthropic/claude-sonnet-5": [2, 10],
+  "mistralai/mistral-nemo": [0.019, 0.03],
   "openai/gpt-4o-mini": [0.15, 0.6],
 };
 
-/* Unknown model → the most expensive rate. The error may only lean towards
-   OVERestimating: underestimating would let a run spend past its ceiling. */
-const FALLBACK_PER_MTOK = [3, 15];
-
-/** The model the factory bills at by default — `lib/tasks/executor.ts#MODEL`. */
-export const DEFAULT_MODEL = "anthropic/claude-3-haiku";
-
-function rateFor(model) {
+/** [USD per prompt token, USD per completion token], or null when the model is not priced here. */
+export function rateForModel(model) {
   const key = String(model ?? "").trim().toLowerCase();
-  return PRICE_PER_MTOK[key] ?? FALLBACK_PER_MTOK;
+  const rate = PRICE_PER_MTOK[key];
+  return rate ? [rate[0] / 1_000_000, rate[1] / 1_000_000] : null;
 }
 
-export function usdPerTokenIn(model) {
-  return rateFor(model ?? DEFAULT_MODEL)[0] / 1_000_000;
-}
-export function usdPerTokenOut(model) {
-  return rateFor(model ?? DEFAULT_MODEL)[1] / 1_000_000;
+const count = (n) => (Number.isFinite(n) && n >= 0 ? n : null);
+
+/** Table price of a finished call for the model that answered, or null (unknown model or token counts). */
+export function usdForModelTokens(model, tokensIn, tokensOut) {
+  const rate = rateForModel(model);
+  const tin = count(tokensIn), tout = count(tokensOut);
+  if (!rate || tin === null || tout === null) return null;
+  return tin * rate[0] + tout * rate[1];
 }
 
-const USD_PER_TOKEN_IN = usdPerTokenIn();
-const USD_PER_TOKEN_OUT = usdPerTokenOut();
+/**
+ * The cost of one finished OpenRouter step and where the number came from:
+ * the provider's `usage.cost` → the table price of the model that answered →
+ * `{ costUsd: null, costSource: "unknown" }`. Never a fallback rate.
+ */
+export function stepCostUsd({ providerCostUsd, model, tokensIn, tokensOut }) {
+  if (Number.isFinite(providerCostUsd) && providerCostUsd >= 0)
+    return { costUsd: providerCostUsd, costSource: "provider" };
+  const table = usdForModelTokens(model, tokensIn, tokensOut);
+  return table === null ? { costUsd: null, costSource: "unknown" } : { costUsd: table, costSource: "rate-table" };
+}
 
-/** What a completed step costs. Matches `usdForTokens` in the engine, quirk included. */
-export function usdForTokens(tokensIn, tokensOut) {
-  const tin = Number.isFinite(tokensIn) ? Math.max(0, tokensIn) : 0;
-  const tout = Number.isFinite(tokensOut) ? Math.max(0, tokensOut) : 0;
-  return tin * USD_PER_TOKEN_IN + tout * USD_PER_TOKEN_OUT;
+/**
+ * Upper bound, in USD, of one call BEFORE it is made, or null when the model is
+ * not priced. Prompt tokens are bounded by the UTF-8 byte length of the request
+ * messages (a token covers at least one byte) plus a per-message allowance;
+ * completion tokens by `maxTokens`. Every billable attempt counts: retries
+ * multiply the bound.
+ */
+export function worstCaseCallUsd({ model, messagesBytes, maxTokens, attempts = 1 }) {
+  const rate = rateForModel(model);
+  if (!rate) return null;
+  const promptTokens = messagesBytes + 64;
+  return attempts * (promptTokens * rate[0] + maxTokens * rate[1]);
 }

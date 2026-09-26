@@ -1,7 +1,7 @@
 manifest: q-core.workflow/v1
 id: podcast-digest
 name: "Podcast to Digest: a timestamped transcript to an approved Ukrainian digest"
-version: 0.3.0
+version: 0.3.1
 description: "Read a podcast or video transcript you may process (with [mm:ss] segment markers), draft a two-section Ukrainian digest with the fixed Saturday header through OpenRouter, check citations and format, and stop at an exact human approval. Nothing is delivered or published."
 owner: oleg
 enabled: true
@@ -37,6 +37,10 @@ steps:
       provider: openrouter
       secretSource: keychain
       keyRef: OPENROUTER_API_KEY
+      # At most two billable attempts, each bounded to 180 s; the run budget
+      # below is checked before the call and the provider's own cost is recorded.
+      retries: 1
+      timeoutSec: 180
       format: text
       maxTokens: 4000
       temperature: 0.2
