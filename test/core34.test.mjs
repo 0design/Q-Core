@@ -232,7 +232,7 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1'].includes(manifest.version));
+  assert.ok(['0.4.0', '0.4.1', '0.4.2'].includes(manifest.version));
   // Offline: the key comes from the test, not the Keychain; everything else is the shipped manifest.
   for (const step of manifest.steps) if (step.kind === 'llm-call') { assert.equal(step.config.secretSource, 'keychain'); step.config.secretSource = 'env'; }
   const feeds = manifest.steps.filter(s => s.kind === 'fetch');

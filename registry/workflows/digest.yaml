@@ -1,7 +1,7 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: many sources to one approved Ukrainian trend digest"
-version: 0.4.1
+version: 0.4.2
 description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header: one overall trend (2-4 sentences) and 2-3 cases, every thesis linked to its sources. Checks citations and format, stops at an exact human approval, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
@@ -130,7 +130,9 @@ steps:
       retries: 1
       timeoutSec: 180
       format: text
-      maxTokens: 2000
+      # No numeric case length (0.4.1): a Ukrainian draft with three linked cases needs more than 2000 tokens
+      # (live run on Registry21, 26.09 window: 2102), so the output bound leaves room instead of truncating.
+      maxTokens: 4000
       temperature: 0.3
       instructions: |
         You receive meaning clusters as JSON, ranked by importance: each has a
