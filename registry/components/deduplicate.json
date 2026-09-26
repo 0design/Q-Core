@@ -3,13 +3,23 @@
   "name": "deduplicate",
   "kind": "step",
   "contentType": "component",
-  "description": "Avoid repeating source items across feed collection runs.",
-  "value": "Avoid repeating source items across feed collection runs.",
+  "description": "Remove exact duplicate sources, or check a model's meaning clusters: one meaning keeps every source that reports it, and a source is counted once.",
+  "value": "Remove exact duplicate sources, or check a model's meaning clusters: one meaning keeps every source that reports it, and a source is counted once.",
   "input": {
     "source": {
       "type": "reference",
       "required": true,
-      "notes": "Sources array or {sources}; deduplication uses exact URL and text."
+      "notes": "Sources array or {sources}; without clusters, deduplication uses exact URL and text."
+    },
+    "clusters": {
+      "type": "reference",
+      "required": false,
+      "notes": "A model step's {clusters:[{topic, summary, sources}]}; sources are item numbers n (preferred) or exact URLs. Every one must be a selected source, a source may be in one cluster only, every cluster needs a topic and at least one source; any violation fails. Clusters are ranked by independent outlets, then the model's order."
+    },
+    "maxClusters": {
+      "type": "number",
+      "required": false,
+      "notes": "With clusters, keep the first 1..20 clusters; default 8."
     }
   },
   "output": {
@@ -20,6 +30,10 @@
     "cursor": {
       "type": "object",
       "notes": "Updated cursor after successful persistence."
+    },
+    "clusters": {
+      "type": "object",
+      "notes": "With clusters: {clusters:[{rank, modelRank, topic, summary, independentOutlets, sources}], sources (the kept clusters' sources, each with its cluster rank), removed, droppedClusters, unclustered, sourceHash}."
     }
   },
   "needsEnv": [],
@@ -32,6 +46,13 @@
     "status": "accepted",
     "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
     "evidence": [
+      {
+        "file": "demos/digest-multisource.txt",
+        "sha256": "efd916a512168b92cc8de8ea9ac0b251587c2018f11511c17c3a40662ae98d48",
+        "componentVersion": "0.2.0",
+        "coreVersion": "0.2.0-q-core.34",
+        "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+      },
       {
         "file": "demos/digest-huyiks.txt",
         "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",

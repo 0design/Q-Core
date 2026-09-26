@@ -10,62 +10,8 @@ import { runParseWeb, runDeduplicate, runVerifySources } from '../src/registry-d
 const HEADER = date => `**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋${date}**`;
 const provider = { kind: 'caller', agent: 'codex', model: 'test-double', payerScope: 'local-cli' };
 
-test('actual Digest manifest enforces pending inference, exact approval and durable duplicate/uncertain receipts', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'qf-registry-digest-'));
-  const file = join(root, 'digest.yaml');
-  copyFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), file);
-  let deliveries = 0, fail = false;
-  const server = createServer((req, res) => {
-    if (req.url === '/receive') { deliveries++; req.resume(); res.writeHead(fail ? 503 : 200); res.end('receipt'); }
-    else { res.end('<html><nav>Not source content</nav><main>Новина: перевірений приклад для тесту.</main></html>'); }
-  });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  const urls = ['openai','anthropic','linear','figma'].map(id => `${base}/${id}`);
-  const env = { QF_DIGEST_OPENAI_URL: urls[0], QF_DIGEST_ANTHROPIC_URL: urls[1], QF_DIGEST_LINEAR_URL: urls[2], QF_DIGEST_FIGMA_URL: urls[3], QF_DIGEST_RECEIVER_URL: `${base}/receive`, QF_DIGEST_DATE: '26.09' };
-  const previous = Object.fromEntries(Object.keys(env).map(k => [k, process.env[k]]));
-  Object.assign(process.env, env);
-  const manifest = loadManifest(file), store = new RunStore(file);
-  const opts = { store, callerProvider: provider, settings: manifest.settings };
-  const draft = `${HEADER('26.09')}\n\n## Короткі інформаційні сигнали\n\n- Перевірений тестовий сигнал ([джерело](${urls[0]})), ${urls[1]}.\n\n## Notable / impactful / important news\n\n### Тема\n\n- Новина: ${urls[2]} і ${urls[3]}.\n`;
-  async function pending() { const run = createRun(manifest); await driveRun(run, opts); assert.equal(run.status, 'waiting_inference'); return run; }
-  async function answer(run) { const job = run.pendingInference; await driveRun(run, { ...opts, inferenceReply: { jobId: job.jobId, hash: job.hash, output: { text: draft } } }); assert.equal(run.status, 'waiting_human'); return run.steps.find(s => s.status === 'waiting_human').output.approvalHash; }
-  try {
-    const first = await pending();
-    assert.ok(JSON.stringify(first.pendingInference).length < 64000);
-    const approvalHash = await answer(first);
-    await assert.rejects(resumeRun(first, { ...opts, decision: 'approve', approvalHash: '0'.repeat(64) }), /Approval/);
-    assert.equal(deliveries, 0);
-    await resumeRun(first, { ...opts, decision: 'approve', approvalHash });
-    assert.equal(first.status, 'success');
-    assert.equal(deliveries, 1);
-    const repeat = await pending();
-    await resumeRun(repeat, { ...opts, decision: 'approve', approvalHash: await answer(repeat) });
-    assert.equal(repeat.status, 'success');
-    assert.equal(repeat.steps.at(-1).output.duplicatePrevented, true);
-    assert.equal(deliveries, 1);
-    const rejected = await pending();
-    await resumeRun(rejected, { ...opts, decision: 'reject', approvalHash: await answer(rejected) });
-    assert.equal(rejected.status, 'failed');
-    assert.equal(deliveries, 1);
-    process.env.QF_DIGEST_RECEIVER_URL = `${base}/receive?failure`;
-    // A distinct receiver which reports failure is never replayed automatically.
-    server.removeAllListeners('request');
-    server.on('request', (req, res) => { if (req.url.startsWith('/receive')) { deliveries++; res.writeHead(503); res.end('unavailable'); } else res.end('<main>Новина: перевірений приклад для тесту.</main>'); });
-    const failed = await pending();
-    await resumeRun(failed, { ...opts, decision: 'approve', approvalHash: await answer(failed) });
-    assert.equal(failed.status, 'failed');
-    assert.equal(deliveries, 2);
-    const uncertain = await pending();
-    await resumeRun(uncertain, { ...opts, decision: 'approve', approvalHash: await answer(uncertain) });
-    assert.match(uncertain.summary, /uncertain/);
-    assert.equal(deliveries, 2);
-  } finally {
-    for (const [k,v] of Object.entries(previous)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
-    await new Promise(resolve => server.close(resolve));
-    rmSync(root, { recursive: true, force: true });
-  }
-});
+// Digest 0.4 (OpenRouter, many feeds) is exercised end to end, offline, in core34.test.mjs; the receipt paths of
+// api-request (duplicate, failure, uncertain) keep their own tests.
 
 test('source components refuse hallucinated links, empty sources and normalize duplicates', () => {
   const parsed = runParseWeb({ config: { maxChars: '500' } }, { priorOutputs: { source: { status: 200, url: 'https://example.org/news', body: '<script>bad()</script><main>Real source</main>' } } });
@@ -79,11 +25,11 @@ test('source components refuse hallucinated links, empty sources and normalize d
 test('Digest is a Q-Core workflow consumer without retired product aliases', () => {
   const source = readFileSync(new URL('../registry/workflows/digest.yaml', import.meta.url), 'utf8');
   assert.match(source, /^manifest: q-core\.workflow\/v1$/m);
-  assert.match(source, /Put each cited\s+source URL directly in the sentence or bullet that relies on it/i);
-  assert.match(source, /do not\s+replace inline citations with a standalone source list/i);
+  assert.match(source, /Cite as inline Markdown links/i);
+  assert.match(source, /exactly one cluster per item/i);
   assert.match(source, /do not invent social signals/i);
   assert.match(source, /imitate a private author's personal experience/i);
-  assert.match(source, /If source metadata says\s+textTruncated is true, name the affected source or sources/i);
+  assert.match(source, /Name sources only by their item number n/i);
   assert.doesNotMatch(source, /\bqloops?\b|\bloopId\b|\bloops?\s+(?:catalog|manifest|version|id)\b/i);
 });
 
@@ -157,8 +103,8 @@ test('verify-sources without format fields keeps Core29 source-link checks, exce
   assert.doesNotThrow(() => check(`${plain} Див. www.example.org`, {}));
 });
 
-test('Podcast→Digest manifest pins OpenRouter through the Keychain, the same format contract and no delivery', () => {
-  const manifest = loadManifest(new URL('../registry/workflows/podcast-digest.yaml', import.meta.url).pathname);
+test('podcast-summary pins OpenRouter through the Keychain, keeps the two sections, has no channel header and no delivery', () => {
+  const manifest = loadManifest(new URL('../registry/workflows/podcast-summary.yaml', import.meta.url).pathname);
   const draft = manifest.steps.find(step => step.id === 'draft');
   assert.equal(draft.kind, 'llm-call');
   assert.equal(draft.config.provider, 'openrouter');
@@ -166,9 +112,8 @@ test('Podcast→Digest manifest pins OpenRouter through the Keychain, the same f
   assert.equal(draft.config.keyRef, 'OPENROUTER_API_KEY');
   assert.ok(manifest.settings.budgetUsd > 0 && manifest.settings.budgetUsd <= 1);
   const checks = manifest.steps.find(step => step.id === 'checks');
-  const digestChecks = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname).steps.find(step => step.id === 'checks');
-  assert.equal(checks.config.requiredPrefix, digestChecks.config.requiredPrefix);
-  assert.equal(checks.config.requiredHeadings, digestChecks.config.requiredHeadings);
+  assert.equal(checks.config.requiredPrefix, undefined);
+  assert.equal(checks.config.requiredHeadings, '["## Короткі інформаційні сигнали","## Notable / impactful / important news"]');
   assert.equal(manifest.steps.at(-1).kind, 'approval-gate');
   assert.ok(!manifest.steps.some(step => step.kind === 'api-request'));
 });

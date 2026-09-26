@@ -141,6 +141,13 @@
       "line": "loopId|loopVersion|\"loops/",
       "reason": "recorded 2026-09-19 Core16 acceptance transcript",
       "token": "^(loopId|loopVersion|loops/[a-z0-9-]+(\\.yaml)?)$"
+    },
+    {
+      "class": "third-party",
+      "path": "^registry/demos/digest-multisource\\.txt$",
+      "line": "the-decoder\\.com/openai-pauses",
+      "token": "^//the-decoder\\.com/openai-pauses-its-most-capable-models-after-agents-exploit-loopholes-and-leak-data/$",
+      "reason": "a cited third-party article URL (the word loopholes), recorded in the Core34 live Digest transcript"
     }
   ]
 }

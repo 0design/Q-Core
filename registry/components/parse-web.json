@@ -3,8 +3,8 @@
   "name": "parse-web",
   "kind": "step",
   "contentType": "component",
-  "description": "Extract source-attributed main content from a fetched web page.",
-  "value": "Extract source-attributed main content from a fetched web page.",
+  "description": "Extract source-attributed main content from a fetched web page, or split an RSS/Atom feed into dated items that each keep their own link.",
+  "value": "Extract source-attributed main content from a fetched web page, or split an RSS/Atom feed into dated items that each keep their own link.",
   "input": {
     "source": {
       "type": "reference",
@@ -15,12 +15,41 @@
       "type": "number",
       "required": false,
       "notes": "500..10000 readable characters per source; default 6000, truncation disclosed."
+    },
+    "items": {
+      "type": "string",
+      "required": false,
+      "notes": "\"feed\": every RSS/Atom item becomes its own source {url, feed, title, published, text, textTruncated}; a page that is not a feed fails. Feed provenance (sourceSha256, counts) is in output.feeds."
+    },
+    "since": {
+      "type": "string",
+      "required": false,
+      "notes": "With items: feed, keep items published at or after this ISO date-time; may use {{env.NAME}}; an unresolved placeholder or a non-ISO value fails. Undated items are dropped when a window is set."
+    },
+    "until": {
+      "type": "string",
+      "required": false,
+      "notes": "With items: feed, keep items published before this ISO date-time; must be after since."
+    },
+    "maxItemsPerSource": {
+      "type": "number",
+      "required": false,
+      "notes": "With items: feed, 1..50 newest items per feed; default 10. At most 100 items in total."
+    },
+    "itemChars": {
+      "type": "number",
+      "required": false,
+      "notes": "With items: feed, 100..2000 characters of cleaned summary per item; default 400. Escaped HTML and entities are decoded and stripped."
     }
   },
   "output": {
     "document": {
       "type": "object",
       "notes": "Title, main text, canonical URL and extraction diagnostics."
+    },
+    "items": {
+      "type": "object",
+      "notes": "items: feed — {sources, feeds, extraction, window}. The linked articles are not read; an empty window fails."
     }
   },
   "needsEnv": [],
@@ -33,6 +62,13 @@
     "status": "accepted",
     "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
     "evidence": [
+      {
+        "file": "demos/digest-multisource.txt",
+        "sha256": "efd916a512168b92cc8de8ea9ac0b251587c2018f11511c17c3a40662ae98d48",
+        "componentVersion": "0.2.0",
+        "coreVersion": "0.2.0-q-core.34",
+        "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+      },
       {
         "file": "demos/digest-huyiks.txt",
         "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",

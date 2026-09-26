@@ -44,17 +44,27 @@
     "introLinks": {
       "type": "json-string",
       "required": false,
-      "notes": "JSON array of HTTP(S) URLs allowed only once each, as an inline Markdown link inside the introduction sentence between requiredPrefix and the first required section; a standalone or labelled link line, a bare URL or any other occurrence fails. Requires requiredPrefix and requiredHeadings."
+      "notes": "JSON array of HTTP(S) URLs allowed only once each, as an inline Markdown link inside the introduction sentence between requiredPrefix (or the top of the draft when there is none) and the first required section; a standalone or labelled link line, a bare URL or any other occurrence fails. Requires requiredHeadings."
     },
     "citation": {
       "type": "string",
       "required": false,
-      "notes": "\"timestamps\": sources are cited by [mm:ss] (or [h:mm:ss]) markers copied from the selected source text instead of their URLs; every marker must exist in the sources, every paragraph or list item in the required sections needs one, and no other time format is allowed. Implies forbidLocalLinks."
+      "notes": "\"timestamps\": sources are cited by [mm:ss] (or [h:mm:ss]) markers copied from the selected source text instead of their URLs; every marker must exist in the sources, every paragraph or list item in the required sections needs one, and no other time format is allowed. Implies forbidLocalLinks. \"links\": every list item, and every sentence of prose, in the required sections links at least one selected source (header links do not count); unlike the default, not every selected source has to be cited. Both require requiredHeadings."
     },
     "forbidLocalLinks": {
       "type": "string",
       "required": false,
       "notes": "\"true\": no localhost, private-network, .local or file: link may appear in the draft."
+    },
+    "sectionSentences": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON object of a required heading to \"min..max\" sentences; that section must be prose (no list or quote). Link targets, URLs and decimal points do not end a sentence."
+    },
+    "sectionItems": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON object of a required heading to \"min..max\" top-level list items; that section must be a list only."
     }
   },
   "output": {
@@ -74,6 +84,13 @@
     "status": "accepted",
     "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
     "evidence": [
+      {
+        "file": "demos/digest-multisource.txt",
+        "sha256": "efd916a512168b92cc8de8ea9ac0b251587c2018f11511c17c3a40662ae98d48",
+        "componentVersion": "0.5.0",
+        "coreVersion": "0.2.0-q-core.34",
+        "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+      },
       {
         "file": "demos/digest-format.txt",
         "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",

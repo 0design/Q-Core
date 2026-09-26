@@ -186,6 +186,7 @@ The RSS reader is regex-based, not an XML parser. It handles CDATA, `<item>` and
 | `retries` | 0..5, at most `retries + 1` billable attempts | default 2 |
 | `timeoutSec` | 1..600, per attempt | default 90 |
 | `maxCallCostUsd` | per-call money cap, (0, 100] | none |
+| `input` | one step-output reference, e.g. `{{steps.unique.output}}` | every prior output |
 
 `retries`, `timeoutSec` and `maxCallCostUsd` apply to an agent `approval-gate` too.
 They are checked before the key is read or anything is sent, and `--dry-run`
@@ -195,7 +196,9 @@ attempt) exceeds the cap at the model's listed price, and refuses a model with n
 listed price rather than guessing (`COST_UNKNOWN`).
 
 The step's **input is every prior successful output**, as JSON, capped at 60 000
-characters. Inside a fan-out lane, its own item comes first.
+characters. Inside a fan-out lane, its own item comes first. With `input` set to one
+step-output reference, the model sees only that value (same cap); a reference that
+does not resolve fails the step before anything is sent.
 
 Output: `{text, model}`, or the parsed object when `format: json`.
 
@@ -400,12 +403,29 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   selects prior fetched text pages. `maxChars` is 500..10000 per page (default6000).
   Static text extraction excludes scripts/navigation and reports truncation. It
   does not execute JavaScript or assert that source statements are factual.
+  `items: feed` splits each RSS/Atom page into items `{n, url, feed, title, published,
+  text, textTruncated}` (entities decoded, HTML stripped); `since`/`until` (ISO, may
+  use `{{env.NAME}}`) keep a publication window and drop undated items;
+  `maxItemsPerSource` 1..50 (default 10), `itemChars` 100..2000 (default 400), at
+  most 100 items. A page that is not a feed, or an empty window, fails.
 - `deduplicate`: `source` references `{sources:[{url,text,...}]}`. Exact URL/text
-  duplicates are removed; `sourceHash` identifies the selected set.
+  duplicates are removed; `sourceHash` identifies the selected set. With `clusters`
+  (a model step's `{clusters:[{topic, summary, sources}]}`), sources are named by
+  item number `n` or exact URL; every one must be selected and a source is in one
+  cluster only. Clusters are ranked by independent outlets, then the model's order,
+  and the first `maxClusters` (1..20, default 8) are kept. Output `{clusters:[{rank,
+  modelRank, topic, summary, independentOutlets, sources}], sources}`; each kept
+  source carries its `cluster` rank.
 - `verify-sources`: `draft` references text or `{text}` and `sources` references
   the selected sources. Requires every selected source URL, rejects unknown URLs
   and enforces a 16000-character bound. Optional `language: uk` checks Ukrainian
-  markers, not linguistic quality. Facts need independent review.
+  markers, not linguistic quality. Facts need independent review. `citation: links`
+  instead requires a selected-source link in every list item and every prose
+  sentence of the required sections (not every source must be cited);
+  `sectionSentences` / `sectionItems` (`{"## H":"min..max"}`) bound prose sentences
+  and list items, one line each; `itemMaxWords` (`{"## H":N}`) bounds a list item;
+  `oneClusterPerItem` (`["## H"]`) holds each list item to one cluster. `introLinks`
+  no longer need `requiredPrefix` (the introduction then starts the draft).
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

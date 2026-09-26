@@ -181,11 +181,13 @@ test('CLI explains the renamed manifest format instead of "older or newer"', () 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('Digest 0.3 defaults to reachable official feeds, keeps the receiver and the dated header required', () => withEnv({ QF_DIGEST_OPENAI_URL: undefined, QF_DIGEST_ANTHROPIC_URL: undefined, QF_DIGEST_LINEAR_URL: undefined, QF_DIGEST_FIGMA_URL: undefined, QF_DIGEST_RECEIVER_URL: undefined, QF_DIGEST_DATE: undefined }, () => {
+test('Digest 0.4 defaults to ten public AI feeds (media, blogs, official) and keeps the window, receiver and dated header required', () => withEnv(Object.fromEntries([...Array.from({ length: 10 }, (_, i) => [`QF_DIGEST_FEED_${i + 1}`, undefined]), ['QF_DIGEST_RECEIVER_URL', undefined], ['QF_DIGEST_DATE', undefined], ['QF_DIGEST_SINCE', undefined], ['QF_DIGEST_UNTIL', undefined]]), () => {
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
   const urls = manifest.steps.filter(s => s.kind === 'fetch').map(s => resolveTemplate(s.config.url, {}));
-  assert.deepEqual(urls, ['https://openai.com/news/rss.xml', 'https://www.anthropic.com/news', 'https://linear.app/rss/changelog.xml', 'https://www.figma.com/blog/feed/atom.xml']);
-  assert.deepEqual(requiredEnvMissing(createRun(manifest).steps), ['QF_DIGEST_DATE', 'QF_DIGEST_RECEIVER_URL']);
+  assert.equal(urls.length, 10);
+  assert.ok(urls.every(url => /^https:\/\//.test(url)));
+  assert.ok(urls.includes('https://openai.com/news/rss.xml') && urls.includes('https://techcrunch.com/category/artificial-intelligence/feed/') && urls.includes('https://simonwillison.net/atom/everything/'));
+  assert.deepEqual(requiredEnvMissing(createRun(manifest).steps).sort(), ['QF_DIGEST_DATE', 'QF_DIGEST_RECEIVER_URL', 'QF_DIGEST_SINCE', 'QF_DIGEST_UNTIL']);
 }));
 
 test('introLinks: the episode link only inline in the introduction sentence', () => {

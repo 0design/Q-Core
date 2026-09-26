@@ -261,10 +261,10 @@ test("agent gate uses the same policy: retries 0 is one attempt and the provider
 
 // ── the Registry template that uses this route ──────────────────────────────
 
-test("podcast-digest 0.3.1 sets explicit retries and timeout, runs on a priced model, and plans one bounded call", async () => {
+test("podcast-summary 0.1.0 (formerly podcast-digest 0.3.1) sets explicit retries and timeout, runs on a priced model, and plans one bounded call", async () => {
   const { loadManifest } = await import("../src/manifest.mjs");
-  const m = loadManifest(new URL("../registry/workflows/podcast-digest.yaml", import.meta.url).pathname);
-  assert.equal(m.version, "0.3.1");
+  const m = loadManifest(new URL("../registry/workflows/podcast-summary.yaml", import.meta.url).pathname);
+  assert.equal(m.version, "0.1.0");
   const draft = m.steps.find((s) => s.id === "draft");
   assert.deepEqual([draft.config.retries, draft.config.timeoutSec], ["1", "180"]);
   assert.deepEqual(llmCallPolicy(draft.config, "draft"), { retries: 1, timeoutMs: 180_000 });
@@ -272,19 +272,19 @@ test("podcast-digest 0.3.1 sets explicit retries and timeout, runs on a priced m
   assert.ok(rateForModel(m.settings.model), "the template's model has a listed price, so a missing provider cost is still priced at its own rate");
 });
 
-test("Registry contract: llm-call/openrouter 1.1.0 documents keyRef, secretSource, retries, timeoutSec, maxCallCostUsd and the cost record", async () => {
+test("Registry contract: llm-call/openrouter 1.1.0+ documents keyRef, secretSource, retries, timeoutSec, maxCallCostUsd and the cost record", async () => {
   const { readFileSync } = await import("node:fs");
   const catalog = JSON.parse(readFileSync(new URL("../registry/catalog.source.json", import.meta.url)));
   const component = JSON.parse(readFileSync(new URL("../registry/components/llm-call-openrouter.json", import.meta.url)));
   const entry = catalog.components.find((c) => c.id === "llm-call-openrouter");
-  assert.equal(entry.version, "1.1.0");
+  assert.ok(["1.1.0", "1.2.0"].includes(entry.version));
   for (const record of [entry, component]) {
     for (const field of ["keyRef", "secretSource", "retries", "timeoutSec", "maxCallCostUsd"]) assert.ok(record.input[field], `${field} missing`);
     assert.match(record.output.costUsd.notes, /provider's reported cost/);
   }
   for (const workflow of catalog.workflows)
     for (const dep of workflow.dependencies ?? [])
-      if (dep.id === "llm-call-openrouter") assert.equal(dep.version, "1.1.0", workflow.id);
+      if (dep.id === "llm-call-openrouter") assert.equal(dep.version, entry.version, workflow.id);
 });
 
 // ── review round 1: attempts without an answer, {{run.costUsd}}, agent-gate dry run, human gate ──
