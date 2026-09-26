@@ -49,7 +49,7 @@
     "citation": {
       "type": "string",
       "required": false,
-      "notes": "\"timestamps\": sources are cited by [mm:ss] (or [h:mm:ss]) markers copied from the selected source text instead of their URLs; every marker must exist in the sources, every paragraph or list item in the required sections needs one, and no other time format is allowed. Implies forbidLocalLinks. \"links\": every list item, and every sentence of prose, in the required sections links at least one selected source (header links do not count); unlike the default, not every selected source has to be cited. Both require requiredHeadings."
+      "notes": "\"timestamps\": sources are cited by [mm:ss] (or [h:mm:ss]) markers copied from the selected source text instead of their URLs; every marker must exist in the sources, every paragraph or list item in the required sections needs one, and no other time format is allowed. Implies forbidLocalLinks. \"links\": every list item, and every sentence of prose, in the required sections links at least one selected source (header links, inline code and HTML comments do not count; ### sub-headings are refused there); unlike the default, not every selected source has to be cited. Both require requiredHeadings."
     },
     "forbidLocalLinks": {
       "type": "string",
@@ -64,7 +64,17 @@
     "sectionItems": {
       "type": "json-string",
       "required": false,
-      "notes": "JSON object of a required heading to \"min..max\" top-level list items; that section must be a list only."
+      "notes": "JSON object of a required heading to \"min..max\" top-level list items; that section must be a list only, one line per item, no nested items."
+    },
+    "itemMaxWords": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON object of a required heading to 5..500: the most words a list item there may have (link targets not counted)."
+    },
+    "oneClusterPerItem": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON array of required headings: each list item there cites sources of one cluster only, and no two items cite the same cluster. Requires sources from deduplicate clusters."
     }
   },
   "output": {
@@ -86,7 +96,7 @@
     "evidence": [
       {
         "file": "demos/digest-multisource.txt",
-        "sha256": "efd916a512168b92cc8de8ea9ac0b251587c2018f11511c17c3a40662ae98d48",
+        "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
         "componentVersion": "0.5.0",
         "coreVersion": "0.2.0-q-core.34",
         "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"

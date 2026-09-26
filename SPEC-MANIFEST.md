@@ -423,8 +423,10 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   instead requires a selected-source link in every list item and every prose
   sentence of the required sections (not every source must be cited);
   `sectionSentences` / `sectionItems` (`{"## H":"min..max"}`) bound prose sentences
-  and list items, one line each; `itemMaxWords` (`{"## H":N}`) bounds a list item;
-  `oneClusterPerItem` (`["## H"]`) holds each list item to one cluster. `introLinks`
+  and list items, one line each, with no ### sub-headings or nested items; `itemMaxWords`
+  (`{"## H":N}`) bounds a list item; `oneClusterPerItem` (`["## H"]`) holds each list
+  item to one cluster and each cluster to one item. Links inside inline code or HTML
+  comments do not count as citations. `introLinks`
   no longer need `requiredPrefix` (the introduction then starts the draft).
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay

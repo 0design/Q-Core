@@ -48,7 +48,7 @@
     "evidence": [
       {
         "file": "demos/digest-multisource.txt",
-        "sha256": "efd916a512168b92cc8de8ea9ac0b251587c2018f11511c17c3a40662ae98d48",
+        "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
         "componentVersion": "0.2.0",
         "coreVersion": "0.2.0-q-core.34",
         "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"

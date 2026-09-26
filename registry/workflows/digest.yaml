@@ -200,5 +200,6 @@ steps:
       url: "{{env.QF_DIGEST_RECEIVER_URL}}"
       method: POST
       expect: 2xx
-      receiptKey: "{{steps.clusters.output.sourceHash}}"
+      # The feed items decide the delivery key, not the model's clusters: a rerun on the same items is not resent.
+      receiptKey: "{{steps.unique.output.sourceHash}}"
       body: '{"text":"{{steps.checks.output.text}}","artifactHash":"{{steps.checks.output.artifactHash}}"}'

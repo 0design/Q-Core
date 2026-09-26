@@ -325,6 +325,16 @@ export function runVerifySources(step, ctx) {
   const shaped = linkCitations || sectionItems || sectionSentences || itemMaxWords || oneClusterPerItem;
   if (shaped) insist(requiredHeadings.length > 0, 'citation: links, sectionItems, sectionSentences, itemMaxWords and oneClusterPerItem require requiredHeadings');
   const theses = shaped ? sectionTheses() : [];
+  // Selected-source URLs a piece of text cites, as a Markdown link target or a bare URL. Inline code and HTML comments
+  // are not links a reader can open, so they are removed first.
+  const selected = [...urls];
+  const readable = piece => piece.replace(/`[^`\n]*`/g, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+  const citedUrls = piece => { const text = readable(piece); return selected.filter(url => text.includes(`](${url})`) || text.includes(`](${url} `) || new RegExp(`(?<![\\w/])${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w/-])`).test(text)); };
+  if (shaped) for (const { heading } of theses) {
+    // A ### sub-heading inside a shaped section would be a thesis the checks cannot see; the shape is flat.
+    const body = text.slice(text.indexOf(heading) + heading.length).split(/^##(?!#)/m)[0];
+    insist(!/^ {0,3}#{3,6}\s/m.test(body), `${heading}: sub-headings are not allowed where theses are checked`);
+  }
   const wordsOf = piece => (piece.replace(/\]\([^)\s]*\)/g, ']').replace(/https?:\/\/\S+/g, ' ').match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []).length;
   if (sectionItems) for (const { heading, blocks, items } of theses) {
     if (!sectionItems[heading]) continue;
@@ -334,15 +344,25 @@ export function runVerifySources(step, ctx) {
     const count = blocks.join('\n').split('\n').filter(l => /^(?:[-*+]|\d+[.)])\s/.test(l)).length;
     insist(count >= min && count <= max, `${heading} must have ${min}..${max} list items; found ${count}`);
     insist(items.every(item => !item.trim().includes('\n')), `${heading}: each list item must be one line (a line break inside an item can split a word)`);
+    insist(!blocks.some(b => /^\s+(?:[-*+]|\d+[.)])\s/m.test(b)), `${heading}: nested list items are not allowed; one item is one thesis`);
   }
   for (const { heading, items } of theses) {
     if (itemMaxWords?.[heading]) {
       const long = items.find(item => wordsOf(item) > itemMaxWords[heading]);
       insist(!long, `${heading}: a list item has more than ${itemMaxWords[heading]} words: ${long?.slice(0, 60)}`);
     }
-    if (oneClusterPerItem?.includes(heading)) for (const item of items) {
-      const ranks = new Set(sources.filter(source => item.includes(`](${source.url})`) || item.includes(`](${source.url} `)).map(source => source.cluster));
-      insist(ranks.size <= 1, `${heading}: one list item cites ${ranks.size} clusters; one item is one meaning: ${item.slice(0, 60)}`);
+    if (oneClusterPerItem?.includes(heading)) {
+      const clusterOf = new Map(sources.map(source => [source.url, source.cluster]));
+      const used = new Map();
+      for (const item of items) {
+        const ranks = new Set(citedUrls(item).map(url => clusterOf.get(url)));
+        insist(ranks.size <= 1, `${heading}: one list item cites ${ranks.size} clusters; one item is one meaning: ${item.slice(0, 60)}`);
+        // Different items are different meanings: two items may not cite the same cluster.
+        for (const rank of ranks) {
+          insist(!used.has(rank), `${heading}: two list items cite the same cluster ${rank}; each meaning appears once: ${item.slice(0, 60)}`);
+          used.set(rank, item);
+        }
+      }
     }
   }
   if (sectionSentences) for (const { heading, blocks } of theses) {
@@ -354,8 +374,7 @@ export function runVerifySources(step, ctx) {
     insist(count >= min && count <= max, `${heading} must have ${min}..${max} sentences; found ${count}`);
   }
   if (linkCitations) {
-    const selected = [...urls];
-    const cites = piece => selected.some(url => piece.includes(`](${url})`) || piece.includes(`](${url} `) || new RegExp(`(?<![\\w/])${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w/-])`).test(piece));
+    const cites = piece => citedUrls(piece).length > 0;
     // A list item is one thesis; in prose every sentence is one (a sentence may lean on the link that closes the next
     // one only if it has none itself — that is refused, so each claim carries its own source).
     const pieces = theses.flatMap(section => section.items.flatMap(item => /^(?:[-*+]|\d+[.)])\s/.test(item) ? [item] : sentencesOf(item)));

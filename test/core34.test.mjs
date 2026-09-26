@@ -169,6 +169,17 @@ test('verify-sources itemMaxWords, oneClusterPerItem and one-line theses refuse 
   };
   for (const [name, [text, error]] of Object.entries(cases)) assert.throws(() => verify(text, format, clustered), error, name);
   assert.throws(() => verify(DIGEST, format, SELECTED), /requires sources from deduplicate clusters/);
+  // Review round 1: a ### thesis with no link, two items from one cluster, a bare URL of another cluster, a link in code,
+  // a nested item.
+  const more = {
+    'a ### thesis in the cases': [DIGEST.replace('## Кейси\n\n', '## Кейси\n\n### Вигадана теза без джерела\n\n'), /sub-headings are not allowed/],
+    'a ### thesis in the overview': [DIGEST.replace('## Загальна картина\n\n', '## Загальна картина\n\n### Вигадана теза\n\n'), /sub-headings are not allowed/],
+    'two items from one cluster': [DIGEST.replace(`відкритою ([Media](${C})).`, `відкритою ([Blog](${B})).`), /two list items cite the same cluster 1/],
+    'a bare URL of another cluster': [DIGEST.replace(`([Media](${A}), [Blog](${B})).\n- **Muse**`, `([Media](${A}), ${C}).\n- **Muse**`), /cites 2 clusters/],
+    'a link inside inline code only': [DIGEST.replace(`відкритою ([Media](${C})).`, `відкритою \`[Media](${C})\`.`), /Every thesis needs a link/],
+    'a nested list item': [DIGEST.replace(`відкритою ([Media](${C})).\n`, `відкритою ([Media](${C})).\n  - вкладений пункт ([Media](${C})).\n`), /nested list items are not allowed|two list items cite the same cluster/],
+  };
+  for (const [name, [text, error]] of Object.entries(more)) assert.throws(() => verify(text, format, clustered), error, name);
   assert.throws(() => verify(DIGEST, { ...format, itemMaxWords: '{"## Кейси":2}' }, clustered), /5\.\.500 words/);
   assert.throws(() => verify(DIGEST, { ...format, oneClusterPerItem: '["## Інше"]' }, clustered), /only name headings/);
 });
@@ -285,5 +296,5 @@ test('podcast-summary 0.1.0 is podcast-digest without the channel header; Digest
   assert.equal(dc.requiredPrefix, `${HEADER('{{env.QF_DIGEST_DATE}}')}\n\n`);
   assert.equal(dc.citation, 'links');
   assert.equal(dc.sources, '{{steps.clusters.output}}');
-  assert.equal(digest.steps.find(s => s.id === 'delivery').config.receiptKey, '{{steps.clusters.output.sourceHash}}');
+  assert.equal(digest.steps.find(s => s.id === 'delivery').config.receiptKey, '{{steps.unique.output.sourceHash}}');
 });

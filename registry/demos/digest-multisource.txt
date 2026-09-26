@@ -2,6 +2,7 @@ Digest 0.4.0 — live multi-source run on the Core34 candidate source checkout
 
 Scope: controlled local candidate run from the Q-Core source checkout (branch claude/core34-registry20), before packing. It is not public-release or owner acceptance, and it is not a fact check: facts need independent review of the cited articles.
 Template: digest 0.4.0, manifest SHA-256 3964e0ab1fcd71a65b0b27974d9b742c0e9d24a1c7fb0962fb86ef79cfccc2c3
+After this run and before release (reviewed, not re-run live: the OpenRouter credit for this work was spent): clusters are ranked by independent outlets, then the model's order (the order and sourceHash below are the model's, pre-ranking); verify-sources refuses ### sub-headings in checked sections, two cases from one cluster and links inside inline code; the delivery receiptKey is the feed items' sourceHash. The released manifest differs from the manifest above only in that receiptKey.
 Components under test: parse-web 0.2.0 (items: feed, since/until), deduplicate 0.2.0 (clusters by item number), llm-call/openrouter 1.2.0 (input), verify-sources 0.5.0 (citation: links, sectionSentences, sectionItems, itemMaxWords, oneClusterPerItem)
 Route: fetch x10 -> parse-web (feed items) -> deduplicate -> llm-call (OpenRouter openai/gpt-4o-mini, JSON clusters) -> deduplicate (clusters) -> llm-call (OpenRouter anthropic/claude-sonnet-5, draft) -> verify-sources -> approval-gate (sha256); delivery waits for the human approval
 Run: 66c87653-651c-4503-ba3b-e0f3f6e319f1 · status waiting_human · OpenRouter key from the macOS Keychain
