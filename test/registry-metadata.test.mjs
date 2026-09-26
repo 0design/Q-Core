@@ -5,7 +5,7 @@ import { workflowMetadata } from '../scripts/registry-workflow-metadata.mjs';
 test('new Registry workflows have truthful manifest-derived consumer metadata', () => {
   const { catalog } = buildRegistry();
   const digest = catalog.workflows.find(workflow => workflow.id === 'digest');
-  assert.equal(digest.steps, 10);
+  assert.equal(digest.steps, 18);
   assert.equal(digest.humanGate, true);
   assert.ok(digest.kinds.includes('verify-sources'));
   assert.equal(digest.needsEnv.includes('OPENROUTER_API_KEY'), false);

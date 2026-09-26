@@ -41,13 +41,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -129,13 +129,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -214,13 +214,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         },
         {
           "id": "approval-gate",
@@ -307,13 +307,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -396,13 +396,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -483,13 +483,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -565,7 +565,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -575,7 +575,7 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -656,13 +656,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -743,7 +743,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -753,7 +753,7 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
@@ -829,7 +829,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -904,7 +904,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -948,10 +948,10 @@
     {
       "id": "digest",
       "name": "Digest",
-      "description": "Turn selected feed material into a useful editorial digest.",
-      "value": "Turn selected feed material into a useful editorial digest.",
+      "description": "Many sources, one trend: deduplicate meanings across feeds and write an approved Ukrainian digest with 2-3 linked cases.",
+      "value": "Many sources, one trend: deduplicate meanings across feeds and write an approved Ukrainian digest with 2-3 linked cases.",
       "file": "workflows/digest.yaml",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -961,25 +961,25 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
-          "id": "llm-call-cli",
-          "version": "0.1.0"
+          "id": "llm-call-openrouter",
+          "version": "1.2.0"
         },
         {
           "id": "parse-web",
-          "version": "0.1.0"
+          "version": "0.2.0"
         },
         {
           "id": "deduplicate",
-          "version": "0.1.0"
+          "version": "0.2.0"
         },
         {
           "id": "verify-sources",
-          "version": "0.4.0"
+          "version": "0.5.0"
         },
         {
           "id": "approval-gate",
@@ -1006,18 +1006,20 @@
         "status": "candidate-tests"
       },
       "executionProfile": {
-        "inference": "cli",
-        "callerReady": true
+        "inference": "openrouter",
+        "callerReady": false
       },
       "needsEnv": [
+        "QF_DIGEST_SINCE",
+        "QF_DIGEST_UNTIL",
         "QF_DIGEST_DATE",
         "QF_DIGEST_RECEIVER_URL"
       ],
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "338dee7f7f9412e57033936045bdd0a224009b1bb9d1acca5880c49270cdb9e9",
-      "steps": 10,
+      "sha256": "ef182bc5104c1b15cadde620e97a6c185742126255662816dd91ca77832bdea4",
+      "steps": 18,
       "kinds": [
         "fetch",
         "parse-web",
@@ -1031,40 +1033,40 @@
       "agentGate": false
     },
     {
-      "id": "podcast-digest",
-      "name": "Podcast to Digest",
-      "description": "Turn a podcast transcript into a timestamped Ukrainian digest with the fixed Saturday header, stopping at your approval.",
-      "value": "Turn a podcast transcript into a timestamped Ukrainian digest with the fixed Saturday header, stopping at your approval.",
-      "file": "workflows/podcast-digest.yaml",
-      "version": "0.3.1",
+      "id": "podcast-summary",
+      "name": "Podcast summary",
+      "description": "Turn one podcast or video transcript into a timestamped Ukrainian summary with no channel header, stopping at your approval. Replaces podcast-digest.",
+      "value": "Turn one podcast or video transcript into a timestamped Ukrainian summary with no channel header, stopping at your approval. Replaces podcast-digest.",
+      "file": "workflows/podcast-summary.yaml",
+      "version": "0.1.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
         "repository": "0design/Q-Core",
-        "path": "registry/workflows/podcast-digest.yaml",
+        "path": "registry/workflows/podcast-summary.yaml",
         "revision": "candidate"
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.1.0"
+          "version": "1.2.0"
         },
         {
           "id": "parse-web",
-          "version": "0.1.0"
+          "version": "0.2.0"
         },
         {
           "id": "deduplicate",
-          "version": "0.1.0"
+          "version": "0.2.0"
         },
         {
           "id": "verify-sources",
-          "version": "0.4.0"
+          "version": "0.5.0"
         },
         {
           "id": "approval-gate",
@@ -1093,7 +1095,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "2c8a3cfbb44e9a68e85df4441a90655cb38e7766505ee4b063e944a22f2cc699",
+      "sha256": "b58deb5b87c8ca6f9d81790a5715525022e47a3433e963ab5082be39b03226a6",
       "steps": 7,
       "kinds": [
         "fetch",
@@ -1109,7 +1111,6 @@
         "QF_PODCAST_TRANSCRIPT_PART_1_URL",
         "QF_PODCAST_TRANSCRIPT_PART_2_URL",
         "QF_PODCAST_TITLE",
-        "QF_DIGEST_DATE",
         "QF_PODCAST_VIDEO_URL"
       ]
     },
@@ -1129,7 +1130,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1257,7 +1258,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1300,6 +1301,11 @@
           "type": "string",
           "required": true,
           "notes": "templated. SPEC-MANIFEST.md §5.2."
+        },
+        "input": {
+          "type": "reference",
+          "required": false,
+          "notes": "One step-output reference, for example {{steps.unique.output}}; the model then sees only that value instead of every prior output (capped at 60 000 characters). A reference that does not resolve fails before anything is sent."
         },
         "format": {
           "type": "string",
@@ -1384,7 +1390,7 @@
         "release-watch"
       ],
       "author": "0design",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "license": "MIT",
       "origin": {
         "repository": "0design/QFactory.io",
@@ -1393,7 +1399,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1417,7 +1423,7 @@
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
       "builtinDependencies": [],
-      "sha256": "a94fa3e2aa1cdc19cb5a551bc401af23b5514858e5cecc7d5e306160a89bc51b"
+      "sha256": "d897866151680f5b753b1281c060465bbe5077dff91fba2abc540ba830685eda"
     },
     {
       "id": "telegram-publish",
@@ -1462,7 +1468,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1499,7 +1505,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1528,17 +1534,17 @@
     {
       "id": "parse-web",
       "name": "parse-web",
-      "description": "Extract source-attributed main content from a fetched web page.",
-      "value": "Extract source-attributed main content from a fetched web page.",
+      "description": "Extract source-attributed main content from a fetched web page, or split an RSS/Atom feed into dated items that each keep their own link.",
+      "value": "Extract source-attributed main content from a fetched web page, or split an RSS/Atom feed into dated items that each keep their own link.",
       "kind": "step",
       "contentType": "component",
       "file": "components/parse-web.json",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1552,6 +1558,13 @@
         "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
+            "file": "demos/digest-multisource.txt",
+            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "componentVersion": "0.2.0",
+            "coreVersion": "0.2.0-q-core.34",
+            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+          },
+          {
             "file": "demos/digest-huyiks.txt",
             "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
             "componentVersion": "0.1.0",
@@ -1562,7 +1575,7 @@
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "bc2a9cdff0dcb721798af5a5113b7aafe62803041370f50a2beea7592ab3a598"
+      "sha256": "079cd64852d22c97bcc5ff180505f7b523db303c169722fec80a22bb13b68df9"
     },
     {
       "id": "determined",
@@ -1577,7 +1590,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1625,7 +1638,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1664,7 +1677,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1693,17 +1706,17 @@
     {
       "id": "deduplicate",
       "name": "deduplicate",
-      "description": "Avoid repeating source items across feed collection runs.",
-      "value": "Avoid repeating source items across feed collection runs.",
+      "description": "Remove exact duplicate sources, or check a model's meaning clusters: one meaning keeps every source that reports it, and a source is counted once.",
+      "value": "Remove exact duplicate sources, or check a model's meaning clusters: one meaning keeps every source that reports it, and a source is counted once.",
       "kind": "step",
       "contentType": "component",
       "file": "components/deduplicate.json",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1717,6 +1730,13 @@
         "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
+            "file": "demos/digest-multisource.txt",
+            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "componentVersion": "0.2.0",
+            "coreVersion": "0.2.0-q-core.34",
+            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+          },
+          {
             "file": "demos/digest-huyiks.txt",
             "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
             "componentVersion": "0.1.0",
@@ -1727,7 +1747,7 @@
       },
       "needsEnv": [],
       "builtinDependencies": [],
-      "sha256": "87339108b765753787740a2634f83bfecf13095918698ebcb6f4d9c4390019df"
+      "sha256": "8b8d82b811fa0ce020433c2161cdb59dbf2fa88bc6ef5f01017b7e5a2247d9b8"
     },
     {
       "id": "aindf-validator",
@@ -1742,7 +1762,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1772,7 +1792,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1801,7 +1821,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1833,7 +1853,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1872,7 +1892,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1906,12 +1926,12 @@
       "kind": "step",
       "contentType": "component",
       "file": "components/verify-sources.json",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1926,6 +1946,13 @@
         "status": "accepted",
         "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
+          {
+            "file": "demos/digest-multisource.txt",
+            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "componentVersion": "0.5.0",
+            "coreVersion": "0.2.0-q-core.34",
+            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+          },
           {
             "file": "demos/digest-format.txt",
             "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
@@ -1942,7 +1969,7 @@
           }
         ]
       },
-      "sha256": "ed6228df996334ecc909fda18caaf170a3d64e338f5ad851d1cab62b617da48d"
+      "sha256": "442cb4f443844b82d0744a2e820b77422fe1c6461c398fafee0520b4c283bef7"
     }
   ],
   "demos": [
@@ -1971,7 +1998,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2013,7 +2040,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2055,7 +2082,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2091,7 +2118,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2124,7 +2151,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.33",
+        "version": "0.2.0-q-core.34",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2144,20 +2171,20 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.26-registry.19-candidate",
+  "releaseVersion": "2026.09.26-registry.20-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.33",
+    "version": "0.2.0-q-core.34",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.33.tgz",
-    "artifactSha256": "21a5a8d7d0b10644ddb98a41a7b5f5877300ee424005f99d3d887f8fd8528390",
-    "integrity": "sha512-pC5Ph4vzJ0/y4KFf2x+sTIWtUXfUB4zihO1kQ/mAZhUATT/8QpzE5Vk4a2V/ZMVdn+S/RUYSJuLH2LEBQxEiQw==",
-    "schemaSha256": "f7c1d618c8fd1309b26cddd67af04e9652d17af73f59aa7b10a0ed7e19d33d96",
+    "artifact": "vendor/q-core-0.2.0-q-core.34.tgz",
+    "artifactSha256": "6173d848fe6a097c0c2efa60ed02d4663f9c9701dc5db2f2ee3f27bca80971d3",
+    "integrity": "sha512-bhZIFA7kMuhy8JpCJsW0vQcwQKtynvytJoX3/X95eat0KJZsoI7PZ9F7dlGjnsiIE4p/4NUdJkIxYCpf9N7MYQ==",
+    "schemaSha256": "8891681ff04e88cc35d48420583fb86b90c1583d42ea94b691eb97db20c1c8b2",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.33 successor of Core.32: the manifest llm-call and agent approval-gate route takes explicit retries (0..5), timeoutSec (1..600) and an optional maxCallCostUsd cap; a model step records the provider's reported cost, else the listed price of the model that answered, else null (unknown), never another model's rate; a finite budget stops the next paid step while any cost is unknown; a billed call that then fails keeps its cost. Same manifest validator, YAML parser and request schema; SPEC-MANIFEST documents the new fields",
+    "source": "Core.34 successor of Core.33: a multi-source Digest route. parse-web items: feed turns RSS/Atom feeds into dated, cleaned items with their own links inside a since/until window; deduplicate clusters checks a model's meaning clusters (only selected URLs, a source in one cluster, ranked, bounded); verify-sources citation: links requires a selected-source link in every list item and prose sentence of the required sections, plus sectionSentences and sectionItems shape checks, and introLinks work without a fixed header; an OpenRouter llm-call may set input to one step-output reference. Same manifest validator, YAML parser and request schema; SPEC-MANIFEST documents the new fields",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -2253,11 +2280,11 @@
           },
           {
             "id": "parse-web",
-            "version": "0.1.0"
+            "version": "0.2.0"
           },
           {
             "id": "deduplicate",
-            "version": "0.1.0"
+            "version": "0.2.0"
           },
           {
             "id": "llm-call-cli",
@@ -2281,8 +2308,8 @@
           "blockers": [],
           "components": [
             "fetch@1.0.0",
-            "parse-web@0.1.0",
-            "deduplicate@0.1.0",
+            "parse-web@0.2.0",
+            "deduplicate@0.2.0",
             "llm-call-cli@0.1.0"
           ]
         }
@@ -2291,26 +2318,26 @@
         "id": "digest",
         "name": "Digest",
         "contentType": "workflow-template",
-        "value": "Turn selected feed material into a useful editorial digest.",
-        "version": "0.3.0",
+        "value": "Many sources, one trend: deduplicate meanings across feeds and write an approved Ukrainian digest with 2-3 linked cases.",
+        "version": "0.4.0",
         "status": "implementation-candidate",
-        "inference": "cli",
+        "inference": "openrouter",
         "dependencies": [
           {
-            "id": "llm-call-cli",
-            "version": "0.1.0"
+            "id": "llm-call-openrouter",
+            "version": "1.2.0"
           },
           {
             "id": "parse-web",
-            "version": "0.1.0"
+            "version": "0.2.0"
           },
           {
             "id": "deduplicate",
-            "version": "0.1.0"
+            "version": "0.2.0"
           },
           {
             "id": "verify-sources",
-            "version": "0.4.0"
+            "version": "0.5.0"
           },
           {
             "id": "approval-gate",
@@ -2318,9 +2345,10 @@
           }
         ],
         "stages": [
-          "Read the selected feed and editorial profile",
-          "Compose a sourced draft",
-          "Check facts and links",
+          "Read the selected feeds for a time window",
+          "Deduplicate meanings into ranked clusters",
+          "Compose the trend and 2-3 linked cases",
+          "Check every thesis link, the header and the format",
           "Obtain draft-specific approval",
           "Deliver once to the authorized destination"
         ],
@@ -2330,13 +2358,20 @@
         },
         "readiness": {
           "templateId": "digest",
-          "status": "components-ready",
-          "blockers": [],
+          "status": "blocked",
+          "blockers": [
+            {
+              "id": "llm-call-openrouter",
+              "version": "1.2.0",
+              "implementation": "partial",
+              "acceptance": "pending"
+            }
+          ],
           "components": [
-            "llm-call-cli@0.1.0",
-            "parse-web@0.1.0",
-            "deduplicate@0.1.0",
-            "verify-sources@0.4.0",
+            "llm-call-openrouter@1.2.0",
+            "parse-web@0.2.0",
+            "deduplicate@0.2.0",
+            "verify-sources@0.5.0",
             "approval-gate@1.0.0",
             "fetch@1.0.0",
             "api-request@1.1.0"
@@ -2584,7 +2619,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.33",
+          "version": "0.2.0-q-core.34",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2679,7 +2714,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.33",
+          "version": "0.2.0-q-core.34",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2780,7 +2815,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.33",
+          "version": "0.2.0-q-core.34",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2849,7 +2884,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.33",
+          "version": "0.2.0-q-core.34",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2940,5 +2975,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "3f7d17eee714dcf718a95ff50b68b015112189b7169895a8c27e1efe882f9e91"
+  "releaseSha256": "59ea125b49023f9244f07dbd0701b6f77422739d267ffc7cae2206a49d53b756"
 }

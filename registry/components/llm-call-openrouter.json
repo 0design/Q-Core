@@ -7,7 +7,12 @@
     "instructions": {
       "type": "string",
       "required": true,
-      "notes": "templated. SPEC-MANIFEST.md \u00a75.2."
+      "notes": "templated. SPEC-MANIFEST.md §5.2."
+    },
+    "input": {
+      "type": "reference",
+      "required": false,
+      "notes": "One step-output reference, for example {{steps.unique.output}}; the model then sees only that value instead of every prior output (capped at 60 000 characters). A reference that does not resolve fails before anything is sent."
     },
     "format": {
       "type": "string",
@@ -27,7 +32,7 @@
     "role": {
       "type": "string",
       "required": false,
-      "notes": "prepended as \"You are the \u27e8role\u27e9 agent\u2026\""
+      "notes": "prepended as \"You are the ⟨role⟩ agent…\""
     },
     "model": {
       "type": "string",
@@ -63,7 +68,7 @@
   "output": {
     "text": {
       "type": "string",
-      "notes": "format: text \u2014 {text, model}."
+      "notes": "format: text — {text, model}."
     },
     "model": {
       "type": "string",

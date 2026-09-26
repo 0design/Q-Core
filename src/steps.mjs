@@ -15,7 +15,7 @@
  * word where they are observable, because the parity test compares them.
  */
 import { requireStr, num, oneOf, str } from "./config.mjs";
-import { resolveTemplate, resolveTemplateDeep, missingEnvRefs } from "./template.mjs";
+import { resolveTemplate, resolveTemplateDeep, resolveTemplateValue, missingEnvRefs } from "./template.mjs";
 import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
@@ -256,8 +256,14 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     instructions +
     "\n\nAnswer with the result only — no preamble, no meta-commentary.";
 
-  const payload =
+  // input: one step-output reference bounds what the model sees (as for provider: cli); otherwise every prior output.
+  let payload =
     ctx.item !== undefined ? { item: ctx.item, index: ctx.itemIndex, steps: ctx.priorOutputs } : ctx.priorOutputs;
+  if (step.config.input != null) {
+    payload = resolveTemplateValue(step.config.input, tctx(ctx));
+    if (payload === undefined || typeof payload === "string" && /\{\{[^{}]*\}\}/.test(payload))
+      throw new CoreError("INVALID_REQUEST", `"${label}": input must reference one prior step output, for example "{{steps.unique.output}}".`);
+  }
   const user = JSON.stringify(payload, null, 2).slice(0, 60_000);
 
   let reply;

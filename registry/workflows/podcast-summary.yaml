@@ -1,8 +1,8 @@
 manifest: q-core.workflow/v1
-id: podcast-digest
-name: "Podcast to Digest: a timestamped transcript to an approved Ukrainian digest"
-version: 0.3.1
-description: "Read a podcast or video transcript you may process (with [mm:ss] segment markers), draft a two-section Ukrainian digest with the fixed Saturday header through OpenRouter, check citations and format, and stop at an exact human approval. Nothing is delivered or published."
+id: podcast-summary
+name: "Podcast summary: one timestamped transcript to an approved Ukrainian summary"
+version: 0.1.0
+description: "Read one podcast or video transcript you may process (with [mm:ss] segment markers), draft a two-section Ukrainian summary through OpenRouter with no channel header, check timestamps and format, and stop at an exact human approval. A building block for other workflows such as Digest. Nothing is delivered or published. Replaces podcast-digest."
 owner: oleg
 enabled: true
 triggers:
@@ -50,14 +50,10 @@ steps:
         "{{env.QF_PODCAST_TITLE}}". Each part is plain text with [mm:ss] markers
         at the start of transcript segments. The transcript may be an automatic
         caption track, so it can misspell names.
-        Write a concise Ukrainian digest of what the episode says.
-        Begin the document byte-for-byte with this header line, then a blank line:
-        **Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**
-        Keep the header exactly as written: no space before "і", and the date is
-        plain text, never a link.
-        After the header and a blank line, write the introduction as one line whose
-        first words are exactly "Цікаві тези із " followed by the source as the link
-        text, for example:
+        Write a concise Ukrainian summary of what the episode says. It has no
+        channel header: the document starts with the introduction, written as one
+        line whose first words are exactly "Цікаві тези із " followed by the source
+        as the link text, for example:
         Цікаві тези із [{{env.QF_PODCAST_SOURCE_KIND:-відео}} «<назва>»]({{env.QF_PODCAST_VIDEO_URL}}) про ...
         Name the source by what it is ({{env.QF_PODCAST_SOURCE_KIND:-відео}}); do not call a
         video a podcast. This is the only link to the episode; never put it on a
@@ -67,7 +63,7 @@ steps:
         ## Notable / impactful / important news
         Use no other level-two headings; ### thematic sub-blocks are allowed.
         One thesis per item: never merge different thoughts into one item. Keep
-        the digest short: at most 12 items in total across both sections.
+        the summary short: at most 12 items in total across both sections.
         Every item ends with the [mm:ss] marker(s) copied exactly from the
         transcript that start the segment(s) it relies on, for example [05:12].
         Use only markers that appear in the transcript, keep the square brackets,
@@ -80,7 +76,7 @@ steps:
         Proper names that may be misheard by automatic captions: take them from
         the title "{{env.QF_PODCAST_TITLE}}" when they appear there; otherwise
         write them as heard and add "(як у відео)".
-        The digest is dated {{env.QF_DIGEST_DATE}}; the recording date is unknown.
+        The recording date is unknown.
         Do not present a date, deadline or offer mentioned in the episode as
         current; say it was mentioned in the episode, or leave it out.
         Do not invent social signals, reactions or popularity, and do not
@@ -93,17 +89,14 @@ steps:
       draft: "{{steps.draft.output}}"
       sources: "{{steps.unique.output}}"
       language: uk
-      fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]'
       introLinks: '["{{env.QF_PODCAST_VIDEO_URL}}"]'
       requiredIntroPrefix: "Цікаві тези із ["
       citation: timestamps
       forbidLocalLinks: "true"
-      requiredPrefix: "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**\n\n"
       requiredHeadings: '["## Короткі інформаційні сигнали","## Notable / impactful / important news"]'
-      requiredEnvPatterns: '{"QF_DIGEST_DATE":"(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])"}'
   - id: approval
     kind: approval-gate
     config:
       reviewer: human
       bind: sha256
-      anchor: "Approve the exact Ukrainian digest text, its fixed header and date, both sections, its speaker attribution and timestamps, and that it is not delivered or published by this run"
+      anchor: "Approve the exact Ukrainian summary text, its introduction, both sections, its speaker attribution and timestamps, and that it is not delivered or published by this run"
