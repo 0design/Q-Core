@@ -55,8 +55,8 @@ the machine.
 
 | Surface | State |
 | --- | --- |
-| This Core `0.2.0-q-core.34` | Pinned by Registry `2026.09.26-registry.20` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
-| Registry workflows | `digest` 0.4.0 (ten public AI feeds by default, meaning clusters across sources, one trend and 2-3 cases with every thesis linked, a fixed header checked before approval, HTTP or local-file delivery), `podcast-summary` 0.1.0 (one transcript, no channel header; replaces `podcast-digest`) and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
+| This Core `0.2.0-q-core.35` | Pinned by Registry `2026.09.27-registry.21` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
+| Registry workflows | `digest` 0.4.1 (ten public AI feeds by default, meaning clusters across sources ranked by independent outlets, one trend and 2-3 concise cases with every thesis linked, a fixed header checked before approval, HTTP or local-file delivery), `podcast-summary` 0.1.0 (one transcript, no channel header; replaces `podcast-digest`) and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 
@@ -275,6 +275,25 @@ exports aindf-check (ds-readiness/UI composition) and unslop with hard/soft spli
 versioned findings, explicit coverage and optional recipe transport. `loadAindf`
 and `loadUnslop` load checksum-pinned upstream installations. Missing DS, stale
 evidence, unknown rules and missing browser evidence cannot pass.
+
+## Human gates: only a person approves
+
+A workflow with a `reviewer: human` gate (for example `sdd-pipeline` and `digest`)
+stops as `waiting_human` and prints the command for a person. The person runs it in
+their own terminal; Q-Core shows the subject and a one-time code on that terminal and
+continues only when the code is typed back:
+
+```sh
+./.qfactory/tools/node_modules/.bin/q-core approve /abs/workflow.yaml RUN_ID --approval-hash HASH
+```
+
+An agent never runs this command. Without a terminal, inside an agent session
+(`CLAUDECODE`, `AI_AGENT`, `CODEX_SANDBOX`, ...) or with piped input it refuses with
+`HUMAN_CONFIRMATION_REQUIRED`, exits 2 and the run keeps waiting. Agents read
+`nextAction` (`ask_human_to_approve`, `humanOnly: true`) from the JSON result of
+`q-core run`, `reply`, `clarify` or `resume` that parked the run, show
+the subject, ask the user to run the command and wait. Details and limits:
+SPEC-MANIFEST.md, `reviewer: human`.
 
 ## Legacy YAML commands
 

@@ -18,6 +18,7 @@
  * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a workflow
  * that ends in `api-request` is a complete workflow.
  */
+import { agentSessionMarker } from './human-confirmation.mjs';
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination, llmCallPolicy } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
@@ -827,16 +828,36 @@ function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
   }
 }
 
-/** Continue a run that is parked at a human gate. */
-export async function resumeRun(run, { decision, approvalHash, ...opts }) {
-  insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
+/** The human gate a run is parked at; checks a bound approval hash before anyone is asked. */
+export function waitingGate(run, approvalHash) {
   const gate = run.steps.find((s) => s.status === "waiting_human");
   if (!gate) throw new Error(`Run ${run.runId} is not waiting on anyone (status: ${run.status}).`);
   if (gate.config.bind === 'sha256') {
     const subject = run.steps.filter(s => s.seq < gate.seq && s.status === 'success' && s.output != null).at(-1)?.output ?? null;
     insist(approvalHash === gate.output.approvalHash && hash(subject) === approvalHash && hash(gate.output.subject) === approvalHash, 'Approval does not match the current exact subject', 'STALE_APPROVAL');
   }
+  return gate;
+}
+
+/**
+ * Continue a run that is parked at a human gate.
+ *
+ * `confirmation` is the record of how a person made this decision. The CLI
+ * (`q-core approve`) passes the record of a one-time code typed at the terminal
+ * (src/human-confirmation.mjs); an embedding host passes its own record
+ * ({ channel, ... }) and is responsible for having asked a person. There is no
+ * default: a caller that has no human decision cannot continue the gate. Inside an
+ * agent session no record is accepted (q-core approve has already refused there).
+ */
+export async function resumeRun(run, { decision, approvalHash, confirmation, ...opts }) {
+  insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
+  insist(confirmation && typeof confirmation.channel === 'string' && confirmation.channel.trim() && (confirmation.decision ?? decision) === decision,
+    'A human gate continues only with a human confirmation record (q-core approve asks at the terminal)', 'HUMAN_CONFIRMATION_REQUIRED');
+  const marker = agentSessionMarker(process.env);
+  insist(!marker, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal`, 'HUMAN_CONFIRMATION_REQUIRED');
+  const gate = waitingGate(run, approvalHash);
   gate.decision = decision;
+  gate.confirmation = { channel: confirmation.channel, confirmedAt: confirmation.confirmedAt ?? new Date().toISOString() };
   if (decision === "reject") {
     gate.status = "failed";
     gate.errorText = "Rejected at the gate by a human.";

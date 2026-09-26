@@ -9,6 +9,9 @@ import { tmpdir } from 'node:os';
 import { loadManifest, validateManifest } from '../src/manifest.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
 import { runParseWeb, runDeduplicate, runVerifySources } from '../src/registry-data-steps.mjs';
+import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
+// These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it (Core35).
+for (const name of AGENT_SESSION_ENV) delete process.env[name];
 
 const HEADER = date => `**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋${date}**`;
 const rss = items => `<?xml version="1.0"?><rss><channel><title>Feed</title>${items.map(([title, link, date, summary]) => `<item><title>${title}</title><link>${link}</link><pubDate>${date}</pubDate><description><![CDATA[${summary}]]></description></item>`).join('')}</channel></rss>`;
@@ -229,7 +232,7 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.equal(manifest.version, '0.4.0');
+  assert.ok(['0.4.0', '0.4.1'].includes(manifest.version));
   // Offline: the key comes from the test, not the Keychain; everything else is the shipped manifest.
   for (const step of manifest.steps) if (step.kind === 'llm-call') { assert.equal(step.config.secretSource, 'keychain'); step.config.secretSource = 'env'; }
   const feeds = manifest.steps.filter(s => s.kind === 'fetch');
@@ -261,15 +264,15 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
     assert.equal(step('checks').output.text, DIGEST.trim());
     assert.ok(step('cluster').costUsd > 0 && step('draft').costUsd > 0);
     const approvalHash = step('approval').output.approvalHash;
-    await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', approvalHash: '0'.repeat(64) }), /Approval/);
-    await resumeRun(run, { ...opts, decision: 'approve', approvalHash });
+    await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: '0'.repeat(64) }), /Approval/);
+    await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash });
     assert.equal(run.status, 'success', run.summary);
     const lines = readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n');
     assert.equal(lines.length, 1);
     assert.match(lines[0], /Штучно-інтелектуальний дайджест/);
     const repeat = createRun(manifest);
     await driveRun(repeat, opts);
-    await resumeRun(repeat, { ...opts, decision: 'approve', approvalHash: repeat.steps.find(s => s.stepId === 'approval').output.approvalHash });
+    await resumeRun(repeat, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: repeat.steps.find(s => s.stepId === 'approval').output.approvalHash });
     assert.equal(repeat.status, 'success');
     assert.equal(repeat.steps.at(-1).output.duplicatePrevented, true);
     assert.equal(readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n').length, 1);

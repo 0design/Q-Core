@@ -5,6 +5,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadManifest } from '../src/manifest.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
+import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
+// These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it (Core35).
+for (const name of AGENT_SESSION_ENV) delete process.env[name];
 const callerProvider = { kind: 'caller', agent: 'codex', model: 'test-double', payerScope: 'local-cli' };
 const spec = { summary: 'Return sum', criteria: ['sum(2,3) equals 5'], plan: ['Update sum.mjs', 'Run independent verifier'] };
 
@@ -26,7 +29,7 @@ test('Registry SDD manifest preserves spec approval, repairs a real failed file 
     await answer(run, spec); assert.equal(run.status, 'waiting_human');
     return run;
   }
-  async function approve(run) { const gate = run.steps.find(s => s.status === 'waiting_human'); await resumeRun(run, { ...opts, decision: 'approve', approvalHash: gate.output.approvalHash }); }
+  async function approve(run) { const gate = run.steps.find(s => s.status === 'waiting_human'); await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: gate.output.approvalHash }); }
   try {
     const run = await start();
     await approve(run);
@@ -68,7 +71,7 @@ test('failed verification reaches needs_human at zero repair bound and a direct 
     assert.equal(run.status, 'waiting_human');
     assert.equal(readFileSync(join(root, 'value.txt'), 'utf8'), 'original');
     const approvalHash = run.steps.find(s => s.status === 'waiting_human').output.approvalHash;
-    await resumeRun(run, { ...opts, decision: 'approve', approvalHash });
+    await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash });
     await answer({ files: [{ path: 'value.txt', content: 'changed' }] });
     assert.equal(run.status, 'needs_human');
     assert.equal(run.repairHistory.length, 1);

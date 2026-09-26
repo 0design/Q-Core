@@ -88,6 +88,9 @@ export declare const MAX_EXPANDED_RUN_ROWS: number;
 export declare function resolveKnobs(settings?: WorkflowManifestSettings): Knobs;
 export declare function createRun(manifest: WorkflowManifest, opts?: { trigger?: string }): Run;
 export declare function driveRun(run: Run, opts?: DriveOptions): Promise<Run>;
-export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject"; approvalHash?: string }): Promise<Run>;
+/** A record of how a person made the decision; q-core approve records "tty-code". */
+export interface HumanConfirmation { channel: string; decision?: "approve" | "reject"; confirmedAt?: string }
+export declare function waitingGate(run: Run, approvalHash?: string): RunStep;
+export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject"; approvalHash?: string; confirmation: HumanConfirmation }): Promise<Run>;
 export declare function cancelWaitingRun(run: Run, opts?: DriveOptions): Run;
 export declare function resumeCancelledRun(run: Run, opts?: DriveOptions): Promise<Run>;

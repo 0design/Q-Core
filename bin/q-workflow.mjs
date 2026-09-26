@@ -12,7 +12,7 @@
   q-core clarify <manifest> <runId> <answers.json> --json
                                     submit exact answers to a paused SDD clarification
   q-core status [<manifest>]          what the last runs did
- *   q-core approve <manifest> [runId]   continue a run parked at a human gate
+ *   q-core approve <manifest> [runId]   a person continues a run parked at a human gate (terminal code)
  *
  * `q-core run` performs ONE PASS. It is not a scheduler and does not pretend to be
  * one: repetition is launchd or cron, on the user's machine, where they can see
@@ -28,7 +28,8 @@ import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadManifest, validateManifest, ManifestError } from "../src/manifest.mjs";
-import { createRun, driveRun, resumeRun, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
+import { createRun, driveRun, resumeRun, waitingGate, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
+import { confirmHumanDecision, HumanConfirmationError } from "../src/human-confirmation.mjs";
 import { RunStore } from "../src/state.mjs";
 import { flattenWorkflowSteps } from "../src/flatten.mjs";
 import { checkForUpdate, updateNotice } from "../src/update-check.mjs";
@@ -62,8 +63,9 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
   q-core clarify <manifest> <runId> <answers.json> --json
                                     submit exact answers to a paused SDD clarification
   q-core status [<manifest>]         show recent runs
-  q-core approve <manifest> [runId]  continue a run held at a human gate
-                                    (--reject to refuse it)
+  q-core approve <manifest> [runId]  a person continues a run held at a human gate
+                                    (--reject to refuse it); asks for a one-time
+                                    code on the terminal, refuses without one
   q-core doctor                      check this machine before blaming the workflow
 
 Installed as q-core. There is no qf alias — that name belongs to @q-factory/bridge.
@@ -188,7 +190,7 @@ function describePlan(manifest) {
   lines.push("");
   lines.push(
     hasHumanGate
-      ? `  ${c.dim("this workflow stops for a human — `q-core approve` continues it")}`
+      ? `  ${c.dim("this workflow stops for a human — only a person continues it with `q-core approve` in their own terminal")}`
       : `  ${c.dim("no human gate — this workflow runs to the end on its own")}`,
   );
   return lines.join("\n");
@@ -299,7 +301,7 @@ async function cmdRun(args, flags, opts) {
   if (!dryRun) store.saveLastRun(result);
 
   if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(withHumanAction(file, result), null, 2)}\n`);
   } else if (!quiet) {
     process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
     if (result.costUsd) process.stdout.write(`  cost $${Number(result.costUsd).toFixed(4)} · ${result.tokensIn}+${result.tokensOut} tokens\n`);
@@ -307,7 +309,7 @@ async function cmdRun(args, flags, opts) {
     if (result.status === 'waiting_inference') process.stdout.write(`\n  Continue with: q-core reply ${file} ${result.runId} <reply.json>\n`);
     if (result.status === "waiting_human") {
       if (result.pendingClarification) process.stdout.write(`\n  Continue with: q-core clarify ${file} ${result.runId} <answers.json>\n`);
-      else process.stdout.write(`\n  Continue with:  q-core approve ${file} ${result.runId}\n`);
+      else process.stdout.write(`\n  Waiting for a person. Only a person can decide this gate, in their own terminal:\n    ${humanNextAction(file, result)?.command}\n  (it asks for a one-time code there; an agent must not run it)\n`);
     }
   }
 
@@ -330,7 +332,7 @@ async function cmdReply(args) {
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
   store.saveLastRun(result);
-  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -342,7 +344,7 @@ async function cmdClarify(args) {
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, clarification: readBoundedJson(answersFile) });
   store.saveLastRun(result);
-  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -353,7 +355,7 @@ async function cmdPaused(args, action) {
   if (!run) fail('Unknown run');
   const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
   const result = action === 'cancel' ? cancelWaitingRun(run, opts) : await resumeCancelledRun(run, opts);
-  store.saveLastRun(result); process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  store.saveLastRun(result); process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'cancelled' ? 130 : result.status === 'success' ? 0 : 2;
 }
 
@@ -367,7 +369,7 @@ async function cmdStatus(args, flags) {
   const runs = store.listRuns(10);
 
   if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify({ last, runs }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ last, runs, ...(last?.status === "waiting_human" && last.runId ? { nextAction: humanNextAction(file, store.load(last.runId) ?? last) } : {}) }, null, 2)}\n`);
     return last?.status === "success" || last == null ? EXIT_OK : last?.status === "cancelled" ? 130 : EXIT_FAILED;
   }
 
@@ -380,7 +382,7 @@ async function cmdStatus(args, flags) {
     const mark = { success: "✓", failed: "✗", cancelled: "■", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
     const when = String(r.startedAt).replace("T", " ").slice(0, 19);
     process.stdout.write(`  ${mark} ${when}  ${r.status.padEnd(14)} ${r.summary ?? ""}\n`);
-    if (r.status === "waiting_human") process.stdout.write(c.dim(`      q-core approve ${file} ${r.runId}\n`));
+    if (r.status === "waiting_human") process.stdout.write(c.dim(`      a person runs in their own terminal: q-core approve ${file} ${r.runId}\n`));
   }
   if (last?.status === "failed") {
     process.stdout.write(`\n  ${c.bold("last run FAILED")}: ${last.reason ?? last.summary}\n`);
@@ -399,9 +401,43 @@ function findManifestNearby() {
 
 /* ── approve ────────────────────────────────────────────────────────────── */
 
+/** The exact command a person runs in their own terminal to decide this gate. */
+const shellWord = (s) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(s) ? s : `'${String(s).replace(/'/g, "'\\''")}'`);
+function humanApproveCommand(file, run, gate) {
+  const bin = process.argv[1] && process.argv[1].startsWith("/") ? process.argv[1] : "q-core";
+  const hashArg = gate?.config?.bind === "sha256" && gate.output?.approvalHash ? ` --approval-hash ${gate.output.approvalHash}` : "";
+  return `${shellWord(bin)} approve ${shellWord(resolve(file))} ${run.runId}${hashArg}`;
+}
+
+/** What an agent reads when a run waits on a person: never run the command itself. */
+function humanNextAction(file, run) {
+  const gate = run.steps?.find((s) => s.status === "waiting_human");
+  if (!gate || run.pendingClarification) return null;
+  return {
+    type: "ask_human_to_approve",
+    humanOnly: true,
+    command: humanApproveCommand(file, run, gate),
+    approvalHash: gate.output?.approvalHash ?? null,
+    instruction: "Only a person can decide this gate. Show the user the exact subject, then ask them to run this command in their own terminal (it asks for a one-time code there). Do not run it yourself, from a script, or through a pseudo-terminal; wait for the user to say it is done, then check q-core status.",
+  };
+}
+
+/** A run printed as JSON carries nextAction when it waits on a person, whichever command parked it. */
+function withHumanAction(file, run) {
+  const nextAction = run?.status === "waiting_human" ? humanNextAction(file, run) : null;
+  return nextAction ? { ...run, nextAction } : run;
+}
+
+function subjectPreview(subject) {
+  if (subject == null) return [];
+  const text = typeof subject === "string" ? subject : JSON.stringify(subject, null, 2);
+  const lines = text.split("\n");
+  return [...lines.slice(0, 40), ...(lines.length > 40 ? [`… ${lines.length - 40} more line(s); see the run state file`] : [])];
+}
+
 async function cmdApprove(args, flags, opts) {
   const file = args[0];
-  if (!file) fail("q-core approve <manifest> [runId] [--reject]", EXIT_USAGE);
+  if (!file) fail("q-core approve <manifest> [runId] [--approval-hash <sha256>] [--reject]", EXIT_USAGE);
   const store = new RunStore(file);
   const runId = args[1] ?? store.listRuns(50).find((r) => r.status === "waiting_human")?.runId;
   if (!runId) fail("no run is waiting on a human here.");
@@ -410,9 +446,37 @@ async function cmdApprove(args, flags, opts) {
 
   const manifest = loadManifest(file);
   const decision = flags.has("reject") ? "reject" : "approve";
+  const gate = waitingGate(run, opts['approval-hash']);
+  let confirmation;
+  try {
+    confirmation = confirmHumanDecision({
+      decision,
+      lines: [
+        `workflow ${manifest.id} ${manifest.version} · run ${run.runId}`,
+        `gate "${gate.name ?? gate.stepId}": ${gate.output?.gate?.anchor ?? "human decision"}`,
+        ...(gate.output?.approvalHash ? [`approval hash ${gate.output.approvalHash}`] : []),
+        "subject:",
+        ...subjectPreview(gate.output?.subject).map((l) => `  ${l}`),
+      ],
+    });
+  } catch (e) {
+    if (!(e instanceof HumanConfirmationError)) throw e;
+    const command = humanApproveCommand(file, run, gate) + (decision === "reject" ? " --reject" : "");
+    if (flags.has("json"))
+      process.stdout.write(JSON.stringify({ runId: run.runId, status: run.status, error: { code: e.code, reason: e.reason, message: e.message }, nextAction: { ...humanNextAction(file, run), command } }, null, 2) + "\n");
+    fail(
+      `HUMAN_CONFIRMATION_REQUIRED: ${e.message}\n` +
+        `q-core approve takes a decision only from a person typing a one-time code at their own terminal.\n` +
+        `The run is still waiting; nothing changed.\n` +
+        `Agents: do not retry or work around this. Show the user the exact subject and ask them to run, in their own terminal:\n` +
+        `  ${command}`,
+      EXIT_WAITING,
+    );
+  }
   const result = await resumeRun(run, {
     decision,
     approvalHash: opts['approval-hash'],
+    confirmation,
     store,
     knobs: run.executionKnobs ?? resolveKnobs(manifest.settings),
     callerProvider: run.callerProvider,
@@ -420,7 +484,7 @@ async function cmdApprove(args, flags, opts) {
     onStep: (s) => printStep(s, flags.has("quiet") || flags.has("json")),
   });
   store.saveLastRun(result);
-  if (flags.has('json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  if (flags.has('json')) process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   else process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
   return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
