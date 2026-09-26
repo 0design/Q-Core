@@ -1,8 +1,8 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: many sources to one approved Ukrainian trend digest"
-version: 0.4.2
-description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header: one overall trend (2-4 sentences) and 2-3 cases, every thesis linked to its sources. Checks citations and format, stops at an exact human approval, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
+version: 0.5.0
+description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments), every item linked to its sources. Checks citations and the list shape, stops at an exact human approval, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
 triggers:
@@ -130,7 +130,7 @@ steps:
       retries: 1
       timeoutSec: 180
       format: text
-      # No numeric case length (0.4.1): a Ukrainian draft with three linked cases needs more than 2000 tokens
+      # No numeric length per item: a Ukrainian draft with linked themes and cases needs more than 2000 tokens
       # (live run on Registry21, 26.09 window: 2102), so the output bound leaves room instead of truncating.
       maxTokens: 4000
       temperature: 0.3
@@ -144,23 +144,25 @@ steps:
         Keep the header exactly as written: no space before "і", and the date is
         plain text, never a link. Those two header links are the only links that
         are not source citations.
-        Then return exactly two level-two sections, in this order:
-        ## Загальна картина
-        ## Кейси
-        "Загальна картина": one paragraph of 2 to 4 sentences that names the
-        common pattern or trend several clusters show together, drawing also on
-        clusters that are not cases. Generalise; do not retell the cases one by
-        one or repeat their details. Every sentence links the sources it relies on. Call a pattern a
-        trend only when the clusters support it; do not call a customer, court
-        or company a regulator.
+        Then write only a nested Markdown bullet list: no section titles, no
+        headings and no labels such as "Загальна картина" or "Кейси"; readers see
+        the structure. Use "- " bullets, two spaces of indentation per level, at
+        most three levels, every item on one line:
+        - Level 1: a large theme. In 1 to 3 sentences generalise what the
+          sources say together, the pattern or trend, with its sources inline.
+          Order themes by weight: the clusters are ranked by independent
+          outlets, so a theme built on the higher-ranked clusters comes first.
+          - Level 2: a subtopic or case inside that theme: what happened and why
+            it matters to people who build with AI, thesis style.
+            - Level 3 (only when useful): a comment on that case or its
+              continuation.
+        A theme may have no sub-items. Small but relevant topics can be their
+        own level-1 items after the big themes. Do not repeat a point at two
+        levels, and never merge two unrelated clusters into one item.
+        Every item, at every level, links at least one source it relies on.
+        Call a pattern a trend only when the clusters support it; do not call a
+        customer, court or company a regulator.
         Avoid abbreviations with dots (write "тощо", not "т.д.").
-        "Кейси": a bulleted list of 2 or 3 items, exactly one cluster per item
-        (never combine two clusters in one item), thesis style: a short bold
-        label, then a concise statement of what happened and why it matters to
-        people who build with AI, without filler. Each item links every
-        source of its cluster. No two items say the same thing, and an item
-        does not repeat the overview. Write every paragraph and every list item
-        on one line.
         Cite as inline Markdown links with the outlet name as the link text,
         for example [The Verge](url). Use only urls from the input, copied exactly.
         Describe only what the item text supports; the articles themselves
@@ -184,17 +186,14 @@ steps:
       forbidLocalLinks: "true"
       fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]'
       requiredPrefix: "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**\n\n"
-      requiredHeadings: '["## Загальна картина","## Кейси"]'
-      sectionSentences: '{"## Загальна картина":"2..4"}'
-      sectionItems: '{"## Кейси":"2..3"}'
-      oneClusterPerItem: '["## Кейси"]'
+      nestedList: "3"
       requiredEnvPatterns: '{"QF_DIGEST_DATE":"(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])"}'
   - id: approval
     kind: approval-gate
     config:
       reviewer: human
       bind: sha256
-      anchor: "Approve the exact Ukrainian digest text, its fixed header and date, the overall trend, the 2-3 cases and their cited sources"
+      anchor: "Approve the exact Ukrainian digest text, its fixed header and date, the themes, cases and comments and their cited sources"
   - id: delivery
     kind: api-request
     config:

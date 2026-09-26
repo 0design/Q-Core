@@ -457,6 +457,12 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   item to one cluster and each cluster to one item. Links inside inline code or HTML
   comments do not count as citations. `introLinks`
   no longer need `requiredPrefix` (the introduction then starts the draft).
+- (Core 36) `verify-sources` `nestedList: "N"` (N = 1..6) replaces the section contract
+  (`requiredHeadings`, `introLinks` and the section shape checks may not be set with it):
+  after `requiredPrefix` the draft is only a nested bullet list (`-`, `*` or `+`), one
+  line per item, indented by a consistent 2-4 spaces per level, never skipping a level,
+  at most N levels deep. A heading, a section label, a paragraph or a numbered item is
+  refused. With `citation: links` every item at every level links a selected source.
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

@@ -157,6 +157,7 @@ export function runVerifySources(step, ctx) {
   const fixedLinks = stringList(step, 'fixedLinks', ctx);
   insist(fixedLinks.every(url => /^https?:\/\//.test(url)), 'fixedLinks must be a JSON array of HTTP(S) URLs');
   const requiredHeadings = stringList(step, 'requiredHeadings', ctx);
+  insist(step.config.nestedList == null || requiredHeadings.length === 0, 'nestedList replaces requiredHeadings, introLinks and the section shape checks');
   // introLinks: URLs allowed only once each, as an inline Markdown link inside the introduction sentence
   // (between requiredPrefix and the first required section), never as a standalone link line.
   const introLinks = stringList(step, 'introLinks', ctx);
@@ -214,7 +215,7 @@ export function runVerifySources(step, ctx) {
   const links = [...linkTargets, ...[...bare.matchAll(/https?:\/\/[^\s<>"\]]+/g)].map(m => m[0].replace(/[).,;]+$/, ''))];
   // With a format contract, every other way to write a link is refused too: an uppercase scheme, a Markdown or
   // reference link target that is not a plain http(s) URL, a scheme-less www. address, or a raw HTML link.
-  if (fixedLinks.length > 0 || introLinks.length > 0 || requiredPrefix !== null || requiredHeadings.length > 0) {
+  if (fixedLinks.length > 0 || introLinks.length > 0 || requiredPrefix !== null || requiredHeadings.length > 0 || step.config.nestedList != null) {
     const rest = bare.replace(/https?:\/\/[^\s<>"\]]+/g, ' ');
     insist(!/[a-z][a-z0-9+.-]*:\/\//i.test(rest), 'Draft includes an unverified URL or no source links');
     insist(!/\]\(\s*<?[^)\s]/.test(rest) && !/^ {0,3}\[[^\]]+\]:\s*\S/m.test(rest), 'Draft includes an unverified URL or no source links');
@@ -322,8 +323,33 @@ export function runVerifySources(step, ctx) {
     insist(oneClusterPerItem.every(h => requiredHeadings.includes(h)), 'oneClusterPerItem may only name headings from requiredHeadings');
     insist(sources.every(source => Number.isInteger(source.cluster)), 'oneClusterPerItem requires sources from deduplicate clusters');
   }
-  const shaped = linkCitations || sectionItems || sectionSentences || itemMaxWords || oneClusterPerItem;
-  if (shaped) insist(requiredHeadings.length > 0, 'citation: links, sectionItems, sectionSentences, itemMaxWords and oneClusterPerItem require requiredHeadings');
+  // nestedList: "N" — after requiredPrefix the draft is only a nested bullet list of at most N levels (no headings,
+  // section labels or paragraphs; readers see the structure). Each item is one line; with citation: links every item,
+  // at any level, links a selected source.
+  let nestedItems = null;
+  if (step.config.nestedList != null) {
+    const maxDepth = Number(step.config.nestedList);
+    insist(/^[1-6]$/.test(String(step.config.nestedList)), 'nestedList must be the maximum list depth, 1..6');
+    insist(requiredHeadings.length === 0 && introLinks.length === 0 && !sectionItems && !sectionSentences && !itemMaxWords && !oneClusterPerItem, 'nestedList replaces requiredHeadings, introLinks and the section shape checks');
+    const body = requiredPrefix === null ? text : text.slice(requiredPrefix.length);
+    const lines = body.split(/\r?\n/).filter(line => line.trim() !== '');
+    insist(lines.length > 0, 'The draft has no list after the header');
+    let unit = null, previous = 0;
+    nestedItems = lines.map(line => {
+      const m = line.match(/^( *)[-*+] +(\S.*)$/);
+      insist(m && !/^\s*(?:[-*+] +)+#{1,6}(?:\s|$)/.test(line), `The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): ${line.slice(0, 60)}`);
+      const indent = m[1].length;
+      if (indent > 0 && unit === null) unit = indent;
+      insist(indent === 0 || (unit >= 2 && unit <= 4 && indent % unit === 0), `List indentation must be a consistent 2-4 spaces per level: ${line.slice(0, 60)}`);
+      const depth = indent === 0 ? 1 : indent / unit + 1;
+      insist(depth <= previous + 1, `A list item skips a level: ${line.slice(0, 60)}`);
+      insist(depth <= maxDepth, `The list is deeper than ${maxDepth} levels: ${line.slice(0, 60)}`);
+      previous = depth;
+      return { depth, text: m[2] };
+    });
+  }
+  const shaped = (linkCitations && !nestedItems) || sectionItems || sectionSentences || itemMaxWords || oneClusterPerItem;
+  if (shaped) insist(requiredHeadings.length > 0, 'citation: links, sectionItems, sectionSentences, itemMaxWords and oneClusterPerItem require requiredHeadings (or nestedList for citation: links)');
   const theses = shaped ? sectionTheses() : [];
   // Selected-source URLs a piece of text cites, as a Markdown link target or a bare URL. Inline code and HTML comments
   // are not links a reader can open, so they are removed first.
@@ -377,7 +403,7 @@ export function runVerifySources(step, ctx) {
     const cites = piece => citedUrls(piece).length > 0;
     // A list item is one thesis; in prose every sentence is one (a sentence may lean on the link that closes the next
     // one only if it has none itself — that is refused, so each claim carries its own source).
-    const pieces = theses.flatMap(section => section.items.flatMap(item => /^(?:[-*+]|\d+[.)])\s/.test(item) ? [item] : sentencesOf(item)));
+    const pieces = nestedItems ? nestedItems.map(item => item.text) : theses.flatMap(section => section.items.flatMap(item => /^(?:[-*+]|\d+[.)])\s/.test(item) ? [item] : sentencesOf(item)));
     const uncited = pieces.filter(piece => !cites(piece));
     insist(uncited.length === 0, `Every thesis needs a link to a selected source; uncited: ${uncited[0]?.slice(0, 60)}`);
   }
@@ -405,5 +431,5 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }
