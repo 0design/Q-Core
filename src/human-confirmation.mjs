@@ -15,9 +15,10 @@
  * - Stops an agent that runs `q-core approve` itself, directly or from its own
  *   script (no terminal, agent environment), and a blind `yes |` or piped answer
  *   (the code is random per call and is read only from the terminal).
- * - It is not an identity service. A process of the same OS user that deliberately
- *   removes the agent markers AND drives a pseudo-terminal can still answer; the
- *   instructions forbid that and it leaves a trace. Run state on disk is not signed.
+ * - It is not an identity service. A process of the same OS user can still get
+ *   around it deliberately: remove the markers and drive a pseudo-terminal, import
+ *   the library and call resumeRun with a forged record outside an agent session,
+ *   or edit the unsigned run state on disk. The instructions forbid all of these.
  * - POSIX terminals only (macOS, Linux). There is no Windows console path yet.
  */
 import { openSync, closeSync, readSync, writeSync } from "node:fs";
@@ -27,6 +28,7 @@ import { randomInt } from "node:crypto";
 export const AGENT_SESSION_ENV = Object.freeze([
   "CLAUDECODE",
   "CLAUDE_CODE_ENTRYPOINT",
+  "CLAUDE_CODE_SESSION_ID",
   "AI_AGENT",
   "CODEX_SANDBOX",
   "CODEX_SANDBOX_NETWORK_DISABLED",

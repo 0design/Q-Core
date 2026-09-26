@@ -10,6 +10,8 @@ import { createRun, driveRun, resumeRun, RunStore } from "../src/run.mjs";
 import { loadManifest } from "../src/manifest.mjs";
 
 const cli = resolve("bin/q-core.mjs");
+const agentEnvOfThisProcess = Object.fromEntries(AGENT_SESSION_ENV.filter((n) => process.env[n] != null).map((n) => [n, process.env[n]]));
+for (const name of AGENT_SESSION_ENV) delete process.env[name];
 const cleanEnv = () => {
   const env = { ...process.env, QF_NO_UPDATE_CHECK: "1" };
   for (const name of AGENT_SESSION_ENV) delete env[name];
@@ -205,4 +207,86 @@ test("Digest 0.4.1 has no numeric length limit for a case, in the prompt or in t
   assert.doesNotMatch(cases, /\d+\s+words|at most two|sentences? and \d+/);
   assert.match(cases, /thesis style/);
   assert.match(cases, /2 or 3 items/);
+});
+
+test("the one-time code never reaches this process's stdout or stderr", () => {
+  const out = [], err = [];
+  const [w1, w2] = [process.stdout.write, process.stderr.write];
+  process.stdout.write = (c, ...a) => { out.push(String(c)); return true; };
+  process.stderr.write = (c, ...a) => { err.push(String(c)); return true; };
+  const term = fakeTerminal("QZ7K2M");
+  try {
+    confirmHumanDecision({ decision: "approve", lines: ["run r1"] }, { ...tty, code: "QZ7K2M", openTerminal: term.open });
+    assert.throws(() => confirmHumanDecision({ decision: "approve" }, { ...tty, code: "QZ7K2M", openTerminal: fakeTerminal("no").open }));
+  } finally { process.stdout.write = w1; process.stderr.write = w2; }
+  assert.match(term.written.join(""), /QZ7K2M/);
+  assert.doesNotMatch(out.join("") + err.join(""), /QZ7K2M/);
+});
+
+test("resumeRun inside an agent session accepts no host record, only the terminal record", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "core35-agent-lib-"));
+  try {
+    const file = join(dir, "gate.yaml");
+    writeFileSync(file, GATE);
+    const store = new RunStore(file);
+    const run = await driveRun(createRun(loadManifest(file), { trigger: "manual" }), { store });
+    const approvalHash = run.steps[0].output.approvalHash;
+    process.env.CLAUDECODE = "1";
+    try {
+      await assert.rejects(resumeRun(run, { decision: "approve", approvalHash, confirmation: { channel: "embedding-host" }, store }), (e) => e.code === "HUMAN_CONFIRMATION_REQUIRED" && /CLAUDECODE/.test(e.message));
+    } finally { delete process.env.CLAUDECODE; }
+    assert.equal(store.load(run.runId).status, "waiting_human");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("reply that parks the run at the human gate returns nextAction for the person; paths with spaces are quoted", () => {
+  const dir = mkdtempSync(join(tmpdir(), "core35 reply "));
+  try {
+    const file = join(dir, "spec gate.yaml");
+    writeFileSync(file, `manifest: q-core.workflow/v1
+id: reply-then-gate
+name: Reply then gate
+version: 1.0.0
+enabled: true
+settings:
+  budgetUsd: null
+steps:
+  - id: brief
+    kind: llm-call
+    config:
+      provider: cli
+      format: text
+      instructions: "Say hello."
+  - id: gate
+    kind: approval-gate
+    config:
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the brief"
+`);
+    const provider = join(dir, "provider.json");
+    writeFileSync(provider, JSON.stringify({ kind: "caller", agent: "claude", model: "current-session", payerScope: "local-cli" }));
+    const started = spawnSync(process.execPath, [cli, "run", file, "--caller-provider", provider, "--json"], { cwd: dir, encoding: "utf8", env: cleanEnv() });
+    assert.equal(started.status, 2, started.stderr);
+    const waiting = JSON.parse(started.stdout);
+    assert.equal(waiting.status, "waiting_inference");
+    assert.equal(waiting.nextAction, undefined);
+    const replyFile = join(dir, "reply.json");
+    writeFileSync(replyFile, JSON.stringify({ jobId: waiting.pendingInference.jobId, hash: waiting.pendingInference.hash, output: { text: "hello" } }));
+    const replied = spawnSync(process.execPath, [cli, "reply", file, waiting.runId, replyFile, "--json"], { cwd: dir, encoding: "utf8", env: cleanEnv() });
+    assert.equal(replied.status, 2, replied.stderr);
+    const parked = JSON.parse(replied.stdout);
+    assert.equal(parked.status, "waiting_human");
+    assert.equal(parked.nextAction.type, "ask_human_to_approve");
+    assert.ok(parked.nextAction.command.includes(`'${file}'`), parked.nextAction.command);
+    const status = JSON.parse(spawnSync(process.execPath, [cli, "status", file, "--json"], { cwd: dir, encoding: "utf8", env: cleanEnv() }).stdout);
+    assert.equal(status.nextAction.command, parked.nextAction.command);
+    const refused = spawnSync(process.execPath, [cli, "approve", file, parked.runId, "--approval-hash", parked.nextAction.approvalHash], { cwd: dir, encoding: "utf8", env: { ...cleanEnv(), ...agentEnvOfThisProcess, CLAUDECODE: "1" } });
+    assert.equal(refused.status, 2);
+    assert.ok(refused.stderr.includes(parked.nextAction.command));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

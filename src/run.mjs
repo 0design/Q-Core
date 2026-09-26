@@ -18,6 +18,7 @@
  * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a workflow
  * that ends in `api-request` is a complete workflow.
  */
+import { agentSessionMarker } from './human-confirmation.mjs';
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination, llmCallPolicy } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
@@ -845,12 +846,15 @@ export function waitingGate(run, approvalHash) {
  * (`q-core approve`) passes the record of a one-time code typed at the terminal
  * (src/human-confirmation.mjs); an embedding host passes its own record
  * ({ channel, ... }) and is responsible for having asked a person. There is no
- * default: a caller that has no human decision cannot continue the gate.
+ * default: a caller that has no human decision cannot continue the gate. Inside an
+ * agent session only the terminal record (tty-code) is accepted.
  */
 export async function resumeRun(run, { decision, approvalHash, confirmation, ...opts }) {
   insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
   insist(confirmation && typeof confirmation.channel === 'string' && confirmation.channel.trim() && (confirmation.decision ?? decision) === decision,
     'A human gate continues only with a human confirmation record (q-core approve asks at the terminal)', 'HUMAN_CONFIRMATION_REQUIRED');
+  const marker = confirmation.channel === 'tty-code' ? null : agentSessionMarker(process.env);
+  insist(!marker, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal`, 'HUMAN_CONFIRMATION_REQUIRED');
   const gate = waitingGate(run, approvalHash);
   gate.decision = decision;
   gate.confirmation = { channel: confirmation.channel, confirmedAt: confirmation.confirmedAt ?? new Date().toISOString() };

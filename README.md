@@ -290,7 +290,8 @@ continues only when the code is typed back:
 An agent never runs this command. Without a terminal, inside an agent session
 (`CLAUDECODE`, `AI_AGENT`, `CODEX_SANDBOX`, ...) or with piped input it refuses with
 `HUMAN_CONFIRMATION_REQUIRED`, exits 2 and the run keeps waiting. Agents read
-`nextAction` (`ask_human_to_approve`, `humanOnly: true`) from `q-core run --json`, show
+`nextAction` (`ask_human_to_approve`, `humanOnly: true`) from the JSON result of
+`q-core run`, `reply`, `clarify` or `resume` that parked the run, show
 the subject, ask the user to run the command and wait. Details and limits:
 SPEC-MANIFEST.md, `reviewer: human`.
 

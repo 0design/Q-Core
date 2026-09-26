@@ -9,6 +9,9 @@ import { tmpdir } from 'node:os';
 import { loadManifest, validateManifest } from '../src/manifest.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
 import { runParseWeb, runDeduplicate, runVerifySources } from '../src/registry-data-steps.mjs';
+import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
+// These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it (Core35).
+for (const name of AGENT_SESSION_ENV) delete process.env[name];
 
 const HEADER = date => `**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋${date}**`;
 const rss = items => `<?xml version="1.0"?><rss><channel><title>Feed</title>${items.map(([title, link, date, summary]) => `<item><title>${title}</title><link>${link}</link><pubDate>${date}</pubDate><description><![CDATA[${summary}]]></description></item>`).join('')}</channel></rss>`;

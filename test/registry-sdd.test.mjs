@@ -5,6 +5,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadManifest } from '../src/manifest.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
+import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
+// These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it (Core35).
+for (const name of AGENT_SESSION_ENV) delete process.env[name];
 const callerProvider = { kind: 'caller', agent: 'codex', model: 'test-double', payerScope: 'local-cli' };
 const spec = { summary: 'Return sum', criteria: ['sum(2,3) equals 5'], plan: ['Update sum.mjs', 'Run independent verifier'] };
 

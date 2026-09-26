@@ -245,24 +245,28 @@ engine assumes a run must meet a person.
 asks on the controlling terminal: it prints the subject and a fresh one-time code to
 `/dev/tty` (never to stdout or stderr) and continues only when the same code is typed
 back there. It refuses, exits 2 and leaves the run waiting when
-- an agent-session marker is set (`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `AI_AGENT`,
+- an agent-session marker is set (`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CLAUDE_CODE_SESSION_ID`, `AI_AGENT`,
   `CODEX_SANDBOX`, `CODEX_SANDBOX_NETWORK_DISABLED`, `CODEX_THREAD_ID`, `CURSOR_AGENT`,
   `GEMINI_CLI`, `OPENCODE`);
 - stdin or stdout is not a terminal (a pipe, a file, an agent's command runner);
 - the process has no controlling terminal, or the code does not match.
 
 The refusal names the exact command for the person (`--json` adds `nextAction`
-`ask_human_to_approve`, `humanOnly: true`), and `q-core run --json` returns the same
-`nextAction` when a run parks at a human gate. An agent shows the subject, asks the
+`ask_human_to_approve`, `humanOnly: true`), and every JSON result of a run parked at a
+human gate carries the same `nextAction` (`q-core run`, `reply`, `clarify`, `resume`,
+`approve --json` at a second gate, `status --json`). An agent shows the subject, asks the
 user to run that command in their own terminal and waits; it never runs it itself.
 The library `resumeRun` requires a `confirmation` record (`{channel, ...}`) and stores
-its channel on the gate step; `q-core approve` records `tty-code`. An embedding host
-that passes its own record is responsible for having asked a person.
+its channel on the gate step; `q-core approve` records `tty-code`. Inside an agent
+session `resumeRun` accepts no other channel. An embedding host that passes its own
+record is responsible for having asked a person.
 
 Limits: this stops an agent that runs `q-core approve` itself or from its own script,
 and a blind or piped answer. It is not an identity service: a process of the same OS
-user that deliberately removes the markers and drives a pseudo-terminal can still
-answer, and run state on disk is not signed. POSIX terminals only (macOS, Linux);
+user can still get around it on purpose (remove the markers and drive a
+pseudo-terminal; import the library outside an agent session and pass a forged record
+or a forged `tty-code`; edit the unsigned run state under `.qf/`). Instructions to
+agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
 Windows consoles are refused. The `q-core agent` / `q-core content` JSON protocols keep
 their documented model: `approval` there is an assertion by the trusted local caller.
 

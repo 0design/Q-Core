@@ -301,8 +301,7 @@ async function cmdRun(args, flags, opts) {
   if (!dryRun) store.saveLastRun(result);
 
   if (flags.has("json")) {
-    const nextAction = result.status === "waiting_human" ? humanNextAction(file, result) : null;
-    process.stdout.write(`${JSON.stringify(nextAction ? { ...result, nextAction } : result, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(withHumanAction(file, result), null, 2)}\n`);
   } else if (!quiet) {
     process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
     if (result.costUsd) process.stdout.write(`  cost $${Number(result.costUsd).toFixed(4)} · ${result.tokensIn}+${result.tokensOut} tokens\n`);
@@ -333,7 +332,7 @@ async function cmdReply(args) {
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
   store.saveLastRun(result);
-  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -345,7 +344,7 @@ async function cmdClarify(args) {
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, clarification: readBoundedJson(answersFile) });
   store.saveLastRun(result);
-  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -356,7 +355,7 @@ async function cmdPaused(args, action) {
   if (!run) fail('Unknown run');
   const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
   const result = action === 'cancel' ? cancelWaitingRun(run, opts) : await resumeCancelledRun(run, opts);
-  store.saveLastRun(result); process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  store.saveLastRun(result); process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'cancelled' ? 130 : result.status === 'success' ? 0 : 2;
 }
 
@@ -370,7 +369,7 @@ async function cmdStatus(args, flags) {
   const runs = store.listRuns(10);
 
   if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify({ last, runs }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ last, runs, ...(last?.status === "waiting_human" && last.runId ? { nextAction: humanNextAction(file, store.load(last.runId) ?? last) } : {}) }, null, 2)}\n`);
     return last?.status === "success" || last == null ? EXIT_OK : last?.status === "cancelled" ? 130 : EXIT_FAILED;
   }
 
@@ -403,10 +402,11 @@ function findManifestNearby() {
 /* ── approve ────────────────────────────────────────────────────────────── */
 
 /** The exact command a person runs in their own terminal to decide this gate. */
+const shellWord = (s) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(s) ? s : `'${String(s).replace(/'/g, "'\\''")}'`);
 function humanApproveCommand(file, run, gate) {
   const bin = process.argv[1] && process.argv[1].startsWith("/") ? process.argv[1] : "q-core";
   const hashArg = gate?.config?.bind === "sha256" && gate.output?.approvalHash ? ` --approval-hash ${gate.output.approvalHash}` : "";
-  return `${bin} approve ${resolve(file)} ${run.runId}${hashArg}`;
+  return `${shellWord(bin)} approve ${shellWord(resolve(file))} ${run.runId}${hashArg}`;
 }
 
 /** What an agent reads when a run waits on a person: never run the command itself. */
@@ -420,6 +420,12 @@ function humanNextAction(file, run) {
     approvalHash: gate.output?.approvalHash ?? null,
     instruction: "Only a person can decide this gate. Show the user the exact subject, then ask them to run this command in their own terminal (it asks for a one-time code there). Do not run it yourself, from a script, or through a pseudo-terminal; wait for the user to say it is done, then check q-core status.",
   };
+}
+
+/** A run printed as JSON carries nextAction when it waits on a person, whichever command parked it. */
+function withHumanAction(file, run) {
+  const nextAction = run?.status === "waiting_human" ? humanNextAction(file, run) : null;
+  return nextAction ? { ...run, nextAction } : run;
 }
 
 function subjectPreview(subject) {
@@ -478,7 +484,7 @@ async function cmdApprove(args, flags, opts) {
     onStep: (s) => printStep(s, flags.has("quiet") || flags.has("json")),
   });
   store.saveLastRun(result);
-  if (flags.has('json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+  if (flags.has('json')) process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   else process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
   return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }

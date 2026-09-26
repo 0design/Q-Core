@@ -2179,9 +2179,9 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.35.tgz",
-    "artifactSha256": "9f0f836f6b32cda93be5488fb007c5e64f1b62c8ef35fca60a551e9b03fbc5a0",
-    "integrity": "sha512-+rfD29P1qw3A6I8JiJuSffoNdzbPY9oR/hq5H2f9+kPNuksHZ9GTsQAdSniaDODdEUu0P+XokCQs5OvtWnmoeg==",
-    "schemaSha256": "fcdb9a7127a770f294a64fe1eeb565d58ac929a9d55a703aa8e06869d526d90a",
+    "artifactSha256": "4e718f1f5d89cdd5ee87dce1c0cdea8a45dd9f89487638372dd606cfb897cbc9",
+    "integrity": "sha512-703uNc0ynXyym7TQRMEiqHmbltHTJWsRJAZjTCXZB5Egbq3yCRT7Go18lE/DyDVq3P08H0otmrozEMmypGTsgw==",
+    "schemaSha256": "3cc141802d8cb1172e5ba2aaf42bdea3981fc8d2564c3fb9465d76b7213b5e13",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
     "source": "Core.35 successor of Core.34: only a person decides a human gate. q-core approve (and --reject) prints the subject and a one-time code on the controlling terminal (/dev/tty, never stdout) and continues only when the code is typed back there; it refuses inside an agent session (CLAUDECODE, AI_AGENT, CODEX_SANDBOX and similar markers), without a terminal or with piped input, exits 2 and leaves the run waiting; q-core run --json returns nextAction ask_human_to_approve for a parked run; the library resumeRun requires a confirmation record. Same manifest validator, YAML parser and request schema; SPEC-MANIFEST documents the human gate",
@@ -2975,5 +2975,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "ed90f50f3d969f6d32db662109f01f6dd01c1be28a47c33eed8cb5acab8e9a9d"
+  "releaseSha256": "861489dd01b53c18ee106465d7c549376e2cba3d6e6839ecfb5a6f7ac1c887fc"
 }
