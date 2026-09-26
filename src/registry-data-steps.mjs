@@ -407,6 +407,23 @@ export function runVerifySources(step, ctx) {
     const uncited = pieces.filter(piece => !cites(piece));
     insist(uncited.length === 0, `Every thesis needs a link to a selected source; uncited: ${uncited[0]?.slice(0, 60)}`);
   }
+  // nestedOrder: "cluster" — top-level items (with everything nested under them) are ordered by weight: the best
+  // (lowest) cluster rank they cite never goes back up. Ranks come from deduplicate clusters (independent outlets).
+  if (step.config.nestedOrder != null) {
+    insist(step.config.nestedOrder === 'cluster' && nestedItems, 'nestedOrder must be "cluster" and requires nestedList');
+    insist(sources.every(source => Number.isInteger(source.cluster)), 'nestedOrder requires sources from deduplicate clusters');
+    const clusterOf = new Map(sources.map(source => [source.url, source.cluster]));
+    const groups = [];
+    for (const item of nestedItems) if (item.depth === 1) groups.push([item]); else groups.at(-1).push(item);
+    let last = 0;
+    for (const group of groups) {
+      const ranks = group.flatMap(item => citedUrls(item.text).map(url => clusterOf.get(url)));
+      if (!ranks.length) continue;
+      const best = Math.min(...ranks);
+      insist(best >= last, `Top-level items must be ordered by weight (cluster rank ${best} comes after ${last}): ${group[0].text.slice(0, 60)}`);
+      last = best;
+    }
+  }
   if (timestampCitations) {
     insist(requiredHeadings.length > 0, 'citation: timestamps requires requiredHeadings');
     const known = new Set(sources.flatMap(source => String(source.text ?? '').match(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g) ?? []));
@@ -431,5 +448,5 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }

@@ -462,7 +462,10 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   after `requiredPrefix` the draft is only a nested bullet list (`-`, `*` or `+`), one
   line per item, indented by a consistent 2-4 spaces per level, never skipping a level,
   at most N levels deep. A heading, a section label, a paragraph or a numbered item is
-  refused. With `citation: links` every item at every level links a selected source.
+  refused. With `citation: links` every item at every level links a selected source. `nestedOrder:
+  cluster` (with `nestedList` and sources from `deduplicate clusters`) orders the top-level
+  items by weight: the best cluster rank cited by an item or anything nested under it never
+  goes back up (rank 1 = most independent outlets).
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

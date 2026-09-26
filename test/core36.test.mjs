@@ -1,4 +1,4 @@
-/* Core36: Digest as a nested list (owner review 0D-415, 27.09): no section labels, up to three levels, every item linked. */
+/* Core36: Digest as a nested list (owner review, 27.09): no section labels, up to three levels, every item linked. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolve } from "node:path";
@@ -65,6 +65,7 @@ test("Digest 0.5.0 asks for the nested list and checks it; no section labels, no
   const draft = manifest.steps.find((s) => s.id === "draft").config;
   const checks = manifest.steps.find((s) => s.id === "checks").config;
   assert.equal(checks.nestedList, "3");
+  assert.equal(checks.nestedOrder, "cluster");
   assert.equal(checks.citation, "links");
   for (const gone of ["requiredHeadings", "sectionSentences", "sectionItems", "itemMaxWords", "oneClusterPerItem"]) assert.equal(checks[gone], undefined, gone);
   assert.match(draft.instructions, /no labels such as "Загальна картина" or "Кейси"/);
@@ -72,5 +73,16 @@ test("Digest 0.5.0 asks for the nested list and checks it; no section labels, no
   assert.match(draft.instructions, /Order themes by weight/);
   assert.match(draft.instructions, /outlet name as the link text/);
   assert.doesNotMatch(draft.instructions, /## Загальна картина|## Кейси|\d+\s+words/);
-  assert.ok(Number(draft.maxTokens) >= 4000);
+  assert.ok(Number(draft.maxTokens) >= 6000);
+});
+
+test("nestedOrder cluster: top-level items go from the best cluster rank down; a later theme may not hold a better rank", () => {
+  const ranked = { sources: [{ url: A, text: "a", cluster: 1 }, { url: B, text: "b", cluster: 1 }, { url: C, text: "c", cluster: 2 }, { url: D, text: "d", cluster: 3 }] };
+  const check = (text, extra = {}) => runVerifySources({ config: { draft: "{{steps.draft.output}}", sources: "{{steps.clusters.output}}", language: "uk", ...FORMAT, nestedOrder: "cluster", ...extra } }, { priorOutputs: { clusters: ranked, draft: { text } }, priorStepNames: {} });
+  assert.ok(check(GOOD).output.checks.includes("nested-order-by-cluster"));
+  // A theme counts the best rank of everything nested under it.
+  assert.doesNotThrow(() => check(`${HEADER}\n\n- Тема ([TechCrunch](${C})).\n  - Пауза ([The Verge](${A})).\n${SMALL}\n`));
+  assert.throws(() => check(`${HEADER}\n\n${SMALL}\n${L1}\n`), /ordered by weight \(cluster rank 1 comes after 3\)/);
+  assert.throws(() => check(GOOD, { nestedOrder: "outlets" }), /nestedOrder must be "cluster"/);
+  assert.throws(() => verify(GOOD, { ...FORMAT, nestedOrder: "cluster" }), /requires sources from deduplicate clusters/);
 });
