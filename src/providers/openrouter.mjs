@@ -108,6 +108,18 @@ export async function openRouter(
   );
   if (typeof key !== "string" || !key.trim())
     throw new CoreError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
+  /* Billing honesty. A 4xx/429/5xx answer is not a completion and is treated as
+     not billed. An attempt that ended WITHOUT a readable answer (timeout,
+     dropped connection, cancellation, unreadable body) may have been processed
+     upstream: its cost is unknown, so the whole call's cost becomes unknown
+     (null) rather than the last attempt's figure or zero. */
+  let unknownBilling = false;
+  const unknownUsage = () => ({ tokensIn: null, tokensOut: null, costUsd: null, billingUnknown: true });
+  const unbilled = (code, message) => {
+    const error = new CoreError(code, message);
+    if (unknownBilling) error.usage = unknownUsage();
+    return error;
+  };
   let res;
   try {
     res = await fetcher(
@@ -126,12 +138,12 @@ export async function openRouter(
           max_tokens: maxTokens,
         }),
       },
-      { timeoutMs, retries, delaysMs },
+      { timeoutMs, retries, delaysMs, onAttemptError: () => { unknownBilling = true; } },
     );
   } catch (e) {
     if (signal?.aborted)
-      throw new CoreError("CANCELLED", "OpenRouter cancelled");
-    throw new CoreError(
+      throw unbilled("CANCELLED", "OpenRouter cancelled");
+    throw unbilled(
       e.name === "TimeoutError" ? "TIMEOUT" : "NETWORK",
       "OpenRouter unreachable",
     );
@@ -143,7 +155,7 @@ export async function openRouter(
       : res.status === 429
         ? "RATE_LIMITED"
         : "PROVIDER_ERROR";
-    throw new CoreError(
+    throw unbilled(
       code,
       `OpenRouter ${res.status} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`,
     );
@@ -167,7 +179,9 @@ export async function openRouter(
       json = JSON.parse(Buffer.concat(parts).toString("utf8"));
     } else json = await res.json();
   } catch {
-    throw new CoreError(
+    // A 200 whose body could not be read was a completion: billed, amount unknown.
+    unknownBilling = true;
+    throw unbilled(
       signal?.aborted ? "CANCELLED" : "INVALID_RESPONSE",
       "OpenRouter response body invalid, timed out or too large",
     );
@@ -179,6 +193,7 @@ export async function openRouter(
     tokensIn: metric(json?.usage?.prompt_tokens),
     tokensOut: metric(json?.usage?.completion_tokens),
     costUsd: metric(json?.usage?.cost),
+    ...(unknownBilling ? { billingUnknown: true } : {}),
   };
   const billed = (code, message) => {
     const error = new CoreError(code, message);

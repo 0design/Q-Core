@@ -111,8 +111,12 @@ A model step's cost is, in order: the provider's own reported cost
 (`usage.cost`, `costSource: provider`) → the listed price of the model that
 actually answered (`src/cost.mjs`, `costSource: rate-table`) → **unknown**
 (`costUsd: null`, `costSource: unknown`). An unlisted model is never billed at
-another model's rate. Unknown is not zero: with a ceiling set, the next paid step
-does not start while any step's cost is unknown (`gateReason: budget`). Lift the
+another model's rate. A 4xx/429/5xx answer is treated as not billed; an attempt
+that ended without a readable answer (timeout, dropped connection, cancellation,
+unreadable body) may have been billed, so that call's cost is unknown even if a
+retry succeeded. Unknown is not zero: with a ceiling set, the next model call
+(`llm-call`, agent `approval-gate`) does not start while any step's cost is
+unknown (`gateReason: budget`), and `{{run.costUsd}}` renders `unknown`. Lift the
 ceiling on purpose (`budgetUsd: null`) to run such steps anyway. A billed call
 that then fails (truncated, empty, over its cap) keeps its cost in the run.
 

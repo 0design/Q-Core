@@ -329,7 +329,10 @@ export async function driveRun(run, opts = {}) {
     /* An unknown cost (null) is not zero. With a ceiling set, the run cannot
        prove it is under it, so the next paid step does not start. */
     const unknownSpend = run.steps.find((s) => s.costUsd === null);
-    if (paidKind && knobs.budgetUsd !== null && unknownSpend) {
+    /* A human gate calls no model, so an unknown spend does not stop it; the
+       legacy spent >= ceiling check below still applies to it as before. */
+    const modelCall = paidKind && !(next.kind === "approval-gate" && (str(next.config, "reviewer") ?? "human") === "human");
+    if (modelCall && knobs.budgetUsd !== null && unknownSpend) {
       next.status = "failed";
       next.gateReason = "budget";
       next.errorText = `Run budget cannot be checked: the cost of step "${unknownSpend.stepId}" is unknown (no provider cost and no known price for its model). Set budgetUsd to null to lift the ceiling on purpose, or use a model with a reported or known price.`;
@@ -366,7 +369,7 @@ export async function driveRun(run, opts = {}) {
       apiKey,
       /* What the run has spent BEFORE this step — the number {{run.costUsd}}
          resolves to. On the last api-request it is the run's whole cost. */
-      spentUsd: spent,
+      spentUsd: unknownSpend ? null : spent,
       /* Only present when there is somewhere to write. Without a store there is
          no `.qf/` and no fallback — the request goes out or it does not. */
       fileSink: store ? (body) => store.writeSink(run.runId, body) : null,
@@ -582,7 +585,10 @@ function plannedOutput(step, ctx, knobs) {
     return { planned: true, step: label, url: raw, method: str(step.config, "method") ?? (step.kind === "fetch" ? "GET" : "POST") };
   }
   if (step.kind === "approval-gate") {
-    return { planned: true, step: label, reviewer: str(step.config, "reviewer") ?? "human" };
+    const reviewer = str(step.config, "reviewer") ?? "human";
+    if (reviewer !== "agent") return { planned: true, step: label, reviewer };
+    const { retries, timeoutMs, maxCallCostUsd } = llmCallPolicy(step.config, label);
+    return { planned: true, step: label, reviewer, model: stepModel(step, knobs), retries, maxAttempts: retries + 1, timeoutSec: timeoutMs / 1000, maxCallCostUsd: maxCallCostUsd ?? null };
   }
   return { planned: true, step: label };
 }

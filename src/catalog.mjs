@@ -82,7 +82,7 @@ export function describeWorkflow(file, { examplesDir } = {}) {
       try {
         const r = JSON.parse(readFileSync(runFile, "utf8"));
         measured = {
-          costUsd: Number(r.costUsd ?? 0),
+          costUsd: r.costUsd === null ? null : Number(r.costUsd ?? 0),
           tokensIn: r.tokensIn ?? 0,
           tokensOut: r.tokensOut ?? 0,
           status: r.status,

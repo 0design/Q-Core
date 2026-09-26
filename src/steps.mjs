@@ -76,6 +76,8 @@ export function llmCallPolicy(config, label) {
 /* What a finished (or billed-then-failed) OpenRouter call cost: the provider's
    figure, else the table price of the model that answered, else null. */
 function llmCost(usage, requestedModel) {
+  // An earlier attempt of this call may have been billed without an answer: the total is unknown.
+  if (usage?.billingUnknown) return { costUsd: null, costSource: "unknown" };
   return stepCostUsd({ providerCostUsd: usage?.costUsd, model: usage?.model ?? requestedModel, tokensIn: usage?.tokensIn, tokensOut: usage?.tokensOut });
 }
 
@@ -105,7 +107,7 @@ const tctx = (ctx) => ({
   priorStepNames: ctx.priorStepNames,
   ...(ctx.item !== undefined ? { item: ctx.item } : {}),
   ...(ctx.itemIndex != null ? { index: ctx.itemIndex } : {}),
-  run: { id: ctx.runId, workflowId: ctx.templateId, costUsd: ctx.spentUsd ?? 0 },
+  run: { id: ctx.runId, workflowId: ctx.templateId, costUsd: ctx.spentUsd === null ? null : ctx.spentUsd ?? 0 },
 });
 
 /* ───────────────────────────── fetch ───────────────────────────── */

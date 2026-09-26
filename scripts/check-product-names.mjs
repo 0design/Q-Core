@@ -221,6 +221,11 @@ export function verifyProductNames(root = resolve(".")) {
     createHash("sha256").update(requestSchema).digest("hex"),
     "Registry must pin this exact request schema",
   );
+  assert.equal(
+    catalog.core.schemaSha256,
+    createHash("sha256").update(readFileSync(join(root, "SPEC-MANIFEST.md"))).digest("hex"),
+    "Registry must pin this exact SPEC-MANIFEST (core.schemaSha256)",
+  );
   for (const entry of [...catalog.workflows, ...catalog.components, ...catalog.demos]) {
     assert.equal(entry.engine?.package, pkg.name, `${entry.id} must pin Q-Core`);
     assert.equal(entry.engine?.version, pkg.version, `${entry.id} must pin this Q-Core version`);

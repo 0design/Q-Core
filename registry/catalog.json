@@ -2152,9 +2152,9 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.33.tgz",
-    "artifactSha256": "91571686813a825729668fd88ce45bd1c4550e3513650f3b8ae33136551794e1",
-    "integrity": "sha512-9/Z+9Xw7dF2+CQT0fiWukDoB3bqALVAhnJk881KP8bkv+i8ER9haJeHznbg3GAsuBqj5UuT2l7Tsi0uFiCYkgQ==",
-    "schemaSha256": "5f5ad7d0851b7650273193d907f9719139b2e96291c5d2240fa7ade0e22d6226",
+    "artifactSha256": "20694c403e467396d25cb1bdbeeb951519eaeb61ef3f3a36609f58bbd4b820c3",
+    "integrity": "sha512-1z8DG1sxa87GkE+7ltUII5/ZhaO5rE8sCzhMfvjU8IXLVQjvNThmwitVN+BEMhV1D3I9zFJuWGspA06PyRiLTA==",
+    "schemaSha256": "f7c1d618c8fd1309b26cddd67af04e9652d17af73f59aa7b10a0ed7e19d33d96",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
     "source": "Core.33 successor of Core.32: the manifest llm-call and agent approval-gate route takes explicit retries (0..5), timeoutSec (1..600) and an optional maxCallCostUsd cap; a model step records the provider's reported cost, else the listed price of the model that answered, else null (unknown), never another model's rate; a finite budget stops the next paid step while any cost is unknown; a billed call that then fails keeps its cost. Same manifest validator, YAML parser and request schema; SPEC-MANIFEST documents the new fields",
@@ -2940,5 +2940,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "d13bb75ca70b8033ec1461033da886ba20d47625f34de8b90caae4d7d1ce6964"
+  "releaseSha256": "64886e904cd19c96de3099fa485ad15b97c2b71bc3e125bf240cd0b5369c3f0e"
 }

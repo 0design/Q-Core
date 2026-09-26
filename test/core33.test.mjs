@@ -286,3 +286,64 @@ test("Registry contract: llm-call/openrouter 1.1.0 documents keyRef, secretSourc
     for (const dep of workflow.dependencies ?? [])
       if (dep.id === "llm-call-openrouter") assert.equal(dep.version, "1.1.0", workflow.id);
 });
+
+// ── review round 1: attempts without an answer, {{run.costUsd}}, agent-gate dry run, human gate ──
+
+test("a timed-out attempt followed by a successful retry makes the call's cost unknown, and the next model call is gated", async () => {
+  const hangOnce = (n, url, init) => n === 1
+    ? new Promise((_, reject) => { const keep = setTimeout(() => reject(new Error("timeout did not fire")), 10_000); init.signal.addEventListener("abort", () => { clearTimeout(keep); reject(init.signal.reason); }); })
+    : reply({ cost: 0.001 });
+  const calls = [];
+  const done = await withFetch((n, url, init) => { calls.push(n); return hangOnce(n, url, init); }, () =>
+    run(manifest([llm("a", { model: KNOWN, retries: "1", timeoutSec: "1" }), llm("b", { model: KNOWN })], { budgetUsd: 1 })));
+  assert.equal(calls.length, 2, "one timed-out attempt, one answered retry, and no call for step b");
+  assert.deepEqual([done.steps[0].costUsd, done.steps[0].costSource], [null, "unknown"]);
+  assert.equal(done.steps[1].gateReason, "budget");
+});
+
+test("an exhausted timeout or an unreadable 200 body leaves the failed step's cost unknown, not 0", async () => {
+  const hang = (n, url, init) => new Promise((_, reject) => { const keep = setTimeout(() => reject(new Error("timeout did not fire")), 10_000); init.signal.addEventListener("abort", () => { clearTimeout(keep); reject(init.signal.reason); }); });
+  const timedOut = await withFetch(hang, () => run(manifest([llm("a", { model: KNOWN, retries: "0", timeoutSec: "1" })])));
+  assert.equal(timedOut.status, "failed");
+  assert.deepEqual([timedOut.steps[0].costUsd, timedOut.costUsd], [null, null]);
+  const garbled = await withFetch(() => new Response("{not json", { status: 200 }), () => run(manifest([llm("a", { model: KNOWN, retries: "0" })])));
+  assert.equal(garbled.status, "failed");
+  assert.deepEqual([garbled.steps[0].costUsd, garbled.costUsd], [null, null]);
+  // Negative: a plain 503 answer is not billed; the cost stays 0.
+  const busy = await withFetch(() => new Response("busy", { status: 503 }), () => run(manifest([llm("a", { model: KNOWN, retries: "0" })])));
+  assert.equal(busy.steps[0].costUsd, 0);
+});
+
+test("{{run.costUsd}} renders six decimals, and 'unknown' (never $0) after an unknown spend", async () => {
+  const sent = [];
+  const handler = (n, url, init) => {
+    if (String(url).startsWith("http://127.0.0.1:9/")) { sent.push(init.body); return new Response("ok", { status: 200 }); }
+    return reply({ model: UNKNOWN, cost: n === 1 ? 0.0000042 : undefined });
+  };
+  const post = { id: "post", kind: "api-request", config: { url: "http://127.0.0.1:9/hook", body: '{"cost":"{{run.costUsd}}"}' } };
+  await withFetch(handler, () => run(manifest([llm("a", { model: UNKNOWN }), post], { budgetUsd: null })));
+  assert.equal(JSON.parse(sent[0]).cost, "0.000004");
+  sent.length = 0;
+  await withFetch((n, url, init) => String(url).startsWith("http://127.0.0.1:9/") ? (sent.push(init.body), new Response("ok")) : reply({ model: UNKNOWN }), () =>
+    run(manifest([llm("a", { model: UNKNOWN }), post], { budgetUsd: null })));
+  assert.equal(JSON.parse(sent[0]).cost, "unknown");
+});
+
+test("dry run validates and reports the policy of an agent approval-gate too", async () => {
+  const gate = (config) => ({ id: "g", kind: "approval-gate", config: { reviewer: "agent", rubric: "ok", model: KNOWN, ...config } });
+  const ok = await run(manifest([gate({ retries: "0", timeoutSec: "20" })]), { dryRun: true });
+  assert.equal(ok.status, "success");
+  assert.deepEqual([ok.steps[0].output.retries, ok.steps[0].output.maxAttempts, ok.steps[0].output.timeoutSec], [0, 1, 20]);
+  const bad = await run(manifest([gate({ retries: "99" })]), { dryRun: true });
+  assert.equal(bad.status, "failed");
+  assert.match(bad.steps[0].errorText, /retries must be an integer from 0 to 5/);
+});
+
+test("an unknown spend does not stop a human gate (it calls no model); it still stops an agent gate", async () => {
+  const human = { id: "h", kind: "approval-gate", config: { reviewer: "human" } };
+  const toHuman = await withFetch(() => reply({ model: UNKNOWN }), () => run(manifest([llm("a", { model: UNKNOWN }), human], { budgetUsd: 1 })));
+  assert.equal(toHuman.status, "waiting_human");
+  const agent = { id: "g", kind: "approval-gate", config: { reviewer: "agent", rubric: "ok", model: KNOWN } };
+  const toAgent = await withFetch(() => reply({ model: UNKNOWN }), () => run(manifest([llm("a", { model: UNKNOWN }), agent], { budgetUsd: 1 })));
+  assert.equal(toAgent.steps[1].gateReason, "budget");
+});

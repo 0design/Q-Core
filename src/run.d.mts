@@ -24,6 +24,8 @@ export interface RunStep {
   tokensIn: number | null;
   tokensOut: number | null;
   costUsd: number | null;
+  /** Where a model step's cost came from; absent on steps that call no model. */
+  costSource?: "provider" | "rate-table" | "unknown";
   item?: unknown;
   itemIndex: number | null;
   startedAt: string | null;
