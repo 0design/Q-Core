@@ -1,0 +1,36 @@
+# One-shot (0D-372): mark the legacy npm package `qloops` as deprecated.
+# Approved by Oleg, 26.09.2026 (quiz 79). Fixed command, no inputs; removed after a successful run.
+name: npm deprecate qloops (one-shot)
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: npm-deprecate-qloops
+  cancel-in-progress: false
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      MESSAGE: "Renamed. Use Q-Core from https://qfactory.io (tarball via Registry, SHA-256 verified)"
+    steps:
+      - name: Configure npm auth (token from env, never printed)
+        run: |
+          printf '%s\n' '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' 'registry=https://registry.npmjs.org/' > "$HOME/.npmrc"
+          chmod 600 "$HOME/.npmrc"
+      - name: npm deprecate qloops
+        run: npm deprecate qloops "Renamed. Use Q-Core from https://qfactory.io (tarball via Registry, SHA-256 verified)"
+      - name: Readback
+        run: |
+          for i in 1 2 3 4 5 6; do
+            got=$(npm view qloops deprecated --prefer-online || true)
+            echo "npm view qloops deprecated -> $got"
+            [ "$got" = "$MESSAGE" ] && exit 0
+            sleep 10
+          done
+          echo "::error::readback does not match the approved message"
+          exit 1
+      - name: Remove npm auth file
+        if: always()
+        run: rm -f "$HOME/.npmrc"
