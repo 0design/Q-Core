@@ -338,6 +338,8 @@ export function runVerifySources(step, ctx) {
     nestedItems = lines.map(line => {
       const m = line.match(/^( *)[-*+] +(\S.*)$/);
       insist(m && !/^\s*(?:[-*+] +)+#{1,6}(?:\s|$)/.test(line), `The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): ${line.slice(0, 60)}`);
+      // Item text that opens another list, a quote or a code fence would nest deeper than the indentation says.
+      insist(!/^(?:[-*+]\s|\d+[.)]\s|>)/.test(m[2]) && !/```|~~~/.test(m[2]), `A list item may not open another list, a quote or a code block: ${line.slice(0, 60)}`);
       const indent = m[1].length;
       if (indent > 0 && unit === null) unit = indent;
       insist(indent === 0 || (unit >= 2 && unit <= 4 && indent % unit === 0), `List indentation must be a consistent 2-4 spaces per level: ${line.slice(0, 60)}`);
@@ -347,6 +349,27 @@ export function runVerifySources(step, ctx) {
       previous = depth;
       return { depth, text: m[2] };
     });
+    // forbiddenLabels: ["Кейси", ...] — an item may not open with a section label (bold or plain, before ":", "—",
+    // "(" or the end), even when it carries a link: readers see the structure without labels.
+    const labels = step.config.forbiddenLabels == null ? [] : stringList(step, 'forbiddenLabels', ctx);
+    insist(labels.every(label => typeof label === 'string' && label.trim().length > 0), 'forbiddenLabels must be a JSON array of nonempty strings');
+    for (const item of nestedItems) {
+      const head = item.text.replace(/[*_]/g, '').trim().toLocaleLowerCase('uk');
+      const label = labels.find(l => { const low = l.toLocaleLowerCase('uk'); return head === low || (head.startsWith(low) && /^[\s]*(?:[:：—–-]|\(|\[|$)/.test(head.slice(low.length))); });
+      insist(!label, `A list item opens with the section label «${label}»: ${item.text.slice(0, 60)}`);
+    }
+    // outletLinkText: every selected-source link in an item names its outlet (the link text contains the site name).
+    if (step.config.outletLinkText === 'true' || step.config.outletLinkText === true) {
+      const norm = value => value.toLocaleLowerCase('en').replace(/[^\p{L}\p{N}]/gu, '');
+      for (const item of nestedItems) for (const [, label, url] of item.text.matchAll(/\[([^\]\n]+)\]\((https?:\/\/[^\s()<>]+)\)/g)) {
+        if (!urls.has(url)) continue;
+        let host = '';
+        try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { host = ''; }
+        const parts = host.split('.');
+        const site = norm(parts.length > 1 ? parts[parts.length - 2] : host), text = norm(label);
+        insist(site && text && (text.includes(site) || site.includes(text)), `A source link must name its outlet («${label}» for ${host}): ${item.text.slice(0, 60)}`);
+      }
+    }
   }
   const shaped = (linkCitations && !nestedItems) || sectionItems || sectionSentences || itemMaxWords || oneClusterPerItem;
   if (shaped) insist(requiredHeadings.length > 0, 'citation: links, sectionItems, sectionSentences, itemMaxWords and oneClusterPerItem require requiredHeadings (or nestedList for citation: links)');
@@ -448,5 +471,5 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }

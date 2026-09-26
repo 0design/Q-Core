@@ -145,8 +145,9 @@ steps:
         plain text, never a link. Those two header links are the only links that
         are not source citations.
         Then write only a nested Markdown bullet list: no section titles, no
-        headings and no labels such as "Загальна картина" or "Кейси"; readers see
-        the structure. Use "- " bullets, two spaces of indentation per level, at
+        headings and no labels such as "Загальна картина" or "Кейси", and no item
+        opens with a label word such as "Кейс:", "Тренд:" or "Коментар:"; readers
+        see the structure. Use "- " bullets, two spaces of indentation per level, at
         most three levels, every item on one line:
         - Level 1: a large theme. Group related clusters into a few themes
           (usually 2 to 4). The theme item names the theme and, in 1 to 3
@@ -155,14 +156,14 @@ steps:
           its cases, like every other item.
           Order themes by weight: each cluster has a rank (1 = most
           independent outlets). The theme that holds rank 1 comes first, then the
-          theme with the next best rank, and so on; inside a theme order cases
-          by rank too. The check refuses any other order.
+          theme with the next best rank, and so on. The check refuses any other
+          order.
           - Level 2: one case (one cluster) inside that theme: what happened and
             why it matters to people who build with AI, thesis style.
             - Level 3 (only when useful): a comment on that case or its
               continuation.
         A theme may have no sub-items. A relevant cluster that fits no theme is
-        a short level-1 item after the themes. Do not repeat a point at two
+        a short level-1 item that takes its place by rank like a theme. Do not repeat a point at two
         levels, and never merge two unrelated clusters into one item.
         Every item, at every level, theme items included, links at least one
         source it relies on; an item without a source link is refused.
@@ -196,6 +197,8 @@ steps:
       requiredPrefix: "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋{{env.QF_DIGEST_DATE}}**\n\n"
       nestedList: "3"
       nestedOrder: cluster
+      forbiddenLabels: '["Загальна картина","Кейси","Кейс","Тренд","Тренди","Висновки","Підсумок","Коментар"]'
+      outletLinkText: "true"
       requiredEnvPatterns: '{"QF_DIGEST_DATE":"(0[1-9]|[12][0-9]|3[01])\\.(0[1-9]|1[0-2])"}'
   - id: approval
     kind: approval-gate

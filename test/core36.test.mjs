@@ -66,6 +66,8 @@ test("Digest 0.5.0 asks for the nested list and checks it; no section labels, no
   const checks = manifest.steps.find((s) => s.id === "checks").config;
   assert.equal(checks.nestedList, "3");
   assert.equal(checks.nestedOrder, "cluster");
+  assert.equal(checks.outletLinkText, "true");
+  assert.match(checks.forbiddenLabels, /Загальна картина/);
   assert.equal(checks.citation, "links");
   for (const gone of ["requiredHeadings", "sectionSentences", "sectionItems", "itemMaxWords", "oneClusterPerItem"]) assert.equal(checks[gone], undefined, gone);
   assert.match(draft.instructions, /no labels such as "Загальна картина" or "Кейси"/);
@@ -85,4 +87,27 @@ test("nestedOrder cluster: top-level items go from the best cluster rank down; a
   assert.throws(() => check(`${HEADER}\n\n${SMALL}\n${L1}\n`), /ordered by weight \(cluster rank 1 comes after 3\)/);
   assert.throws(() => check(GOOD, { nestedOrder: "outlets" }), /nestedOrder must be "cluster"/);
   assert.throws(() => verify(GOOD, { ...FORMAT, nestedOrder: "cluster" }), /requires sources from deduplicate clusters/);
+});
+
+test("review round 1: a label item with a link, text that nests deeper, code fences, outlet link text", () => {
+  const LABELS = '["Загальна картина","Кейси","Кейс","Тренд","Тренди","Висновки","Підсумок","Коментар"]';
+  const strict = { ...FORMAT, forbiddenLabels: LABELS, outletLinkText: "true" };
+  const refused = {
+    "bold label item with a link": [`${HEADER}\n\n- **Загальна картина** ([The Verge](${A}))\n`, /opens with the section label «Загальна картина»/],
+    "plain label with a colon": [`${HEADER}\n\n- Кейси: Muse відкрила файли ([TechCrunch](${C}))\n`, /section label «Кейси»/],
+    "bold label with sub-items": [`${HEADER}\n\n- **Кейси** ([The Verge](${A}))\n${L2}\n`, /section label «Кейси»/],
+    "label word at level 3": [`${HEADER}\n\n${L1}\n${L2}\n    - Коментар: це тимчасово ([The Decoder](${B}))\n`, /section label «Коментар»/],
+    "a list marker inside the item text (renders one level deeper)": [`${HEADER}\n\n${L1}\n${L2}\n    - - Глибше ([The Verge](${A}))\n`, /may not open another list/],
+    "a numbered item inside an item": [`${HEADER}\n\n- 1. Тема ([The Verge](${A}))\n`, /may not open another list/],
+    "a quote inside an item": [`${HEADER}\n\n- > Тема ([The Verge](${A}))\n`, /may not open another list, a quote/],
+    "a code fence inside an item": [`${HEADER}\n\n- \`\`\` ([The Verge](${A}))\n${L2}\n`, /a code block/],
+    "a link that does not name its outlet": [`${HEADER}\n\n- Тема ([тут](${A}))\n`, /must name its outlet/],
+  };
+  for (const [name, [text, error]] of Object.entries(refused)) assert.throws(() => verify(text, strict), error, name);
+  // Not labels: a theme that merely begins with a label-like word, and outlet names as the link text.
+  // Test sources live on media.example and blog.example, so their outlet names are Media and Blog.
+  assert.doesNotThrow(() => verify(`${HEADER}\n\n- Трендові моделі стають агентами ([Media](${A}), [The Blog](${B}))\n  - Кейсове навчання OpenAI ([media.example](${A}))\n`, strict));
+  const named = GOOD.replace(/\[(The Verge|TechCrunch)\]/g, "[Media]").replace(/\[The Decoder\]/g, "[Blog]");
+  assert.ok(verify(named, strict).output.checks.includes("outlet-link-text"));
+  assert.throws(() => verify(GOOD, { ...strict, forbiddenLabels: '[""]' }), /forbiddenLabels must be a JSON array of nonempty strings/);
 });

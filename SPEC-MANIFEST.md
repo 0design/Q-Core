@@ -465,7 +465,11 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   refused. With `citation: links` every item at every level links a selected source. `nestedOrder:
   cluster` (with `nestedList` and sources from `deduplicate clusters`) orders the top-level
   items by weight: the best cluster rank cited by an item or anything nested under it never
-  goes back up (rank 1 = most independent outlets).
+  goes back up (rank 1 = most independent outlets). Item text may not open another list, a quote
+  or a code fence (it would render deeper than its indentation). `forbiddenLabels` (JSON
+  array) refuses an item that opens with a section label (bold or plain, before `:`, `—`,
+  `(` or the end), even with a link. `outletLinkText: "true"` requires every selected-source
+  link in an item to name its outlet (the link text contains the site name of the URL).
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.
