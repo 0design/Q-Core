@@ -37,6 +37,58 @@ function boundedTimeoutSec(config, label) {
 }
 
 import { openRouter } from "./providers/openrouter.mjs";
+import { stepCostUsd } from "./cost.mjs";
+
+/* OpenRouter call policy for a model-backed step. Every paid attempt is a
+   decision of the workflow author, so the bounds are explicit and checked
+   before anything is resolved or sent:
+     retries         0..5, default 2 (at most retries + 1 billable attempts)
+     timeoutSec      1..600, default 90 (per attempt)
+     maxCallCostUsd  optional (0, 100]; worst case of all attempts must fit */
+export const LLM_DEFAULT_RETRIES = 2;
+export const LLM_DEFAULT_TIMEOUT_SEC = 90;
+export function llmCallPolicy(config, label) {
+  const raw = (key) => str(config, key);
+  const policy = { retries: LLM_DEFAULT_RETRIES, timeoutMs: LLM_DEFAULT_TIMEOUT_SEC * 1000 };
+  if (raw("retries") !== undefined) {
+    const n = Number(raw("retries"));
+    if (!/^\d+$/.test(raw("retries")) || n > 5)
+      throw new CoreError("INVALID_REQUEST", `"${label}": retries must be an integer from 0 to 5 (at most retries + 1 billable attempts).`);
+    policy.retries = n;
+  }
+  if (raw("timeoutSec") !== undefined) {
+    const n = Number(raw("timeoutSec"));
+    if (!/^\d+$/.test(raw("timeoutSec")) || n < 1 || n > 600)
+      throw new CoreError("INVALID_REQUEST", `"${label}": timeoutSec must be an integer from 1 to 600.`);
+    policy.timeoutMs = n * 1000;
+  }
+  if (raw("timeoutMs") !== undefined)
+    throw new CoreError("INVALID_REQUEST", `"${label}": use timeoutSec (seconds, 1..600) for a model call, as for fetch and api-request.`);
+  if (raw("maxCallCostUsd") !== undefined) {
+    const n = Number(raw("maxCallCostUsd"));
+    if (!/^\d+(\.\d+)?$/.test(raw("maxCallCostUsd")) || !(n > 0) || n > 100)
+      throw new CoreError("INVALID_REQUEST", `"${label}": maxCallCostUsd must be a number greater than 0 and at most 100.`);
+    policy.maxCallCostUsd = n;
+  }
+  return policy;
+}
+
+/* What a finished (or billed-then-failed) OpenRouter call cost: the provider's
+   figure, else the table price of the model that answered, else null. */
+function llmCost(usage, requestedModel) {
+  // An earlier attempt of this call may have been billed without an answer: the total is unknown.
+  if (usage?.billingUnknown) return { costUsd: null, costSource: "unknown" };
+  return stepCostUsd({ providerCostUsd: usage?.costUsd, model: usage?.model ?? requestedModel, tokensIn: usage?.tokensIn, tokensOut: usage?.tokensOut });
+}
+
+/* A billed call that failed afterwards keeps its spend on the thrown error. */
+function withSpend(error, requestedModel) {
+  if (error && typeof error === "object" && error.usage) {
+    const { costUsd, costSource } = llmCost({ ...error.usage, model: error.model ?? requestedModel }, requestedModel);
+    error.spend = { costUsd, costSource, tokensIn: error.usage.tokensIn ?? null, tokensOut: error.usage.tokensOut ?? null };
+  }
+  return error;
+}
 
 /** Human label of a step for messages: `config.name`, else the kind. */
 export function stepLabel(step) {
@@ -55,7 +107,7 @@ const tctx = (ctx) => ({
   priorStepNames: ctx.priorStepNames,
   ...(ctx.item !== undefined ? { item: ctx.item } : {}),
   ...(ctx.itemIndex != null ? { index: ctx.itemIndex } : {}),
-  run: { id: ctx.runId, workflowId: ctx.templateId, costUsd: ctx.spentUsd ?? 0 },
+  run: { id: ctx.runId, workflowId: ctx.templateId, costUsd: ctx.spentUsd === null ? null : ctx.spentUsd ?? 0 },
 });
 
 /* ───────────────────────────── fetch ───────────────────────────── */
@@ -156,13 +208,13 @@ export async function runFetch(step, ctx) {
 /* ──────────────────────────── llm-call ──────────────────────────── */
 
 /** One model call. No canned fallback — see runLlmCall on why a mock is poison here. */
-export async function chatOnce({ apiKey, keyRef = "OPENROUTER_API_KEY", secretSource = "env", model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal }) {
+export async function chatOnce({ apiKey, keyRef = "OPENROUTER_API_KEY", secretSource = "env", model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd }) {
   // `apiKey` is the legacy/default alias supplied by the CLI. A step-level
   // alias must resolve its own environment entry; silently reusing the default
   // key would charge/send as the wrong credential. Keychain resolution ignores
   // this env value and remains explicitly selected by secretSource.
   const selectedKey = keyRef === "OPENROUTER_API_KEY" ? apiKey : process.env[keyRef];
-  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal }, {env:{[keyRef]:selectedKey}});
+  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd }, {env:{[keyRef]:selectedKey}});
   return { ...result, usage:{...result.usage, model:result.provider.model ?? model} };
 }
 
@@ -183,6 +235,7 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
   const instructions = resolveTemplate(requireStr(step.config, "instructions", label), tctx(ctx));
   const role = str(step.config, "role");
 
+  const policy = llmCallPolicy(step.config, label);
   const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
   const secretSource = str(step.config, "secretSource") ?? "env";
   const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
@@ -207,24 +260,36 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     ctx.item !== undefined ? { item: ctx.item, index: ctx.itemIndex, steps: ctx.priorOutputs } : ctx.priorOutputs;
   const user = JSON.stringify(payload, null, 2).slice(0, 60_000);
 
-  const { content, usage } = await chatOnce({
-    apiKey: ctx.apiKey,
-    keyRef,
-    secretSource,
-    model,
-    system,
-    user,
-    maxTokens,
-    temperature: num(step.config, "temperature") ?? 0.3,
-    signal: ctx.signal,
-  });
+  let reply;
+  try {
+    reply = await chatOnce({
+      apiKey: ctx.apiKey,
+      keyRef,
+      secretSource,
+      model,
+      system,
+      user,
+      maxTokens,
+      temperature: num(step.config, "temperature") ?? 0.3,
+      signal: ctx.signal,
+      retries: policy.retries,
+      timeoutMs: policy.timeoutMs,
+      maxCallCostUsd: policy.maxCallCostUsd,
+    });
+  } catch (error) {
+    throw withSpend(error, model);
+  }
+  const { content, usage } = reply;
+  const { costUsd, costSource } = llmCost(usage, model);
 
   const wantJson = (oneOf(step.config, "format", ["text", "json"]) ?? "text") === "json";
   const parsed = wantJson ? parseJsonObject(content) : null;
   if (wantJson && !parsed) {
-    throw new Error(`"${label}": format=json, but the model returned non-JSON. First 200: ${content.slice(0, 200)}`);
+    const error = new Error(`"${label}": format=json, but the model returned non-JSON. First 200: ${content.slice(0, 200)}`);
+    error.spend = { costUsd, costSource, tokensIn: usage.tokensIn, tokensOut: usage.tokensOut };
+    throw error;
   }
-  return { output: parsed ?? { text: content, model }, tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0 };
+  return { output: parsed ?? { text: content, model }, tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, costUsd, costSource };
 }
 
 /* ────────────────────── approval-gate (human | agent) ────────────────────── */
@@ -264,6 +329,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
         `Either set the criterion, or switch reviewer to human.`,
     );
   }
+  const policy = llmCallPolicy(step.config, label);
   const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
   const secretSource = str(step.config, "secretSource") ?? "env";
   const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
@@ -287,11 +353,16 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
 
   if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override.");
 
-  const { content, usage } = await chatOnce({
+  let reply;
+  try {
+    reply = await chatOnce({
     apiKey: ctx.apiKey,
     keyRef,
     secretSource,
     model,
+    retries: policy.retries,
+    timeoutMs: policy.timeoutMs,
+    maxCallCostUsd: policy.maxCallCostUsd,
     system:
       "You are a strict validation gate in an autonomous factory. Judge the CANDIDATE against the RUBRIC. " +
       'Return ONLY one JSON object: {"pass": true|false, "reason": "one sentence"}. ' +
@@ -300,12 +371,16 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     maxTokens: Math.min(maxTokens, 300),
     temperature: 0,
     signal: ctx.signal,
-  });
+    });
+  } catch (error) {
+    throw withSpend(error, model);
+  }
+  const { content, usage } = reply;
 
   const verdict = parseJsonObject(content);
   const pass = verdict?.pass === true;
   const reason = typeof verdict?.reason === "string" ? verdict.reason : content.slice(0, 300);
-  const tokens = { tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0 };
+  const tokens = { tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, ...llmCost(usage, model) };
 
   if (pass) {
     return { output: { gate: { reviewer: "agent", anchor, rubric }, verdict: { pass: true, reason } }, ...tokens };
@@ -318,7 +393,9 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
       ...tokens,
     };
   }
-  throw new Error(`"${label}": the Agent-Gate did not pass — ${reason}`);
+  const refused = new Error(`"${label}": the Agent-Gate did not pass — ${reason}`);
+  refused.spend = { costUsd: tokens.costUsd, costSource: tokens.costSource, tokensIn: usage.tokensIn, tokensOut: usage.tokensOut };
+  throw refused;
 }
 
 /* ────────────────────────── api-request ────────────────────────── */

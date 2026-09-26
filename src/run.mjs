@@ -19,7 +19,7 @@
  * that ends in `api-request` is a complete workflow.
  */
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
-import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination } from "./steps.mjs";
+import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination, llmCallPolicy } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
 import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-steps.mjs";
 import { runWorkspaceRead, runSpecification, runWorkspaceApply, runVerifyArtifact, runDetermined, assertFreshWorkspaceArtifact } from "./registry-workspace-steps.mjs";
@@ -28,7 +28,6 @@ import { assertInferenceReply, invalidateInference } from "./caller-inference.mj
 import { resolveTemplate, missingEnvRefs } from "./template.mjs";
 import { num, str } from "./config.mjs";
 import { resolveTemplateValue } from "./template.mjs";
-import { usdForTokens } from "./cost.mjs";
 import { RunStore, newRunId } from "./state.mjs";
 import { hash, insist } from "./contracts.mjs";
 import { questions } from "./specification.mjs";
@@ -327,6 +326,24 @@ export async function driveRun(run, opts = {}) {
     const spent = run.steps.reduce((acc, s) => acc + Number(s.costUsd ?? 0), 0);
     const cliStep = next.kind === "llm-call" && next.config.provider === "cli";
     const paidKind = (next.kind === "llm-call" && !cliStep) || next.kind === "approval-gate";
+    /* An unknown cost (null) is not zero. With a ceiling set, the run cannot
+       prove it is under it, so the next paid step does not start. */
+    const unknownSpend = run.steps.find((s) => s.costUsd === null);
+    /* A human gate calls no model, so an unknown spend does not stop it; the
+       legacy spent >= ceiling check below still applies to it as before. */
+    const modelCall = paidKind && !(next.kind === "approval-gate" && (str(next.config, "reviewer") ?? "human") === "human");
+    if (modelCall && knobs.budgetUsd !== null && unknownSpend) {
+      next.status = "failed";
+      next.gateReason = "budget";
+      next.errorText = `Run budget cannot be checked: the cost of step "${unknownSpend.stepId}" is unknown (no provider cost and no known price for its model). Set budgetUsd to null to lift the ceiling on purpose, or use a model with a reported or known price.`;
+      next.startedAt = next.finishedAt = new Date().toISOString();
+      run.status = "failed";
+      run.summary = `Stopped by budget: spend is unknown against the $${knobs.budgetUsd.toFixed(4)} ceiling.`;
+      run.finishedAt = new Date().toISOString();
+      persist();
+      onStep(next);
+      return run;
+    }
     if (paidKind && knobs.budgetUsd !== null && spent >= knobs.budgetUsd) {
       next.status = "failed";
       next.gateReason = "budget";
@@ -352,7 +369,7 @@ export async function driveRun(run, opts = {}) {
       apiKey,
       /* What the run has spent BEFORE this step — the number {{run.costUsd}}
          resolves to. On the last api-request it is the run's whole cost. */
-      spentUsd: spent,
+      spentUsd: unknownSpend ? null : spent,
       /* Only present when there is somewhere to write. Without a store there is
          no `.qf/` and no fallback — the request goes out or it does not. */
       fileSink: store ? (body) => store.writeSink(run.runId, body) : null,
@@ -371,9 +388,22 @@ export async function driveRun(run, opts = {}) {
        outgoing request. It proves the manifest resolves and the order is what
        the author expected, and it says "planned", never "success". */
     if (dryRun) {
+      try {
+        next.output = plannedOutput(step, ctx, knobs);
+      } catch (e) {
+        /* An invalid call policy is reported by the dry run, not first by a paid run. */
+        next.status = "failed";
+        next.errorText = e instanceof Error ? e.message : String(e);
+        next.finishedAt = new Date().toISOString();
+        run.status = "failed";
+        run.summary = next.errorText;
+        run.finishedAt = next.finishedAt;
+        persist();
+        onStep(next);
+        return run;
+      }
       next.status = "planned";
       next.finishedAt = new Date().toISOString();
-      next.output = plannedOutput(step, ctx, knobs);
       persist();
       onStep(next);
       continue;
@@ -439,20 +469,24 @@ export async function driveRun(run, opts = {}) {
         for (const row of run.steps.filter(s => s.seq >= from.seq && s.seq <= next.seq)) { row.status = 'pending'; row.output = null; row.errorText = null; row.startedAt = null; row.finishedAt = null; }
         persist(); continue;
       }
-      const costUsd = result.costUsd ?? usdForTokens(result.tokensIn ?? 0, result.tokensOut ?? 0);
+      /* A model step reports its own cost: the provider's figure, the table
+         price of the model that answered, or null (unknown). Steps that call no
+         model cost nothing. No step is priced at another model's rate. */
+      const costUsd = "costUsd" in result ? result.costUsd : 0;
       next.status = result.waitingHuman ? "waiting_human" : "success";
       next.gateReason = result.waitingHuman ? "gate" : null;
       next.output = result.output;
       next.tokensIn = result.tokensIn ?? 0;
       next.tokensOut = result.tokensOut ?? 0;
-      next.costUsd = result.unknownUsage ? null : Number(costUsd.toFixed(4));
+      next.costUsd = result.unknownUsage || costUsd === null ? null : roundUsd(costUsd);
+      if (result.costSource) next.costSource = result.costSource;
       if (result.provider) next.provider = result.provider;
       if (result.unknownUsage) { next.tokensIn = null; next.tokensOut = null; }
       next.finishedAt = result.waitingHuman ? null : new Date().toISOString();
 
       run.tokensIn = run.tokensIn === null || next.tokensIn === null ? null : run.tokensIn + next.tokensIn;
       run.tokensOut = run.tokensOut === null || next.tokensOut === null ? null : run.tokensOut + next.tokensOut;
-      run.costUsd = run.costUsd === null || next.costUsd === null ? null : Number((run.costUsd + next.costUsd).toFixed(4));
+      run.costUsd = run.costUsd === null || next.costUsd === null ? null : roundUsd(run.costUsd + next.costUsd);
       persist();
       onStep(next);
 
@@ -472,6 +506,7 @@ export async function driveRun(run, opts = {}) {
         return run;
       }
       if (opts.signal?.aborted) {
+        recordSpend(run, next, e?.spend);
         next.status = "failed";
         next.errorText = "Run cancelled.";
         next.finishedAt = new Date().toISOString();
@@ -485,6 +520,7 @@ export async function driveRun(run, opts = {}) {
       next.status = "failed";
       next.errorText = e instanceof Error ? e.message : String(e);
       next.finishedAt = new Date().toISOString();
+      recordSpend(run, next, e?.spend);
       run.status = "failed";
       run.summary = next.errorText;
       run.finishedAt = new Date().toISOString();
@@ -493,6 +529,24 @@ export async function driveRun(run, opts = {}) {
       return run;
     }
   }
+}
+
+/** USD kept to the micro-dollar: a cheap model's real cost must not round to zero. */
+function roundUsd(value) {
+  return Number(value.toFixed(6));
+}
+
+/* A paid call that was billed and then failed (truncated, empty, over its cap,
+   refused by an Agent-Gate) still spent money. The step and the run record it. */
+function recordSpend(run, row, spend) {
+  if (!spend || typeof spend !== "object") return;
+  row.costUsd = spend.costUsd === null ? null : roundUsd(spend.costUsd);
+  row.costSource = spend.costSource;
+  row.tokensIn = spend.tokensIn ?? null;
+  row.tokensOut = spend.tokensOut ?? null;
+  run.costUsd = run.costUsd === null || row.costUsd === null ? null : roundUsd(run.costUsd + row.costUsd);
+  run.tokensIn = run.tokensIn === null || row.tokensIn === null ? null : run.tokensIn + row.tokensIn;
+  run.tokensOut = run.tokensOut === null || row.tokensOut === null ? null : run.tokensOut + row.tokensOut;
 }
 
 async function dispatch(step, ctx, knobs) {
@@ -522,14 +576,19 @@ async function dispatch(step, ctx, knobs) {
 function plannedOutput(step, ctx, knobs) {
   const label = stepLabel(step);
   if (step.kind === "llm-call") {
-    return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step) };
+    if (step.config.provider === "cli") return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step) };
+    const { retries, timeoutMs, maxCallCostUsd } = llmCallPolicy(step.config, label);
+    return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step), retries, maxAttempts: retries + 1, timeoutSec: timeoutMs / 1000, maxCallCostUsd: maxCallCostUsd ?? null };
   }
   if (step.kind === "fetch" || step.kind === "api-request") {
     const raw = str(step.config, "url") ?? "";
     return { planned: true, step: label, url: raw, method: str(step.config, "method") ?? (step.kind === "fetch" ? "GET" : "POST") };
   }
   if (step.kind === "approval-gate") {
-    return { planned: true, step: label, reviewer: str(step.config, "reviewer") ?? "human" };
+    const reviewer = str(step.config, "reviewer") ?? "human";
+    if (reviewer !== "agent") return { planned: true, step: label, reviewer };
+    const { retries, timeoutMs, maxCallCostUsd } = llmCallPolicy(step.config, label);
+    return { planned: true, step: label, reviewer, model: stepModel(step, knobs), retries, maxAttempts: retries + 1, timeoutSec: timeoutMs / 1000, maxCallCostUsd: maxCallCostUsd ?? null };
   }
   return { planned: true, step: label };
 }

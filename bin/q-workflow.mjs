@@ -437,7 +437,7 @@ const CATALOG_SECTIONS = new Set(["workflows", "components", "demos"]);
 function printWorkflows(workflows) {
   process.stdout.write(`${c.bold(`${workflows.length} workflows ship with q-core ${PKG.version}`)}\n\n`);
   for (const l of workflows) {
-    const cost = l.measured ? `$${l.measured.costUsd.toFixed(4)}/run` : "not measured yet";
+    const cost = !l.measured ? "not measured yet" : l.measured.costUsd === null ? "cost unknown" : `$${l.measured.costUsd.toFixed(4)}/run`;
     const shape = l.fansOut ? `${l.steps} steps, a lane per item (max ${l.maxItems})` : `${l.steps} steps`;
     process.stdout.write(`  ${c.bold(l.id)} ${c.dim(`· ${shape} · ${cost}`)}\n`);
     process.stdout.write(`    ${l.description}\n`);

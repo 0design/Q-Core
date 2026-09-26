@@ -41,13 +41,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -129,13 +129,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -214,13 +214,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         },
         {
           "id": "approval-gate",
@@ -307,13 +307,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -396,13 +396,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -483,13 +483,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -565,7 +565,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -575,7 +575,7 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -656,13 +656,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -743,7 +743,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -753,7 +753,7 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         }
       ],
       "permissions": {
@@ -829,7 +829,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -904,7 +904,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -961,7 +961,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1036,7 +1036,7 @@
       "description": "Turn a podcast transcript into a timestamped Ukrainian digest with the fixed Saturday header, stopping at your approval.",
       "value": "Turn a podcast transcript into a timestamped Ukrainian digest with the fixed Saturday header, stopping at your approval.",
       "file": "workflows/podcast-digest.yaml",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -1046,13 +1046,13 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.1"
+          "version": "1.1.0"
         },
         {
           "id": "parse-web",
@@ -1093,7 +1093,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "2f7072f5994cf0767558b902b54db88f29688a41b3096a137f728aaa3cf11ee9",
+      "sha256": "2c8a3cfbb44e9a68e85df4441a90655cb38e7766505ee4b063e944a22f2cc699",
       "steps": 7,
       "kinds": [
         "fetch",
@@ -1129,7 +1129,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1257,7 +1257,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1294,7 +1294,7 @@
       "id": "llm-call-openrouter",
       "name": "llm-call/openrouter",
       "kind": "step",
-      "description": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+      "description": "OpenRouter inference with an explicit model, a local secret reference from the environment or the macOS Keychain, bounded retries and timeout, an optional per-call money cap, and the provider's own cost in the run record. This is not the current CLI agent.",
       "input": {
         "instructions": {
           "type": "string",
@@ -1325,6 +1325,31 @@
           "type": "string",
           "required": false,
           "notes": "overrides the workflow's model."
+        },
+        "secretSource": {
+          "type": "string",
+          "required": false,
+          "notes": "env | keychain. Default env. keychain reads the key from the local macOS Keychain (service com.qfactory.q-core.openrouter, account openrouter:<keyRef>; store it with q-core auth set openrouter); the key never appears in the workflow, environment or run record."
+        },
+        "keyRef": {
+          "type": "string",
+          "required": false,
+          "notes": "Uppercase secret alias, default OPENROUTER_API_KEY. With secretSource env it names the environment variable; with keychain it names the Keychain entry."
+        },
+        "retries": {
+          "type": "number",
+          "required": false,
+          "notes": "0..5, default 2. At most retries + 1 billable attempts; retried only on network, timeout, 429 and 5xx. Out of range fails the step before the key is read."
+        },
+        "timeoutSec": {
+          "type": "number",
+          "required": false,
+          "notes": "1..600 seconds per attempt, default 90."
+        },
+        "maxCallCostUsd": {
+          "type": "number",
+          "required": false,
+          "notes": "Optional per-call money cap in USD, (0, 100]. The worst case of every attempt at the model's listed price must fit, or the call is not made (COST_LIMIT); a model with no listed price is refused (COST_UNKNOWN)."
         }
       },
       "output": {
@@ -1339,6 +1364,10 @@
         "json": {
           "type": "object",
           "notes": "When format: json, the output is the parsed object instead of {text, model}."
+        },
+        "costUsd": {
+          "type": "number | null",
+          "notes": "Run record: costUsd is the provider's reported cost (costSource provider), else the listed price of the model that answered (rate-table), else null (unknown). A finite budgetUsd stops the next paid step while any cost is unknown."
         }
       },
       "needsEnv": [
@@ -1355,7 +1384,7 @@
         "release-watch"
       ],
       "author": "0design",
-      "version": "1.0.1",
+      "version": "1.1.0",
       "license": "MIT",
       "origin": {
         "repository": "0design/QFactory.io",
@@ -1364,7 +1393,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1381,14 +1410,14 @@
       },
       "file": "components/llm-call-openrouter.json",
       "runtimeKind": "llm-call",
-      "value": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+      "value": "OpenRouter inference with an explicit model, a local secret reference from the environment or the macOS Keychain, bounded retries and timeout, an optional per-call money cap, and the provider's own cost in the run record. This is not the current CLI agent.",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
       "builtinDependencies": [],
-      "sha256": "190747c5580aefc0591bed8352908d7a7e7d74750850e24ba4a9156e195ed1eb"
+      "sha256": "a94fa3e2aa1cdc19cb5a551bc401af23b5514858e5cecc7d5e306160a89bc51b"
     },
     {
       "id": "telegram-publish",
@@ -1433,7 +1462,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1470,7 +1499,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1509,7 +1538,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1548,7 +1577,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1596,7 +1625,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1635,7 +1664,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1674,7 +1703,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1713,7 +1742,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1743,7 +1772,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1772,7 +1801,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1804,7 +1833,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1843,7 +1872,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1882,7 +1911,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1942,7 +1971,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1984,7 +2013,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2026,7 +2055,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2062,7 +2091,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2095,7 +2124,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.32",
+        "version": "0.2.0-q-core.33",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2115,20 +2144,20 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.26-registry.18-candidate",
+  "releaseVersion": "2026.09.26-registry.19-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.32",
+    "version": "0.2.0-q-core.33",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.32.tgz",
-    "artifactSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e",
-    "integrity": "sha512-1bFpfPMQMAVAu/aRm2gQlNvnfq023aF4GmIsVBCwnQrhEnqAtM6JRagk416QLQ7qHrYhXW4nBe0vtSbFnVsJJw==",
-    "schemaSha256": "5f5ad7d0851b7650273193d907f9719139b2e96291c5d2240fa7ade0e22d6226",
+    "artifact": "vendor/q-core-0.2.0-q-core.33.tgz",
+    "artifactSha256": "21a5a8d7d0b10644ddb98a41a7b5f5877300ee424005f99d3d887f8fd8528390",
+    "integrity": "sha512-pC5Ph4vzJ0/y4KFf2x+sTIWtUXfUB4zihO1kQ/mAZhUATT/8QpzE5Vk4a2V/ZMVdn+S/RUYSJuLH2LEBQxEiQw==",
+    "schemaSha256": "f7c1d618c8fd1309b26cddd67af04e9652d17af73f59aa7b10a0ed7e19d33d96",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.32 successor of Core.31: verify-sources adds citation by [mm:ss] transcript markers (each must exist in the selected sources, every item cited, no other time format) and forbidLocalLinks; setext and link-title false refusals fixed. Same manifest validator, YAML parser, SPEC and request schema",
+    "source": "Core.33 successor of Core.32: the manifest llm-call and agent approval-gate route takes explicit retries (0..5), timeoutSec (1..600) and an optional maxCallCostUsd cap; a model step records the provider's reported cost, else the listed price of the model that answered, else null (unknown), never another model's rate; a finite budget stops the next paid step while any cost is unknown; a billed call that then fails keeps its cost. Same manifest validator, YAML parser and request schema; SPEC-MANIFEST documents the new fields",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -2555,7 +2584,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.32",
+          "version": "0.2.0-q-core.33",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2650,7 +2679,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.32",
+          "version": "0.2.0-q-core.33",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2751,7 +2780,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.32",
+          "version": "0.2.0-q-core.33",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2820,7 +2849,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.32",
+          "version": "0.2.0-q-core.33",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -2911,5 +2940,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "019e8c3f963dd7db9b81b443295d3c83670a8f50b374b1828a81bba3659ed691"
+  "releaseSha256": "3f7d17eee714dcf718a95ff50b68b015112189b7169895a8c27e1efe882f9e91"
 }

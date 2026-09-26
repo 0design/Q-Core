@@ -45,7 +45,8 @@ const envValue = (name, fallback) => {
  * for $0.0006" line instead of a number somebody typed in once and forgot.
  *
  * It is a running total, not a forecast: a step in the middle sees only what
- * came before it, which is the only number that is actually known there.
+ * came before it, which is the only number that is actually known there. It is
+ * rendered with six decimals, and as "unknown" when any earlier step's cost is.
  */
 const RUN_RE = /\{\{\s*run\.(id|workflowId|costUsd)\s*\}\}/g;
 
@@ -105,8 +106,11 @@ export function resolveTemplate(text, ctx) {
   const withEnv = withItems.replace(ENV_RE, (match, name, fallback) => envValue(name, fallback) ?? match);
   return withEnv.replace(RUN_RE, (match, field) => {
     const v = ctx.run?.[field];
+    /* An unknown spend is said out loud, never rendered as $0: a post must not
+       carry a cost line that the run could not measure. */
+    if (field === "costUsd" && v === null) return "unknown";
     if (v === undefined || v === null) return match;
-    return field === "costUsd" ? Number(v).toFixed(4) : String(v);
+    return field === "costUsd" ? Number(v).toFixed(6) : String(v);
   });
 }
 

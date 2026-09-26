@@ -26,7 +26,7 @@ function validatePolicy(timeoutMs, retries, delaysMs) {
 /** Returns headers; callers must consume the final body. Retries replay the
  * request, so side-effecting callers must supply their own idempotency policy. */
 export async function fetchWithRetry(url, init = {}, {
-  timeoutMs = 30_000, retries = 2, delaysMs = RETRY_DELAYS_MS,
+  timeoutMs = 30_000, retries = 2, delaysMs = RETRY_DELAYS_MS, onAttemptError,
 } = {}) {
   validatePolicy(timeoutMs, retries, delaysMs);
   const callerSignal = init.signal;
@@ -38,6 +38,9 @@ export async function fetchWithRetry(url, init = {}, {
     try {
       response = await fetch(url, { ...init, signal });
     } catch (error) {
+      // An attempt that ended without a response (timeout, dropped connection,
+      // cancellation) may still have been processed — and billed — upstream.
+      onAttemptError?.(error);
       // A caller's cancellation is final, even if its reason resembles a timeout.
       callerSignal?.throwIfAborted();
       if (!isRetryableNetwork(error) || attempt === retries) throw error;

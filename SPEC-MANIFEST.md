@@ -107,8 +107,18 @@ Three distinct states, and they mean different things:
 | `budgetUsd: 0.10` | that ceiling |
 | `budgetUsd: null` | no ceiling, **lifted on purpose** |
 
-The rate is the same table the product bills on (`src/cost.mjs`), so a manifest
-costs the same in both homes.
+A model step's cost is, in order: the provider's own reported cost
+(`usage.cost`, `costSource: provider`) → the listed price of the model that
+actually answered (`src/cost.mjs`, `costSource: rate-table`) → **unknown**
+(`costUsd: null`, `costSource: unknown`). An unlisted model is never billed at
+another model's rate. A 4xx/429/5xx answer is treated as not billed; an attempt
+that ended without a readable answer (timeout, dropped connection, cancellation,
+unreadable body) may have been billed, so that call's cost is unknown even if a
+retry succeeded. Unknown is not zero: with a ceiling set, the next model call
+(`llm-call`, agent `approval-gate`) does not start while any step's cost is
+unknown (`gateReason: budget`), and `{{run.costUsd}}` renders `unknown`. Lift the
+ceiling on purpose (`budgetUsd: null`) to run such steps anyway. A billed call
+that then fails (truncated, empty, over its cap) keeps its cost in the run.
 
 ### 4.3 Sensitivity (knob 1) — REFUSED by this runner
 
@@ -171,6 +181,18 @@ The RSS reader is regex-based, not an XML parser. It handles CDATA, `<item>` and
 | `temperature` | | default 0.3 |
 | `role` | prepended as "You are the ⟨role⟩ agent…" | |
 | `model` | overrides the workflow's model | |
+| `secretSource` | `env` \| `keychain` | default `env` |
+| `keyRef` | uppercase secret alias | default `OPENROUTER_API_KEY` |
+| `retries` | 0..5, at most `retries + 1` billable attempts | default 2 |
+| `timeoutSec` | 1..600, per attempt | default 90 |
+| `maxCallCostUsd` | per-call money cap, (0, 100] | none |
+
+`retries`, `timeoutSec` and `maxCallCostUsd` apply to an agent `approval-gate` too.
+They are checked before the key is read or anything is sent, and `--dry-run`
+reports them; an out-of-range value fails the step, it is never clamped.
+`maxCallCostUsd` refuses a call whose worst case (prompt bytes + `maxTokens`, every
+attempt) exceeds the cap at the model's listed price, and refuses a model with no
+listed price rather than guessing (`COST_UNKNOWN`).
 
 The step's **input is every prior successful output**, as JSON, capped at 60 000
 characters. Inside a fan-out lane, its own item comes first.
@@ -310,9 +332,10 @@ that goes into git — "share the workflow" must not mean "share the bot token".
 
 - A failed step **stops the run**. `.qf/last-run.json` records the status, the
   reason and the failing step; the process exits non-zero.
-- **Fixed runtime retries, not manifest-configurable.** Fetch, model and API
-  requests retry transient network/timeout/429/5xx failures twice, with 1.5s/4s
-  backoff. Other 4xx fail immediately. Exhaustion remains a failure. Body parsing
+- **Runtime retries.** Fetch, model and API requests retry transient
+  network/timeout/429/5xx failures twice, with 1.5s/4s backoff. A model step
+  (`llm-call`, agent `approval-gate`) sets its own `retries` (0..5); fetch and API
+  retries are not manifest-configurable. Other 4xx fail immediately. Exhaustion remains a failure. Body parsing
   failures are not retried. Explicit transport cancellation does not retry.
 - **No idempotency key.** A retry after an ambiguous response or a re-run can
   repeat outgoing writes. Publishing requires receiver de-duplication; this
