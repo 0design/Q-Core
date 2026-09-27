@@ -286,7 +286,7 @@ test("review P2: the approval preview shows the fact-check summary; the limitati
   const quote = ["Two-thirds raised their hands", "invented words that are nowhere"];
   const out = check(read, IT_ITEM("Дві третини з близько 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "revised", reason: "about", sources: [IT], quote }).output;
   const preview = JSON.stringify(out, null, 2).split("\n").slice(0, 40).join("\n");
-  assert.match(preview, /"factCheckSummary": "1 claims: 0 supported, 1 revised, 0 removed; review: 0 revised, 0 removed; articles read for 3 of 3 sources; quotes not found in the source, set aside: item 1 «invented words that are nowhere»"/);
+  assert.match(preview, /"factCheckSummary": "1 claims: 0 supported, 1 revised, 0 removed; review: 0 revised, 0 removed, 0 rejected; articles read for 3 of 3 sources; quotes not found in the source, set aside: item 1 «invented words that are nowhere»"/);
   assert.match(out.limitation, /verbatim in the article \(where parse-web articles read it\), title or summary/);
   const summaryOnly = { ...read, sources: read.sources.map(({ articleStatus, articleText, ...s }) => s) };
   const plain = check(summaryOnly, IT_ITEM("Дві третини з 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "supported", sources: [IT], quote: ["Two-thirds raised their hands"] }).output;

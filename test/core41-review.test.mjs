@@ -1,4 +1,4 @@
-/* Core41: a second, narrow reviewer after the fact check (owner decision 27.09, option c). A model call looks only for
+/* Core41: a second, narrow reviewer (edits applied one by one after review round 1 of PR #34) after the fact check (owner decision 27.09, option c). A model call looks only for
    overstatement, scope, attribution, generalisation and entity problems and returns a small patch; verify-sources
    applies it deterministically before every other check, which then runs on the edited text. The fixture is live run
    05a7f579 (Digest 0.7.0): its checks passed, and an independent fact-check against the full articles found 5 wording
@@ -15,23 +15,25 @@ const RUN = JSON.parse(readFileSync(resolve("test/fixtures/digest-run-05a7f579.j
 const DIGEST = loadManifest(resolve("registry/workflows/digest.yaml"));
 const CHECKS = DIGEST.steps.find((s) => s.id === "checks").config;
 const url = (part) => RUN.sources.find((s) => s.url.includes(part)).url;
-const VERGE = url("openai-training-pause"), SOL = url("sol-pi"), EXA = url("exa-launches"), STUDY = url("i-dont-know"), META = url("meta-connect");
+const VERGE = url("openai-training-pause"), SOL = url("sol-pi"), EXA = url("exa-launches"), STUDY = url("i-dont-know"), META = url("meta-connect"), TC = url("unsecured-openai");
 
 // The patch a reviewer should return for 05a7f579: the 5 defects of the independent fact-check.
+const LINES = RUN.factcheck.text.split("\n").filter((l) => /^\s*- /.test(l)).map((l) => l.replace(/^\s*- /, ""));
+const before = (item) => LINES[item - 1].slice(0, 40);
 const PATCH = { edits: [
-  { item: 2, action: "revise", problem: "scope", reason: "The body pauses training, evaluation and inference with tool use, not all training; a loophole is «лазівка», not «вада».",
+  { item: 2, before: before(2), action: "revise", problem: "scope", reason: "The body pauses training, evaluation and inference with tool use, not all training; a loophole is «лазівка», not «вада».",
     text: `OpenAI призупинила навчання, оцінку та інференс з використанням інструментів для найпотужніших моделей після того, як тестова модель у пісочниці скористалася лазівкою й вийшла в інтернет ([The Verge](${VERGE}))`,
     quote: ["“All training, evaluation, and inference with tool-use” remains paused", "exploited a loophole to gain internet access", "pause training of its most powerful models"] },
-  { item: 5, action: "revise", problem: "attribution", reason: "The researchers' result on EdgeBench's public tasks; «до 49%» read as the level reached.",
+  { item: 5, before: before(5), action: "revise", problem: "attribution", reason: "The researchers' result on EdgeBench's public tasks; «до 49%» read as the level reached.",
     text: `За даними дослідників Nvidia, SoL-Pi на 51 публічному завданні EdgeBench скорочує використання токенів агентами для програмування майже вдвічі без істотної втрати якості ([The Decoder](${SOL}))`,
     quote: ["Token usage drops by almost half while performance stays roughly the same, according to the researchers", "On EdgeBench's 51 public tasks, SoL-Pi performs about as well as the original Pi harness"] },
-  { item: 6, action: "revise", problem: "attribution", reason: "Vendor-reported results on 4 named benchmarks, not «власні тести»; «вичерпної побудови».",
+  { item: 6, before: before(6), action: "revise", problem: "attribution", reason: "Vendor-reported results on 4 named benchmarks, not «власні тести»; «вичерпної побудови».",
     text: `Exa випустила Agent Ultra — рій підагентів для вичерпної побудови списків, що, за даними компанії, перевершує Opus 5.5, GPT-6 Astra та Perplexity Agent у 4 бенчмарках ([MarkTechPost](${EXA}))`,
     quote: ["Exa team reports that Ultra beats Opus 5.5, GPT-6 Astra, and Perplexity Agent, each at maximum effort, on 4 research benchmarks", "All results are vendor-reported and not yet independently reproduced"] },
-  { item: 8, action: "revise", problem: "scope", reason: "Five experiments on questions chosen so that the AI was almost always wrong; not a property of AI in general.",
+  { item: 8, before: before(8), action: "revise", problem: "scope", reason: "Five experiments on questions chosen so that the AI was almost always wrong; not a property of AI in general.",
     text: `У п'яти експериментах з питаннями, на які модель майже завжди відповідала неправильно, доступ до AI майже повністю позбавив учасників готовності відповісти «не знаю» ([The Decoder](${STUDY}))`,
     quote: ["Researchers ran five experiments with 3,132 participants", "Just having AI advice available nearly wiped out people's willingness to say \"I don't know.\"", "picked questions where the model they used, Step 3.5 Flash , was almost always wrong"] },
-  { item: 3, action: "keep" },
+  { item: 3, before: before(3), action: "keep" },
 ] };
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const check = (review, { config = CHECKS, factcheck = RUN.factcheck } = {}) =>
@@ -39,78 +41,109 @@ const check = (review, { config = CHECKS, factcheck = RUN.factcheck } = {}) =>
 const patched = (edits) => ({ edits });
 const edit = (item, patch) => ({ ...clone(PATCH.edits.find((e) => e.item === item)), ...patch });
 
-test("05a7f579 with the review patch: the 5 defects are fixed and every check passes on the edited text", () => {
+const remove = (item, reason = "x", problem = "scope") => ({ item, before: before(item), action: "remove", problem, reason });
+
+test("05a7f579 with the review patch: the 5 defects are fixed, every edit accepted, every check passes on the edited text", () => {
   const out = check(PATCH).output;
   assert.ok(out.checks.includes("reviewed-for-overstatement") && out.checks.includes("fact-checked-claims"), out.checks.join());
   for (const kept of ["compact-links", "nested-item-word-limits", "nested-item-sentences", "outlet-link-text", "no-forbidden-phrases", "nested-order-by-cluster"]) assert.ok(out.checks.includes(kept), kept);
   assert.match(out.text, /призупинила навчання, оцінку та інференс з використанням інструментів/);
   assert.match(out.text, /скористалася лазівкою/);
   assert.doesNotMatch(out.text, /вадою|вичерпного побудови|власних тестах|AI часто помиляється|до 49%/);
-  assert.match(out.text, /За даними дослідників Nvidia, SoL-Pi на 51 публічному завданні EdgeBench/);
-  assert.deepEqual([out.review.revised, out.review.removed, out.review.kept], [4, 0, 1]);
+  assert.deepEqual([out.review.revised, out.review.removed, out.review.kept, out.review.rejected.length], [4, 0, 1, 0]);
   assert.deepEqual(out.review.edits.map((e) => [e.item, e.action, e.problem ?? null]), [[2, "revise", "scope"], [3, "keep", null], [5, "revise", "attribution"], [6, "revise", "attribution"], [8, "revise", "scope"]]);
   assert.match(out.review.edits[0].before, /скористалася вадою/);
   const claim = out.factCheck.claims.find((c) => c.item === 8);
   assert.equal(claim.verdict, "revised");
   assert.match(claim.reason, /^review scope: Five experiments/);
-  assert.match(out.factCheckSummary, /review: 4 revised, 0 removed/);
-  // The approval preview (first 40 lines) shows the review counts.
-  assert.match(JSON.stringify(out, null, 2).split("\n").slice(0, 40).join("\n"), /review: 4 revised, 0 removed/);
+  assert.match(out.factCheckSummary, /review: 4 revised, 0 removed, 0 rejected/);
+  assert.match(JSON.stringify(out, null, 2).split("\n").slice(0, 40).join("\n"), /review: 4 revised, 0 removed, 0 rejected/);
 });
 
 test("an empty patch keeps the fact-checked text: the defects pass the deterministic layer (the reviewer is model judgement)", () => {
   const out = check({ edits: [] }).output;
   assert.match(out.text, /скористалася вадою/);
   assert.match(out.text, /AI часто помиляється/);
-  assert.deepEqual([out.review.revised, out.review.removed], [0, 0]);
+  assert.deepEqual([out.review.revised, out.review.removed, out.review.rejected.length], [0, 0, 0]);
 });
 
-test("remove: an item goes and its claim becomes a removed claim; a theme goes only with all its cases", () => {
-  const out = check(patched([{ item: 9, action: "remove", problem: "overstatement", reason: "The article does not say the glasses keep users constantly connected." }])).output;
-  assert.doesNotMatch(out.text, /смарт-окуляри/);
-  assert.equal(out.factCheck.claims.filter((c) => c.verdict !== "removed").length, 9, "items renumbered 1..9");
-  assert.ok(out.factCheck.claims.some((c) => c.item === 9 && /Федоров|Армія роботів/.test(out.text)));
-  assert.equal(out.factCheck.claims.find((c) => c.verdict === "removed").reason, "review overstatement: The article does not say the glasses keep users constantly connected.");
-  assert.match(out.factCheckSummary, /review: 0 revised, 1 removed/);
-  // A theme with a remaining case is refused; the theme with all its cases goes as a group.
-  assert.throws(() => check(patched([{ item: 4, action: "remove", problem: "generalisation", reason: "x" }])), /Review removes list item 4, which has sub-items; remove all of them in the same review \(item 5 is kept\)/);
-  const group = [4, 5, 6, 7].map((item) => ({ item, action: "remove", problem: "generalisation", reason: "the theme is broader than its cases" }));
-  const gone = check(patched(group)).output;
+test("review round 1 P1: removing one case keeps its theme; the theme's record keeps only the sources its cases still link", () => {
+  const three = check(patched([remove(3, "unlisted links, not public")])).output;
+  assert.doesNotMatch(three.text, /53 зображення/);
+  assert.deepEqual(three.factCheck.claims.find((c) => c.item === 1).sources, [VERGE], "item 3's URL left theme 1's record");
+  const removedClaim = three.factCheck.claims.find((c) => c.verdict === "removed");
+  assert.equal(removedClaim.text, LINES[2], "the removed claim is exactly the removed line");
+  assert.equal(three.review.edits[0].before, LINES[2]);
+  assert.equal(three.factCheck.claims.filter((c) => c.verdict !== "removed").length, 9, "items renumbered 1..9");
+  const seven = check(patched([remove(7, "not an agent system")])).output;
+  assert.doesNotMatch(seven.text, /Julia 1/);
+  assert.deepEqual(seven.factCheck.claims.find((c) => c.item === 4).sources, [SOL, EXA]);
+  assert.equal(seven.review.rejected.length, 0);
+  // Removing the only case that grounds the theme's quote needs the theme revised in the same review.
+  const alone = check(patched([remove(2, "pause scope")])).output;
+  assert.deepEqual(alone.review.rejected.map((r) => [r.item, r.action]), [[2, "remove"]]);
+  assert.match(alone.review.rejected[0].error, /theme item 1 stands on sources its remaining cases no longer link; revise the theme in the same review/);
+  assert.match(alone.text, /скористалася вадою/, "the rejected edit leaves the fact-checked line");
+  assert.match(alone.factCheckSummary, /review: 0 revised, 0 removed, 1 rejected/);
+  const theme = { item: 1, before: before(1), action: "revise", problem: "generalisation", reason: "Only the unsecured agents remain.", sources: [TC], text: "Незахищені дослідницькі агенти OpenAI діяли без відома лабораторії", quote: ["Unsecured OpenAI agents posted 53 user images on the internet without the lab's knowledge"] };
+  const both = check(patched([remove(2, "pause scope"), theme])).output;
+  assert.deepEqual([both.review.removed, both.review.revised, both.review.rejected.length], [1, 1, 0], "the removal is retried after the theme revision");
+  assert.doesNotMatch(both.text, /вадою/);
+});
+
+test("remove: a theme goes only with all its cases; a review never removes every item", () => {
+  const lone = check(patched([remove(4, "x", "generalisation")])).output;
+  assert.match(lone.review.rejected[0].error, /removes list item 4, which has sub-items; remove all of them in the same review \(item 5 is kept\)/);
+  const gone = check(patched([4, 5, 6, 7].map((item) => remove(item, "the theme is broader than its cases", "generalisation")))).output;
   assert.doesNotMatch(gone.text, /SoL-Pi|Agent Ultra|Julia 1|агентних AI-систем/);
-  assert.equal(gone.review.removed, 4);
-  // Removing every case but keeping the theme leaves a theme without links: the checks refuse it.
-  assert.throws(() => check(patched([5, 6, 7].map((item) => ({ item, action: "remove", problem: "scope", reason: "x" })))), /Every thesis needs a link to a selected source; uncited: Нові розробки/);
+  assert.deepEqual([gone.review.removed, gone.review.rejected.length], [4, 0]);
+  const all = check(patched(Array.from({ length: 10 }, (_, i) => remove(i + 1)))).output;
+  assert.ok(all.review.rejected.some((r) => /a review may not remove every item of the digest/.test(r.error)), JSON.stringify(all.review.rejected));
+  assert.match(all.text, /\n- \S/, "at least one item stays");
+  // Removing every case but keeping the theme leaves a theme without links: rejected, the cases stay.
+  const orphan = check(patched([5, 6, 7].map((item) => remove(item)))).output;
+  assert.ok(orphan.review.rejected.length > 0 && orphan.review.rejected.every((r) => /Every thesis needs a link|theme item 4/.test(r.error)), JSON.stringify(orphan.review.rejected));
+  assert.match(orphan.text, /Supersonic Labs|SoL-Pi|Agent Ultra/);
 });
 
-test("a malformed patch refuses the run: unknown or duplicate items, unknown actions, missing fields", () => {
+test("review round 1 P2: a malformed or failing edit is rejected with its reason; the other edits still apply", () => {
+  const good = PATCH.edits[3];
   const cases = {
-    "an item that does not exist": [[{ item: 11, action: "remove", problem: "scope", reason: "x" }], /names list item 11, which is not an item of the fact-checked text \(1\.\.10\); a review adds no items/],
-    "item 0": [[{ item: 0, action: "keep" }], /names list item 0/],
-    "two edits of one item": [[edit(2, {}), edit(2, {})], /list item 2 has more than one review edit/],
-    "an unknown action": [[{ item: 2, action: "add", problem: "scope", reason: "x" }], /action «add»; an edit is keep, revise or remove/],
-    "no problem class": [[edit(2, { problem: "style" })], /names the problem «style»/],
-    "no reason": [[edit(2, { reason: "" })], /\(revise\) needs a reason/],
-    "no quote": [[edit(2, { quote: [] })], /needs the verbatim quotes that support the new wording/],
-    "two lines": [[edit(2, { text: "Рядок один\n  - Рядок два" })], /needs its new text on one line/],
-  };
-  for (const [name, [edits, error]] of Object.entries(cases)) assert.throws(() => check(patched(edits)), error, name);
-  assert.throws(() => check({ nothing: true }), /review must reference a review output \{edits:\[\.\.\.\]\}/);
-  const { factCheck, ...noFact } = CHECKS;
-  assert.throws(() => check(PATCH, { config: noFact }), /review requires factCheck and nestedList/);
-});
-
-test("a revised line is checked like any item: its quote, numbers, links, length and one sentence", () => {
-  const cases = {
-    "a quote that is not in the article": [edit(8, { quote: ["the AI was wrong in most real-world use"] }), /List item 8: the quote is not in the text of its linked sources/],
+    "an item that does not exist": [{ item: 11, before: "x".repeat(30), action: "remove", problem: "scope", reason: "x" }, /names list item 11, which is not an item of the fact-checked text \(1\.\.10\); a review adds no items/],
+    "an unknown action": [{ item: 2, before: before(2), action: "add", problem: "scope", reason: "x" }, /action is «add»; an edit is keep, revise or remove/],
+    "no problem class": [edit(2, { problem: "style" }), /problem «style»/],
+    "no reason": [edit(2, { reason: "" }), /a revise edit needs a reason/],
+    "no quote": [edit(2, { quote: [] }), /needs the verbatim quotes that support the new wording/],
+    "two lines": [edit(2, { text: "Рядок один\n  - Рядок два" }), /needs the new text on one line/],
+    "a before that is another item's line": [edit(2, { before: before(3) }), /its before .* is not the start of list item 2/],
+    "a short before": [edit(2, { before: "OpenAI" }), /is not the start of list item 2/],
+    "no before": [(({ before: _b, ...e }) => e)(edit(2, {})), /is not the start of list item 2/],
+    "a keep with a new text": [{ item: 3, before: before(3), action: "keep", text: "інший текст" }, /a keep edit carries no text/],
+    "a quote that is not in the article": [edit(5, { quote: ["researchers cut tokens on every benchmark"] }), /the quote is not in the text of its linked sources/],
     "a number the article does not state": [edit(5, { text: PATCH.edits[1].text.replace("51 публічному", "60 публічних") }), /states «60»/],
     "a bound dropped («almost half» as «вдвічі»)": [edit(5, { text: PATCH.edits[1].text.replace("майже вдвічі", "вдвічі") }), /states «вдвічі» exactly; its source says «almost/],
     "a case without its link": [edit(6, { text: PATCH.edits[2].text.replace(/ \(\[MarkTechPost\]\([^)]*\)\)$/, "") }), /Every thesis needs a link to a selected source; uncited: Exa випустила/],
-    "a theme given a link": [{ item: 4, action: "revise", problem: "generalisation", reason: "x", text: `Нові системи для агентів ([The Decoder](${SOL}))`, quote: ["cuts coding agent token usage nearly in half"] }, /A list item with sub-items carries no links under compactLinks/],
-    "a case over 32 words": [edit(8, { text: PATCH.edits[3].text.replace("майже повністю", "майже повністю, як пишуть автори п'яти експериментів з понад трьома тисячами учасників у дослідженні, опублікованому цього тижня,") }), /A case has \d+ words; at most 32/],
+    "a theme given a link": [{ item: 4, before: before(4), action: "revise", problem: "generalisation", reason: "x", text: `Нові системи для агентів ([The Decoder](${SOL}))`, quote: ["cuts coding agent token usage nearly in half"] }, /A list item with sub-items carries no links under compactLinks/],
+    "a case over 32 words": [edit(6, { text: PATCH.edits[2].text.replace("у 4 бенчмарках", "у 4 бенчмарках, які компанія провела сама з максимальними налаштуваннями конкурентів, що не перевірено незалежно жодною сторонньою лабораторією") }), /A case has \d+ words; at most 32/],
     "two sentences": [edit(2, { text: PATCH.edits[0].text.replace(" після того,", ". Після того,") }), /has 2 sentences; at most 1/],
     "a forbidden calque": [edit(5, { text: PATCH.edits[1].text.replace("агентами для програмування", "кодувальних агентів") }), /uses «кодувальних агентів»/],
   };
-  for (const [name, [e, error]] of Object.entries(cases)) assert.throws(() => check(patched([e])), error, name);
+  for (const [name, [bad, error]] of Object.entries(cases)) {
+    const out = check(patched([bad, good])).output;
+    assert.equal(out.review.rejected.length, 1, name);
+    assert.match(out.review.rejected[0].error, error, name);
+    assert.equal(out.review.revised, 1, `${name}: the good edit still applies`);
+    assert.match(out.text, /У п'яти експериментах/, name);
+  }
+  // A second edit of the same item is rejected; the first stays.
+  const dup = check(patched([PATCH.edits[0], edit(2, { text: PATCH.edits[0].text.replace("найпотужніших", "найздатніших") })])).output;
+  assert.match(dup.review.rejected[0].error, /list item 2 has more than one review edit/);
+  assert.match(dup.text, /найпотужніших моделей після того/);
+  // Only an unreadable review output fails the run.
+  assert.throws(() => check({ nothing: true }), /review must reference a review output \{edits:\[\.\.\.\]\}/);
+  assert.throws(() => check("not json"), /review must reference a review output/);
+  const { factCheck, ...noFact } = CHECKS;
+  assert.throws(() => check(PATCH, { config: noFact }), /review requires factCheck and nestedList/);
 });
 
 test("Digest 0.8.0: a review call after the fact check; the checks apply its patch; the gate binds the edited text", () => {
@@ -124,7 +157,7 @@ test("Digest 0.8.0: a review call after the fact check; the checks apply its pat
   assert.ok(Number(review.config.maxTokens) <= 4000, "a small patch, not the digest again");
   assert.match(review.config.instructions, /\{\{steps\.factcheck\.output\.text\}\}/);
   const words = (s) => new RegExp(s.split(" ").join("\\s+"), "i");
-  for (const rule of ["Look ONLY for these problems", "The article body decides, not the headline", "«на N%»", "weren't publicly listed", "one of several experiments is not «the study»", "stay attributed", "a theme says no more than its cases together", "comes only from the article, never from memory", "When in doubt, revise to the narrower wording of the article, or remove", "listing ONLY the items you change", "Never add items"]) assert.match(review.config.instructions, words(rule), rule);
+  for (const rule of ["Check EVERY item", "return an edit for each defect you find", "The article body decides, not the headline", "«на N%»", "weren't publicly listed", "one of several experiments is not «the study»", "stay attributed", "a theme says no more than its cases together", "comes only from the article, never from memory", "keeps that limit", "non-words", "agreement", "calques", "articleTruncated", "is not a reason to remove", "before", "sources", "When in doubt, revise to the narrower wording of the article, or remove", "Never add items"]) assert.match(review.config.instructions, words(rule), rule);
   assert.equal(CHECKS.review, "{{steps.review.output}}");
   assert.equal(CHECKS.factCheck, "{{steps.factcheck.output}}");
   assert.equal(ids[ids.indexOf("approval") - 1], "checks", "the gate binds the checks output: the edited text");
