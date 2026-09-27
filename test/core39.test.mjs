@@ -90,3 +90,18 @@ test("live run f8ee3f9f: «до 3,13 разу» is a ratio; a two-word product n
   assert.throws(() => run(["Agent Ultra"]), /at least one quote must be 3 or more words/);
   assert.throws(() => run(["Agent Mega", "Exa launched Agent Ultra"]), /the quote is not in the text of its linked sources/);
 });
+
+test("bounds: ellipsis pieces from far-apart passages and prose before the list are refused", async () => {
+  const { runVerifySources } = await import("../src/registry-data-steps.mjs");
+  const URL_ = "https://the-decoder.com/sol-pi";
+  const TEXT = "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance. " + "Filler sentence about other matters. ".repeat(20) + "Critics say the gains were smaller on other benchmarks.";
+  const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**\n\n";
+  const LIST = `- SoL-Pi скорочує використання токенів агентами для програмування до 49% ([The Decoder](${URL_}))`;
+  const config = { draft: "{{steps.factcheck.output}}", factCheck: "{{steps.factcheck.output}}", sources: "{{steps.clusters.output}}", language: "uk", citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: HEADER, nestedList: "3" };
+  const run = (text, quote) => runVerifySources({ config }, { priorOutputs: { clusters: { sources: [{ url: URL_, title: "t", text: TEXT }] }, factcheck: { text, claims: [{ item: 1, verdict: "supported", sources: [URL_], quote: [quote] }] } }, priorStepNames: {} });
+  process.env.QF_DIGEST_DATE = "26.09";
+  assert.doesNotThrow(() => run(HEADER + LIST, "SoL-Pi cuts … token usage by up to 49 percent"));
+  assert.throws(() => run(HEADER + LIST, "SoL-Pi cuts coding agents' token usage … smaller on other benchmarks"), /the quote is not in the text/, "pieces from far apart");
+  assert.throws(() => run(HEADER + LIST, "SoL-Pi cuts … token usage … by up to … 49 percent … with little change"), /the quote is not in the text/, "more than four pieces");
+  assert.throws(() => run(HEADER + "Вступний абзац без посилання.\n\n" + LIST, "SoL-Pi cuts coding agents' token usage"), /nested bullet list only|required literal prefix/, "prose before the list");
+});

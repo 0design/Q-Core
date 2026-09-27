@@ -143,18 +143,23 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
    - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
    The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
 /* A quote is grounded when it occurs verbatim, or (Core39, live run 58c169c9) when it marks every omission with
-   an ellipsis («…» or «...») and each piece between them occurs verbatim in the source, in the same order. A word
-   left out silently (a dropped scope such as «tool-based») is never accepted. */
+   an ellipsis («…» or «...») and each piece between them (2–4 pieces of 2+ words) occurs verbatim in the source, in
+   the same order, within one passage (span ≤ twice the quote + 120 characters). A word left out silently (a dropped scope such as «tool-based») is never accepted. */
 function quoteInOrder(quote, ground) {
   const pieces = quote.split(/…|\.\.\./).map(piece => piece.replace(/^[\s.,;:!?"'()\-]+|[\s.,;:!?"'()\-]+$/g, '')).filter(Boolean);
-  if (pieces.length < 2 || pieces.some(piece => (piece.match(/[\p{L}\p{N}]+/gu) ?? []).length < 2)) return false;
-  let at = 0;
-  for (const piece of pieces) {
-    const found = ground.indexOf(piece, at);
-    if (found < 0) return false;
-    at = found + piece.length;
+  if (pieces.length < 2 || pieces.length > 4 || pieces.some(piece => (piece.match(/[\p{L}\p{N}]+/gu) ?? []).length < 2)) return false;
+  // The pieces must come from one passage: their span in the source is at most twice the quote plus 120 characters.
+  const quoted = pieces.join(' ').length;
+  for (let start = ground.indexOf(pieces[0]); start >= 0; start = ground.indexOf(pieces[0], start + 1)) {
+    let at = start + pieces[0].length, ok = true;
+    for (const piece of pieces.slice(1)) {
+      const found = ground.indexOf(piece, at);
+      if (found < 0) { ok = false; break; }
+      at = found + piece.length;
+    }
+    if (ok && at - start <= quoted * 2 + 120) return true;
   }
-  return true;
+  return false;
 }
 function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf = index => citedUrls(nestedItems[index].text)) {
   insist(record && typeof record === 'object' && Array.isArray(record.claims), 'factCheck must reference a fact-check output {claims:[...], text}');
@@ -389,6 +394,8 @@ export function runVerifySources(step, ctx) {
   if (requiredPrefix !== null && step.config.factCheck != null && step.config.nestedList != null) {
     const list = text.search(/^[-*+] /m);
     insist(list >= 0, 'The draft has no list after the header');
+    // Only a header line may be replaced: anything else before the list (a paragraph, a second line) is refused.
+    insist(text.slice(0, list).split(/\r?\n/).filter(line => line.trim()).length <= 1, 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
     text = requiredPrefix + text.slice(list);
   }
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');

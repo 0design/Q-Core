@@ -2179,9 +2179,9 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.39.tgz",
-    "artifactSha256": "a892fb8d102d2c2a1a39d477bbc4e093b3ee29f0d6016d591f058a761dc90ebc",
-    "integrity": "sha512-b0Im4lAJRvoJcaq/U6PZYR2KJEFQvgPjdcW7N9RX3bfl7/ygjtvxbJpS2FE16qScBn8Lz5MOppCi4nslN5tJWg==",
-    "schemaSha256": "1ddfa3aae8c3918b8865b515bba9b5e9e755c85813469017314aef9debf8abdd",
+    "artifactSha256": "6185f652a6efeb28e7b3502f23aacadfcd251982c3bcf169a5396f1af3e00e0d",
+    "integrity": "sha512-1M0FmcW19Xu6UitFQuHl/WjxXZzNrVBqPXrInF9/NN63A0zj1iLQR6M9BEN83mlWBeUYlfsccGvEne74W6N4aA==",
+    "schemaSha256": "89cb177d40b1886536a48e604fb0262d57cd2a50ed5e4250f5b79eeb89e4b707",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
     "source": "Core.39 successor of Core.38: llm-call (OpenRouter) takes an optional reasoning setting (off, low, medium, high) sent as the OpenRouter reasoning parameter, and a completion that spends max_tokens before any content fails as OUTPUT_LIMIT with that reason; Digest 0.6.1 bounds the fact-check call (reasoning: low). Human-only JSON approval and the created-workflow policy are unchanged; the format validator, YAML parser and request schema are byte-identical to Core.38",
@@ -2976,5 +2976,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "81b763b2e7b31d810c7b0d2d34c0305b7462f795615318992a14a98e428d81cd"
+  "releaseSha256": "16cb632a948ecad600c87bd41daa06b8065f3ba10526a278a50b6ce6e9994a54"
 }

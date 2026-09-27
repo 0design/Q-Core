@@ -540,8 +540,9 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   1-based position; *List item N has no claim record* / *has more than one claim record*). Any other
   verdict (`unsupported`, `overstated`) is refused: such a claim is revised or removed. `sources` are
   selected sources the item links; each quote (3+ words, at most 600 characters) occurs verbatim —
-  case, spaces, quote marks and dashes normalised — or, from Core 39, as pieces of 2+ words separated by
-  an ellipsis («…» or «...») that each occur verbatim, in order (a word left out silently, added or
+  case, spaces, quote marks and dashes normalised — or, from Core 39, as 2–4 pieces of 2+ words separated by
+  an ellipsis («…» or «...») that each occur verbatim, in order, within one passage (span at most twice
+  the quote plus 120 characters) (a word left out silently, added or
   reordered is refused), in the `title` or `text` of one of them as the
   Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
   (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
@@ -617,8 +618,9 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   or changed checker stops. Limit exhaustion is `needs_human`, never success.
   Repair evidence and revisions are retained. Interrupted applies require manual
   reconciliation; they are never blindly repeated.
-  With `factCheck`, `requiredPrefix` and `nestedList` (Core 39) everything before the first list line of
-  the fact-checked text is replaced by `requiredPrefix`: the fixed header is never the model's to copy.
+  With `factCheck`, `requiredPrefix` and `nestedList` (Core 39) the one header line before the first list
+  line of the fact-checked text is replaced by `requiredPrefix` (the fixed header is never the model's to
+  copy); any other text before the list is refused.
 
 Use an exact package pin and validate the actual template in its target
 environment before relying on a Registry composition.
