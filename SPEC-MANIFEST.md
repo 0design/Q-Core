@@ -580,6 +580,9 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   an opening quote, not inside a decimal or after an abbreviation such as «млн.» or «U.S.». Digest 0.6
   sets compact links, 1 sentence, 32 words per case and 20 per theme by the owner's review of 27.09;
   Digest 0.4.1–0.5 had no case length.
+- `llm-call` (OpenRouter) may set `reasoning: off | low | medium | high` (Core 39). It is sent as the
+  OpenRouter `reasoning` parameter (`off` disables reasoning, the others bound its effort); without it
+  nothing is sent. A completion that spends `maxTokens` before any content fails as `OUTPUT_LIMIT`.
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

@@ -236,7 +236,7 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0'].includes(manifest.version));
+  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1'].includes(manifest.version));
   const draftText = manifest.version.startsWith('0.6') ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
   // From 0.6.0 a fact-check call follows the draft: it returns the checked text and a claim record per list item.
   const factChecked = manifest.steps.some(s => s.id === 'factcheck');
@@ -271,6 +271,12 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
     const step = id => run.steps.find(s => s.stepId === id);
     assert.equal(step('items').output.sources.length, 3);
     const clusterInput = JSON.parse(calls.find(c => c.url.startsWith('https://openrouter.ai')).body.messages[1].content);
+    // Core39: only the fact-check call bounds reasoning (live run 6d9d6559 spent all its tokens reasoning).
+    const modelCalls = calls.filter(c => c.url.startsWith('https://openrouter.ai'));
+    if (manifest.steps.some(s => s.id === 'factcheck')) {
+      assert.deepEqual(modelCalls.at(-1).body.reasoning, { effort: 'low' });
+      assert.equal('reasoning' in modelCalls[0].body, false);
+    }
     assert.deepEqual(Object.keys(clusterInput), ['sources', 'removed', 'sourceHash'], 'the cluster call sees the deduplicated items only');
     assert.equal(step('clusters').output.clusters[0].independentOutlets, 2);
     assert.equal(step('checks').output.text, draftText.trim());

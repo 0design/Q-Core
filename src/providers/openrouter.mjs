@@ -19,6 +19,7 @@ export async function openRouter(
     signal,
     secretSource,
     maxCallCostUsd,
+    reasoning,
   },
   options = {},
 ) {
@@ -59,6 +60,7 @@ export async function openRouter(
     "Invalid messages",
   );
   insist(Buffer.byteLength(JSON.stringify(messages)) <= 128000, "Messages too large");
+  insist(reasoning === undefined || ["off", "low", "medium", "high"].includes(reasoning), 'reasoning must be "off", "low", "medium" or "high"');
   insist(
     Number.isInteger(maxTokens) && maxTokens > 0 && maxTokens <= 32000,
     "maxTokens must be 1..32000",
@@ -136,6 +138,9 @@ export async function openRouter(
           messages,
           temperature,
           max_tokens: maxTokens,
+          // Core39: a model that reasons can spend the whole max_tokens before any content (live Digest run
+          // 6d9d6559: 14000 tokens, empty completion). "off" disables reasoning; low/medium/high bound it.
+          ...(reasoning === undefined ? {} : { reasoning: reasoning === "off" ? { enabled: false } : { effort: reasoning } }),
         }),
       },
       { timeoutMs, retries, delaysMs, onAttemptError: () => { unknownBilling = true; } },
@@ -203,6 +208,8 @@ export async function openRouter(
     return error;
   };
   const content = json?.choices?.[0]?.message?.content;
+  if (!json?.error && json?.choices?.[0]?.finish_reason === "length" && (typeof content !== "string" || !content.trim()))
+    throw billed("OUTPUT_LIMIT", "OpenRouter spent maxTokens before any content (reasoning used the whole budget); set reasoning or raise maxTokens");
   if (json?.error || typeof content !== "string" || !content.trim())
     throw billed(
       "INVALID_RESPONSE",
