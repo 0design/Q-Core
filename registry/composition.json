@@ -426,7 +426,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.37",
+        "version": "0.2.0-q-core.38",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -521,7 +521,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.37",
+        "version": "0.2.0-q-core.38",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -622,7 +622,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.37",
+        "version": "0.2.0-q-core.38",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -691,7 +691,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.37",
+        "version": "0.2.0-q-core.38",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
