@@ -608,6 +608,32 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   found in its source (`unmatchedQuotes`). Still model judgement: scope and attribution in words (links that
   «weren't publicly listed» vs «у відкритому доступі», vendor-reported results, what exactly was paused),
   and a number the article states both with and without «about».
+  (Core 41) `review` (with `factCheck` and `nestedList`) references a second model step's patch
+  `{edits:[{item, before, action: "keep"|"revise"|"remove", text, quote:[...], sources?, problem, reason}]}` for
+  the fact-checked text. The patch is applied edit by edit: each edit (a theme removal together with the
+  removals of all its cases, and a case removal together with a revision of its theme) is tried on top of the edits accepted so far and every check runs on the
+  result; an edit that is malformed or fails any check is rejected with its reason and its item keeps the
+  fact-checked line, which already passed. Rejected edits are tried once more after the others (a case
+  removal may need a theme revision listed later). Only a review output without an `edits` array fails the
+  run. `item` is the 1-based position among the list items of the fact-checked text and `before` the start
+  of that item's line (at least 30 characters, or the whole line); one edit per item; no new items. `keep`
+  carries only `item`, `before` and optionally `reason`. `problem` (for revise and remove) is one of
+  overstatement, scope, attribution, generalisation, entity, language, with a `reason`. `revise` replaces
+  the line (same indentation) and needs verbatim `quote`s: the item's claim record takes them (and
+  `sources`, if given), verdict `revised`, reason «review <problem>: …». `remove` deletes the item and turns
+  its claim record into a removed claim whose text is exactly the removed line, so its wording may not
+  remain; an item with sub-items goes only with all of them, and a review never removes every item. After
+  an edit a theme's claim record keeps only the sources its remaining cases link (a URL no case ever linked
+  stays, so the fact check still refuses it); when its quotes no longer occur in them the edit is rejected
+  (*theme item N stands on sources its remaining cases no longer link; revise the theme in the same
+  review*). Kept claims are renumbered. The output adds `review: {edits:[{item, action, problem, reason,
+  before, after}], revised, removed, kept, rejected:[{item, action, problem, error}]}`, and
+  `factCheckSummary` says «review: N revised, M removed, K rejected». `reviewSummary`, right after it so the
+  approval preview shows it, lists each changed or rejected item in item order («review item 5 revised
+  (scope): <reason>», «review item 7 rejected (attribution): <reason> — not applied: <error>»; reasons cut to
+  100 and errors to 80 characters, one line each; a rejected edit shows only a known problem or action,
+  otherwise «invalid», and «?» for a non-numeric item), at most 12 lines plus «…and N more». What the reviewer flags is its own
+  judgement; the checks prove only that its accepted edits are well formed and grounded.
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
 - (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a

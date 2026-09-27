@@ -64,7 +64,7 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const { caseMaxWords, themeMaxWords, itemMaxSentences, ...UNCAPPED } = CHECKS;
 const bare = (line) => line.replace(/\s*\((?:\[[^\]\n]*\]\([^)\s]*\)(?:,\s*)?)+\)/g, "");
 const check = (text, claims = CLAIMS, { config = CHECKS, fact } = {}) =>
-  runVerifySources({ config }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, factcheck: fact ?? { claims, text } }, priorStepNames: {} });
+  runVerifySources({ config }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, review: { edits: [] }, factcheck: fact ?? { claims, text } }, priorStepNames: {} });
 // One item of the revised text replaced by its wording in the live draft, with the claim record a model gave for it.
 const withItem = (n, line, patch) => {
   const items = [...ITEMS]; items[n - 1] = line;
@@ -131,17 +131,17 @@ test("negative examples: the claim records must cover the final text exactly", (
   for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
   // The checked (and approved, and delivered) text is the fact-checked text, not the draft before it.
   const draftWired = { ...CHECKS, draft: "{{steps.draft.output}}" };
-  assert.throws(() => runVerifySources({ config: draftWired }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, draft: { text: REVISED.replace("вкладати мільярди", "вкладати сотні мільярдів") }, factcheck: { claims: CLAIMS, text: REVISED } }, priorStepNames: {} }), /The checked draft must be the fact-checked text/);
-  assert.throws(() => check(REVISED, CLAIMS, { fact: { text: REVISED } }), /factCheck must reference a fact-check output/);
-  const { nestedList, nestedOrder, forbiddenLabels, outletLinkText, citation, compactLinks, caseMaxWords: _c, themeMaxWords: _t, itemMaxSentences: _s, ...flat } = CHECKS;
+  assert.throws(() => runVerifySources({ config: draftWired }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, review: { edits: [] }, draft: { text: REVISED.replace("вкладати мільярди", "вкладати сотні мільярдів") }, factcheck: { claims: CLAIMS, text: REVISED } }, priorStepNames: {} }), /The checked draft must be the fact-checked text/);
+  assert.throws(() => check(REVISED, CLAIMS, { fact: { text: REVISED } }), /factCheck must reference a fact-check output|review requires factCheck \(the claim records it edits\)/);
+  const { nestedList, nestedOrder, forbiddenLabels, outletLinkText, citation, compactLinks, review: _r, caseMaxWords: _c, themeMaxWords: _t, itemMaxSentences: _s, ...flat } = CHECKS;
   assert.throws(() => check(REVISED, CLAIMS, { config: flat }), /factCheck requires nestedList and citation: links/);
   assert.throws(() => check(REVISED, CLAIMS, { config: { ...CHECKS, forbiddenPhrases: '["не зважаючи"]' } }), /forbiddenPhrases must be a JSON object/);
 });
 
 test("without the fact check the live draft passes the 0.5 format checks: the fact check is what refuses it", () => {
-  const { factCheck, forbiddenPhrases, draft, compactLinks, caseMaxWords, themeMaxWords, itemMaxSentences, ...format } = CHECKS;
+  const { factCheck, review, forbiddenPhrases, draft, compactLinks, caseMaxWords, themeMaxWords, itemMaxSentences, ...format } = CHECKS;
   const live = RUN.draft;
-  assert.doesNotThrow(() => runVerifySources({ config: { ...format, draft: "{{steps.draft.output}}" } }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, draft: { text: live } }, priorStepNames: {} }), "format-only checks let the five errors through");
+  assert.doesNotThrow(() => runVerifySources({ config: { ...format, draft: "{{steps.draft.output}}" } }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, review: { edits: [] }, draft: { text: live } }, priorStepNames: {} }), "format-only checks let the five errors through");
 });
 
 test("numberTokens: digits with scales and decimal commas, ratios, shares and counts in Ukrainian and English", () => {
@@ -163,9 +163,9 @@ test("numberTokens: digits with scales and decimal commas, ratios, shares and co
 });
 
 test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate binds the checked text", () => {
-  assert.ok(["0.6.1", "0.7.0", "0.7.1"].includes(DIGEST.version));
+  assert.ok(["0.6.1", "0.7.0", "0.7.1", "0.8.0"].includes(DIGEST.version));
   const ids = DIGEST.steps.map((s) => s.id);
-  assert.deepEqual(ids.slice(ids.indexOf("draft")), ["draft", "factcheck", "checks", "approval", "delivery"]);
+  assert.deepEqual(ids.slice(ids.indexOf("draft")), ["draft", "factcheck", ...(ids.includes("review") ? ["review"] : []), "checks", "approval", "delivery"]);
   const draft = DIGEST.steps.find((s) => s.id === "draft").config;
   const fc = DIGEST.steps.find((s) => s.id === "factcheck").config;
   assert.equal(fc.provider, "openrouter");
@@ -215,7 +215,7 @@ test("compactLinks: a theme with cases carries no links, every other item does; 
   for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
   // Ranking: the link-less cloud theme holds clusters 4 and 5, so it may not come before the court item (cluster 2).
   const swapped = [ITEMS[0], ITEMS[1], ITEMS[2], ITEMS[4], ITEMS[5], ITEMS[6], ITEMS[3], ...ITEMS.slice(7)];
-  assert.throws(() => check(textOf(swapped), CLAIMS, { config: { ...CHECKS, factCheck: undefined, draft: "{{steps.factcheck.output}}" } }), /ordered by weight \(cluster rank 2 comes after 4\)/);
+  assert.throws(() => check(textOf(swapped), CLAIMS, { config: { ...CHECKS, factCheck: undefined, review: undefined, draft: "{{steps.factcheck.output}}" } }), /ordered by weight \(cluster rank 2 comes after 4\)/);
   // Without compactLinks (0.5 behaviour) the link-less theme is an uncited thesis.
   assert.throws(() => check(REVISED, CLAIMS, { config: { ...CHECKS, compactLinks: undefined } }), /Every thesis needs a link to a selected source; uncited: OpenAI призупинила найпотужніші/);
   assert.throws(() => check(REVISED, CLAIMS, { config: { ...CHECKS, compactLinks: "yes" } }), /compactLinks must be "true" or "false"/);
@@ -234,11 +234,11 @@ test("short items: one sentence each, at most 32 words for a case and 20 for a t
   };
   for (const [name, [text, error]] of Object.entries(cases)) {
     // Only the shape is under test here, so the claim records are not needed.
-    assert.throws(() => check(text, CLAIMS, { config: { ...CHECKS, factCheck: undefined } }), error, name);
+    assert.throws(() => check(text, CLAIMS, { config: { ...CHECKS, factCheck: undefined, review: undefined } }), error, name);
   }
   // Not sentence ends: decimals, abbreviations with a dot, an ellipsis before a lower-case word, link markup.
   const fine = items(10, `${at(10).replace("майже вдвічі", "майже вдвічі (у U.S. тестах на 3.5 млн. токенів… та інших)")}${links(10)}`);
-  assert.doesNotThrow(() => check(fine, CLAIMS, { config: { ...CHECKS, factCheck: undefined } }));
+  assert.doesNotThrow(() => check(fine, CLAIMS, { config: { ...CHECKS, factCheck: undefined, review: undefined } }));
   assert.equal(nestedSentences(`Одне речення з 3,13 раза ([A](https://x.example/a.), [B](https://x.example/b))`), 1);
   assert.equal(nestedSentences("Перше. Друге? «Третє»"), 3);
   assert.equal(nestedWords(`Anthropic заплатить $11,6 млрд ([TechCrunch](${T_AKAMAI}), [The Verge](${V_MS}))`), 4);

@@ -559,7 +559,178 @@ function clusterSources(step, ctx, sources) {
   const selected = kept.flatMap(cluster => cluster.sources.map(source => ({ ...source, cluster: cluster.rank })));
   return { output: { clusters: kept, sources: selected, removed: sources.length - selected.length, droppedClusters: checked.length - kept.length, unclustered: sources.length - claimed.size, sourceHash: hash(selected.map(s => ({ url: s.url, title: s.title ?? null, text: s.text }))) } };
 }
+/* review (Core41, owner decision 27.09): a second model call looks only for overstatement, scope, attribution,
+   generalisation, entity and wording problems and returns a small patch {edits:[{item, before, action, text, quote,
+   sources, problem, reason}]} for the fact-checked text. verify-sources applies it deterministically, EDIT BY EDIT
+   (review round 1 of PR #34): each edit is tried on top of the edits accepted so far and the full checks run; an edit
+   that fails any check (or is malformed) is rejected with its reason and the item keeps its fact-checked line, which
+   already passed. A theme removal and the removals of all its cases are tried as one unit; rejected edits are retried
+   once more after the others (a case removal may need a theme revision listed later). Only a review output without an
+   edits array fails the run.
+   - item: the 1-based position among the list items of the fact-checked text; before: the start of that item's line
+     (at least 30 characters, or the whole line if shorter), so an edit cannot land on the wrong item.
+   - keep: no change and no other fields. revise: the line becomes text (same indentation); the item's claim record
+     takes the edit's quotes (and sources, if given), verdict revised, reason «review <problem>: …». remove: the item
+     goes and its claim record becomes a removed claim with exactly the removed line, so it may not remain. An item
+     with sub-items goes only with all of them; a review never removes every item.
+   - After the edits a theme's claim record keeps only the sources its remaining cases link; when its quotes no longer
+     occur in those sources, the edit is rejected: revise the theme in the same review. */
+const REVIEW_ACTIONS = ['keep', 'revise', 'remove'];
+const REVIEW_PROBLEMS = ['overstatement', 'scope', 'attribution', 'generalisation', 'entity', 'language'];
+const REVIEW_FIELDS = { keep: ['item', 'action', 'before', 'reason'], revise: ['item', 'action', 'before', 'text', 'quote', 'sources', 'problem', 'reason'], remove: ['item', 'action', 'before', 'problem', 'reason'] };
+const collapse = s => String(s).replace(/\s+/g, ' ').trim();
+function checkEdit(edit, itemLines) {
+  insist(edit && typeof edit === 'object' && !Array.isArray(edit), 'the edit is not an object');
+  const n = itemLines.length, item = Number(edit.item);
+  insist(Number.isInteger(item) && item >= 1 && item <= n, `it names list item ${edit.item}, which is not an item of the fact-checked text (1..${n}); a review adds no items`);
+  insist(REVIEW_ACTIONS.includes(edit.action), `its action is «${edit.action}»; an edit is keep, revise or remove`);
+  const extra = Object.keys(edit).filter(key => !REVIEW_FIELDS[edit.action].includes(key));
+  insist(extra.length === 0, `a ${edit.action} edit carries no ${extra.join(', ')}`);
+  const line = collapse(itemLines[item - 1].m[2]), before = typeof edit.before === 'string' ? collapse(edit.before) : '';
+  insist(before.length >= Math.min(30, line.length) && line.startsWith(before), `its before («${before.slice(0, 40)}») is not the start of list item ${item} («${line.slice(0, 40)}»); an edit names its item by number and by the start of its line`);
+  if (edit.action !== 'keep') {
+    insist(REVIEW_PROBLEMS.includes(edit.problem), `it names the problem «${edit.problem}»; one of ${REVIEW_PROBLEMS.join(', ')}`);
+    insist(typeof edit.reason === 'string' && edit.reason.trim(), `a ${edit.action} edit needs a reason`);
+  }
+  if (edit.action === 'revise') {
+    insist(typeof edit.text === 'string' && edit.text.trim() && !/[\r\n]/.test(edit.text), 'a revise edit needs the new text on one line');
+    const quotes = Array.isArray(edit.quote) ? edit.quote : edit.quote == null ? [] : [edit.quote];
+    insist(quotes.length > 0 && quotes.every(q => typeof q === 'string' && q.trim()), 'a revise edit needs the verbatim quotes that support the new wording');
+    insist(edit.sources == null || Array.isArray(edit.sources) && edit.sources.every(s => typeof s === 'string'), 'sources must be a list of URLs');
+  }
+  return item;
+}
+/** Applies a set of edits (already one unit or accepted set) to the fact-checked text; throws on any problem. */
+function applyReview(edits, text, record, sources) {
+  insist(record && Array.isArray(record.claims), 'review requires factCheck (the claim records it edits)');
+  const lines = text.split('\n');
+  const itemLines = lines.map((line, index) => ({ line, index, m: line.match(/^( *)[-*+] +(\S.*)$/) })).filter(l => l.m);
+  const n = itemLines.length, actions = new Map();
+  for (const edit of edits) {
+    const item = checkEdit(edit, itemLines);
+    insist(!actions.has(item), `list item ${item} has more than one review edit`);
+    actions.set(item, edit);
+  }
+  const depth = l => l.m[1].length;
+  const lastChild = i => { let j = i; while (j + 1 < n && depth(itemLines[j + 1]) > depth(itemLines[i])) j += 1; return j; };
+  for (const [item, edit] of actions) if (edit.action === 'remove') {
+    const i = item - 1, end = lastChild(i);
+    for (let j = i + 1; j <= end; j++) insist(actions.get(j + 1)?.action === 'remove', `it removes list item ${item}, which has sub-items; remove all of them in the same review (item ${j + 1} is kept) or revise the item`);
+  }
+  insist([...actions.values()].filter(e => e.action === 'remove').length < n, 'a review may not remove every item of the digest');
+  const claims = record.claims.map(c => ({ ...c }));
+  const claimOf = item => claims.find(c => c.verdict !== 'removed' && Number(c.item) === item);
+  const newNumber = new Map();
+  let next = 0;
+  itemLines.forEach((l, i) => { if (actions.get(i + 1)?.action !== 'remove') newNumber.set(i + 1, ++next); });
+  const out = [];
+  for (const [item, edit] of [...actions].sort((a, b) => a[0] - b[0])) {
+    const { index, m } = itemLines[item - 1];
+    const claim = claimOf(item);
+    if (edit.action === 'revise') {
+      lines[index] = `${m[1]}- ${edit.text.trim().replace(/^[-*+] +/, '')}`;
+      if (claim) Object.assign(claim, { verdict: 'revised', quote: edit.quote, ...(edit.sources ? { sources: edit.sources } : {}), reason: `review ${edit.problem}: ${edit.reason}` });
+    } else if (edit.action === 'remove') {
+      lines[index] = null;
+      if (claim) { for (const key of Object.keys(claim)) delete claim[key]; Object.assign(claim, { verdict: 'removed', text: m[2], reason: `review ${edit.problem}: ${edit.reason}` }); }
+    }
+    out.push({ item, action: edit.action, ...(edit.problem ? { problem: edit.problem } : {}), ...(edit.reason ? { reason: edit.reason } : {}), ...(edit.action === 'keep' ? {} : { before: m[2] }), ...(edit.action === 'revise' ? { after: lines[index].replace(/^ *- /, '') } : {}) });
+  }
+  // A theme's record keeps only the sources its remaining cases link; its quotes must still occur in them.
+  const byUrl = new Map((sources ?? []).map(s => [s.url, s]));
+  itemLines.forEach((l, i) => {
+    if (lines[l.index] === null || lastChild(i) === i) return;
+    const claim = claimOf(i + 1);
+    if (!claim || actions.get(i + 1)?.action === 'revise' && actions.get(i + 1).sources) return;
+    // Only URLs that a case changed by this review linked are dropped; a URL no case ever linked stays, so the
+    // fact check still refuses it.
+    const links = (t, url) => t.includes(`](${url})`) || t.includes(`](${url} `);
+    const subs = itemLines.slice(i + 1, lastChild(i) + 1);
+    const kept = subs.filter(c => lines[c.index] !== null).map(c => lines[c.index]).join('\n');
+    const changed = subs.filter(c => lines[c.index] !== c.line).map(c => c.line).join('\n');
+    const linked = (claim.sources ?? []).filter(url => links(kept, url) || !links(changed, url));
+    if (linked.length === (claim.sources ?? []).length) return;
+    const grounds = linked.flatMap(url => { const s = byUrl.get(url); return s ? [s.title, s.text, s.articleStatus === 'ok' ? s.articleText : null].filter(t => typeof t === 'string').map(normQuote) : []; });
+    const quotes = (Array.isArray(claim.quote) ? claim.quote : [claim.quote]).filter(q => typeof q === 'string');
+    const grounded = quotes.some(quote => { const q = trimQuote(quote); return grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)); });
+    insist(linked.length > 0 && grounded, `theme item ${i + 1} stands on sources its remaining cases no longer link; revise the theme in the same review (its quotes must come from the cases that stay)`);
+    claim.sources = linked;
+  });
+  for (const c of claims) if (c.verdict !== 'removed' && c.item != null && newNumber.has(Number(c.item))) c.item = newNumber.get(Number(c.item));
+  const edited = lines.filter(l => l !== null).join('\n');
+  const count = action => out.filter(e => e.action === action).length;
+  return { text: edited, record: { ...record, claims, text: edited }, summary: { edits: out, revised: count('revise'), removed: count('remove'), kept: count('keep') } };
+}
+/* The edit-by-edit driver: returns the accepted edits and the rejected ones with their reasons. */
+function reviewEditsOf(step, ctx, review, verify) {
+  insist(review && typeof review === 'object' && Array.isArray(review.edits), 'review must reference a review output {edits:[...]}');
+  insist(review.edits.length <= 100, 'review has more than 100 edits');
+  verify([]); // the fact-checked text itself must pass; otherwise the run fails as before
+  // Units: a removal of an item with sub-items goes together with the removals of all its sub-items, and a case
+  // removal goes together with a revision of its theme (review round 2 of PR #34), so each is tried as one.
+  const list = review.edits.map((edit, index) => ({ edit, index }));
+  const itemOf = e => Number(e?.item);
+  const probe = verify.itemLines();
+  const valid = i => Number.isInteger(i) && i >= 1 && i <= probe.length;
+  const depth = i => probe[i - 1]?.m[1].length ?? 0;
+  const parentOf = i => { for (let j = i - 1; j >= 1; j--) if (depth(j) < depth(i)) return j; return null; };
+  const root = list.map((_, k) => k);
+  const find = k => (root[k] === k ? k : (root[k] = find(root[k])));
+  const join = (a, b) => { root[find(a)] = find(b); };
+  for (const entry of list) {
+    const i = itemOf(entry.edit);
+    if (entry.edit?.action !== 'remove' || !valid(i)) continue;
+    for (let j = i + 1; j <= probe.length && depth(j) > depth(i); j++) {
+      const sub = list.find(e => itemOf(e.edit) === j && e.edit?.action === 'remove');
+      if (sub) join(sub.index, entry.index);
+    }
+    const parent = depth(i) > 0 ? parentOf(i) : null;
+    const themeRevision = parent && list.find(e => itemOf(e.edit) === parent && e.edit?.action === 'revise');
+    if (themeRevision) join(entry.index, themeRevision.index);
+  }
+  const groups = new Map();
+  for (const entry of list) { const r = find(entry.index); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(entry); }
+  const units = [...groups.values()].sort((a, b) => a[0].index - b[0].index);
+  let accepted = [], pending = units, rejected = [];
+  for (let pass = 0; pass < 2 && pending.length; pass++) {
+    rejected = [];
+    for (const unit of pending) {
+      try { verify([...accepted, ...unit.map(e => e.edit)]); accepted = [...accepted, ...unit.map(e => e.edit)]; }
+      catch (error) { rejected.push({ unit, error: String(error?.message ?? error) }); }
+    }
+    pending = rejected.map(r => r.unit);
+  }
+  return { accepted, rejected: rejected.flatMap(({ unit, error }) => unit.map(({ edit }) => ({ item: edit?.item ?? null, action: edit?.action ?? null, ...(edit?.problem ? { problem: String(edit.problem).slice(0, 40) } : {}), ...(typeof edit?.reason === 'string' ? { reason: edit.reason.slice(0, 300) } : {}), error: error.slice(0, 300) }))) };
+}
 export function runVerifySources(step, ctx) {
+  if (step.config.review == null) return verifyOnce(step, ctx, null);
+  const review = value(step, 'review', ctx);
+  const verify = edits => verifyOnce(step, ctx, edits);
+  verify.itemLines = () => verifyOnce(step, ctx, [], true);
+  const { accepted, rejected } = reviewEditsOf(step, ctx, review, verify);
+  const result = verify(accepted);
+  const out = result.output;
+  out.review = { ...out.review, rejected };
+  out.factCheckSummary = out.factCheckSummary.replace(/review: (\d+) revised, (\d+) removed/, `review: $1 revised, $2 removed, ${rejected.length} rejected`);
+  // reviewSummary (owner decision 27.09): which items the reviewer changed or had rejected, and why, one line each,
+  // right after factCheckSummary so the approval preview (its first 40 lines) shows it above the rest of the output.
+  const cut = (value, n) => { const t = String(value ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
+  const lines = [
+    ...out.review.edits.filter(e => e.action !== 'keep').map(e => ({ item: e.item, line: `review item ${e.item} ${e.action === 'revise' ? 'revised' : 'removed'} (${e.problem}): ${cut(e.reason, 100)}` })),
+    // A rejected edit is unvalidated model output: only known labels reach the preview, free text is cut to one line.
+    ...rejected.map(r => {
+      const item = Number.isInteger(r.item) && r.item > 0 && r.item < 1000 ? r.item : null;
+      const label = REVIEW_PROBLEMS.includes(r.problem) ? r.problem : ['keep', 'revise', 'remove'].includes(r.action) ? r.action : 'invalid';
+      return { item: item ?? 0, line: `review item ${item ?? '?'} rejected (${label}): ${cut(r.reason ?? '', 100)} — not applied: ${cut(r.error, 80)}` };
+    }),
+  ].sort((a, b) => a.item - b.item).map(l => l.line);
+  const MAX = 12;
+  const reviewSummary = lines.length > MAX ? [...lines.slice(0, MAX), `…and ${lines.length - MAX} more (see review in the checks output)`] : lines;
+  const { text: finalText, factCheckSummary, ...rest } = out;
+  result.output = { text: finalText, factCheckSummary, reviewSummary, ...rest };
+  return result;
+}
+function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
   const draft = value(step, 'draft', ctx), input = value(step, 'sources', ctx);
   const sources = Array.isArray(input) ? input : input?.sources;
   let text = typeof draft === 'string' ? draft : draft?.text;
@@ -601,6 +772,18 @@ export function runVerifySources(step, ctx) {
     const fixed = stringList(step, 'fixedLinks', ctx);
     insist(before.length === 0 || (before.length === 1 && /^\*\*.+\*\*$/.test(before[0].trim()) && fixed.every(url => before[0].includes(url))), 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
     text = requiredPrefix + text.slice(list);
+  }
+  // review (Core41): the reviewer's patch is applied to the fact-checked text and its claim records first; every
+  // check below runs on the edited text.
+  let factRecord = step.config.factCheck != null ? value(step, 'factCheck', ctx) : null, review = null;
+  if (step.config.review != null) {
+    insist(step.config.factCheck != null && step.config.nestedList != null, 'review requires factCheck and nestedList');
+    insist(factRecord && typeof factRecord.text === 'string', 'review requires factCheck (the claim records it edits)');
+    const listOf = t => { const i = t.search(/^[-*+] /m); return (i < 0 ? t : t.slice(i)).trim(); };
+    insist(listOf(factRecord.text) === listOf(text), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
+    if (itemLinesOnly) return text.split('\n').map(line => ({ m: line.match(/^( *)[-*+] +(\S.*)$/) })).filter(l => l.m);
+    const applied = applyReview(reviewEdits ?? [], text, factRecord, sources);
+    text = applied.text; factRecord = applied.record; review = applied.summary;
   }
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
   if (requiredHeadings.length > 0) {
@@ -919,7 +1102,7 @@ export function runVerifySources(step, ctx) {
   let factCheck = null;
   if (step.config.factCheck != null) {
     insist(nestedItems && linkCitations, 'factCheck requires nestedList and citation: links');
-    factCheck = checkFactCheck(value(step, 'factCheck', ctx), text, nestedItems, sources, citedUrls, citedOf);
+    factCheck = checkFactCheck(factRecord, text, nestedItems, sources, citedUrls, citedOf);
   }
   if (step.config.forbiddenPhrases != null) checkForbiddenPhrases(step, text);
   if (timestampCitations) {
@@ -950,6 +1133,6 @@ export function runVerifySources(step, ctx) {
   // the unread articles and every quote that was set aside as not found in its source.
   const unmatched = factCheck ? factCheck.claims.filter(c => c.unmatchedQuotes?.length) : [];
   const unread = sources.filter(s => s.articleStatus === 'unavailable').length;
-  const factCheckSummary = factCheck ? `${factCheck.claims.length} claims: ${factCheck.supported} supported, ${factCheck.revised} revised, ${factCheck.removed} removed; ${sources.some(s => s.articleStatus) ? `articles read for ${sources.filter(s => s.articleStatus === 'ok').length} of ${sources.length} sources${unread ? ` (${unread} unavailable: summary only)` : ''}` : 'articles not read (feed summaries only)'}; ${unmatched.length ? `quotes not found in the source, set aside: ${unmatched.map(c => `item ${c.item} «${c.unmatchedQuotes[0].slice(0, 60)}»`).join('; ')}` : 'every quote found in its source'}` : null;
-  return { output: { text, ...(factCheckSummary ? { factCheckSummary } : {}), artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? (sources.some(s => s.articleStatus === 'ok') ? '' : 'The full articles were not read: quotes and numbers are grounded on the feed-item title and summary only. ') + 'Every item has a claim record: at least one of its quotes occurs verbatim in the ' + (sources.some(s => s.articleStatus === 'ok') ? 'article (where parse-web articles read it), ' : '') + 'title or summary of its linked sources (other quotes that do not are listed as unmatched), and its numbers occur in its quotes or linked sources with their approximations kept; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  const factCheckSummary = factCheck ? `${factCheck.claims.length} claims: ${factCheck.supported} supported, ${factCheck.revised} revised, ${factCheck.removed} removed; ${review ? `review: ${review.revised} revised, ${review.removed} removed; ` : ''}${sources.some(s => s.articleStatus) ? `articles read for ${sources.filter(s => s.articleStatus === 'ok').length} of ${sources.length} sources${unread ? ` (${unread} unavailable: summary only)` : ''}` : 'articles not read (feed summaries only)'}; ${unmatched.length ? `quotes not found in the source, set aside: ${unmatched.map(c => `item ${c.item} «${c.unmatchedQuotes[0].slice(0, 60)}»`).join('; ')}` : 'every quote found in its source'}` : null;
+  return { output: { text, ...(factCheckSummary ? { factCheckSummary } : {}), artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(review ? ['reviewed-for-overstatement'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), ...(review ? { review } : {}), limitation: factCheck ? (sources.some(s => s.articleStatus === 'ok') ? '' : 'The full articles were not read: quotes and numbers are grounded on the feed-item title and summary only. ') + 'Every item has a claim record: at least one of its quotes occurs verbatim in the ' + (sources.some(s => s.articleStatus === 'ok') ? 'article (where parse-web articles read it), ' : '') + 'title or summary of its linked sources (other quotes that do not are listed as unmatched), and its numbers occur in its quotes or linked sources with their approximations kept; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }
