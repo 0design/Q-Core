@@ -208,13 +208,13 @@ export async function runFetch(step, ctx) {
 /* ──────────────────────────── llm-call ──────────────────────────── */
 
 /** One model call. No canned fallback — see runLlmCall on why a mock is poison here. */
-export async function chatOnce({ apiKey, keyRef = "OPENROUTER_API_KEY", secretSource = "env", model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd }) {
+export async function chatOnce({ apiKey, keyRef = "OPENROUTER_API_KEY", secretSource = "env", model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, reasoning }) {
   // `apiKey` is the legacy/default alias supplied by the CLI. A step-level
   // alias must resolve its own environment entry; silently reusing the default
   // key would charge/send as the wrong credential. Keychain resolution ignores
   // this env value and remains explicitly selected by secretSource.
   const selectedKey = keyRef === "OPENROUTER_API_KEY" ? apiKey : process.env[keyRef];
-  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd }, {env:{[keyRef]:selectedKey}});
+  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, ...(reasoning === undefined ? {} : { reasoning }) }, {env:{[keyRef]:selectedKey}});
   return { ...result, usage:{...result.usage, model:result.provider.model ?? model} };
 }
 
@@ -277,6 +277,7 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
       user,
       maxTokens,
       temperature: num(step.config, "temperature") ?? 0.3,
+      ...(step.config.reasoning == null ? {} : { reasoning: String(step.config.reasoning) }),
       signal: ctx.signal,
       retries: policy.retries,
       timeoutMs: policy.timeoutMs,
