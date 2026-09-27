@@ -137,11 +137,33 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
 /* factCheck: a model step's claim records for the final text, checked here deterministically:
    - every list item of the final text has exactly one kept claim record ({item: its 1-based position});
    - a kept claim is "supported" or "revised"; any other verdict (unsupported, overstated…) must be revised or removed;
-   - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim — case,
+   - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim (or in order with a few source words left out, quoteInOrder) — case,
      spaces, quote marks and dashes normalised — in the title or text of one of those sources as the Core holds them;
    - every number in the item's own words is among the numbers of its quotes or linked sources' title/text (numberTokens);
    - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
    The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
+/* A quote is grounded when it occurs verbatim, or (Core39, live run 58c169c9) when every one of its words occurs in
+   the source in the same order with only a few source words left out: at most 3 between two quote words and at
+   most max(3, a quarter of the quote's words) in total. A word the source does not have is never accepted. */
+function quoteInOrder(quote, ground) {
+  const words = text => (text.match(/[\p{L}\p{N}]+/gu) ?? []).map(w => w.toLocaleLowerCase('en'));
+  const q = words(quote), g = words(ground);
+  if (q.length < 3) return false;
+  const budget = Math.max(3, Math.floor(q.length / 4));
+  for (let start = 0; start < g.length; start++) {
+    if (g[start] !== q[0]) continue;
+    let at = start, skipped = 0, ok = true;
+    for (let i = 1; i < q.length && ok; i++) {
+      let next = -1;
+      for (let j = at + 1; j <= Math.min(g.length - 1, at + 4); j++) if (g[j] === q[i]) { next = j; break; }
+      if (next < 0) { ok = false; break; }
+      skipped += next - at - 1; at = next;
+      if (skipped > budget) ok = false;
+    }
+    if (ok) return true;
+  }
+  return false;
+}
 function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf = index => citedUrls(nestedItems[index].text)) {
   insist(record && typeof record === 'object' && Array.isArray(record.claims), 'factCheck must reference a fact-check output {claims:[...], text}');
   insist(typeof record.text === 'string' && record.text.trim() === text.trim(), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
@@ -176,7 +198,7 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     for (const quote of quotes) {
       const q = trimQuote(quote);
       insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3 && q.length <= 600, `List item ${item}: a quote must be 3 or more words and at most 600 characters: «${quote.slice(0, 60)}»`);
-      insist(grounds.some(g => g.includes(q)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
+      insist(grounds.some(g => g.includes(q) || quoteInOrder(q, g)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
     }
     // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
     // 461a3df0, 27.09: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote).

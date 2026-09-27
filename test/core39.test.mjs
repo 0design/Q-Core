@@ -34,3 +34,21 @@ test("Digest 0.6.x bounds the fact-check call's reasoning", () => {
   const m = loadManifest(resolve("registry/workflows/digest.yaml"));
   assert.equal(m.steps.find((s) => s.id === "factcheck").config.reasoning, "low");
 });
+
+test("live run 58c169c9: a quote that leaves out a few source words in order is grounded; an added or reordered word is not", async () => {
+  const { runVerifySources } = await import("../src/registry-data-steps.mjs");
+  const URL_ = "https://the-decoder.com/sol-pi";
+  const TEXT = "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance by optimizing the control layer between the model and its environment.";
+  const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**\n\n";
+  const text = `${HEADER}- SoL-Pi скорочує використання токенів агентами для програмування до 49% ([The Decoder](${URL_}))`;
+  const config = { draft: "{{steps.factcheck.output}}", factCheck: "{{steps.factcheck.output}}", sources: "{{steps.clusters.output}}", language: "uk", citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: HEADER, nestedList: "3" };
+  const run = (quote) => runVerifySources({ config }, { priorOutputs: { clusters: { sources: [{ url: URL_, title: "Nvidia's SoL-Pi system", text: TEXT }] }, factcheck: { text, claims: [{ item: 1, verdict: "supported", sources: [URL_], quote: [quote] }] } }, priorStepNames: {} });
+  process.env.QF_DIGEST_DATE = "26.09";
+  assert.doesNotThrow(() => run("cuts token usage by up to 49 percent with little change in performance by optimizing the control layer"), "two source words left out");
+  assert.doesNotThrow(() => run("SoL-Pi cuts coding agents' token usage by up to 49 percent"), "verbatim");
+  for (const [bad, why] of [
+    ["cuts token usage by up to 60 percent with little change", "a word the source does not have"],
+    ["token usage cuts by up to 49 percent with little change", "reordered"],
+    ["cuts usage by up to 49 percent in performance by optimizing the model", "too many words left out"],
+  ]) assert.throws(() => run(bad), /the quote is not in the text of its linked sources/, why);
+});

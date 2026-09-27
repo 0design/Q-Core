@@ -540,7 +540,9 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   1-based position; *List item N has no claim record* / *has more than one claim record*). Any other
   verdict (`unsupported`, `overstated`) is refused: such a claim is revised or removed. `sources` are
   selected sources the item links; each quote (3+ words, at most 600 characters) occurs verbatim —
-  case, spaces, quote marks and dashes normalised — in the `title` or `text` of one of them as the
+  case, spaces, quote marks and dashes normalised — or, from Core 39, word for word in the same order
+  with at most 3 source words left out between two quote words and max(3, a quarter of the quote's
+  words) in total (never an added or reordered word), in the `title` or `text` of one of them as the
   Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
   (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
   of its quotes or of its linked sources' title and text (*states «…», which is not in its quote or
