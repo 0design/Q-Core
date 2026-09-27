@@ -543,7 +543,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   case, spaces, quote marks and dashes normalised — or, from Core 39, as 2–4 pieces of 2+ words separated by
   an ellipsis («…» or «...») that each occur verbatim, in order, within one passage (span at most twice
   the quote plus 120 characters), a left-out part carrying no negation (not, no, never, without, не,
-  ні, без…); every match is on word boundaries («up to 4» is not in «up to 49») (a word left out silently, added or
+  ні, без…); every match is on word boundaries and never cuts a number («up to 4» is not in «up to 49», «49» is
+  not in «49.5») (a word left out silently, added or
   reordered is refused), in the `title` or `text` of one of them as the
   Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
   (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
@@ -621,7 +622,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   reconciliation; they are never blindly repeated.
   With `factCheck`, `requiredPrefix` and `nestedList` (Core 39) the one header line before the first list
   line of the fact-checked text is replaced by `requiredPrefix` (the fixed header is never the model's to
-  copy) when it is a bold `**…**` line; any other text before the list is refused.
+  copy) when it is a bold `**…**` line with every `fixedLinks` URL; any other text before the list is refused.
 
 Use an exact package pin and validate the actual template in its target
 environment before relying on a Registry composition.

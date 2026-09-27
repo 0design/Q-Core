@@ -120,5 +120,23 @@ test("review of #31: a quote matches on word boundaries (no «up to 4» inside �
   assert.throws(() => run(HEADER + item(4), "SoL-Pi cuts … by up to 4"), /the quote is not in the text|not in its quote or linked sources/, "a truncated number through an ellipsis");
   assert.throws(() => run(HEADER + item(49), "The patch does … reduce latency by 30 percent"), /the quote is not in the text/, "a dropped negation");
   assert.throws(() => run("Агенти стали вдвічі дешевшими за 90% випадків.\n\n" + item(49), "token usage by up to 49 percent"), /text before the list/, "a prose line instead of the header");
-  assert.doesNotThrow(() => run("**Будь-яка жирна шапка**\n\n" + item(49), "token usage by up to 49 percent"), "a bold header line is replaced");
+  assert.throws(() => run("**Агенти стали дешевшими на 90%**\n\n" + item(49), "token usage by up to 49 percent"), /text before the list/, "a bold prose line without the fixed links");
+});
+
+test("review of #31 round 2: a quote cannot cut a decimal («49» / «5» in «49.5», «3» in «3,13»)", async () => {
+  const { runVerifySources } = await import("../src/registry-data-steps.mjs");
+  const URL_ = "https://the-decoder.com/sol-pi";
+  const TEXT = "SoL-Pi cuts coding agents' token usage by up to 49.5 percent with little change in performance and runs up to 3,13 times faster.";
+  const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**\n\n";
+  const config = { draft: "{{steps.factcheck.output}}", factCheck: "{{steps.factcheck.output}}", sources: "{{steps.clusters.output}}", language: "uk", citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: HEADER, nestedList: "3" };
+  const run = (line, quote) => runVerifySources({ config }, { priorOutputs: { clusters: { sources: [{ url: URL_, title: "t", text: TEXT }] }, factcheck: { text: HEADER + line, claims: [{ item: 1, verdict: "supported", sources: [URL_], quote: [quote] }] } }, priorStepNames: {} });
+  process.env.QF_DIGEST_DATE = "26.09";
+  const item = (n) => `- SoL-Pi скорочує використання токенів до ${n}% ([The Decoder](${URL_}))`;
+  assert.doesNotThrow(() => run(item("49,5"), "token usage by up to 49.5 percent"));
+  for (const [line, quote, why] of [
+    [item(49), "token usage by up to 49", "«49» cut from «49.5»"],
+    [item(49), "SoL-Pi cuts … by up to 49", "«49» cut through an ellipsis"],
+    [item(5), "5 percent with little change", "«5» cut from «49.5»"],
+    [`- SoL-Pi працює до 3 разів швидше ([The Decoder](${URL_}))`, "runs up to 3", "«3» cut from «3,13»"],
+  ]) assert.throws(() => run(line, quote), /the quote is not in the text|not in its quote or linked sources/, why);
 });

@@ -146,7 +146,10 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
 function wordIndexOf(ground, piece, from = 0) {
   for (let at = ground.indexOf(piece, from); at >= 0; at = ground.indexOf(piece, at + 1)) {
     const before = at === 0 ? '' : ground[at - 1], after = ground[at + piece.length] ?? '';
-    if (!/[\p{L}\p{N}]/u.test(before) && !/[\p{L}\p{N}]/u.test(after)) return at;
+    // A decimal is one token: «49» is not in «49.5», «5» is not in «49.5», «3» is not in «3,13».
+    const cutsNumberBefore = /[.,]/.test(before) && /\d/.test(ground[at - 2] ?? '') && /^\d/.test(piece);
+    const cutsNumberAfter = /[.,]/.test(after) && /\d/.test(ground[at + piece.length + 1] ?? '') && /\d$/.test(piece);
+    if (!/[\p{L}\p{N}]/u.test(before) && !/[\p{L}\p{N}]/u.test(after) && !cutsNumberBefore && !cutsNumberAfter) return at;
   }
   return -1;
 }
@@ -406,8 +409,9 @@ export function runVerifySources(step, ctx) {
     insist(list >= 0, 'The draft has no list after the header');
     // Only a header line may be replaced: anything else before the list (a paragraph, a second line) is refused.
     const before = text.slice(0, list).split(/\r?\n/).filter(line => line.trim());
-    // Only a bold header line may stand there (the model's copy of the fixed header); prose is refused, not dropped.
-    insist(before.length === 0 || (before.length === 1 && /^\*\*.+\*\*$/.test(before[0].trim())), 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
+    // Only a bold header line with the fixed links may stand there (the model's copy of the fixed header); prose is refused.
+    const fixed = stringList(step, 'fixedLinks', ctx);
+    insist(before.length === 0 || (before.length === 1 && /^\*\*.+\*\*$/.test(before[0].trim()) && fixed.every(url => before[0].includes(url))), 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
     text = requiredPrefix + text.slice(list);
   }
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
