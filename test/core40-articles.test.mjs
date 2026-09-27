@@ -297,5 +297,5 @@ test("review P2: the approval preview shows the fact-check summary; the limitati
 
 test("Digest 0.7.1 fact-check prompt carries the precision rules from the 27.09 independent fact-checks", () => {
   const fc = DIGEST.steps.find((s) => s.id === "factcheck").config.instructions.replace(/\s+/g, " ");
-  for (const rule of ["narrower statement in the article body", "«за даними дослідників»", "never «до N%»", "An experimental condition stays a condition", "a way around a rule is «лазівка», not «вада»", "gender, number and case agreement", "«у тестах, які провела сама компанія»"]) assert.ok(fc.includes(rule), rule);
+  for (const rule of ["narrower statement in the article body", "«за даними дослідників»", "never «скорочує … до N%»", "An experimental condition stays a condition", "a way around a rule is «лазівка», not «вада»", "gender, number and case agreement", "«у тестах, які провела сама компанія»"]) assert.ok(fc.includes(rule), rule);
 });

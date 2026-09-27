@@ -194,7 +194,7 @@ steps:
         Describe only what the item text supports; the articles themselves
         were not read, so do not add numbers, quotes or details beyond it.
         Keep scope, attribution and conditions narrow: what exactly was paused,
-        «за даними дослідників/компанії» for their own results, a cut as «на N%»,
+        «за даними дослідників/компанії» for their own results, a cut as «на N%» or «до N% менше»,
         an experiment's condition as a condition.
         Check each claim against its linked source as you write. Numbers exactly
         as in the source, with the same meaning («about a third as often» is «приблизно
@@ -253,9 +253,9 @@ steps:
           inference with tool use», the item says what the body says.
         - Results of research, products and benchmarks stay attributed
           («за даними дослідників», «за даними компанії») and tied to the test
-          they were measured on when the article limits them to it. A cut is
-          «на N%» («скорочує використання токенів на 44,7–49%»), never «до N%»,
-          which reads as the level reached.
+          they were measured on when the article limits them to it. A cut stays a
+          cut: «на N%», or «до N% менше» for «up to N% fewer»; never «скорочує
+          … до N%», which reads as the level reached.
         - An experimental condition stays a condition (questions chosen so that
           the AI was almost always wrong); never turn it into a general property
           of AI or of people («AI часто помиляється»).
