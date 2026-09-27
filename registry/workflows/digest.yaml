@@ -250,8 +250,8 @@ steps:
         state, and no second actor's action as the first actor's. Keep who did
         what, the exact scope (for example «models with tool access», not «all
         models»), and each number with its unit and meaning.
-        Keep the nested-list format and the header of the draft: the same header
-        line byte-for-byte and a blank line, "- " bullets, two spaces of
+        Keep the nested-list format of the draft (Q-Core puts the fixed header
+        line back itself, so the header you return is ignored), "- " bullets, two spaces of
         indentation per level, one line per item, themes in the draft's order.
         Do not add sources or new items.
         Make the links compact and the items short. An item with sub-items (a

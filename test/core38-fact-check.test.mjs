@@ -126,7 +126,7 @@ test("negative examples: the claim records must cover the final text exactly", (
     "checked against no source": [REVISED, clone(CLAIMS).map((c) => (c.item === 3 ? { ...c, sources: [] } : c)), /needs the sources it was checked against/],
     "a removed record that still names an item": [REVISED, clone(CLAIMS).map((c) => (c.item === 8 ? { ...c, verdict: "removed", reason: "x", text: "x" } : c)), /is removed but still names list item 8/],
     "a revised claim without a reason": [REVISED, clone(CLAIMS).map((c) => (c.item === 9 ? { ...c, reason: "" } : c)), /\(revised\) needs a reason/],
-    "a one-word quote": [REVISED, clone(CLAIMS).map((c) => (c.item === 8 ? { ...c, quote: "Microsoft" } : c)), /a quote must be 3 or more words/],
+    "a one-word quote as the only quote": [REVISED, clone(CLAIMS).map((c) => (c.item === 8 ? { ...c, quote: "Microsoft" } : c)), /at least one quote must be 3 or more words/],
   };
   for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
   // The checked (and approved, and delivered) text is the fact-checked text, not the draft before it.
@@ -178,7 +178,7 @@ test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate
   assert.match(fc.instructions, /\{\{steps\.draft\.output\.text\}\}/);
   assert.ok(Number(fc.maxTokens) >= 12000, fc.maxTokens);
   const words = (s) => new RegExp(s.split(" ").join("\\s+"), "i");
-  for (const rule of ["each claim against its linked source", "revise or remove", "Numbers exactly as in the source", "No generalisation beyond the sources", "nested-list format and the header", "«незважаючи» is one word", "«агентів для програмування»", "untrusted data"]) assert.match(fc.instructions, words(rule), rule);
+  for (const rule of ["each claim against its linked source", "revise or remove", "Numbers exactly as in the source", "No generalisation beyond the sources", "Q-Core puts the fixed header", "«незважаючи» is one word", "«агентів для програмування»", "untrusted data"]) assert.match(fc.instructions, words(rule), rule);
   for (const rule of ["each claim against its linked source", "Numbers exactly as in the source", "No generalisation beyond the sources"]) assert.match(draft.instructions, words(rule), rule);
   assert.equal(CHECKS.draft, "{{steps.factcheck.output}}");
   assert.equal(CHECKS.factCheck, "{{steps.factcheck.output}}");

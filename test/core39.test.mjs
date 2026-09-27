@@ -54,3 +54,39 @@ test("live run 58c169c9: a quote may mark omissions with an ellipsis; a word lef
     ["cuts … 49 percent", "a one-word piece"],
   ]) assert.throws(() => run(bad), /the quote is not in the text of its linked sources/, why);
 });
+
+test("live run f8ee3f9f: with factCheck the fixed header comes from requiredPrefix, not from the model's copy", async () => {
+  const { runVerifySources } = await import("../src/registry-data-steps.mjs");
+  const URL_ = "https://the-decoder.com/sol-pi";
+  const TEXT = "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance.";
+  const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**\n\n";
+  const LIST = `- SoL-Pi скорочує використання токенів агентами для програмування до 49% ([The Decoder](${URL_}))`;
+  const base = { draft: "{{steps.factcheck.output}}", sources: "{{steps.clusters.output}}", language: "uk", citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: HEADER, nestedList: "3" };
+  const claims = [{ item: 1, verdict: "supported", sources: [URL_], quote: ["SoL-Pi cuts coding agents' token usage by up to 49 percent"] }];
+  const run = (text, config) => runVerifySources({ config }, { priorOutputs: { clusters: { sources: [{ url: URL_, title: "t", text: TEXT }] }, factcheck: { text, claims } }, priorStepNames: {} });
+  process.env.QF_DIGEST_DATE = "26.09";
+  const broken = HEADER.replace("🧋", "\u{1F2C6}") + LIST;
+  const out = run(broken, { ...base, factCheck: "{{steps.factcheck.output}}" }).output;
+  assert.equal(out.text, HEADER + LIST, "the delivered text carries the exact header");
+  assert.equal(run(LIST, { ...base, factCheck: "{{steps.factcheck.output}}" }).output.text, HEADER + LIST, "a list without a header gets it");
+  // Without factCheck the draft must still begin with the exact prefix.
+  assert.throws(() => run(broken, base), /required literal prefix/);
+  // A text that is not a list after the header is still refused.
+  assert.throws(() => run(HEADER + "Просто абзац.", { ...base, factCheck: "{{steps.factcheck.output}}" }), /no list after the header|nested bullet list only/);
+});
+
+test("live run f8ee3f9f: «до 3,13 разу» is a ratio; a two-word product name may be an extra quote, not the only one", async () => {
+  const { numberTokens, runVerifySources } = await import("../src/registry-data-steps.mjs");
+  assert.deepEqual(numberTokens("до 3,13 разу").map((t) => t.token), ["ratio:3.13"]);
+  assert.deepEqual(numberTokens("up to 3.13x faster").map((t) => t.token), ["ratio:3.13"]);
+  const URL_ = "https://www.marktechpost.com/exa";
+  const TEXT = "Exa launched Agent Ultra, a deep research mode that coordinates subagents across thousands of sources.";
+  const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**\n\n";
+  const text = `${HEADER}- Exa запустила Agent Ultra для глибоких досліджень ([MarkTechPost](${URL_}))`;
+  const config = { draft: "{{steps.factcheck.output}}", factCheck: "{{steps.factcheck.output}}", sources: "{{steps.clusters.output}}", language: "uk", citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: HEADER, nestedList: "3", outletLinkText: "true" };
+  const run = (quote) => runVerifySources({ config }, { priorOutputs: { clusters: { sources: [{ url: URL_, title: "Exa", text: TEXT }] }, factcheck: { text, claims: [{ item: 1, verdict: "supported", sources: [URL_], quote }] } }, priorStepNames: {} });
+  process.env.QF_DIGEST_DATE = "26.09";
+  assert.doesNotThrow(() => run(["Agent Ultra", "Exa launched Agent Ultra, a deep research mode"]));
+  assert.throws(() => run(["Agent Ultra"]), /at least one quote must be 3 or more words/);
+  assert.throws(() => run(["Agent Mega", "Exa launched Agent Ultra"]), /the quote is not in the text of its linked sources/);
+});

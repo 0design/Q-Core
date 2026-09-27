@@ -617,6 +617,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   or changed checker stops. Limit exhaustion is `needs_human`, never success.
   Repair evidence and revisions are retained. Interrupted applies require manual
   reconciliation; they are never blindly repeated.
+  With `factCheck`, `requiredPrefix` and `nestedList` (Core 39) everything before the first list line of
+  the fact-checked text is replaced by `requiredPrefix`: the fixed header is never the model's to copy.
 
 Use an exact package pin and validate the actual template in its target
 environment before relying on a Registry composition.

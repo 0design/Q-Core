@@ -53,8 +53,8 @@ const B = '(?<![\\p{L}\\p{N}])', E = '(?![\\p{L}\\p{N}])';
 const COMPARATIVE = '(?:less|fewer|more|lower|higher|smaller|larger|bigger|faster|slower|cheaper|as)';
 const NUMBER_PHRASES = [
   // Ratios first, so «a third as often» is not also read as a share.
-  // «у 1,5 раза», «в 2 рази», «до 3,13 раза»: «раза» is the multiplier form of a fraction, so it is a ratio without «у/в» too.
-  [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|а|ів)?${E}|${B}(\\d+[.,]\\d+)\\s+раза${E}`, 'giu'), m => `ratio:${Number((m[1] ?? m[2]).replace(',', '.'))}`],
+  // «у 1,5 раза», «в 2 рази», «до 3,13 раза» / «разу» (live run f8ee3f9f): «раза» is the multiplier form of a fraction, so it is a ratio without «у/в» too.
+  [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|а|у|ів)?${E}|${B}(\\d+[.,]\\d+)\\s+раз[ау]${E}`, 'giu'), m => `ratio:${Number((m[1] ?? m[2]).replace(',', '.'))}`],
   [new RegExp(`${B}[ву]\\s+(два|дві|три|чотири|п['’ʼ]?ять|десять)\\s+раз(?:и|ів)${E}`, 'giu'), m => `ratio:${{ 'два': 2, 'дві': 2, 'три': 3, 'чотири': 4, 'десять': 10 }[m[1].toLowerCase()] ?? 5}`],
   [new RegExp(`${B}(?:[ву]дві[чк]і|[ву]двоє|наполовину|подвоїл\\p{L}*|подвоєн\\p{L}*)${E}`, 'giu'), () => 'ratio:2'],
   [new RegExp(`${B}(?:[ву]тричі|[ву]троє|потроїл\\p{L}*)${E}`, 'giu'), () => 'ratio:3'],
@@ -158,7 +158,8 @@ function quoteInOrder(quote, ground) {
 }
 function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf = index => citedUrls(nestedItems[index].text)) {
   insist(record && typeof record === 'object' && Array.isArray(record.claims), 'factCheck must reference a fact-check output {claims:[...], text}');
-  insist(typeof record.text === 'string' && record.text.trim() === text.trim(), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
+  const listOf = t => { const i = t.search(/^[-*+] /m); return (i < 0 ? t : t.slice(i)).trim(); };
+  insist(typeof record.text === 'string' && listOf(record.text) === listOf(text), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
   insist(record.claims.length > 0 && record.claims.length <= 100, 'factCheck needs 1..100 claim records');
   const byUrl = new Map(sources.map(source => [source.url, source]));
   const kept = new Map(), removed = [], out = [];
@@ -187,9 +188,11 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     const quotes = (Array.isArray(claim.quote) ? claim.quote : claim.quote == null ? [] : [claim.quote]).filter(q => typeof q === 'string' && q.trim());
     insist(quotes.length > 0, `List item ${item} has no quote from its linked sources; every claim, a theme's generalisation included, needs a verbatim quote that supports it: ${itemText.slice(0, 60)}`);
     const grounds = urls.flatMap(url => [byUrl.get(url).title, byUrl.get(url).text].filter(t => typeof t === 'string').map(normQuote));
+    // Every quote is verbatim; at least one has 3+ words (a short one may name a product, live run f8ee3f9f).
+    insist(quotes.some(quote => (trimQuote(quote).match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3), `List item ${item}: at least one quote must be 3 or more words: «${quotes[0].slice(0, 60)}»`);
     for (const quote of quotes) {
       const q = trimQuote(quote);
-      insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3 && q.length <= 600, `List item ${item}: a quote must be 3 or more words and at most 600 characters: «${quote.slice(0, 60)}»`);
+      insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && q.length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
       insist(grounds.some(g => g.includes(q) || quoteInOrder(q, g)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
     }
     // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
@@ -353,7 +356,7 @@ function clusterSources(step, ctx, sources) {
 export function runVerifySources(step, ctx) {
   const draft = value(step, 'draft', ctx), input = value(step, 'sources', ctx);
   const sources = Array.isArray(input) ? input : input?.sources;
-  const text = typeof draft === 'string' ? draft : draft?.text;
+  let text = typeof draft === 'string' ? draft : draft?.text;
   insist(typeof text === 'string' && text.trim() && text.length <= 16000, 'A bounded nonempty draft is required');
   insist(Array.isArray(sources) && sources.length > 0, 'Pinned source list required');
   const urls = new Set(sources.map(s => s.url));
@@ -380,6 +383,14 @@ export function runVerifySources(step, ctx) {
   // An unset {{env.NAME}} stays in place by design; a contract that still carries
   // a placeholder would silently require the literal braces, so refuse it.
   insist(![requiredPrefix ?? '', ...fixedLinks, ...requiredHeadings, ...introLinks].some(item => /\{\{[^{}]*\}\}/.test(item)), 'Format contract has an unresolved template placeholder');
+  // Core39 (live run f8ee3f9f): with factCheck + nestedList the fixed header is not the model's to copy (the
+  // fact-check call once changed its emoji). Everything before the first list line is replaced by requiredPrefix;
+  // the list itself is checked as the model wrote it.
+  if (requiredPrefix !== null && step.config.factCheck != null && step.config.nestedList != null) {
+    const list = text.search(/^[-*+] /m);
+    insist(list >= 0, 'The draft has no list after the header');
+    text = requiredPrefix + text.slice(list);
+  }
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
   if (requiredHeadings.length > 0) {
     insist(requiredHeadings.every(heading => /^## \S/.test(heading) && !/[\r\n]/.test(heading)), 'requiredHeadings must be level-two Markdown headings');
