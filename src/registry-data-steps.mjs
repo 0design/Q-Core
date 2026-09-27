@@ -53,8 +53,8 @@ const B = '(?<![\\p{L}\\p{N}])', E = '(?![\\p{L}\\p{N}])';
 const COMPARATIVE = '(?:less|fewer|more|lower|higher|smaller|larger|bigger|faster|slower|cheaper|as)';
 const NUMBER_PHRASES = [
   // Ratios first, so «a third as often» is not also read as a share.
-  // «у 1,5 раза», «в 2 рази», «до 3,13 раза»: «раза» is the multiplier form of a fraction, so it is a ratio without «у/в» too.
-  [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|а|ів)?${E}|${B}(\\d+[.,]\\d+)\\s+раза${E}`, 'giu'), m => `ratio:${Number((m[1] ?? m[2]).replace(',', '.'))}`],
+  // «у 1,5 раза», «в 2 рази», «до 3,13 раза» / «разу» (live run f8ee3f9f): «раза» is the multiplier form of a fraction, so it is a ratio without «у/в» too.
+  [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|а|у|ів)?${E}|${B}(\\d+[.,]\\d+)\\s+раз[ау]${E}`, 'giu'), m => `ratio:${Number((m[1] ?? m[2]).replace(',', '.'))}`],
   [new RegExp(`${B}[ву]\\s+(два|дві|три|чотири|п['’ʼ]?ять|десять)\\s+раз(?:и|ів)${E}`, 'giu'), m => `ratio:${{ 'два': 2, 'дві': 2, 'три': 3, 'чотири': 4, 'десять': 10 }[m[1].toLowerCase()] ?? 5}`],
   [new RegExp(`${B}(?:[ву]дві[чк]і|[ву]двоє|наполовину|подвоїл\\p{L}*|подвоєн\\p{L}*)${E}`, 'giu'), () => 'ratio:2'],
   [new RegExp(`${B}(?:[ву]тричі|[ву]троє|потроїл\\p{L}*)${E}`, 'giu'), () => 'ratio:3'],
@@ -137,14 +137,47 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
 /* factCheck: a model step's claim records for the final text, checked here deterministically:
    - every list item of the final text has exactly one kept claim record ({item: its 1-based position});
    - a kept claim is "supported" or "revised"; any other verdict (unsupported, overstated…) must be revised or removed;
-   - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim — case,
+   - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim (or as ellipsis-marked verbatim pieces in order, quoteInOrder) — case,
      spaces, quote marks and dashes normalised — in the title or text of one of those sources as the Core holds them;
    - every number in the item's own words is among the numbers of its quotes or linked sources' title/text (numberTokens);
    - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
    The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
+/* Substring search on word boundaries: «up to 4» is not found inside «up to 49» (review of Q-Core #31). */
+function wordIndexOf(ground, piece, from = 0) {
+  for (let at = ground.indexOf(piece, from); at >= 0; at = ground.indexOf(piece, at + 1)) {
+    const before = at === 0 ? '' : ground[at - 1], after = ground[at + piece.length] ?? '';
+    // A decimal is one token: «49» is not in «49.5», «5» is not in «49.5», «3» is not in «3,13».
+    const cutsNumberBefore = /[.,]/.test(before) && /\d/.test(ground[at - 2] ?? '') && /^\d/.test(piece);
+    const cutsNumberAfter = /[.,]/.test(after) && /\d/.test(ground[at + piece.length + 1] ?? '') && /\d$/.test(piece);
+    if (!/[\p{L}\p{N}]/u.test(before) && !/[\p{L}\p{N}]/u.test(after) && !cutsNumberBefore && !cutsNumberAfter) return at;
+  }
+  return -1;
+}
+const NEGATION = /(?<![\p{L}\p{N}])(?:not|no|never|without|none|nor|n't|не|ні|без|ніколи|жодн\p{L}*)(?![\p{L}\p{N}])/iu;
+/* A quote is grounded when it occurs verbatim, or (Core39, live run 58c169c9) when it marks every omission with
+   an ellipsis («…» or «...») and each piece between them (2–4 pieces of 2+ words) occurs verbatim in the source, in
+   the same order, within one passage (span ≤ twice the quote + 120 characters). A word left out silently (a dropped scope such as «tool-based») is never accepted. */
+function quoteInOrder(quote, ground) {
+  const pieces = quote.split(/…|\.\.\./).map(piece => piece.replace(/^[\s.,;:!?"'()\-]+|[\s.,;:!?"'()\-]+$/g, '')).filter(Boolean);
+  if (pieces.length < 2 || pieces.length > 4 || pieces.some(piece => (piece.match(/[\p{L}\p{N}]+/gu) ?? []).length < 2)) return false;
+  // The pieces must come from one passage: their span in the source is at most twice the quote plus 120 characters.
+  const quoted = pieces.join(' ').length;
+  for (let start = wordIndexOf(ground, pieces[0]); start >= 0; start = wordIndexOf(ground, pieces[0], start + 1)) {
+    let at = start + pieces[0].length, ok = true;
+    for (const piece of pieces.slice(1)) {
+      const found = wordIndexOf(ground, piece, at);
+      // A left-out part may not carry a negation: «does … reduce» must not stand for «does not reduce».
+      if (found < 0 || NEGATION.test(ground.slice(at, found))) { ok = false; break; }
+      at = found + piece.length;
+    }
+    if (ok && at - start <= quoted * 2 + 120) return true;
+  }
+  return false;
+}
 function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf = index => citedUrls(nestedItems[index].text)) {
   insist(record && typeof record === 'object' && Array.isArray(record.claims), 'factCheck must reference a fact-check output {claims:[...], text}');
-  insist(typeof record.text === 'string' && record.text.trim() === text.trim(), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
+  const listOf = t => { const i = t.search(/^[-*+] /m); return (i < 0 ? t : t.slice(i)).trim(); };
+  insist(typeof record.text === 'string' && listOf(record.text) === listOf(text), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
   insist(record.claims.length > 0 && record.claims.length <= 100, 'factCheck needs 1..100 claim records');
   const byUrl = new Map(sources.map(source => [source.url, source]));
   const kept = new Map(), removed = [], out = [];
@@ -173,10 +206,12 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     const quotes = (Array.isArray(claim.quote) ? claim.quote : claim.quote == null ? [] : [claim.quote]).filter(q => typeof q === 'string' && q.trim());
     insist(quotes.length > 0, `List item ${item} has no quote from its linked sources; every claim, a theme's generalisation included, needs a verbatim quote that supports it: ${itemText.slice(0, 60)}`);
     const grounds = urls.flatMap(url => [byUrl.get(url).title, byUrl.get(url).text].filter(t => typeof t === 'string').map(normQuote));
+    // Every quote is verbatim; at least one has 3+ words (a short one may name a product, live run f8ee3f9f).
+    insist(quotes.some(quote => (trimQuote(quote).match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3), `List item ${item}: at least one quote must be 3 or more words: «${quotes[0].slice(0, 60)}»`);
     for (const quote of quotes) {
       const q = trimQuote(quote);
-      insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3 && q.length <= 600, `List item ${item}: a quote must be 3 or more words and at most 600 characters: «${quote.slice(0, 60)}»`);
-      insist(grounds.some(g => g.includes(q)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
+      insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && q.length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
+      insist(grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
     }
     // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
     // 461a3df0, 27.09: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote).
@@ -339,7 +374,7 @@ function clusterSources(step, ctx, sources) {
 export function runVerifySources(step, ctx) {
   const draft = value(step, 'draft', ctx), input = value(step, 'sources', ctx);
   const sources = Array.isArray(input) ? input : input?.sources;
-  const text = typeof draft === 'string' ? draft : draft?.text;
+  let text = typeof draft === 'string' ? draft : draft?.text;
   insist(typeof text === 'string' && text.trim() && text.length <= 16000, 'A bounded nonempty draft is required');
   insist(Array.isArray(sources) && sources.length > 0, 'Pinned source list required');
   const urls = new Set(sources.map(s => s.url));
@@ -366,6 +401,19 @@ export function runVerifySources(step, ctx) {
   // An unset {{env.NAME}} stays in place by design; a contract that still carries
   // a placeholder would silently require the literal braces, so refuse it.
   insist(![requiredPrefix ?? '', ...fixedLinks, ...requiredHeadings, ...introLinks].some(item => /\{\{[^{}]*\}\}/.test(item)), 'Format contract has an unresolved template placeholder');
+  // Core39 (live run f8ee3f9f): with factCheck + nestedList the fixed header is not the model's to copy (the
+  // fact-check call once changed its emoji). Everything before the first list line is replaced by requiredPrefix;
+  // the list itself is checked as the model wrote it.
+  if (requiredPrefix !== null && step.config.factCheck != null && step.config.nestedList != null) {
+    const list = text.search(/^[-*+] /m);
+    insist(list >= 0, 'The draft has no list after the header');
+    // Only a header line may be replaced: anything else before the list (a paragraph, a second line) is refused.
+    const before = text.slice(0, list).split(/\r?\n/).filter(line => line.trim());
+    // Only a bold header line with the fixed links may stand there (the model's copy of the fixed header); prose is refused.
+    const fixed = stringList(step, 'fixedLinks', ctx);
+    insist(before.length === 0 || (before.length === 1 && /^\*\*.+\*\*$/.test(before[0].trim()) && fixed.every(url => before[0].includes(url))), 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
+    text = requiredPrefix + text.slice(list);
+  }
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');
   if (requiredHeadings.length > 0) {
     insist(requiredHeadings.every(heading => /^## \S/.test(heading) && !/[\r\n]/.test(heading)), 'requiredHeadings must be level-two Markdown headings');
