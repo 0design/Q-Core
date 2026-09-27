@@ -1,6 +1,7 @@
 import { hash, insist } from './contracts.mjs';
 import { resolveTemplate, resolveTemplateValue } from './template.mjs';
 import { parseFeed } from './steps.mjs';
+import { fetchWithRetry } from './http.mjs';
 
 const context = ctx => ({ priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, item: ctx.item, index: ctx.itemIndex });
 const value = (step, field, ctx) => resolveTemplateValue(step.config[field], context(ctx));
@@ -74,14 +75,17 @@ const NUMBER_PHRASES = [
   // Counts of times.
   [new RegExp(`${B}(?:двічі|twice)${E}`, 'giu'), () => 'count:2'],
   [new RegExp(`${B}(?:тричі|thrice)${E}`, 'giu'), () => 'count:3'],
+  // Collective numerals count people or things («восьмеро» = 8; Core40, live run 97688656: «лише восьмеро»).
+  [new RegExp(`${B}(двоє|троє|четверо|п['’ʼ]?ятеро|шестеро|семеро|восьмеро|дев['’ʼ]?ятеро|десятеро)${E}`, 'giu'), m => `n:${{ 'двоє': 2, 'троє': 3, 'четверо': 4, 'шестеро': 6, 'семеро': 7, 'восьмеро': 8, 'десятеро': 10 }[m[1].toLowerCase()] ?? (/^п/i.test(m[1]) ? 5 : 9)}`],
 ];
 const SCALES = [[/^\s*(?:трлн|трильйон\p{L}*|trillion)(?![\p{L}\p{N}])/iu, 1e12], [/^\s*(?:млрд|мільярд\p{L}*|billion|bn)(?![\p{L}\p{N}])/iu, 1e9], [/^B(?![\p{L}\p{N}])/u, 1e9], [/^\s*(?:млн|мільйон\p{L}*|million|mln)(?![\p{L}\p{N}])/iu, 1e6], [/^M(?![\p{L}\p{N}])/u, 1e6], [/^\s*(?:тис\.|тисяч\p{L}*|thousand)(?![\p{L}\p{N}])/iu, 1e3], [/^[Kk](?![\p{L}\p{N}])/u, 1e3]];
 export function numberTokens(input) {
   let text = String(input).normalize('NFKC');
   const found = [];
-  for (const [re, token] of NUMBER_PHRASES) text = text.replace(re, (...args) => { found.push({ token: token(args), surface: args[0] }); return ' '.repeat(args[0].length); });
+  // before: the text just ahead of a number, for the approximation check (hedgedBefore).
+  for (const [re, token] of NUMBER_PHRASES) text = text.replace(re, (...args) => { const at = args.find(a => typeof a === 'number'); found.push({ token: token(args), surface: args[0], before: text.slice(Math.max(0, at - 30), at) }); return ' '.repeat(args[0].length); });
   // English number words count as numbers too (a quote may write «three» where a claim writes 3).
-  text = text.replace(new RegExp(`${B}(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)${E}`, 'giu'), (w, word, at) => { found.push({ token: `n:${NUMBER_WORDS[word.toLowerCase()]}`, surface: w, quoteOnly: true }); return ' '.repeat(w.length); });
+  text = text.replace(new RegExp(`${B}(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)${E}`, 'giu'), (w, word, at) => { found.push({ token: `n:${NUMBER_WORDS[word.toLowerCase()]}`, surface: w, quoteOnly: true, before: text.slice(Math.max(0, at - 30), at) }); return ' '.repeat(w.length); });
   const DIGITS = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?![\d.,]\d)|\d{1,3}(?:,\d{3})+(?![\d.,]\d)|\d+(?:[.,]\d+)?)(?!\p{N})/gu;
   for (const m of text.matchAll(DIGITS)) {
     const raw = m[1];
@@ -89,10 +93,13 @@ export function numberTokens(input) {
     const rest = text.slice(m.index + m[0].length);
     const scale = SCALES.find(([re]) => re.test(rest));
     const scaled = scale ? value * scale[1] : value;
-    found.push({ token: `n:${Number(scaled.toPrecision(12))}`, surface: scale ? `${raw}${rest.match(scale[0])[0]}` : raw });
+    found.push({ token: `n:${Number(scaled.toPrecision(12))}`, surface: scale ? `${raw}${rest.match(scale[0])[0]}` : raw, before: text.slice(Math.max(0, m.index - 30), m.index) });
   }
   return found;
 }
+/* An approximation or a bound right before a number («about 160», «up to 49 percent», «близько 160», «до 49%»). */
+const HEDGE = /(?:^|[^\p{L}])(?:about|around|roughly|approximately|nearly|almost|some|circa|an estimated|more than|over|up to|at least|at most|less than|fewer than|under|близько|приблизно|майже|орієнтовно|понад|більше ніж|більш ніж|до|щонайменше|менше ніж|не менше|не більше|лише близько|більше|менше|від|десь|як мінімум|мінімум|максимум|в середньому|у середньому|під)(?:\s+(?:на|в|у|by|to|in))?\s*(?:[~≈$€£]\s*)?$/iu;
+export const hedgedBefore = before => HEDGE.test(String(before ?? '').replace(/\s+/g, ' ')) || /[~≈]\s*$/.test(String(before ?? ''));
 const unifyQuotes = s => String(s).normalize('NFKC').replace(/[‘’ʼ`´]/g, "'").replace(/[“”«»„‟]/g, '"').replace(/[‐‑‒–—−]/g, '-').replace(/…/g, '...');
 const normQuote = s => unifyQuotes(s).toLocaleLowerCase('en').replace(/\s+/g, ' ').trim();
 const trimQuote = s => normQuote(s).replace(/^[\s.,;:!?"'()\-]+|[\s.,;:!?"'()\-]+$/g, '');
@@ -205,23 +212,38 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     for (const url of urls) insist(byUrl.has(url) && cited.has(url), `${label} (item ${item}) was checked against ${url}, which the item does not link as a selected source${nestedItems[item - 1].parent ? ' (a theme without links stands on the links of its sub-items)' : ''}`);
     const quotes = (Array.isArray(claim.quote) ? claim.quote : claim.quote == null ? [] : [claim.quote]).filter(q => typeof q === 'string' && q.trim());
     insist(quotes.length > 0, `List item ${item} has no quote from its linked sources; every claim, a theme's generalisation included, needs a verbatim quote that supports it: ${itemText.slice(0, 60)}`);
-    const grounds = urls.flatMap(url => [byUrl.get(url).title, byUrl.get(url).text].filter(t => typeof t === 'string').map(normQuote));
-    // Every quote is verbatim; at least one has 3+ words (a short one may name a product, live run f8ee3f9f).
-    insist(quotes.some(quote => (trimQuote(quote).match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3), `List item ${item}: at least one quote must be 3 or more words: «${quotes[0].slice(0, 60)}»`);
-    for (const quote of quotes) {
-      const q = trimQuote(quote);
-      insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && q.length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
-      insist(grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
-    }
+    // Grounds: the feed-item title and summary and, when parse-web articles read it, the article text (Core40).
+    const groundsOf = url => { const s = byUrl.get(url); return [s.title, s.text, s.articleStatus === 'ok' ? s.articleText : null].filter(t => typeof t === 'string'); };
+    const grounds = urls.flatMap(groundsOf).map(normQuote);
+    // A claim stands on its verbatim quotes: at least one of 3+ words (a short one may name a product, live run
+    // f8ee3f9f). Core40 (live run 3f16062b): an extra quote that is not verbatim is set aside and listed as unmatched
+    // for the person who approves, instead of failing a claim another verbatim quote supports; its numbers do not count.
+    for (const quote of quotes) insist(trimQuote(quote).length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
+    const grounded = quote => { const q = trimQuote(quote); return (q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)); };
+    const matchedQuotes = quotes.filter(grounded), unmatchedQuotes = quotes.filter(quote => !grounded(quote));
+    insist(matchedQuotes.length > 0, `List item ${item}: the quote is not in the text of its linked sources: «${(unmatchedQuotes[0] ?? "").slice(0, 80)}»`);
+    insist(matchedQuotes.some(quote => (trimQuote(quote).match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3), matchedQuotes.length < quotes.length ? `List item ${item}: the quote is not in the text of its linked sources: «${(unmatchedQuotes[0] ?? "").slice(0, 80)}»` : `List item ${item}: at least one quote must be 3 or more words: «${quotes[0].slice(0, 60)}»`);
     // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
     // 461a3df0, 27.09: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote).
-    const sourceTexts = urls.flatMap(url => [byUrl.get(url).title, byUrl.get(url).text].filter(t => typeof t === 'string'));
+    const sourceTexts = urls.flatMap(groundsOf);
     // «in half» / «удвічі» (ratio 2) and «половина» (share 1/2) state the same halving; thirds stay apart (65ef7d49).
     const canon = token => token === 'share:1/2' ? 'ratio:2' : token;
-    const quoteTokens = new Set([...quotes, ...sourceTexts].flatMap(q => numberTokens(unifyQuotes(q)).map(t => canon(t.token))));
+    const quoteTokens = new Set([...matchedQuotes, ...sourceTexts].flatMap(q => numberTokens(unifyQuotes(q)).map(t => canon(t.token))));
     const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)));
     insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
-    out.push({ item, verdict, sources: urls, quote: quotes, numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
+    // An approximation or bound stays (Core40, live run 97688656: «160 ІТ-керівників» for «about 160 IT vice presidents»,
+    // while the feed summary said «160»): a number the item states bare is refused when every place that states it has
+    // «about», «nearly», «up to»… right before it. The article decides when it states the number; else the quotes;
+    // else the title and summary.
+    const occurrences = (texts, t) => texts.flatMap(q => numberTokens(unifyQuotes(q))).filter(o => canon(o.token) === canon(t.token));
+    const articles = urls.map(url => byUrl.get(url)).filter(s => s.articleStatus === 'ok' && typeof s.articleText === 'string').map(s => s.articleText);
+    for (const t of numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !hedgedBefore(t.before))) {
+      const inArticles = occurrences(articles, t), inQuotes = occurrences(matchedQuotes, t);
+      const where = inArticles.length ? inArticles : inQuotes.length ? inQuotes : occurrences(sourceTexts, t);
+      const hedged = where.length > 0 && where.every(o => hedgedBefore(o.before));
+      insist(!hedged, `List item ${item} states «${t.surface}» exactly; its source says «${(HEDGE.exec(String(where[0]?.before ?? '').replace(/\s+/g, ' '))?.[0] ?? '').replace(/^[^\p{L}~≈]+/u, '').trim()} ${where[0]?.surface}»: keep the approximation or bound («близько», «майже», «до», «понад»): ${itemText.slice(0, 60)}`);
+    }
+    out.push({ item, verdict, sources: urls, quote: matchedQuotes, ...(unmatchedQuotes.length ? { unmatchedQuotes } : {}), numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
   });
   const unmapped = nestedItems.findIndex((_, i) => !kept.has(i + 1));
   insist(unmapped < 0, `List item ${unmapped + 1} has no claim record; every item of the final text is fact-checked: ${nestedItems[unmapped]?.text.slice(0, 60)}`);
@@ -239,10 +261,11 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
   }
   out.sort((a, b) => (a.item ?? Infinity) - (b.item ?? Infinity));
   const count = verdict => out.filter(c => c.verdict === verdict).length;
-  return { claims: out, supported: count('supported'), revised: count('revised'), removed: count('removed'), grounding: 'feed-item title and summary of each linked source, as the Core holds them; the full articles are not read' };
+  return { claims: out, supported: count('supported'), revised: count('revised'), removed: count('removed'), grounding: sources.some(s => s.articleStatus === 'ok') ? 'feed-item title and summary plus the static article text of each linked source that parse-web articles could read (up to its maxChars); unreadable articles fall back to the summary' : 'feed-item title and summary of each linked source, as the Core holds them; the full articles are not read' };
 }
 export function runParseWeb(step, ctx) {
   if (step.config.items != null) return runParseFeedItems(step, ctx);
+  if (step.config.articles != null) return runParseArticles(step, ctx);
   const inputs = step.config.source ? [value(step, 'source', ctx)] : Object.values(ctx.priorOutputs).filter(v => v && typeof v.url === 'string' && typeof v.body === 'string');
   insist(inputs.length > 0 && inputs.length <= 20, 'parse-web requires 1..20 fetched text sources');
   const maxChars = Number(step.config.maxChars ?? 6000);
@@ -256,6 +279,171 @@ export function runParseWeb(step, ctx) {
   return { output: { sources } };
 }
 
+/* articles: "true" (Core40) — the article behind each selected source, fetched once and read as static text, so a
+   fact check can ground on the article and not only on the feed summary. Bounded: at most 20 distinct URLs, one
+   GET each (20 s, 1 retry on a network error, 429 or 5xx), at most 3 redirects, 1.5 MB per page, http(s) only and
+   never a local or private-network address (checked on every redirect hop; a host name that resolves to a private
+   address is not detected: no DNS lookup). One unreachable page is recorded (articleStatus: "unavailable"), not
+   fatal; when none is reachable the step fails. The text comes from the page's <article>, else <main>, else <body>,
+   without scripts, navigation, headers, footers, asides, forms and figures, up to maxChars. No JavaScript runs. */
+const LOCAL_V4 = /^(?:0\.0\.0\.0|127(?:\.\d+){3}|10(?:\.\d+){3}|192\.168(?:\.\d+){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d+){2}|169\.254(?:\.\d+){2}|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d+){2})$/;
+export function isLocalHost(raw) {
+  const host = String(raw).toLowerCase().replace(/\.$/, '').replace(/^\[|\]$/g, '');
+  return host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal') || LOCAL_V4.test(host)
+    || /^\d+$/.test(host) || /^0x/i.test(host)
+    || /^0(?:\.\d+){3}$/.test(host) // 0.0.0.0/8
+    // IPv6: everything that starts with «::» (unspecified, ::1, IPv4-compatible «::a.b.c.d» = «::7f00:1», IPv4-mapped),
+    // NAT64 64:ff9b::/96, link-local fe80::/10, site-local fec0::/10 and unique-local fc00::/7.
+    || /^(?:::.*|64:ff9b:.*|fe[89a-f][0-9a-f]:.*|f[cd][0-9a-f]{2}:.*)$/.test(host);
+}
+const publicHttpUrl = raw => {
+  let url;
+  try { url = new URL(raw); } catch { return null; }
+  return /^https?:$/.test(url.protocol) && !url.username && !url.password && url.hostname && !isLocalHost(url.hostname) ? url : null;
+};
+/* Linear-time article extraction (Core40 review): no backtracking regex over the page, so unclosed tags cost one
+   pass, not a pass per tag. blocksOf finds <tag …>…</tag> by indexOf and continues after each block. */
+function blocksOf(lower, tag) {
+  const out = [], open = `<${tag}`, close = `</${tag}`;
+  let at = 0;
+  for (;;) {
+    const start = lower.indexOf(open, at);
+    if (start < 0) break;
+    const after = lower[start + open.length];
+    if (after !== undefined && !/[\s>/]/.test(after)) { at = start + open.length; continue; }
+    const bodyStart = lower.indexOf('>', start);
+    if (bodyStart < 0) break;
+    const end = lower.indexOf(close, bodyStart);
+    if (end < 0) break;
+    const closeEnd = lower.indexOf('>', end);
+    out.push([start, bodyStart + 1, end, closeEnd < 0 ? lower.length : closeEnd + 1]);
+    at = end + close.length;
+  }
+  return out;
+}
+const DROPPED = ['script', 'style', 'nav', 'header', 'footer', 'aside', 'form', 'figure', 'noscript', 'svg', 'template', 'iframe', 'button', 'select', 'textarea'];
+const ENTITY = { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', hellip: '…', mdash: '—', ndash: '–', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', laquo: '«', raquo: '»' };
+function pageText(html) {
+  let text = html;
+  for (const tag of DROPPED) {
+    const blocks = blocksOf(text.toLowerCase(), tag);
+    if (!blocks.length) continue;
+    let out = '', at = 0;
+    for (const [start, , , stop] of blocks) { out += `${text.slice(at, start)} `; at = stop; }
+    text = out + text.slice(at);
+  }
+  // Comments by indexOf; tags by [^<>] so a «<» without its «>» cannot swallow the page; a stray «<» becomes a space.
+  let plain = '', at = 0;
+  for (;;) {
+    const start = text.indexOf('<!--', at);
+    if (start < 0) { plain += text.slice(at); break; }
+    const end = text.indexOf('-->', start + 4);
+    plain += `${text.slice(at, start)} `;
+    if (end < 0) break;
+    at = end + 3;
+  }
+  return plain.replace(/<[^<>]*>/g, ' ').replace(/</g, ' ')
+    .replace(/&#(\d{1,7});/g, (m, n) => { const c = Number(n); return c > 0 && c <= 0x10ffff ? String.fromCodePoint(c) : ' '; })
+    .replace(/&#x([0-9a-f]{1,6});/gi, (m, n) => { const c = parseInt(n, 16); return c > 0 && c <= 0x10ffff ? String.fromCodePoint(c) : ' '; })
+    .replace(/&([a-z]+);/gi, (m, n) => ENTITY[n.toLowerCase()] ?? m).replace(/\s+/g, ' ').trim();
+}
+/** Readable text of an article page: the longest <article>, else <main>, else the whole page (extraction "body"). */
+export function extractArticle(html) {
+  const page = String(html), lower = page.toLowerCase();
+  for (const tag of ['article', 'main']) {
+    const blocks = blocksOf(lower, tag);
+    if (blocks.length) return { text: blocks.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0], extraction: tag };
+  }
+  return { text: pageText(page), extraction: 'body' };
+}
+export const articleTextOf = html => extractArticle(html).text;
+const ARTICLE_BYTES = 1_500_000;
+const ARTICLE_URL_BUDGET_MS = 30_000;
+async function fetchArticle(raw, ctx) {
+  // One budget per URL for every attempt, redirect hop and the body: 30 s in all (each attempt is also held to 20 s).
+  const budget = AbortSignal.timeout(ARTICLE_URL_BUDGET_MS);
+  const signal = ctx.signal ? AbortSignal.any([ctx.signal, budget]) : budget;
+  let url = publicHttpUrl(raw);
+  if (!url) return { articleStatus: 'unavailable', articleError: 'not a public http(s) URL' };
+  for (let hop = 0; hop <= 3; hop++) {
+    let res;
+    try {
+      res = await fetchWithRetry(url.href, { headers: { 'User-Agent': 'q-core-workflow-engine/1', Accept: 'text/html,application/xhtml+xml,text/plain;q=0.8' }, redirect: 'manual', signal }, { timeoutMs: 20_000, retries: 1, delaysMs: [1000] });
+    } catch (error) {
+      ctx.signal?.throwIfAborted();
+      return { articleStatus: 'unavailable', articleError: error?.name === 'TimeoutError' || budget.aborted ? 'timed out (20 s per attempt, 30 s per URL)' : String(error?.message ?? error).slice(0, 120) };
+    }
+    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+      await res.body?.cancel().catch(() => {});
+      let next = null;
+      try { next = new URL(res.headers.get('location'), url).href; } catch { return { articleStatus: 'unavailable', articleError: 'invalid redirect location' }; }
+      url = publicHttpUrl(next);
+      if (!url) return { articleStatus: 'unavailable', articleError: 'redirect to a URL that is not public http(s)' };
+      continue;
+    }
+    if (!res.ok) { await res.body?.cancel().catch(() => {}); return { articleStatus: 'unavailable', articleError: `HTTP ${res.status}` }; }
+    const type = res.headers.get('content-type') ?? '';
+    // An HTML or plain-text page only: no content type, SVG, PDF, JSON or feeds are not article text.
+    if (!/^\s*(?:text\/html|application\/xhtml\+xml|text\/plain)\s*(?:;|$)/i.test(type)) { await res.body?.cancel().catch(() => {}); return { articleStatus: 'unavailable', articleError: `not an HTML or text page (${type.slice(0, 60) || 'no content type'})` }; }
+    const reader = res.body?.getReader(), chunks = [];
+    let bytes = 0, truncated = false;
+    // A timeout or a dropped connection in the middle of the body makes this page unavailable, not the step failed.
+    try {
+      if (reader) for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const room = ARTICLE_BYTES - bytes;
+        chunks.push(Buffer.from(value.subarray(0, room)));
+        bytes += Math.min(value.length, room);
+        if (value.length >= room) { truncated = true; await reader.cancel().catch(() => {}); break; }
+      }
+    } catch (error) {
+      await reader?.cancel().catch(() => {});
+      ctx.signal?.throwIfAborted();
+      return { articleStatus: 'unavailable', articleError: error?.name === 'TimeoutError' || error?.name === 'AbortError' ? 'timed out while reading the page' : `reading the page failed: ${String(error?.message ?? error).slice(0, 100)}` };
+    }
+    const raw = Buffer.concat(chunks);
+    // Charset from the Content-Type or a <meta> in the first 4 KB (default utf-8); one Node cannot decode: unavailable.
+    const label = (type.match(/charset\s*=\s*["']?([\w.:-]+)/i)?.[1] ?? raw.subarray(0, 4096).toString('latin1').match(/<meta[^>]{0,200}?charset\s*=\s*["']?([\w.:-]+)/i)?.[1] ?? 'utf-8').toLowerCase();
+    let body;
+    try { body = new TextDecoder(label).decode(raw); } catch { return { articleStatus: 'unavailable', articleError: `unsupported charset ${label.slice(0, 40)}` }; }
+    return { articleStatus: 'ok', articleUrl: url.href, body, bodyTruncated: truncated, articleSha256: hash(raw), charset: label };
+
+  }
+  return { articleStatus: 'unavailable', articleError: 'more than 3 redirects' };
+}
+async function runParseArticles(step, ctx) {
+  insist(step.config.articles === 'true' || step.config.articles === true, 'parse-web articles must be "true"');
+  const input = value(step, 'source', ctx);
+  const sources = Array.isArray(input) ? input : input?.sources;
+  insist(Array.isArray(sources) && sources.length > 0 && sources.every(s => typeof s?.url === 'string'), 'parse-web articles requires source: selected sources {sources:[{url,...}]}');
+  const maxChars = Number(step.config.maxChars ?? 4000);
+  insist(Number.isInteger(maxChars) && maxChars >= 500 && maxChars <= 10000, 'parse-web maxChars must be 500..10000');
+  const urls = [...new Set(sources.map(s => s.url))];
+  insist(urls.length <= 20, `parse-web articles reads at most 20 distinct URLs; got ${urls.length}`);
+  // maxTotalChars: one budget for all article texts, shared equally by the readable ones (a model reads them all).
+  const maxTotal = step.config.maxTotalChars == null ? null : Number(step.config.maxTotalChars);
+  insist(maxTotal === null || Number.isInteger(maxTotal) && maxTotal >= 1000 && maxTotal <= 200000, 'parse-web maxTotalChars must be 1000..200000');
+  const fetched = new Map(await Promise.all(urls.map(async url => [url, await fetchArticle(url, ctx)])));
+  const readable = [...fetched.values()].filter(page => page.articleStatus === 'ok').length || 1;
+  const perArticle = maxTotal === null ? maxChars : Math.max(200, Math.min(maxChars, Math.floor(maxTotal / readable)));
+  const read = url => {
+    const page = fetched.get(url);
+    if (page.articleStatus !== 'ok') return { articleStatus: 'unavailable', articleError: page.articleError, articleText: null, articleTruncated: false };
+    const { text, extraction } = extractArticle(page.body);
+    if (!text.trim()) return { articleStatus: 'unavailable', articleError: 'no readable static text', articleText: null, articleTruncated: false };
+    return { articleStatus: 'ok', articleText: text.slice(0, perArticle), articleTruncated: text.length > perArticle || page.bodyTruncated, articleExtraction: extraction, articleSha256: page.articleSha256 };
+  };
+  const texts = new Map(urls.map(url => [url, read(url)]));
+  insist([...texts.values()].some(t => t.articleStatus === 'ok'), `parse-web articles: none of the ${urls.length} article pages could be read (${[...texts.values()][0]?.articleError})`);
+  const withArticle = s => ({ ...s, ...texts.get(s.url) });
+  const out = { ...input, sources: sources.map(withArticle) };
+  // Clusters keep their shape (rank, topic, independentOutlets), so nestedOrder and the prompt input still work.
+  if (Array.isArray(input?.clusters)) out.clusters = input.clusters.map(c => ({ ...c, sources: Array.isArray(c.sources) ? c.sources.map(withArticle) : c.sources }));
+  const unavailable = [...texts.entries()].filter(([, t]) => t.articleStatus !== 'ok').map(([url, t]) => ({ url, error: t.articleError }));
+  out.articles = { read: urls.length - unavailable.length, unavailable, charsPerArticle: perArticle, extraction: 'static HTML text of <article>, else <main>, else <body>; no JavaScript; factual accuracy not verified' };
+  return { output: out };
+}
 const intIn = (step, field, min, max, fallback) => {
   const n = step.config[field] == null ? fallback : Number(step.config[field]);
   insist(Number.isInteger(n) && n >= min && n <= max, `parse-web ${field} must be ${min}..${max}`);
@@ -758,5 +946,10 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? 'Every item has a claim record: its quotes occur verbatim in the feed-item title or summary of its linked sources and its numbers are among the quoted numbers; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, and the full articles were not read, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  // factCheckSummary sits right after the text, so the approval preview (its first 40 lines) shows the verdict counts,
+  // the unread articles and every quote that was set aside as not found in its source.
+  const unmatched = factCheck ? factCheck.claims.filter(c => c.unmatchedQuotes?.length) : [];
+  const unread = sources.filter(s => s.articleStatus === 'unavailable').length;
+  const factCheckSummary = factCheck ? `${factCheck.claims.length} claims: ${factCheck.supported} supported, ${factCheck.revised} revised, ${factCheck.removed} removed; ${sources.some(s => s.articleStatus) ? `articles read for ${sources.filter(s => s.articleStatus === 'ok').length} of ${sources.length} sources${unread ? ` (${unread} unavailable: summary only)` : ''}` : 'articles not read (feed summaries only)'}; ${unmatched.length ? `quotes not found in the source, set aside: ${unmatched.map(c => `item ${c.item} «${c.unmatchedQuotes[0].slice(0, 60)}»`).join('; ')}` : 'every quote found in its source'}` : null;
+  return { output: { text, ...(factCheckSummary ? { factCheckSummary } : {}), artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? (sources.some(s => s.articleStatus === 'ok') ? '' : 'The full articles were not read: quotes and numbers are grounded on the feed-item title and summary only. ') + 'Every item has a claim record: at least one of its quotes occurs verbatim in the ' + (sources.some(s => s.articleStatus === 'ok') ? 'article (where parse-web articles read it), ' : '') + 'title or summary of its linked sources (other quotes that do not are listed as unmatched), and its numbers occur in its quotes or linked sources with their approximations kept; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }

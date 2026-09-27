@@ -88,7 +88,9 @@ test("live run f8ee3f9f: «до 3,13 разу» is a ratio; a two-word product n
   process.env.QF_DIGEST_DATE = "26.09";
   assert.doesNotThrow(() => run(["Agent Ultra", "Exa launched Agent Ultra, a deep research mode"]));
   assert.throws(() => run(["Agent Ultra"]), /at least one quote must be 3 or more words/);
-  assert.throws(() => run(["Agent Mega", "Exa launched Agent Ultra"]), /the quote is not in the text of its linked sources/);
+  // Core40: a non-verbatim extra quote is set aside (listed as unmatched) when a verbatim 3+ word quote carries the claim.
+  assert.deepEqual(run(["Agent Mega", "Exa launched Agent Ultra"]).output.factCheck.claims[0].unmatchedQuotes, ["Agent Mega"]);
+  assert.throws(() => run(["Agent Mega", "Agent Ultra"]), /the quote is not in the text of its linked sources/);
 });
 
 test("bounds: ellipsis pieces from far-apart passages and prose before the list are refused", async () => {

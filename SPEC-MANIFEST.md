@@ -492,6 +492,27 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   use `{{env.NAME}}`) keep a publication window and drop undated items;
   `maxItemsPerSource` 1..50 (default 10), `itemChars` 100..2000 (default 400), at
   most 100 items. A page that is not a feed, or an empty window, fails.
+  (Core 40) `articles: "true"` with `source` referencing selected sources (`{sources}` or a
+  `deduplicate clusters` output) reads the article behind each source URL: at most 20 distinct URLs,
+  in parallel, one GET each (each attempt 20 s, 1 retry on a network error, 429 or 5xx, at most 3
+  redirects, 1.5 MB per page, and one 30 s budget per URL for all attempts, hops and the body),
+  http(s) only, no credentials in the URL and never a local or private-network host (localhost,
+  `.local`, `.internal`, 0.0.0.0/8, 127.0.0.0/8, RFC 1918, link-local, CGNAT, numeric hosts, every IPv6
+  address starting with `::` (IPv4-compatible and IPv4-mapped included), NAT64 64:ff9b::/96,
+  fc00::/7, fe80::/10 and fec0::/10; checked on every redirect hop by the literal host; a public name
+  that resolves to a private address is not detected). Only `text/html`, `application/xhtml+xml` and
+  `text/plain` responses are read; the charset comes from the Content-Type or a `<meta>` in the first
+  4 KB (default utf-8), and one Node cannot decode makes the page unavailable. The text is the page's
+  longest `<article>`, else `<main>`, else the page (`articleExtraction`: `article`|`main`|`body`),
+  without scripts, styles, navigation, headers, footers, asides, forms, figures and comments; no
+  JavaScript runs, and extraction is linear in the page size (unclosed tags cannot make it slow).
+  `maxChars` (500..10000, default 4000) caps one article; `maxTotalChars` (1000..200000) shares one
+  budget equally among the readable articles. The output is the input with each source (and each
+  cluster's sources, ranks kept) given `articleStatus` (`ok`|`unavailable`), `articleText` (or null),
+  `articleTruncated`, `articleExtraction`, `articleError`, plus `articles: {read, unavailable,
+  charsPerArticle}`. An unreachable page, an error or timeout while reading the body, an invalid or
+  non-public redirect, a non-text page, an undecodable charset or a page without static text is recorded
+  as unavailable; when none is readable the step fails.
 - `deduplicate`: `source` references `{sources:[{url,text,...}]}`. Exact URL/text
   duplicates are removed; `sourceHash` identifies the selected set. With `clusters`
   (a model step's `{clusters:[{topic, summary, sources}]}`), sources are named by
@@ -546,7 +567,9 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   ні, без…); every match is on word boundaries and never cuts a number («up to 4» is not in «up to 49», «49» is
   not in «49.5») (a word left out silently, added or
   reordered is refused), in the `title` or `text` of one of them as the
-  Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
+  Core holds it (*the quote is not in the text of its linked sources*). From Core 40 a claim stands on
+  its verbatim quotes (at least one of 3+ words); an extra quote that is not verbatim is set aside and
+  listed as `unmatchedQuotes` for the person who approves, and its numbers do not count; a theme item needs quotes too
   (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
   of its quotes or of its linked sources' title and text (*states «…», which is not in its quote or
   linked sources*): digits with decimal commas or points and thousands separators, scales
@@ -571,6 +594,20 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   in the source, removed wording left). When the model records such wording as `supported` with a
   genuine quote (The Verge: «pause training of its most powerful models»), it passes: errors 1-3
   rest on the fact-check model's verdict and the human gate.
+  (Core 40) With sources from `parse-web articles`, quotes and numbers may also come from each linked
+  source's `articleText` (when `articleStatus` is `ok`), and an approximation or bound stays: a number
+  the item states bare is refused when every place that states it — the linked articles when they state
+  it, else the quotes, else the title and summary — has an approximation or bound right before it
+  (about, around, roughly, approximately, nearly, almost, some, up to, more than, over, at least, at
+  most, fewer than, under; близько, приблизно, майже, орієнтовно, десь, під, до, від, понад, більше
+  (ніж), менше (ніж), щонайменше, мінімум, як мінімум, максимум, в/у середньому) (*states «160» exactly;
+  its source says «about 160»*); the item keeps one of them («більше 160» for «more than 160» passes).
+  Ukrainian collective numerals (двоє…десятеро) are numbers. The output `grounding` and `limitation`
+  say whether articles were read, and `factCheckSummary`, right after `text` so the approval preview
+  shows it, gives the verdict counts, how many articles were read and every quote set aside as not
+  found in its source (`unmatchedQuotes`). Still model judgement: scope and attribution in words (links that
+  «weren't publicly listed» vs «у відкритому доступі», vendor-reported results, what exactly was paused),
+  and a number the article states both with and without «about».
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
 - (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
