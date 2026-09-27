@@ -162,7 +162,7 @@ test("live run 97688656: «160» where the article says «about 160» is refused
 });
 
 test("Digest 0.7.0: the articles step feeds the fact check and the checks; the prompt says the article decides", () => {
-  assert.equal(DIGEST.version, "0.7.0");
+  assert.equal(DIGEST.version, "0.7.1");
   const ids = DIGEST.steps.map((s) => s.id);
   assert.deepEqual(ids.slice(ids.indexOf("clusters")), ["clusters", "articles", "draft", "factcheck", "checks", "approval", "delivery"]);
   const art = DIGEST.steps.find((s) => s.id === "articles");
@@ -293,4 +293,9 @@ test("review P2: the approval preview shows the fact-check summary; the limitati
   assert.match(plain.limitation, /^The full articles were not read: quotes and numbers are grounded on the feed-item title and summary only\. Every item/);
   assert.doesNotMatch(plain.limitation, /parse-web articles/);
   assert.match(plain.factCheckSummary, /articles not read \(feed summaries only\); every quote found in its source/);
+});
+
+test("Digest 0.7.1 fact-check prompt carries the precision rules from the 27.09 independent fact-checks", () => {
+  const fc = DIGEST.steps.find((s) => s.id === "factcheck").config.instructions.replace(/\s+/g, " ");
+  for (const rule of ["narrower statement in the article body", "«за даними дослідників»", "never «скорочує … до N%»", "An experimental condition stays a condition", "a way around a rule is «лазівка», not «вада»", "gender, number and case agreement", "«у тестах, які провела сама компанія»"]) assert.ok(fc.includes(rule), rule);
 });

@@ -960,7 +960,7 @@
       "description": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles before approval.",
       "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles before approval.",
       "file": "workflows/digest.yaml",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -2121,7 +2121,7 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.27-registry.26-candidate",
+  "releaseVersion": "2026.09.27-registry.27-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.40",
