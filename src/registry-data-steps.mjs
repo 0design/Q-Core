@@ -53,7 +53,8 @@ const B = '(?<![\\p{L}\\p{N}])', E = '(?![\\p{L}\\p{N}])';
 const COMPARATIVE = '(?:less|fewer|more|lower|higher|smaller|larger|bigger|faster|slower|cheaper|as)';
 const NUMBER_PHRASES = [
   // Ratios first, so «a third as often» is not also read as a share.
-  [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|ів)?${E}`, 'giu'), m => `ratio:${Number(m[1].replace(',', '.'))}`],
+  // «у 1,5 раза», «в 2 рази», «до 3,13 раза»: «раза» is the multiplier form of a fraction, so it is a ratio without «у/в» too.
+  [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|а|ів)?${E}|${B}(\\d+[.,]\\d+)\\s+раза${E}`, 'giu'), m => `ratio:${Number((m[1] ?? m[2]).replace(',', '.'))}`],
   [new RegExp(`${B}[ву]\\s+(два|дві|три|чотири|п['’ʼ]?ять|десять)\\s+раз(?:и|ів)${E}`, 'giu'), m => `ratio:${{ 'два': 2, 'дві': 2, 'три': 3, 'чотири': 4, 'десять': 10 }[m[1].toLowerCase()] ?? 5}`],
   [new RegExp(`${B}(?:[ву]дві[чк]і|[ву]двоє|наполовину|подвоїл\\p{L}*|подвоєн\\p{L}*)${E}`, 'giu'), () => 'ratio:2'],
   [new RegExp(`${B}(?:[ву]тричі|[ву]троє|потроїл\\p{L}*)${E}`, 'giu'), () => 'ratio:3'],
@@ -61,7 +62,7 @@ const NUMBER_PHRASES = [
   [new RegExp(`${B}(?:[ву]п['’ʼ]?ятеро)${E}`, 'giu'), () => 'ratio:5'],
   [new RegExp(`${B}(?:[ву]десятеро)${E}`, 'giu'), () => 'ratio:10'],
   [new RegExp(`${B}(\\d+(?:\\.\\d+)?|two|three|four|five|six|seven|eight|nine|ten)[\\s-]+times\\s+${COMPARATIVE}${E}`, 'giu'), m => `ratio:${NUMBER_WORDS[m[1].toLowerCase()] ?? Number(m[1])}`],
-  [new RegExp(`${B}(\\d+(?:\\.\\d+)?)\\s*[x×]${E}`, 'giu'), m => `ratio:${Number(m[1])}`],
+  [new RegExp(`${B}(\\d+(?:\\.\\d+)?)\\s*[x×]${E}|${B}(\\d+(?:\\.\\d+)?)[\\s-]+fold${E}`, 'giu'), m => `ratio:${Number(m[1] ?? m[2])}`],
   [new RegExp(`${B}(?:twice|half)\\s+as${E}|${B}in\\s+half${E}|${B}halv(?:e|ed|es|ing)${E}|${B}doubl(?:e|ed|es|ing)${E}`, 'giu'), () => 'ratio:2'],
   [new RegExp(`${B}(?:a|one)[\\s-]+third\\s+as${E}|${B}tripl(?:e|ed|es|ing)${E}`, 'giu'), () => 'ratio:3'],
   [new RegExp(`${B}(?:a|one)[\\s-]+(?:quarter|fourth)\\s+as${E}`, 'giu'), () => 'ratio:4'],
@@ -110,7 +111,17 @@ export function nestedSentences(s) {
   }
   return count;
 }
-const claimWords = s => new Set((normQuote(plainClaim(s)).match(/[\p{L}\p{N}]{3,}/gu) ?? []));
+const tokensOf = s => normQuote(plainClaim(s)).match(/[\p{L}\p{N}]+/gu) ?? [];
+/** The longest run of consecutive words two texts share. */
+function longestRun(a, b) {
+  let best = 0, prev = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    const row = new Array(b.length + 1).fill(0);
+    for (let j = 1; j <= b.length; j++) if (a[i - 1] === b[j - 1]) { row[j] = prev[j - 1] + 1; if (row[j] > best) best = row[j]; }
+    prev = row;
+  }
+  return best;
+}
 /* forbiddenPhrases: {"wrong": "right"} — known wrong spellings or calques, matched as whole words, case-insensitively. */
 function checkForbiddenPhrases(step, text) {
   let map;
@@ -179,13 +190,15 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
   });
   const unmapped = nestedItems.findIndex((_, i) => !kept.has(i + 1));
   insist(unmapped < 0, `List item ${unmapped + 1} has no claim record; every item of the final text is fact-checked: ${nestedItems[unmapped]?.text.slice(0, 60)}`);
+  // Removed wording is still present when an item contains it, or a contiguous run of at least 60% of its words
+  // (4 or more). Shared words alone do not count: a model may record a whole original item as removed and keep a
+  // correct rewrite that reuses most of its words in another order (review of PR #29: 84% on the Nscale item).
   for (const claim of removed) {
-    const words = claimWords(claim.text), plain = normQuote(plainClaim(claim.text));
+    const plain = normQuote(plainClaim(claim.text)), words = tokensOf(claim.text);
     const present = nestedItems.find(({ text: t }) => {
-      const itemPlain = normQuote(plainClaim(t)), itemWords = claimWords(t);
-      if (plain.length >= 12 && itemPlain.includes(plain)) return true;
-      const shared = [...words].filter(w => itemWords.has(w)).length;
-      return words.size >= 4 && shared / words.size >= 0.8;
+      if (plain.length >= 12 && normQuote(plainClaim(t)).includes(plain)) return true;
+      const run = longestRun(words, tokensOf(t));
+      return run >= 4 && run >= 0.6 * words.length;
     });
     insist(!present, `A removed claim is still in the final text: «${claim.text.slice(0, 60)}» in «${present?.text.slice(0, 60)}»`);
   }

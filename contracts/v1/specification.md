@@ -6,6 +6,8 @@ approval does not authorize new local paths or a different verifier: Core return
 `ask_human_to_approve` (subject `specification`) with its own policy-bound hash
 before applying any file. Only a person decides, with `q-core agent approve`
 (Core 38; see contracts/v1/README.md).
+Breaking change in 0.2.0-q-core.38: `nextAction` `approve_spec` became `ask_human_to_approve`
+and a request with `approval` is refused; `contractRevision` stays 13 (request schema bytes unchanged).
 
 When the intent is ambiguous the model can return questions. Core persists them
 and returns `needs_human` with:

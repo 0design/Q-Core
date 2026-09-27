@@ -165,6 +165,15 @@ run, in their own terminal, `q-core agent approve <workspace> <runId> --approval
 Changed scope/intent/provider/verifier invalidates the recorded decision. Core is not
 an identity service. There is no implicit approval or “resume last chat”.
 
+**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
+(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
+(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
+carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
+sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
+(the `command` in `nextAction`) in their own terminal, then the caller resends the same
+request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
+request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
+
 Claude 2.1.156 is the initially reviewed CLI. Existing authentication is used;
 no credential copying, nesting guard removal or permissions bypass. Claude inference
 has no tools, hooks are disabled, MCP is explicitly empty, and no session is

@@ -85,6 +85,9 @@ receiver adapter versions are internally `1`; do not invent your own version pin
    the same request again **without** `approval`: Core sends only when the recorded
    decision is bound to the current draft hash; a recorded reject cancels. A decision
    for an old hash or a changed draft does not count.
+   Breaking change in 0.2.0-q-core.38: `nextAction` `approve_publication` became
+   `ask_human_to_approve`, and a request with `approval` is refused
+   (`HUMAN_APPROVAL_REQUIRED`); `contractRevision` stays 13 (request schema bytes unchanged).
 4. Confirm success **and** receiver receipt in evidence. Repeat the same request
    without approval to check no_new_sources and no duplicate delivery. If more
    eligible sources remain beyond maxItems, the repeat creates another draft that

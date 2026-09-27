@@ -1,8 +1,10 @@
 /* Core38: the Digest checks each claim against its linked source before the human gate. A fact-check model step
    returns claim records and the revised text; verify-sources checks the records deterministically (verbatim quotes
    in the source text the Core holds, numbers, one record per list item, removed claims absent) and the gate binds
-   the checked text. Negative examples: the five errors an independent fact-check found in live run 65ef7d49
-   (Digest 0.5.0). Offline: the fixture holds the run's selected sources (feed-item title and summary) and draft. */
+   the checked text. Examples: the five errors an independent fact-check found in live run 65ef7d49 (Digest 0.5.0).
+   The deterministic layer refuses error 4 (numbers) and the listed phrases of error 5 whatever the model says;
+   errors 1-3 are refused only when the fact-check record admits them (a verdict, a missing or invented quote,
+   removed wording left in the text). Recorded as «supported» with a genuine quote they pass: see the limit test. Offline: the fixture holds the run's selected sources (feed-item title and summary) and draft. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -86,7 +88,7 @@ test("the revised live draft passes: every item has a claim record, verbatim quo
   assert.match(out.limitation, /full articles were not read/);
 });
 
-test("negative examples: the five errors of live run 65ef7d49, each in a form the validator refuses", () => {
+test("the five errors of live run 65ef7d49: the records and texts the deterministic layer refuses", () => {
   const live = RUN.draft.split("\n").filter((l) => /^\s*- /.test(l));
   assert.equal(live.length, 10);
   const cases = {
@@ -257,4 +259,52 @@ test("Digest 0.6.0 asks for compact links and short items and checks them", () =
   for (const rule of ["A theme with cases carries no links", "one sentence with the key fact only", "at most 25 words", "at most 15 words", "no trailing commentary"]) assert.match(draft, words(rule), rule);
   for (const rule of ["has no links: move its links to its cases", "Every item is one sentence", "at most 25 words", "at most 15 words", "never by dropping the scope"]) assert.match(fc, words(rule), rule);
   assert.doesNotMatch(draft, /theme items included, links at least one/);
+});
+
+test("limit: errors 1-3 pass the deterministic layer when the model records the live wording as supported with a genuine quote", () => {
+  // These depend on the fact-check model's verdict and on the human gate; the validator proves quotes and numbers only.
+  const live = RUN.draft.split("\n").filter((l) => /^\s*- /.test(l));
+  const kept = clone(CLAIMS).filter((c) => c.verdict !== "removed");
+  const passes = {
+    "1 the theme «models escape their limits»": [1, bare(live[0]), { verdict: "supported", sources: [V_OPENAI], quote: ["As reports of OpenAI's models breaking containment, hacking sites, and generally getting out of control pile up"] }],
+    "1 Muse «said it should not»": [3, live[2].replace(/\(\[TechCrunch\]\([^)]*\), /, "("), { verdict: "supported", quote: ["Muse itself told people, including us, it wasn't supposed to reveal"] }],
+    "1 «regulatory risks» in other words": [5, bare(live[4]).replace("не зважаючи на", "попри"), { verdict: "supported" }],
+    "2 «training, testing and inference of its most capable models»": [2, live[1], { verdict: "supported", sources: [V_OPENAI, D_OPENAI], quote: ["pause training of its most powerful models", "One research model exploited a DNS loophole to reach the internet from a locked-down environment, while another deliberately leaked a GitHub token and twice ignored a researcher's direct instructions"] }],
+    "3 the court «agreed with the Pentagon's argument»; the billions from the ruling": [4, live[3], { verdict: "supported", sources: [W_COURT, D_COURT], quote: ["A federal appeals court has upheld the Pentagon's decision to bar Anthropic from military contracts", "Defense Secretary Hegseth argues the company's safety restrictions could jeopardize military operations", "Anthropic says the designation has already cost it billions"] }],
+  };
+  for (const [name, [n, line, patch]] of Object.entries(passes)) {
+    const items = [...ITEMS]; items[n - 1] = line;
+    const claims = kept.map((c) => (c.item === n ? { ...c, ...patch } : c));
+    assert.doesNotThrow(() => check(textOf(items), claims, { config: UNCAPPED }), name);
+  }
+});
+
+test("removed wording: refused when it stays verbatim or nearly so; a rewrite that reuses its words passes", () => {
+  const live = RUN.draft.split("\n").filter((l) => /^\s*- /.test(l));
+  // The model records the whole original Nscale item as removed and keeps a rewrite that reuses most of its words in
+  // another order (89% of its words of 3+ letters; the pre-review rule refused it). Its longest shared run is 6 of 26.
+  const nscale = [...clone(CLAIMS), { verdict: "removed", text: live[6].replace(/^\s*- /, ""), reason: "Rewritten: the IPO is context, the key fact is the financing." }];
+  const rewritten = [...ITEMS]; rewritten[6] = `  - Британська Nscale залучила від Third Point, Nvidia та інших $3,36 млрд конвертованого фінансування для дата-центрів під AI перед IPO у США ([TechCrunch](${T_NSCALE}))`;
+  assert.doesNotThrow(() => check(textOf(rewritten), nscale));
+  assert.doesNotThrow(() => check(REVISED, nscale));
+  // A lightly edited removed clause («з» → «із») is still present: 9 of its 11 words in one run.
+  const court = [...ITEMS]; court[3] = live[3].replace("погодившись з аргументом", "погодившись із аргументом");
+  assert.throws(() => check(textOf(court), CLAIMS, { config: UNCAPPED }), /A removed claim is still in the final text: «погодившись з аргументом/);
+  assert.throws(() => check(...withItem(4, live[3], {}), { config: UNCAPPED }), /A removed claim is still in the final text/);
+});
+
+test("ratios written as «у 1,5 раза», «2.5-fold» or «1.5x»; years and counts are not ratios", () => {
+  const tokens = (t) => numberTokens(t).filter((x) => !x.quoteOnly).map((x) => x.token);
+  assert.deepEqual(tokens("у 1,5 раза"), ["ratio:1.5"]);
+  assert.deepEqual(tokens("в 2,5 раза"), ["ratio:2.5"]);
+  assert.deepEqual(tokens("до 3,13 раза"), tokens("up to 3.13x faster"));
+  assert.deepEqual(tokens("у 1,5 раза"), tokens("1.5 times faster"));
+  assert.deepEqual(tokens("у 1,5 раза"), tokens("1.5x"));
+  assert.deepEqual(tokens("в 2,5 раза"), tokens("a 2.5-fold increase"));
+  assert.deepEqual(tokens("у 2 рази"), ["ratio:2"]);
+  // False-positive guards: a year after «у», a count of times, «разом».
+  assert.deepEqual(tokens("у 2026 році"), ["n:2026"]);
+  assert.deepEqual(tokens("3 рази на тиждень"), ["n:3"]);
+  assert.deepEqual(tokens("разом 3 компанії"), ["n:3"]);
+  assert.notDeepEqual(tokens("у 1,5 раза"), tokens("1.5 billion"));
 });

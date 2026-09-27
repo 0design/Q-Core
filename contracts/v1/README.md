@@ -59,6 +59,15 @@ decision is bound to the current approval hash (a stale hash is refused with
 `recordHumanDecision` (`q-core/src/human-decision.mjs`) with their own
 confirmation record and are responsible for having asked a person; inside an agent
 session it accepts no record.
+
+**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
+(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
+(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
+carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
+sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
+(the `command` in `nextAction`) in their own terminal, then the caller resends the same
+request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
+request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
 Result: protocolVersion, requestId, runId, status, summary, artifacts (revision/hash),
 evidence (verifier outcomes), error {code,message}|null, nextAction|null,
 provider, usage. Unknown verification never means success. Repair cannot edit tests.

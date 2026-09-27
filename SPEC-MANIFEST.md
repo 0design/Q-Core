@@ -292,6 +292,15 @@ agent session, like `resumeRun`. The same limits apply as for `q-core approve`.
 The `approval` property stays in `contracts/v1/request.schema.json` (the hosted
 validator is shared across Cores); the runtime refuses it.
 
+**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
+(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
+(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
+carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
+sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
+(the `command` in `nextAction`) in their own terminal, then the caller resends the same
+request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
+request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
+
 **Created workflows: a human gate before any side effect (Core 37).** A policy
 on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
 stays byte-identical so one hosted validator serves several Cores): `q-core
@@ -534,16 +543,29 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   case, spaces, quote marks and dashes normalised — in the `title` or `text` of one of them as the
   Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
   (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
-  of its quotes (*states «…», which is not in its quote*): digits with decimal commas or points and
-  thousands separators, scales (млн/млрд/billion, `$3.36B`), ratios (утричі, удвічі, «three times
-  less», «a third as often», «in half»), shares (третина, половина, «a third of») and counts (двічі,
+  of its quotes or of its linked sources' title and text (*states «…», which is not in its quote or
+  linked sources*): digits with decimal commas or points and thousands separators, scales
+  (млн/млрд/billion, `$3.36B`), ratios (утричі, удвічі, «у 1,5 раза», «three times less», «1.5x»,
+  «2.5-fold», «a third as often», «in half»; a half and «in half» match), shares (третина, половина, «a third of») and counts (двічі,
   twice); other number words are not compared. A removed record `{verdict: "removed", text, reason}`
   names no item, and its wording may not remain (*A removed claim is still in the final text*: the
-  text is contained in an item, or 80% of its words of 3+ letters are in one item). The output adds
+  text is contained in an item, or one item holds a run of consecutive words covering at least 60% of
+  it, 4 words or more; shared words in another order do not count, so a rewrite of a removed original
+  passes). The output adds
   `factCheck: {claims, supported, revised, removed, grounding}`, so the human gate (which binds the
   checks output) binds the text and the verdicts. For feed items the grounding is the feed-item
   title and summary (`parse-web items: feed` `itemChars`); the linked articles are not read, and
   whether a verbatim quote supports the wording remains the model's verdict for the human to review.
+  What this deterministic layer catches of the five errors an independent fact-check found in Digest
+  0.5.0 run 65ef7d49: (4) a wrong number or meaning («у третині випадків» for «a third as often») is
+  refused whatever the model records; (5) the listed wrong phrases («не зважаючи», «кодувальних
+  агентів») are refused by `forbiddenPhrases`, other language errors are left to the prompt; (1) a
+  theme that generalises beyond its sources, (2) an overstated scope («training, testing and
+  inference» for tool-based work only) and (3) a misattributed ruling or cost are refused only when
+  the fact-check record admits them (verdict `unsupported`/`overstated`, no quote, a quote that is not
+  in the source, removed wording left). When the model records such wording as `supported` with a
+  genuine quote (The Verge: «pause training of its most powerful models»), it passes: errors 1-3
+  rest on the fact-check model's verdict and the human gate.
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
 - (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
