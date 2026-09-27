@@ -236,7 +236,7 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0'].includes(manifest.version));
+  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.7.1'].includes(manifest.version));
   const draftText = /^0\.[67]/.test(manifest.version) ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
   // From 0.6.0 a fact-check call follows the draft: it returns the checked text and a claim record per list item.
   const factChecked = manifest.steps.some(s => s.id === 'factcheck');

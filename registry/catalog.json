@@ -951,7 +951,7 @@
       "description": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles before approval.",
       "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles before approval.",
       "file": "workflows/digest.yaml",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -1018,7 +1018,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "95ab29031390c48287adaa9b6f48decc63d81e587e3ad31300f5defe3a85703e",
+      "sha256": "81596757e783383b2f89f995f5bdb471428e2cfa45cef9cdf5466e48b753cffe",
       "steps": 20,
       "kinds": [
         "fetch",
@@ -2171,7 +2171,7 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.27-registry.26-candidate",
+  "releaseVersion": "2026.09.27-registry.27-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.40",
@@ -2319,7 +2319,7 @@
         "name": "Digest",
         "contentType": "workflow-template",
         "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles before approval.",
-        "version": "0.7.0",
+        "version": "0.7.1",
         "status": "implementation-candidate",
         "inference": "openrouter",
         "dependencies": [
@@ -2976,5 +2976,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "ba38bea8c03e8f2100b73889bf304bbd533f4fa483da402f36bc22fe0776389a"
+  "releaseSha256": "6946560a790de64c646a8ed61797b9ddf1b065338fbcb71a365445c830dd3a43"
 }

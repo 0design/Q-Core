@@ -1,7 +1,7 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: many sources to one approved Ukrainian trend digest"
-version: 0.7.0
+version: 0.7.1
 description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments): a theme is a short conclusion without links, each case one short sentence with the key fact, linked to its sources. The articles behind the selected sources are read (static text; an unreachable page falls back to its feed summary), and a fact-check step checks each claim against its linked source's article, revises or removes unsupported or overstated claims and records a verdict per claim; the checks require a verbatim source quote and the source's numbers for every item. Checks citations and the list shape, stops at an exact human approval of the fact-checked text, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
@@ -193,6 +193,9 @@ steps:
         Use only urls from the input, copied exactly.
         Describe only what the item text supports; the articles themselves
         were not read, so do not add numbers, quotes or details beyond it.
+        Keep scope, attribution and conditions narrow: what exactly was paused,
+        «за даними дослідників/компанії» for their own results, a cut as «на N%»,
+        an experiment's condition as a condition.
         Check each claim against its linked source as you write. Numbers exactly
         as in the source, with the same meaning («about a third as often» is «приблизно
         утричі рідше», not «у третині випадків»); keep «about», «nearly», «up to»
@@ -243,6 +246,25 @@ steps:
         «у відкритому доступі»; what exactly was paused). When the article
         contradicts the summary or the draft, follow the article. Quotes may
         come from the title, the summary or the article text.
+        Precision rules (independent fact-checks of 27.09 failed on these):
+        - A headline or summary that states something broadly does not beat a
+          narrower statement in the article body: when the headline says
+          «pauses training» and the body says «training, evaluation and
+          inference with tool use», the item says what the body says.
+        - Results of research, products and benchmarks stay attributed
+          («за даними дослідників», «за даними компанії») and tied to the test
+          they were measured on when the article limits them to it. A cut is
+          «на N%» («скорочує використання токенів на 44,7–49%»), never «до N%»,
+          which reads as the level reached.
+        - An experimental condition stays a condition (questions chosen so that
+          the AI was almost always wrong); never turn it into a general property
+          of AI or of people («AI часто помиляється»).
+        - Use the usual Ukrainian word for the source's term (a way around a rule is
+          «лазівка», not «вада») and check gender, number and case agreement of
+          every phrase («вичерпної побудови», not «вичерпного побудови»).
+        - Say whose tests they were only as the article does: a vendor that ran
+          public benchmarks itself reports «у тестах, які провела сама компанія»,
+          not «у власних тестах».
         The draft to check, between the markers:
         <<<DRAFT
         {{steps.draft.output.text}}

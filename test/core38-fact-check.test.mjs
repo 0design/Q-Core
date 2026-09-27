@@ -163,7 +163,7 @@ test("numberTokens: digits with scales and decimal commas, ratios, shares and co
 });
 
 test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate binds the checked text", () => {
-  assert.ok(["0.6.1", "0.7.0"].includes(DIGEST.version));
+  assert.ok(["0.6.1", "0.7.0", "0.7.1"].includes(DIGEST.version));
   const ids = DIGEST.steps.map((s) => s.id);
   assert.deepEqual(ids.slice(ids.indexOf("draft")), ["draft", "factcheck", "checks", "approval", "delivery"]);
   const draft = DIGEST.steps.find((s) => s.id === "draft").config;

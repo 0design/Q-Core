@@ -125,7 +125,7 @@
       "name": "Digest",
       "contentType": "workflow-template",
       "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles before approval.",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "status": "implementation-candidate",
       "inference": "openrouter",
       "dependencies": [
