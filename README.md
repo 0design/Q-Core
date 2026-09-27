@@ -296,7 +296,7 @@ the subject, ask the user to run the command and wait. Details and limits:
 SPEC-MANIFEST.md, `reviewer: human`.
 
 From Core 37 a workflow you create must have a human gate before any step that
-writes files (`workspace-apply`) or sends data (`api-request` POST/PUT/PATCH/DELETE);
+writes files (`workspace-apply`) or sends data (any `api-request` except a plain `GET` to a literal http(s) URL);
 `q-core validate` and `q-core run` refuse it otherwise (`GATE_REQUIRED`). A
 `workspace-read` that no later step uses is refused too (`UNUSED_WORKSPACE_READ`).
 Reviewed Registry workflows installed unchanged with `q-core install` keep their

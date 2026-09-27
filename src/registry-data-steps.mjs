@@ -31,6 +31,7 @@ function labelHead(text) {
 const GENERIC_PREFIX = new Set(['www', 'm', 'mobile', 'amp', 'blog', 'blogs', 'news', 'feeds', 'feed', 'rss', 'en', 'uk', 'us', 'edition', 'go']);
 const GENERIC_SECOND = new Set(['co', 'com', 'org', 'net', 'gov', 'ac', 'edu', 'or', 'ne', 'go', 'gv', 'mil', 'nic']);
 const GENERIC_TLD = new Set(['com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'info', 'biz', 'io', 'ai', 'app', 'dev', 'tech', 'news', 'media', 'blog', 'online', 'site', 'xyz', 'me', 'tv', 'fm', 'so', 'to', 'ly', 'example', 'test', 'invalid', 'localhost']);
+const OUTLET_ALIASES = { t: ['telegram'], x: ['twitter'] };
 function outletNames(host) {
   const parts = String(host).toLowerCase().split('.').filter(Boolean);
   if (parts.length < 2) return parts;
@@ -390,7 +391,10 @@ export function runVerifySources(step, ctx) {
         let host = '';
         try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { host = ''; }
         const text = norm(label), names = outletNames(host).map(norm).filter(Boolean);
-        insist(text && names.some(site => text.includes(site) || (text.length >= 3 && site.includes(text))), `A source link must name its outlet («${label}» for ${host}): ${item.text.slice(0, 60)}`);
+        const words = label.toLocaleLowerCase('en').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+        // A one- or two-letter name (x.com, t.me) must be a whole word of the link text, or a known outlet name.
+        const matches = site => site.length < 3 ? words.includes(site) || (OUTLET_ALIASES[site] ?? []).some(a => text.includes(a)) : text.includes(site) || (text.length >= 3 && site.includes(text));
+        insist(text && names.some(matches), `A source link must name its outlet («${label}» for ${host}): ${item.text.slice(0, 60)}`);
       }
     }
   }

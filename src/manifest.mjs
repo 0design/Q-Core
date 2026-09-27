@@ -18,8 +18,7 @@
  * (`steps[2].config.url`) because a manifest is written by a person who is not
  * looking at this code.
  */
-import { readFileSync, existsSync } from "node:fs";
-import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { parseYaml, YamlError } from "./yaml.mjs";
 
 /** The format tag every manifest must carry, verbatim. */
@@ -293,91 +292,12 @@ export function assertCron(expr, path = "cron") {
   });
 }
 
-/** An api-request with a write method changes something outside the run. */
-const WRITE_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
-
-/** Steps that change something outside the run: local files or another system. */
-export function sideEffectOf(step) {
-  if (step.kind === "workspace-apply") return "writes project files";
-  if (step.kind === "api-request") {
-    const method = String(step.config?.method ?? "POST").toUpperCase();
-    if (WRITE_METHODS.includes(method)) return `sends ${method} ${step.config?.url ?? ""}`.trim();
-  }
-  return null;
-}
-
-const isHumanGate = (step) => step.kind === "approval-gate" && (step.config?.reviewer ?? "human") === "human";
-
-/**
- * Core37 (gate required): a workflow created outside the reviewed Registry may not write
- * files or send data anywhere before a person has approved the run. A human
- * approval-gate must come EARLIER on the same path as every side-effect step. A gate
- * inside an if/switch branch guards only that branch. Agent gates do not count.
- * Reviewed Registry workflows (installed with a matching lock, or built into the
- * Registry release) keep their published shape and are not re-judged here.
- */
-function assertHumanGateBeforeSideEffects(steps) {
-  const walk = (list, gated, path) => {
-    let covered = gated;
-    list.forEach((step, i) => {
-      const at = `${path}[${i}]`;
-      const effect = sideEffectOf(step);
-      if (effect && !covered) {
-        throw new ManifestError(
-          `GATE_REQUIRED: step "${step.id}" (${step.kind}) ${effect}, and no human approval-gate comes before it. ` +
-            "A workflow you create may not write files or send data before a person approves the run: add an " +
-            "approval-gate step with reviewer: human (bind: sha256) before it, or install the reviewed Registry " +
-            "workflow unchanged with q-core install. Do not move the work into your own script instead",
-          at,
-        );
-      }
-      for (const key of ["then", "else", "default"]) if (step[key]) walk(step[key], covered, `${at}.${key}`);
-      for (const [name, branch] of Object.entries(step.cases ?? {})) walk(branch, covered, `${at}.cases.${name}`);
-      if (isHumanGate(step)) covered = true;
-    });
-  };
-  walk(steps, false, "steps");
-}
-
-/**
- * A workspace-read whose output no later step uses reads the project and does nothing
- * with it: the manifest would look like a workflow while the work happens outside
- * Q-Core (E2E run 9, 27.09). Refused in every workflow.
- */
-function assertWorkspaceReadIsUsed(steps) {
-  const all = [];
-  const collect = (list, path) => list.forEach((step, i) => {
-    const at = `${path}[${i}]`;
-    all.push({ step, at });
-    for (const key of ["then", "else", "default"]) if (step[key]) collect(step[key], `${at}.${key}`);
-    for (const [name, branch] of Object.entries(step.cases ?? {})) collect(branch, `${at}.cases.${name}`);
-  });
-  collect(steps, "steps");
-  for (const { step, at } of all) {
-    if (step.kind !== "workspace-read") continue;
-    const escaped = step.id.replace(/[.*+?^$()|[\]\\{}]/g, "\\$&");
-    const ref = new RegExp("\\{\\{\\s*steps\\." + escaped + "\\.output(?![\\w-])");
-    const used = all.some(({ step: other }) => other !== step && Object.values(other.config ?? {}).some((v) => ref.test(String(v))));
-    if (!used) {
-      throw new ManifestError(
-        `UNUSED_WORKSPACE_READ: no step uses the output of workspace-read "${step.id}". Q-Core would read the ` +
-          "project and do nothing with it. Make the work a Q-Core step that takes {{steps." + step.id + ".output}} " +
-          "(for example specification → human approval-gate → workspace-apply), not your own script",
-        at,
-      );
-    }
-  }
-}
-
 /**
  * Validate a parsed document.
- * Options: `reviewed: true` only for a Registry workflow whose bytes match the reviewed
- * release (q-core install, the Registry build). Everything else must put a human
- * approval-gate before any step that writes files or sends data (GATE_REQUIRED).
  * @returns {{id:string,name:string,version:string,description:string,owner:string,
  *            enabled:boolean,triggers:object[],settings:object,steps:object[]}}
  */
-export function validateManifest(doc, { reviewed = false } = {}) {
+export function validateManifest(doc) {
   if (!isPlainObject(doc)) throw new ManifestError("the manifest must be a YAML mapping at the top level");
 
   const tag = doc.manifest;
@@ -407,8 +327,6 @@ export function validateManifest(doc, { reviewed = false } = {}) {
 
   const seenIds = new Set();
   const steps = doc.steps.map((s, i) => validateStep(s, `steps[${i}]`, seenIds));
-  assertWorkspaceReadIsUsed(steps);
-  if (!reviewed) assertHumanGateBeforeSideEffects(steps);
 
   return {
     id: doc.id,
@@ -423,27 +341,11 @@ export function validateManifest(doc, { reviewed = false } = {}) {
   };
 }
 
-/**
- * True when `file` is a Registry workflow installed by `q-core install` and unchanged since:
- * its `<file>.lock.json` (qf.registry-lock/v1) names this workflow and the SHA-256 of these
- * exact bytes. An adapted or hand-written manifest has no matching lock.
- */
-export function isReviewedInstall(file, bytes, doc) {
-  const lockFile = `${file}.lock.json`;
-  if (!existsSync(lockFile)) return false;
-  let lock;
-  try { lock = JSON.parse(readFileSync(lockFile, "utf8")); } catch { return false; }
-  if (lock?.protocolVersion !== "qf.registry-lock/v1" || lock.id !== doc?.id || String(lock.version) !== (doc?.version == null ? "0" : String(doc.version))) return false;
-  const sha = createHash("sha256").update(bytes).digest("hex");
-  return Array.isArray(lock.resolved) && lock.resolved.some((r) => r?.key === `workflows/${lock.id}@${lock.version}` && r.sha256 === sha);
-}
-
 /** Read a manifest file and validate it. Throws ManifestError / YamlError. */
-export function loadManifest(file, { reviewed } = {}) {
-  let text, bytes;
+export function loadManifest(file) {
+  let text;
   try {
-    bytes = readFileSync(file);
-    text = bytes.toString("utf8");
+    text = readFileSync(file, "utf8");
   } catch (e) {
     throw new ManifestError(`cannot read ${file} — ${e.code === "ENOENT" ? "no such file" : e.message}`);
   }
@@ -454,7 +356,7 @@ export function loadManifest(file, { reviewed } = {}) {
     if (e instanceof YamlError) throw new ManifestError(`${file} is not readable YAML — ${e.message}`);
     throw e;
   }
-  const manifest = validateManifest(doc, { reviewed: reviewed ?? isReviewedInstall(file, bytes, doc) });
+  const manifest = validateManifest(doc);
   manifest.file = file;
   return manifest;
 }

@@ -28,7 +28,8 @@ import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
-import { loadManifest, validateManifest, ManifestError } from "../src/manifest.mjs";
+import { validateManifest, ManifestError } from "../src/manifest.mjs";
+import { loadWorkflow as loadManifest } from "../src/workflow-policy.mjs";
 import { createRun, driveRun, resumeRun, waitingGate, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
 import { confirmHumanDecision, HumanConfirmationError } from "../src/human-confirmation.mjs";
 import { RunStore } from "../src/state.mjs";
@@ -609,8 +610,7 @@ async function cmdInit(args, flags) {
          directs network calls and model spending; bytes from a host do not get
          written here on the strength of having arrived. */
       try {
-        // Bytes match the published catalogue's SHA-256: a reviewed Registry workflow (Core37 GATE_REQUIRED exempts it).
-        validateManifest(parseYaml(got.text), { reviewed: true });
+        validateManifest(parseYaml(got.text));
       } catch (e) {
         fail(`"${id}" downloaded from ${got.url}, but it is not a valid manifest — ${e.message}\n` +
              `Nothing was written.`);
@@ -633,10 +633,10 @@ async function cmdInit(args, flags) {
   else copyFileSync(join(WORKFLOWS_DIR, basename(entry.file)), dest);
   /* Core37: record that these bytes are the reviewed Registry workflow, so the copy runs with its
      published shape. Editing the copy changes its SHA-256 and makes it a created workflow again. */
-  if (!existsSync(`${dest}.lock.json`)) {
+  {
     const copied = readFileSync(dest), doc = parseYaml(copied.toString("utf8"));
     const version = doc.version == null ? "0" : String(doc.version);
-    writeFileSync(`${dest}.lock.json`, JSON.stringify({ protocolVersion: "qf.registry-lock/v1", source: remote ? remote.url : "q-core init (package snapshot)", id: doc.id, version, resolved: [{ key: `workflows/${doc.id}@${version}`, sha256: createHash("sha256").update(copied).digest("hex") }] }, null, 2) + "\n", { flag: "wx" });
+    writeFileSync(`${dest}.lock.json`, JSON.stringify({ protocolVersion: "qf.registry-lock/v1", source: remote ? remote.url : "q-core init (package snapshot)", id: doc.id, version, resolved: [{ key: `workflows/${doc.id}@${version}`, sha256: createHash("sha256").update(copied).digest("hex") }] }, null, 2) + "\n"); // replaces a stale lock of an earlier, deleted copy
   }
 
   process.stdout.write(`${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);

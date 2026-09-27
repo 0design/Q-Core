@@ -25,7 +25,7 @@ function workflow(yaml) {
   const dir = mkdtempSync(join(tmpdir(), 'q-core31-')), file = join(dir, 'workflow.yaml');
   writeFileSync(file, yaml);
   // These engine tests run reviewed shapes (a gate-free POST); the Core37 gate rule has its own tests.
-  const doc = loadManifest(file, { reviewed: true });
+  const doc = loadManifest(file);
   writeFileSync(file + '.lock.json', JSON.stringify({ protocolVersion: 'qf.registry-lock/v1', id: doc.id, version: doc.version, resolved: [{ key: `workflows/${doc.id}@${doc.version}`, sha256: createHash('sha256').update(readFileSync(file)).digest('hex') }] }));
   return { dir, file, manifest: loadManifest(file), store: new RunStore(file) };
 }

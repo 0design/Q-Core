@@ -48,8 +48,7 @@ export function envRefsOf(manifest) {
 
 /** One catalogue entry, derived from the manifest plus any recorded run. */
 export function describeWorkflow(file, { examplesDir } = {}) {
-  // The catalogue describes reviewed Registry workflows.
-  const m = loadManifest(file, { reviewed: true });
+  const m = loadManifest(file);
   const knobs = resolveKnobs(m.settings);
 
   /* Walk the WHOLE tree, not the flattened one. `flattenWorkflowSteps` deliberately

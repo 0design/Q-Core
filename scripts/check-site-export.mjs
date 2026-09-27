@@ -23,7 +23,7 @@ for (const entry of catalog.workflows) {
     const data = readFileSync(join(root, "apps/web/src/data", entry.file));
     if (entry.sha256 && hash(data) !== entry.sha256)
       throw Error("checksum mismatch");
-    validateManifest(parseYaml(data.toString()), { reviewed: !!entry.sha256 && hash(data) === entry.sha256 });
+    validateManifest(parseYaml(data.toString()));
     result.manifests.push({
       id: entry.id,
       status: "valid",

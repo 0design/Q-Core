@@ -3,7 +3,8 @@ import { readFileSync, writeFileSync, mkdirSync, lstatSync, existsSync, renameSy
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
-import { loadManifest, assertCron } from './manifest.mjs';
+import { assertCron } from './manifest.mjs';
+import { loadWorkflow as loadManifest } from './workflow-policy.mjs';
 import { createRun, driveRun, resolveKnobs } from './run.mjs';
 import { RunStore } from './state.mjs';
 import { hash, insist } from './contracts.mjs';

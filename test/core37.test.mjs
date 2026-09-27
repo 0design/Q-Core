@@ -8,7 +8,11 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { validateManifest, loadManifest, sideEffectOf } from "../src/manifest.mjs";
+import { validateManifest as validateFormat, loadManifest as loadFormat } from "../src/manifest.mjs";
+import { assertWorkflowPolicy, loadWorkflow, sideEffectOf } from "../src/workflow-policy.mjs";
+// Created-workflow checks = the unchanged format validator + the Core37 policy.
+const validateManifest = (doc, opts) => assertWorkflowPolicy(validateFormat(doc), opts);
+const loadManifest = loadWorkflow;
 import { parseYaml } from "../src/yaml.mjs";
 import { runVerifySources } from "../src/registry-data-steps.mjs";
 
@@ -49,6 +53,13 @@ test("GATE_REQUIRED negative examples: side effects with no human gate before th
     "a gate inside an if branch does not guard the step after the if": `  - id: check\n    kind: if\n    config:\n      condition: "true"\n    then:\n${HUMAN.replace(/^/gm, "    ").trimEnd()}\n${POST}`,
     "a gate in one switch case does not guard another": `  - id: route\n    kind: switch\n    config:\n      on: "a"\n    cases:\n      a:\n${HUMAN.replace(/^/gm, "      ").trimEnd()}\n      b:\n${POST.replace(/^/gm, "      ").trimEnd()}\n`,
     "a side effect inside a fan-out lane with no gate": `${FETCH}  - id: each\n    kind: fan-out\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
+    "review P0-1: lower-case get runs as POST": POST.replace('url:', 'method: get\n      url:'),
+    "review P0-1: mixed-case Get runs as POST": POST.replace('url:', 'method: Get\n      url:'),
+    "review P0-2: a templated method runs as POST": FETCH + POST.replace('url:', 'method: "{{steps.feed.output}}"\n      url:'),
+    "review P0-3: GET to a file: URL appends to a local file": POST.replace('url: "https://hooks.example/x"', 'method: GET\n      url: "file:///tmp/q37.jsonl"'),
+    "review P0-3: GET to a templated URL may fall back to the file sink": POST.replace('url: "https://hooks.example/x"', 'method: GET\n      url: "{{env.Q37_HOOK}}"'),
+    "a side effect inside an each body with no gate": `${FETCH}  - id: every\n    kind: each\n    config:\n      over: "{{steps.feed.output}}"\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
+    "a side effect inside a loop body with no gate": `  - id: again\n    kind: loop\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
     "workspace-apply with no gate": `  - id: ws\n    kind: workspace-read\n  - id: proposal\n    kind: llm-call\n    config:\n      instructions: "write"\n      input: "{{steps.ws.output}}"\n  - id: apply\n    kind: workspace-apply\n    config:\n      source: "{{steps.proposal.output}}"\n`,
   };
   for (const [name, steps] of Object.entries(refused)) {
@@ -68,11 +79,16 @@ test("GATE_REQUIRED positive examples: a human gate earlier on the path, read-on
     "a gate before a fan-out guards its lanes": `${FETCH}${HUMAN}  - id: each\n    kind: fan-out\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
   })) assert.doesNotThrow(() => validateManifest(doc(steps)), name);
   assert.doesNotThrow(() => validateManifest(doc(FETCH + POST), { reviewed: true }), "reviewed Registry shape");
-  assert.equal(sideEffectOf({ kind: "api-request", config: { method: "get" } }), null);
+  assert.equal(sideEffectOf({ kind: "api-request", config: { method: "GET", url: "https://x.example/a" } }), null);
+  assert.ok(sideEffectOf({ kind: "api-request", config: { method: "get", url: "https://x.example/a" } }), "the engine reads only exact GET");
   assert.match(sideEffectOf({ kind: "workspace-apply", config: {} }), /writes project files/);
 });
 
 test("the Registry: every workflow validates as reviewed; created from scratch, the gate-free ones are refused", () => {
+  // manifest.mjs is unchanged (the hosted MCP serves several Cores with one byte-identical validator).
+  assert.doesNotThrow(() => validateFormat(parseYaml(RUN9)), "the format validator alone accepts run 9");
+  assert.doesNotThrow(() => loadFormat(resolve("test/manifests/parity-no-human.yaml")));
+  assert.throws(() => loadWorkflow(resolve("test/manifests/parity-no-human.yaml")), /GATE_REQUIRED/, "parity case A created unreviewed");
   const dir = resolve("registry/workflows");
   const gateFree = [];
   for (const f of readdirSync(dir).filter((f) => f.endsWith(".yaml"))) {
@@ -107,6 +123,10 @@ test("UNUSED_WORKSPACE_READ: the run-9 manifest (a decorative read, work in the 
   // A read that a later step uses is fine; so is the Registry SDD shape as a created manifest.
   assert.doesNotThrow(() => validateManifest(doc(`  - id: ws\n    kind: workspace-read\n  - id: sum\n    kind: llm-call\n    config:\n      instructions: "summarise"\n      input: "{{steps.ws.output.files}}"\n`)));
   assert.doesNotThrow(() => loadManifest(resolve("registry/workflows/sdd-pipeline.yaml")));
+  // Review P1-4: an llm-call without input receives every prior output, so it uses the read.
+  assert.doesNotThrow(() => validateManifest(doc(`  - id: ws\n    kind: workspace-read\n  - id: sum\n    kind: llm-call\n    config:\n      instructions: "summarise"\n`)));
+  // …but only a LATER llm-call: one before the read does not use it.
+  assert.throws(() => validateManifest(doc(`  - id: sum\n    kind: llm-call\n    config:\n      instructions: "summarise"\n  - id: ws\n    kind: workspace-read\n`)), /UNUSED_WORKSPACE_READ/);
   // A reference to a different step with the same prefix does not count.
   assert.throws(() => validateManifest(doc(`  - id: ws\n    kind: workspace-read\n  - id: ws-2\n    kind: fetch\n    config:\n      url: "https://x.example"\n  - id: sum\n    kind: llm-call\n    config:\n      instructions: "x"\n      input: "{{steps.ws-2.output}}"\n`)), /UNUSED_WORKSPACE_READ/);
 });
@@ -130,7 +150,7 @@ test("q-core validate refuses both shapes at create time with a non-zero exit an
 /* Digest leftovers of the Core36 review (0.5.0): label variants and publisher names. */
 const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋27.09**";
 const G = "https://blog.google/technology/ai/gemini-agents/", BBC = "https://www.bbc.co.uk/news/technology-1", EL = "https://electrek.co/2026/09/26/byd/", V = "https://www.theverge.com/ai/1";
-const SOURCES = { sources: [{ url: G, text: "g" }, { url: BBC, text: "b" }, { url: EL, text: "e" }, { url: V, text: "v" }] };
+const SOURCES = { sources: [{ url: G, text: "g" }, { url: BBC, text: "b" }, { url: EL, text: "e" }, { url: V, text: "v" }, { url: "https://t.me/xyiikc", text: "t" }, { url: "https://x.com/a/status/1", text: "x" }] };
 const LABELS = '["Загальна картина","Кейси","Кейс","Тренд","Тренди","Висновки","Підсумок","Коментар"]';
 const FORMAT = { citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: `${HEADER}\n\n`, nestedList: "3", forbiddenLabels: LABELS, outletLinkText: "true" };
 const verify = (text) => runVerifySources({ config: { draft: "{{steps.draft.output}}", sources: "{{steps.clusters.output}}", language: "uk", ...FORMAT } }, { priorOutputs: { clusters: SOURCES, draft: { text } }, priorStepNames: {} });
@@ -161,12 +181,12 @@ test("forbiddenLabels negative examples: quoted, emoji, HTML and escaped-HTML la
 
 test("outletLinkText: blog.google, bbc.co.uk and electrek.co accept their publisher names; wrong names still fail", () => {
   const ok = [
-    ["Google", G], ["Google Blog", G], ["The Keyword (Google)", G], ["BBC", BBC], ["BBC News", BBC], ["Electrek", EL], ["The Verge", V],
+    ["Telegram", "https://t.me/xyiikc"], ["X", "https://x.com/a/status/1"], ["Google", G], ["Google Blog", G], ["The Keyword (Google)", G], ["BBC", BBC], ["BBC News", BBC], ["Electrek", EL], ["The Verge", V],
   ];
   for (const [name, url] of ok) assert.doesNotThrow(() => verify(item(`Агенти ([${name}](${url}))`)), `${name} for ${url}`);
   const bad = [
     ["Blog", G, "a generic prefix is not the publisher"], ["Co", BBC, "a generic second level is not the publisher"], ["UK", BBC, "a country code is not the publisher"],
-    ["The Verge", BBC, "another outlet"], ["тут", EL, "not a name"], ["co", EL, "a TLD"], ["news", BBC, "a generic word"],
+    ["The Verge", BBC, "another outlet"], ["The Atlantic", "https://t.me/xyiikc", "review P2-5: a letter t is not t.me"], ["Next", "https://x.com/a/status/1", "review P2-5: a letter x is not x.com"], ["тут", EL, "not a name"], ["co", EL, "a TLD"], ["news", BBC, "a generic word"],
   ];
   for (const [name, url, why] of bad) assert.throws(() => verify(item(`Агенти ([${name}](${url}))`)), /must name its outlet/, `${name} for ${url}: ${why}`);
 });

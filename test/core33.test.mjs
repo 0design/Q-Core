@@ -28,8 +28,7 @@ async function withFetch(handler, work) {
 }
 
 function manifest(steps, settings = {}) {
-  // Engine tests of a reviewed shape: the gate rule (Core37) is tested in core37.test.mjs.
-  return validateManifest({ manifest: "q-core.workflow/v1", id: "core33", settings, steps }, { reviewed: true });
+  return validateManifest({ manifest: "q-core.workflow/v1", id: "core33", settings, steps });
 }
 const llm = (id, config = {}) => ({ id, kind: "llm-call", config: { instructions: "Say done.", ...config } });
 const run = (m, opts = {}) => driveRun(createRun(m), { apiKey: "test-key", settings: m.settings, ...opts });

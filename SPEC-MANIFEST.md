@@ -275,18 +275,24 @@ This is an owner decision (27.09.2026), not an oversight: those protocols take
 itself. Use the manifest route (`q-core run` + `q-core approve`) when only a person
 may decide.
 
-**Created workflows: a human gate before any side effect (Core 37).** `q-core
-validate`, `q-core run` and every other command that loads a manifest refuse a
+**Created workflows: a human gate before any side effect (Core 37).** A policy
+on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
+stays byte-identical so one hosted validator serves several Cores): `q-core
+validate`, `q-core run`, `q-core approve` and the host refuse a
 workflow in which a step that writes files (`workspace-apply`) or sends data
-(`api-request` with `POST`, `PUT`, `PATCH` or `DELETE`; `POST` is the default)
-has no human `approval-gate` earlier on the same path (`GATE_REQUIRED`). A gate
+(every `api-request` except exactly `method: GET` to a literal `http(s)` URL: any
+other method value, a templated method, no method (`POST`), a `file:` URL or a
+templated URL, which can fall back to the local file sink) has no human
+`approval-gate` earlier on the same path (`GATE_REQUIRED`). A gate
 inside an `if` or `switch` branch guards only that branch; a gate before a
 branching step or a `fan-out` guards everything in it; an agent gate does not
-count. Reviewed Registry workflows keep their published shape: the Registry build,
-`q-core install` and a manifest whose `<file>.lock.json` (written by `q-core
-install`) names the SHA-256 of these exact bytes are exempt. An adapted copy is a
+count. Reviewed Registry workflows keep their published shape: a manifest whose
+`<file>.lock.json` (written by `q-core install` and, from Core 37, `q-core init`)
+names the SHA-256 of these exact bytes is exempt; the Registry build and catalogue
+read the format only. An adapted copy is a
 created workflow. Every workflow is also refused when a `workspace-read` output
-is used by no later step (`UNUSED_WORKSPACE_READ`): Q-Core would read the project
+is used by no later step (`UNUSED_WORKSPACE_READ`; a later `llm-call` without
+`input` receives every prior output and counts as a use): Q-Core would read the project
 and do nothing, while the work happens outside the engine. Limits: the check reads
 the manifest only. It cannot see a script an agent runs outside Q-Core, and a
 forged lock file is a deliberate bypass like the ones listed above.
