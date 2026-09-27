@@ -20,6 +20,8 @@
     left the list are removed rather than kept at a stale price. */
 const PRICE_PER_MTOK = {
   "anthropic/claude-haiku-4.5": [1, 5],
+  // Added 2026-09-27 at the coordinator's reading of the OpenRouter listing, so a step can run it under a budget.
+  "anthropic/claude-opus-5.5": [4, 20],
   "anthropic/claude-sonnet-4": [3, 15],
   "anthropic/claude-sonnet-4.5": [3, 15],
   "anthropic/claude-sonnet-4.6": [3, 15],

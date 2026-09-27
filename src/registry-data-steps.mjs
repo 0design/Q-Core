@@ -666,25 +666,31 @@ function reviewEditsOf(step, ctx, review, verify) {
   insist(review && typeof review === 'object' && Array.isArray(review.edits), 'review must reference a review output {edits:[...]}');
   insist(review.edits.length <= 100, 'review has more than 100 edits');
   verify([]); // the fact-checked text itself must pass; otherwise the run fails as before
-  // Units: a removal of an item with sub-items goes together with the removals of all its sub-items.
+  // Units: a removal of an item with sub-items goes together with the removals of all its sub-items, and a case
+  // removal goes together with a revision of its theme (review round 2 of PR #34), so each is tried as one.
   const list = review.edits.map((edit, index) => ({ edit, index }));
   const itemOf = e => Number(e?.item);
   const probe = verify.itemLines();
+  const valid = i => Number.isInteger(i) && i >= 1 && i <= probe.length;
   const depth = i => probe[i - 1]?.m[1].length ?? 0;
-  const inUnit = new Set(), units = [];
+  const parentOf = i => { for (let j = i - 1; j >= 1; j--) if (depth(j) < depth(i)) return j; return null; };
+  const root = list.map((_, k) => k);
+  const find = k => (root[k] === k ? k : (root[k] = find(root[k])));
+  const join = (a, b) => { root[find(a)] = find(b); };
   for (const entry of list) {
-    if (inUnit.has(entry.index)) continue;
-    const unit = [entry];
     const i = itemOf(entry.edit);
-    if (entry.edit?.action === 'remove' && Number.isInteger(i) && i >= 1 && i <= probe.length) {
-      for (let j = i + 1; j <= probe.length && depth(j) > depth(i); j++) {
-        const sub = list.find(e => !inUnit.has(e.index) && e !== entry && itemOf(e.edit) === j && e.edit?.action === 'remove');
-        if (sub) unit.push(sub);
-      }
+    if (entry.edit?.action !== 'remove' || !valid(i)) continue;
+    for (let j = i + 1; j <= probe.length && depth(j) > depth(i); j++) {
+      const sub = list.find(e => itemOf(e.edit) === j && e.edit?.action === 'remove');
+      if (sub) join(sub.index, entry.index);
     }
-    unit.forEach(e => inUnit.add(e.index));
-    units.push(unit);
+    const parent = depth(i) > 0 ? parentOf(i) : null;
+    const themeRevision = parent && list.find(e => itemOf(e.edit) === parent && e.edit?.action === 'revise');
+    if (themeRevision) join(entry.index, themeRevision.index);
   }
+  const groups = new Map();
+  for (const entry of list) { const r = find(entry.index); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(entry); }
+  const units = [...groups.values()].sort((a, b) => a[0].index - b[0].index);
   let accepted = [], pending = units, rejected = [];
   for (let pass = 0; pass < 2 && pending.length; pass++) {
     rejected = [];
@@ -694,7 +700,7 @@ function reviewEditsOf(step, ctx, review, verify) {
     }
     pending = rejected.map(r => r.unit);
   }
-  return { accepted, rejected: rejected.flatMap(({ unit, error }) => unit.map(({ edit }) => ({ item: edit?.item ?? null, action: edit?.action ?? null, ...(edit?.problem ? { problem: edit.problem } : {}), error: error.slice(0, 300) }))) };
+  return { accepted, rejected: rejected.flatMap(({ unit, error }) => unit.map(({ edit }) => ({ item: edit?.item ?? null, action: edit?.action ?? null, ...(edit?.problem ? { problem: edit.problem } : {}), ...(typeof edit?.reason === 'string' ? { reason: edit.reason } : {}), error: error.slice(0, 300) }))) };
 }
 export function runVerifySources(step, ctx) {
   if (step.config.review == null) return verifyOnce(step, ctx, null);
@@ -706,6 +712,17 @@ export function runVerifySources(step, ctx) {
   const out = result.output;
   out.review = { ...out.review, rejected };
   out.factCheckSummary = out.factCheckSummary.replace(/review: (\d+) revised, (\d+) removed/, `review: $1 revised, $2 removed, ${rejected.length} rejected`);
+  // reviewSummary (owner decision 27.09): which items the reviewer changed or had rejected, and why, one line each,
+  // right after factCheckSummary so the approval preview (its first 40 lines) shows it above the rest of the output.
+  const cut = (value, n) => { const t = String(value ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
+  const lines = [
+    ...out.review.edits.filter(e => e.action !== 'keep').map(e => ({ item: e.item, line: `review item ${e.item} ${e.action === 'revise' ? 'revised' : 'removed'} (${e.problem}): ${cut(e.reason, 100)}` })),
+    ...rejected.map(r => ({ item: Number(r.item) || 0, line: `review item ${r.item ?? '?'} rejected (${r.problem ?? r.action ?? 'edit'}): ${cut(r.reason ?? '', 100)} — not applied: ${cut(r.error, 80)}` })),
+  ].sort((a, b) => a.item - b.item).map(l => l.line);
+  const MAX = 12;
+  const reviewSummary = lines.length > MAX ? [...lines.slice(0, MAX), `…and ${lines.length - MAX} more (see review in the checks output)`] : lines;
+  const { text: finalText, factCheckSummary, ...rest } = out;
+  result.output = { text: finalText, factCheckSummary, reviewSummary, ...rest };
   return result;
 }
 function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {

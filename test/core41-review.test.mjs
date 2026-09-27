@@ -163,3 +163,44 @@ test("Digest 0.8.0: a review call after the fact check; the checks apply its pat
   assert.equal(ids[ids.indexOf("approval") - 1], "checks", "the gate binds the checks output: the edited text");
   assert.ok(DIGEST.settings.budgetUsd >= 0.5);
 });
+
+test("owner decision 27.09: the approval preview names each item the reviewer changed or had rejected, and why", () => {
+  const bad = edit(6, { quote: ["researchers cut tokens on every benchmark"] });
+  const out = check(patched([PATCH.edits[0], remove(9, "The article does not say the glasses keep users constantly connected.", "overstatement"), bad])).output;
+  assert.deepEqual(Object.keys(out).slice(0, 3), ["text", "factCheckSummary", "reviewSummary"]);
+  assert.deepEqual(out.reviewSummary.map((l) => l.replace(/:.*/, "")), ["review item 2 revised (scope)", "review item 6 rejected (attribution)", "review item 9 removed (overstatement)"]);
+  assert.match(out.reviewSummary[1], /^review item 6 rejected \(attribution\): Vendor-reported results .* — not applied: List item \d+: the quote is not in the text/);
+  assert.ok(out.reviewSummary.every((l) => l.length <= 260), "reasons and errors are cut");
+  const preview = JSON.stringify(out, null, 2).split("\n").slice(0, 40).join("\n");
+  for (const line of out.reviewSummary) assert.ok(preview.includes(JSON.stringify(line)), line);
+  assert.match(preview, /review: 1 revised, 1 removed, 1 rejected/);
+  // A long review is capped at 12 lines plus a count, so the digest text stays in view: 10 bad edits and 5 duplicates.
+  const bad10 = (item) => ({ item, before: before(item), action: "revise", problem: "language", reason: `reason ${item}`, text: "x", quote: ["nowhere to be found in any article"] });
+  const many = check(patched([...Array.from({ length: 10 }, (_, i) => bad10(i + 1)), ...[1, 2, 3, 4, 5].map(bad10)])).output;
+  assert.equal(many.review.rejected.length, 15);
+  assert.equal(many.reviewSummary.length, 13);
+  assert.equal(many.reviewSummary.at(-1), "…and 3 more (see review in the checks output)");
+  assert.ok(JSON.stringify(many, null, 2).split("\n").length > 40 && JSON.stringify(many, null, 2).split("\n").slice(0, 40).join("\n").includes("…and 3 more"));
+});
+
+test("round 2: a case removal and its theme's revision are one unit; a theme URL no case ever linked is still refused", () => {
+  // As one unit, a bad theme revision takes the removal down with it: both are rejected with the same error.
+  const theme = { item: 1, before: before(1), action: "revise", problem: "generalisation", reason: "Only the unsecured agents remain.", sources: [TC], text: "Незахищені дослідницькі агенти OpenAI діяли без відома лабораторії", quote: ["a quote that is nowhere in the article"] };
+  const out = check(patched([theme, remove(2, "pause scope")])).output;
+  assert.equal(out.review.rejected.length, 2);
+  assert.equal(out.review.rejected[0].error, out.review.rejected[1].error, "one unit, one error");
+  assert.match(out.review.rejected[0].error, /the quote is not in the text of its linked sources/);
+  const good = check(patched([{ ...theme, quote: ["Unsecured OpenAI agents posted 53 user images on the internet without the lab's knowledge"] }, remove(2, "pause scope")])).output;
+  assert.deepEqual([good.review.revised, good.review.removed, good.review.rejected.length], [1, 1, 0]);
+  // A theme record that cites a URL no case links is refused as before, also when an unrelated case is removed.
+  const factcheck = clone(RUN.factcheck);
+  factcheck.claims.find((c) => c.item === 1).sources.push(META);
+  assert.throws(() => check(patched([remove(7, "not an agent system")]), { factcheck }), /item 1\) was checked against .*meta-connect.*which the item does not link as a selected source/);
+});
+
+test("the price table knows the stronger model, so a step can run it under a budget; the Digest review keeps the workflow model", async () => {
+  const { rateForModel } = await import("../src/cost.mjs");
+  assert.deepEqual(rateForModel("anthropic/claude-opus-5.5"), [4 / 1_000_000, 20 / 1_000_000]);
+  assert.equal(rateForModel("anthropic/claude-opus-9"), null, "an unknown model stays unpriced (fails closed under a budget)");
+  assert.equal(DIGEST.steps.find((s) => s.id === "review").config.model, undefined);
+});
