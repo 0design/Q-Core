@@ -523,6 +523,29 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   country top-level domains (`blog.google` → Google, `bbc.co.uk` → BBC). A one- or
   two-letter name (`t.me`, `x.com`) must be a whole word of the link text or a known
   outlet name (Telegram, Twitter).
+- (Core 38) `verify-sources` `factCheck` (with `nestedList` and `citation: links`) references a
+  fact-check model step's output `{claims:[...], text}`; `draft` must resolve to the same `text`
+  (the checked, approved and delivered text is the fact-checked one, otherwise *The checked draft
+  must be the fact-checked text*). Each list item of the text, at any level, has exactly one kept
+  record `{item, verdict: "supported"|"revised", sources:[url], quote:[...], reason}` (`item` = its
+  1-based position; *List item N has no claim record* / *has more than one claim record*). Any other
+  verdict (`unsupported`, `overstated`) is refused: such a claim is revised or removed. `sources` are
+  selected sources the item links; each quote (3+ words, at most 600 characters) occurs verbatim —
+  case, spaces, quote marks and dashes normalised — in the `title` or `text` of one of them as the
+  Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
+  (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
+  of its quotes (*states «…», which is not in its quote*): digits with decimal commas or points and
+  thousands separators, scales (млн/млрд/billion, `$3.36B`), ratios (утричі, удвічі, «three times
+  less», «a third as often», «in half»), shares (третина, половина, «a third of») and counts (двічі,
+  twice); other number words are not compared. A removed record `{verdict: "removed", text, reason}`
+  names no item, and its wording may not remain (*A removed claim is still in the final text*: the
+  text is contained in an item, or 80% of its words of 3+ letters are in one item). The output adds
+  `factCheck: {claims, supported, revised, removed, grounding}`, so the human gate (which binds the
+  checks output) binds the text and the verdicts. For feed items the grounding is the feed-item
+  title and summary (`parse-web items: feed` `itemChars`); the linked articles are not read, and
+  whether a verbatim quote supports the wording remains the model's verdict for the human to review.
+  `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
+  words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

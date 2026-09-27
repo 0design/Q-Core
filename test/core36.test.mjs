@@ -59,9 +59,9 @@ test("nestedList contract is strict: a depth 1..6 integer, and not mixed with se
   assert.throws(() => verify(GOOD, flat), /require requiredHeadings \(or nestedList/);
 });
 
-test("Digest 0.5.0 asks for the nested list and checks it; no section labels, no case length", () => {
+test("Digest 0.5.0+ asks for the nested list and checks it; no section labels, no case length", () => {
   const manifest = loadManifest(resolve("registry/workflows/digest.yaml"));
-  assert.equal(manifest.version, "0.5.0");
+  assert.ok(["0.5.0", "0.6.0"].includes(manifest.version));
   const draft = manifest.steps.find((s) => s.id === "draft").config;
   const checks = manifest.steps.find((s) => s.id === "checks").config;
   assert.equal(checks.nestedList, "3");

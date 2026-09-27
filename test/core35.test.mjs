@@ -200,7 +200,7 @@ test("positive: a person at a real terminal types the code and the run continues
 test("Digest 0.4.1+ has no numeric length limit for a case, in the prompt or in the check", () => {
   const digest = readFileSync(resolve("registry/workflows/digest.yaml"), "utf8");
   const manifest = loadManifest(resolve("registry/workflows/digest.yaml"));
-  assert.ok(["0.4.1", "0.4.2", "0.5.0"].includes(manifest.version));
+  assert.ok(["0.4.1", "0.4.2", "0.5.0", "0.6.0"].includes(manifest.version));
   assert.doesNotMatch(digest, /itemMaxWords/);
   const draft = manifest.steps.find((s) => s.id === "draft").config.instructions;
   const cases = draft.includes('"Кейси":') ? draft.slice(draft.indexOf('"Кейси":')) : draft;
@@ -293,7 +293,7 @@ steps:
 
 test("Digest 0.4.2+ leaves the draft room: a live three-case draft took 2102 tokens and 2000 truncated it", () => {
   const manifest = loadManifest(resolve("registry/workflows/digest.yaml"));
-  assert.ok(["0.4.2", "0.5.0"].includes(manifest.version));
+  assert.ok(["0.4.2", "0.5.0", "0.6.0"].includes(manifest.version));
   const draft = manifest.steps.find((s) => s.id === "draft");
   assert.ok(Number(draft.config.maxTokens) >= 4000, String(draft.config.maxTokens));
 });
