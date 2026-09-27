@@ -700,7 +700,7 @@ function reviewEditsOf(step, ctx, review, verify) {
     }
     pending = rejected.map(r => r.unit);
   }
-  return { accepted, rejected: rejected.flatMap(({ unit, error }) => unit.map(({ edit }) => ({ item: edit?.item ?? null, action: edit?.action ?? null, ...(edit?.problem ? { problem: edit.problem } : {}), ...(typeof edit?.reason === 'string' ? { reason: edit.reason } : {}), error: error.slice(0, 300) }))) };
+  return { accepted, rejected: rejected.flatMap(({ unit, error }) => unit.map(({ edit }) => ({ item: edit?.item ?? null, action: edit?.action ?? null, ...(edit?.problem ? { problem: String(edit.problem).slice(0, 40) } : {}), ...(typeof edit?.reason === 'string' ? { reason: edit.reason.slice(0, 300) } : {}), error: error.slice(0, 300) }))) };
 }
 export function runVerifySources(step, ctx) {
   if (step.config.review == null) return verifyOnce(step, ctx, null);
@@ -717,7 +717,12 @@ export function runVerifySources(step, ctx) {
   const cut = (value, n) => { const t = String(value ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
   const lines = [
     ...out.review.edits.filter(e => e.action !== 'keep').map(e => ({ item: e.item, line: `review item ${e.item} ${e.action === 'revise' ? 'revised' : 'removed'} (${e.problem}): ${cut(e.reason, 100)}` })),
-    ...rejected.map(r => ({ item: Number(r.item) || 0, line: `review item ${r.item ?? '?'} rejected (${r.problem ?? r.action ?? 'edit'}): ${cut(r.reason ?? '', 100)} — not applied: ${cut(r.error, 80)}` })),
+    // A rejected edit is unvalidated model output: only known labels reach the preview, free text is cut to one line.
+    ...rejected.map(r => {
+      const item = Number.isInteger(r.item) && r.item > 0 && r.item < 1000 ? r.item : null;
+      const label = REVIEW_PROBLEMS.includes(r.problem) ? r.problem : ['keep', 'revise', 'remove'].includes(r.action) ? r.action : 'invalid';
+      return { item: item ?? 0, line: `review item ${item ?? '?'} rejected (${label}): ${cut(r.reason ?? '', 100)} — not applied: ${cut(r.error, 80)}` };
+    }),
   ].sort((a, b) => a.item - b.item).map(l => l.line);
   const MAX = 12;
   const reviewSummary = lines.length > MAX ? [...lines.slice(0, MAX), `…and ${lines.length - MAX} more (see review in the checks output)`] : lines;

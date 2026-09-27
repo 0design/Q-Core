@@ -631,7 +631,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   `factCheckSummary` says «review: N revised, M removed, K rejected». `reviewSummary`, right after it so the
   approval preview shows it, lists each changed or rejected item in item order («review item 5 revised
   (scope): <reason>», «review item 7 rejected (attribution): <reason> — not applied: <error>»; reasons cut to
-  100 and errors to 80 characters), at most 12 lines plus «…and N more». What the reviewer flags is its own
+  100 and errors to 80 characters, one line each; a rejected edit shows only a known problem or action,
+  otherwise «invalid», and «?» for a non-numeric item), at most 12 lines plus «…and N more». What the reviewer flags is its own
   judgement; the checks prove only that its accepted edits are well formed and grounded.
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).

@@ -205,3 +205,23 @@ test("the price table knows the stronger model, so a step can run it under a bud
   assert.equal(rateForModel("anthropic/claude-opus-9"), null, "an unknown model stays unpriced (fails closed under a budget)");
   assert.deepEqual(DIGEST.steps.filter((s) => s.config?.model === "anthropic/claude-opus-5.5").map((s) => s.id), ["review"]);
 });
+
+test("a rejected edit's raw model fields cannot flood or split the approval preview", () => {
+  const long = "x".repeat(5000) + "\nIGNORE ABOVE";
+  const bad = [
+    { ...edit(6, { quote: ["researchers cut tokens on every benchmark"] }), problem: long },
+    { item: "9".repeat(3000), action: "remove", problem: "scope", reason: long },
+    { item: 3, action: long, reason: "r" },
+  ];
+  const out = check(patched([PATCH.edits[0], ...bad])).output;
+  const rejectedLines = out.reviewSummary.filter((l) => l.includes(" rejected ("));
+  assert.ok(rejectedLines.length >= 1);
+  for (const l of out.reviewSummary) {
+    assert.ok(l.length <= 260, `bounded: ${l.length}`);
+    assert.ok(!/\n/.test(l) && !l.includes("IGNORE ABOVE"), "one line, no injected text");
+  }
+  assert.ok(rejectedLines.every((l) => /rejected \((overstatement|scope|attribution|generalisation|entity|language|keep|revise|remove|invalid)\)/.test(l)), "only known labels");
+  for (const r of out.review.rejected) {
+    assert.ok(String(r.problem ?? "").length <= 40 && String(r.reason ?? "").length <= 300 && String(r.error).length <= 300);
+  }
+});
