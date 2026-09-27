@@ -81,6 +81,7 @@
     "src/host.mjs",
     "src/http.mjs",
     "src/human-confirmation.mjs",
+    "src/human-decision.mjs",
     "src/index.mjs",
     "src/manifest.d.mts",
     "src/manifest.mjs",

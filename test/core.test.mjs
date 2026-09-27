@@ -15,6 +15,7 @@ import { claude, claudeArgs } from "../src/providers/claude.mjs";
 import { openRouter } from "../src/providers/openrouter.mjs";
 import { hash, validateRequest } from "../src/contracts.mjs";
 import { lockWorkspace } from "../src/workspace.mjs";
+import { personDecides } from "./human-decision-helper.mjs";
 const setup = (t) => {
   const dir = mkdtempSync(join(tmpdir(), "q-core-core-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -54,14 +55,12 @@ const generate = async () => ({
   provider: { kind: "fixture" },
   usage: null,
 });
-const approve = async (r, options = {}) => {
+const approve = async (r, options = {}, decision = "approve") => {
   const first = await runAgent(r, { generate, ...options });
   assert.equal(first.status, "needs_human");
-  return {
-    ...r,
-    resumeRunId: first.runId,
-    approval: { hash: first.nextAction.hash, decision: "approve" },
-  };
+  assert.equal(first.nextAction.type, "ask_human_to_approve");
+  if (decision) personDecides("agent", r.workspace, first, decision);
+  return { ...r, resumeRunId: first.runId };
 };
 test("SDD spec approval -> real file change -> independent subprocess verifier -> cached resume", async (t) => {
   const r = setup(t);
@@ -86,12 +85,14 @@ test("SDD spec approval -> real file change -> independent subprocess verifier -
 });
 test("wrong approval and changed policy cannot execute", async (t) => {
   const r = setup(t),
-    next = await approve(r);
-  const wrong = await runAgent(
-    { ...next, approval: { hash: "0".repeat(64), decision: "approve" } },
-    { generate },
+    next = await approve(r, {}, null);
+  assert.throws(
+    () => personDecides("agent", r.workspace, { runId: next.resumeRunId, nextAction: { approvalHash: "0".repeat(64) } }),
+    (e) => e.code === "STALE_APPROVAL",
   );
+  const wrong = await runAgent(next, { generate });
   assert.equal(wrong.status, "needs_human");
+  assert.equal(wrong.nextAction.type, "ask_human_to_approve");
   assert.equal(readFileSync(join(r.workspace, "value.txt"), "utf8"), "old");
   assert.equal(
     (await runAgent({ ...next, allowedPaths: ["other.txt"] }, { generate }))
@@ -101,16 +102,8 @@ test("wrong approval and changed policy cannot execute", async (t) => {
 });
 test("rejection persists across resume", async (t) => {
   const r = setup(t),
-    next = await approve(r);
-  assert.equal(
-    (
-      await runAgent(
-        { ...next, approval: { ...next.approval, decision: "reject" } },
-        { generate },
-      )
-    ).status,
-    "cancelled",
-  );
+    next = await approve(r, {}, "reject");
+  assert.equal((await runAgent(next, { generate })).status, "cancelled");
   assert.equal((await runAgent(next, { generate })).status, "cancelled");
 });
 test("failed verifier never becomes success; repair is bounded", async (t) => {
@@ -343,12 +336,9 @@ test("verifier command is bound into resume evidence", async (t) => {
   r.allowedTools = [...r.allowedTools, command];
   const first = await runAgent(r, { generate });
   assert.equal(first.status, "needs_human");
+  personDecides("agent", r.workspace, first);
   writeFileSync(command, "process.exit(1);\n");
-  const resumed = await runAgent({
-    ...r,
-    resumeRunId: first.runId,
-    approval: { hash: first.nextAction.hash, decision: "approve" },
-  }, { generate });
+  const resumed = await runAgent({ ...r, resumeRunId: first.runId }, { generate });
   assert.equal(resumed.status, "needs_human");
   assert.equal(resumed.error.code, "WORKSPACE_CHANGED");
 });

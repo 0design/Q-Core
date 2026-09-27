@@ -6,6 +6,7 @@ import { fetchWithRetry } from "./http.mjs";
 import { insist, resultEnvelope, hash, CoreError } from "./contracts.mjs";
 import { recoveryAction } from "./recovery.mjs";
 import { validateCallerInput, contentMessages } from "./caller-inference.mjs";
+import { approvalFieldRefused } from "./human-decision.mjs";
 async function boundedText(response) {
   const reader = response.body.getReader();
   const parts = [];
@@ -43,6 +44,8 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
       r?.protocolVersion === "qf.content-request/v1",
       "Invalid content protocol",
     );
+    // Core 38: refused before any source is fetched; a person decides at a terminal.
+    if (r.approval !== undefined) throw approvalFieldRefused();
     insist(
       Array.isArray(r.allowedOrigins) &&
         r.allowedOrigins.every((x) => typeof x === "string"),
@@ -172,7 +175,7 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
     return result;
   } catch (e) {
     const code=signal?.aborted ? "CANCELLED" : combined?.aborted ? "TIMEOUT" : e instanceof CoreError ? e.code : "CONTENT_FAILED";
-    const nextAction = code === "TIMEOUT" ? {type:"review_limits"} : recoveryAction(code);
+    const nextAction = code === "TIMEOUT" ? {type:"review_limits"} : code === "HUMAN_APPROVAL_REQUIRED" ? e.nextAction : recoveryAction(code);
     return resultEnvelope(r, {
       protocolVersion: "qf.content/v1",
       status: code === "CANCELLED" ? "cancelled" : nextAction ? "needs_human" : "failed",

@@ -3,7 +3,11 @@
 SDD accepts an optional `specification: {summary, criteria, plan}` input. This
 imports the provided specification without model generation. A previous external
 approval does not authorize new local paths or a different verifier: Core returns
-`approve_spec` with its own policy-bound hash before applying any file.
+`ask_human_to_approve` (subject `specification`) with its own policy-bound hash
+before applying any file. Only a person decides, with `q-core agent approve`
+(Core 38; see contracts/v1/README.md).
+Breaking change in 0.2.0-q-core.38: `nextAction` `approve_spec` became `ask_human_to_approve`
+and a request with `approval` is refused; `contractRevision` stays 13 (request schema bytes unchanged).
 
 When the intent is ambiguous the model can return questions. Core persists them
 and returns `needs_human` with:
@@ -26,7 +30,7 @@ unbounded inference. The ordinary deadline/cost guards also apply to each call.
 
 ## Explicit revision before execution
 
-`approve_spec` includes `specRevision`. To change the spec or scope within the
+`ask_human_to_approve` includes `specRevision`. To change the spec or scope within the
 same run, send the new request fields and an explicit operation:
 
 ```json
@@ -53,8 +57,8 @@ then issues a new approval hash. Explicitly changed paths/verifier are revalidat
 An implicit scope change remains rejected. History records each spec revision,
 its full request identity, origin and approval hash separately from file revisions.
 Repeated identical change submissions do not add revisions. Approval of an older
-revision never authorizes the new one. Send fresh approval only after reviewing
-its spec and scope. Do not combine clarification and specChange in one request.
+revision never authorizes the new one: a decision recorded for the old hash does
+not count, so the person decides again after reviewing its spec and scope. Do not combine clarification and specChange in one request.
 
 After execution starts, changed specifications require a new run. Failed or stale
 revision attempts cannot replace a completed run's cached success.

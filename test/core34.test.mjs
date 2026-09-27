@@ -128,6 +128,8 @@ const CASES = `- **Пауза OpenAI** — тренування призупин
 const DIGEST = `${HEADER('26.09')}\n\n## Загальна картина\n\n${OVERVIEW}\n\n## Кейси\n\n${CASES}`;
 // Digest 0.5 (Core36): a nested list after the header instead of two labelled sections.
 const NESTED = `${HEADER('26.09')}\n\n- Лабораторії гальмують найпотужніші моделі через агентів ([Media](${A}), [Blog](${B})).\n  - Muse: файлова система виявилась відкритою ([Media](${C})).\n`;
+// Digest 0.6 (Core38): compact links — the theme is a plain conclusion, its cases carry the links; one short sentence each.
+const NESTED06 = `${HEADER('26.09')}\n\n- Лабораторії гальмують найпотужніші моделі через агентів\n  - OpenAI призупинила тренування найпотужніших моделей ([Media](${A}), [Blog](${B})).\n  - Muse: файлова система виявилась відкритою ([Media](${C})).\n`;
 const verify = (text, config = DIGEST_FORMAT, sources = SELECTED) => runVerifySources({ config: { draft: '{{steps.draft.output}}', sources: '{{steps.clusters.output}}', language: 'uk', ...config } }, { priorOutputs: { clusters: sources, draft: { text } }, priorStepNames: {} });
 
 test('verify-sources citation: links — every thesis links a selected source; not every source must be cited', () => {
@@ -234,8 +236,15 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0'].includes(manifest.version));
-  const draftText = manifest.version.startsWith('0.5') ? NESTED : DIGEST;
+  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0'].includes(manifest.version));
+  const draftText = manifest.version.startsWith('0.6') ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
+  // From 0.6.0 a fact-check call follows the draft: it returns the checked text and a claim record per list item.
+  const factChecked = manifest.steps.some(s => s.id === 'factcheck');
+  const factCheck = JSON.stringify({ text: draftText.trim(), claims: [
+    { item: 1, verdict: 'supported', sources: [A], quote: ['OpenAI paused training of its most capable models'] },
+    { item: 2, verdict: 'supported', sources: [A], quote: ['OpenAI paused training of its most capable models'] },
+    { item: 3, verdict: 'revised', sources: [C], quote: ["Muse & filesystem 'exposed'"], reason: 'The feed item says only that the filesystem was exposed.' },
+  ] });
   // Offline: the key comes from the test, not the Keychain; everything else is the shipped manifest.
   for (const step of manifest.steps) if (step.kind === 'llm-call') { assert.equal(step.config.secretSource, 'keychain'); step.config.secretSource = 'env'; }
   const feeds = manifest.steps.filter(s => s.kind === 'fetch');
@@ -248,7 +257,7 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
   ] });
   let modelCalls = 0;
   const handler = url => {
-    if (url.startsWith('https://openrouter.ai')) { modelCalls += 1; return completion(modelCalls % 2 === 1 ? clusters : draftText); }
+    if (url.startsWith('https://openrouter.ai')) { modelCalls += 1; return completion((factChecked ? [clusters, draftText, factCheck] : [clusters, draftText])[(modelCalls - 1) % (factChecked ? 3 : 2)]); }
     if (url === 'https://media.example/feed') return new Response(MEDIA);
     if (url === 'https://blog.example/atom') return new Response(BLOG);
     return new Response(rss([['Stale', 'https://empty.example/stale', 'Mon, 01 Sep 2026 00:00:00 +0000', 'Old.']]));
@@ -266,6 +275,10 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
     assert.equal(step('clusters').output.clusters[0].independentOutlets, 2);
     assert.equal(step('checks').output.text, draftText.trim());
     assert.ok(step('cluster').costUsd > 0 && step('draft').costUsd > 0);
+    if (factChecked) {
+      assert.deepEqual(step('checks').output.factCheck.claims.map(c => [c.item, c.verdict]), [[1, 'supported'], [2, 'supported'], [3, 'revised']]);
+      assert.deepEqual(step('approval').output.subject.factCheck, step('checks').output.factCheck, 'the gate binds the checked text and its verdicts');
+    }
     const approvalHash = step('approval').output.approvalHash;
     await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: '0'.repeat(64) }), /Approval/);
     await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash });

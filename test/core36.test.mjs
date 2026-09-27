@@ -59,9 +59,9 @@ test("nestedList contract is strict: a depth 1..6 integer, and not mixed with se
   assert.throws(() => verify(GOOD, flat), /require requiredHeadings \(or nestedList/);
 });
 
-test("Digest 0.5.0 asks for the nested list and checks it; no section labels, no case length", () => {
+test("Digest 0.5.0+ asks for the nested list and checks it; no section labels, no case length", () => {
   const manifest = loadManifest(resolve("registry/workflows/digest.yaml"));
-  assert.equal(manifest.version, "0.5.0");
+  assert.ok(["0.5.0", "0.6.0"].includes(manifest.version));
   const draft = manifest.steps.find((s) => s.id === "draft").config;
   const checks = manifest.steps.find((s) => s.id === "checks").config;
   assert.equal(checks.nestedList, "3");
@@ -74,7 +74,9 @@ test("Digest 0.5.0 asks for the nested list and checks it; no section labels, no
   assert.match(draft.instructions, /at\s+most three levels/);
   assert.match(draft.instructions, /Order themes by weight/);
   assert.match(draft.instructions, /outlet name as the link text/);
-  assert.doesNotMatch(draft.instructions, /## Загальна картина|## Кейси|\d+\s+words/);
+  assert.doesNotMatch(draft.instructions, /## Загальна картина|## Кейси/);
+  // No case length until 0.5; Digest 0.6 caps words and sentences by the owner's review of 27.09.
+  if (manifest.version === "0.5.0") assert.doesNotMatch(draft.instructions, /\d+\s+words/);
   assert.ok(Number(draft.maxTokens) >= 6000);
 });
 

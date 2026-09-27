@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { runAgent } from "../src/agent.mjs";
 import { subprocess } from "../src/subprocess.mjs";
+import { personDecides } from "./human-decision-helper.mjs";
 const spec = {
   summary: "Addition",
   criteria: ["add(2,3) equals 5"],
@@ -52,11 +53,8 @@ test("imported spec skips inference and real caller requires explicit scope appr
   assert.equal(first.code, 2);
   assert.equal(first.result.provider, null);
   assert.equal(first.result.nextAction.specRevision, 1);
-  const done = await call({
-    ...r,
-    resumeRunId: first.result.runId,
-    approval: { decision: "approve", hash: first.result.nextAction.hash },
-  });
+  personDecides("agent", r.workspace, first.result);
+  const done = await call({ ...r, resumeRunId: first.result.runId });
   assert.equal(done.code, 0);
   assert.equal(done.result.status, "success");
 });
@@ -99,7 +97,7 @@ test("clarification is durable, complete, question-bound, and idempotent", async
     },
   };
   const ready = await runAgent(answered, { generate: model });
-  assert.equal(ready.nextAction.type, "approve_spec");
+  assert.equal(ready.nextAction.type, "ask_human_to_approve");
   assert.equal(calls, 2);
   assert.equal(
     (await runAgent(answered, { generate: model })).nextAction.hash,
@@ -133,13 +131,10 @@ test("explicit scope/spec revision invalidates approval and replay does not incr
       specification: { ...spec, plan: [...spec.plan, "Write extra.txt"] },
     },
   };
-  const second = await runAgent(
-    {
-      ...changed,
-      approval: { decision: "approve", hash: first.nextAction.hash },
-    },
-    { generate },
-  );
+  personDecides("agent", r.workspace, first);
+  const second = await runAgent(changed, { generate });
+  assert.equal(second.status, "needs_human");
+  assert.equal(second.nextAction.type, "ask_human_to_approve");
   assert.equal(second.nextAction.specRevision, 2);
   assert.notEqual(second.nextAction.hash, first.nextAction.hash);
   const again = await runAgent(changed, { generate });
@@ -163,11 +158,8 @@ test("explicit scope/spec revision invalidates approval and replay does not incr
 test("stale mutation cannot destroy a completed cached result", async (t) => {
   const r = { ...setup(t), specification: spec };
   const first = await runAgent(r);
-  const approved = {
-    ...r,
-    resumeRunId: first.runId,
-    approval: { decision: "approve", hash: first.nextAction.hash },
-  };
+  personDecides("agent", r.workspace, first);
+  const approved = { ...r, resumeRunId: first.runId };
   assert.equal((await runAgent(approved)).status, "success");
   const invalid = await runAgent({
     ...approved,

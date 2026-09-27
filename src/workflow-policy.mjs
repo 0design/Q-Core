@@ -7,8 +7,8 @@
  * `run`, `approve` and the host when they load a manifest (loadWorkflow). Library calls (loadManifest,
  * createRun/driveRun) do not apply it; a hosted validator must call assertWorkflowPolicy itself.
  *
- * - GATE_REQUIRED: a step that writes files (workspace-apply) or sends data (api-request POST, PUT,
- *   PATCH, DELETE; POST is the default) needs a human approval-gate earlier on the same path.
+ * - GATE_REQUIRED: a step that writes files (workspace-apply) or sends data (every api-request except an
+ *   exact method: GET to a literal http(s) URL) needs a human approval-gate earlier on the same path.
  *   Reviewed Registry workflows (built into the Registry, installed or initialised unchanged) are exempt.
  * - UNUSED_WORKSPACE_READ: a workspace-read whose output no later step uses is refused in every workflow.
  */

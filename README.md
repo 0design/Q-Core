@@ -55,8 +55,8 @@ the machine.
 
 | Surface | State |
 | --- | --- |
-| This Core `0.2.0-q-core.37` | Pinned by Registry `2026.09.27-registry.23` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
-| Registry workflows | `digest` 0.5.0 (ten public AI feeds by default, meaning clusters across sources ranked by independent outlets, a nested list of themes, cases and comments without section labels, every item linked, a fixed header checked before approval, HTTP or local-file delivery), `podcast-summary` 0.1.0 (one transcript, no channel header; replaces `podcast-digest`) and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
+| This Core `0.2.0-q-core.38` | Pinned by Registry `2026.09.27-registry.24` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
+| Registry workflows | `digest` 0.6.0 (ten public AI feeds by default, meaning clusters across sources ranked by independent outlets, a nested list of themes, cases and comments without section labels, compact links (a theme is a short conclusion without links, its cases carry them) and short items (one sentence, at most 32 words per case and 20 per theme, by the owner's review of 27.09), a fact-check step that checks each claim against its linked source's feed title and summary and revises or removes unsupported claims, with a verbatim quote and the source's numbers checked per item and a verdict per claim, a fixed header checked before approval of the fact-checked text, HTTP or local-file delivery), `podcast-summary` 0.1.0 (one transcript, no channel header; replaces `podcast-digest`) and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 
@@ -155,12 +155,24 @@ adds path and authorization checks. Substitute real absolute workspace, Node and
 CLI paths. `sdd-pipeline@1.0.0` runs the built-in SDD capability;
 `synthetic-sdd@1.0.0` is its test alias. A consumer must pin the manifest it runs.
 
-The first call returns `needs_human` with a spec and approval hash. Review the
-specification, verifier, exact file scope and context. Resume the same request
-with `resumeRunId` and `approval: {"hash":"RETURNED_HASH","decision":"approve"}`.
-Use `reject` to cancel. Changed scope/intent/provider/verifier invalidates approval.
-Approval is an assertion by the local trusted caller; Core is not an identity
-service. There is no implicit approval or “resume last chat”.
+The first call returns `needs_human` with `nextAction` `ask_human_to_approve`
+(`humanOnly: true`), the spec, the approval hash and an exact `command`. Review the
+specification, verifier, exact file scope and context. Only a person decides: they
+run, in their own terminal, `q-core agent approve <workspace> <runId> --approval-hash
+<hash>` (`--reject` to cancel), which asks for a one-time code on the terminal like
+`q-core approve`. Then resume the same request with `resumeRunId` and **without**
+`approval`; a request that carries `approval` is refused (`HUMAN_APPROVAL_REQUIRED`).
+Changed scope/intent/provider/verifier invalidates the recorded decision. Core is not
+an identity service. There is no implicit approval or “resume last chat”.
+
+**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
+(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
+(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
+carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
+sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
+(the `command` in `nextAction`) in their own terminal, then the caller resends the same
+request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
+request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
 
 Claude 2.1.156 is the initially reviewed CLI. Existing authentication is used;
 no credential copying, nesting guard removal or permissions bypass. Claude inference
@@ -255,6 +267,7 @@ for publication. Retry is never exactly-once delivery.
 ## Content and quality capabilities
 
 For Content, start with the shipped [exact request/approval/receiver contract](contracts/v1/content.md)
+(a person approves the exact draft with `q-core content approve`)
 and [synthetic request example](examples/content-request.json). They describe local
 configuration, exact-text approval, repeat/dedup and uncertain-delivery recovery
 without requiring a source checkout. The SDD request schema is not a Content schema.

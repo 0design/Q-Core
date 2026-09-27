@@ -19,6 +19,10 @@ if (process.argv[2] === "auth") {
     process.stderr.write(`${e?.code ?? "AUTH_FAILED"}: ${e?.message ?? "Protected secret operation failed"}\n`);
     process.exitCode = 1;
   }
+} else if (["agent", "content"].includes(process.argv[2]) && process.argv[3] === "approve") {
+  // Core 38: a person records the decision for a waiting JSON-protocol run.
+  const { humanApproveCli } = await import("../src/human-decision.mjs");
+  process.exitCode = humanApproveCli(process.argv[2], process.argv.slice(4));
 } else if (process.argv[2] === "content") {
   const { contentCli } = await import("./content.mjs");
   await contentCli(process.argv[3]);

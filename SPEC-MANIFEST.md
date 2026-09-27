@@ -268,12 +268,38 @@ user can still get around it on purpose (remove the markers and drive a
 pseudo-terminal; remove the markers and import the library with a forged record; edit
 the unsigned run state under `.qf/`). Instructions to
 agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
-Windows consoles are refused. The `q-core agent` / `q-core content` JSON protocols keep
-their documented model: `approval` there is an assertion by the trusted local caller.
-This is an owner decision (27.09.2026), not an oversight: those protocols take
-`approval` from the calling program, so an agent that is the caller can pass it
-itself. Use the manifest route (`q-core run` + `q-core approve`) when only a person
-may decide.
+Windows consoles are refused.
+
+**The `q-core agent` / `q-core content` JSON protocols: human-only approval (Core 38,
+owner decision 27.09.2026).** The JSON channel cannot decide. A request that carries
+`approval` (approve or reject) is refused with `HUMAN_APPROVAL_REQUIRED`
+(needs_human, exit 2), with or without agent markers; the run stays at its approval
+phase and nothing is applied, verified, fetched or sent. At the approval point the
+result carries `nextAction` `ask_human_to_approve` (`humanOnly: true`, `subject`
+`specification` or `publication`, `approvalHash`, the subject, an exact `command`).
+The person runs, in their own terminal,
+`q-core agent approve <workspace> <runId> --approval-hash <hash> [--reject]` or
+`q-core content approve …` with the same arguments. It asks exactly like
+`q-core approve` (same refusals, one-time code on `/dev/tty`) and records
+`humanDecision: {hash, decision, channel: "tty-code", confirmedAt}` in the persisted
+run state (`.qf/agent-<runId>.json`, or the run in `.qf/content-state.json`); a hash
+that is not the current one is refused (`STALE_APPROVAL`). The agent then resends the
+same request without `approval`. Core applies files, runs the verifier or sends only
+on a recorded approve bound to the current approval hash; a recorded reject cancels;
+a decision for an older hash does not count. The library `recordHumanDecision`
+(`src/human-decision.mjs`) requires a confirmation record and accepts none inside an
+agent session, like `resumeRun`. The same limits apply as for `q-core approve`.
+The `approval` property stays in `contracts/v1/request.schema.json` (the hosted
+validator is shared across Cores); the runtime refuses it.
+
+**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
+(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
+(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
+carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
+sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
+(the `command` in `nextAction`) in their own terminal, then the caller resends the same
+request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
+request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
 
 **Created workflows: a human gate before any side effect (Core 37).** A policy
 on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
@@ -506,6 +532,54 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   country top-level domains (`blog.google` → Google, `bbc.co.uk` → BBC). A one- or
   two-letter name (`t.me`, `x.com`) must be a whole word of the link text or a known
   outlet name (Telegram, Twitter).
+- (Core 38) `verify-sources` `factCheck` (with `nestedList` and `citation: links`) references a
+  fact-check model step's output `{claims:[...], text}`; `draft` must resolve to the same `text`
+  (the checked, approved and delivered text is the fact-checked one, otherwise *The checked draft
+  must be the fact-checked text*). Each list item of the text, at any level, has exactly one kept
+  record `{item, verdict: "supported"|"revised", sources:[url], quote:[...], reason}` (`item` = its
+  1-based position; *List item N has no claim record* / *has more than one claim record*). Any other
+  verdict (`unsupported`, `overstated`) is refused: such a claim is revised or removed. `sources` are
+  selected sources the item links; each quote (3+ words, at most 600 characters) occurs verbatim —
+  case, spaces, quote marks and dashes normalised — in the `title` or `text` of one of them as the
+  Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
+  (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
+  of its quotes or of its linked sources' title and text (*states «…», which is not in its quote or
+  linked sources*): digits with decimal commas or points and thousands separators, scales
+  (млн/млрд/billion, `$3.36B`), ratios (утричі, удвічі, «у 1,5 раза», «three times less», «1.5x»,
+  «2.5-fold», «a third as often», «in half»; a half and «in half» match), shares (третина, половина, «a third of») and counts (двічі,
+  twice); other number words are not compared. A removed record `{verdict: "removed", text, reason}`
+  names no item, and its wording may not remain (*A removed claim is still in the final text*: the
+  text is contained in an item, or one item holds a run of consecutive words covering at least 60% of
+  it, 4 words or more; shared words in another order do not count, so a rewrite of a removed original
+  passes). The output adds
+  `factCheck: {claims, supported, revised, removed, grounding}`, so the human gate (which binds the
+  checks output) binds the text and the verdicts. For feed items the grounding is the feed-item
+  title and summary (`parse-web items: feed` `itemChars`); the linked articles are not read, and
+  whether a verbatim quote supports the wording remains the model's verdict for the human to review.
+  What this deterministic layer catches of the five errors an independent fact-check found in Digest
+  0.5.0 run 65ef7d49: (4) a wrong number or meaning («у третині випадків» for «a third as often») is
+  refused whatever the model records; (5) the listed wrong phrases («не зважаючи», «кодувальних
+  агентів») are refused by `forbiddenPhrases`, other language errors are left to the prompt; (1) a
+  theme that generalises beyond its sources, (2) an overstated scope («training, testing and
+  inference» for tool-based work only) and (3) a misattributed ruling or cost are refused only when
+  the fact-check record admits them (verdict `unsupported`/`overstated`, no quote, a quote that is not
+  in the source, removed wording left). When the model records such wording as `supported` with a
+  genuine quote (The Verge: «pause training of its most powerful models»), it passes: errors 1-3
+  rest on the fact-check model's verdict and the human gate.
+  `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
+  words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
+- (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
+  theme) carries no links at all (*A list item with sub-items carries no links under compactLinks; its
+  cases link the sources*); every item without sub-items still links a selected source under
+  `citation: links`. A link-less parent is ranked by `nestedOrder` through its sub-items' clusters, and
+  its `factCheck` record may name only sources its sub-items link. `caseMaxWords` and `themeMaxWords`
+  (1..500) cap the words of an item, counted without link markup and the «([Outlet](url), …)»
+  parentheses: a theme is a top-level item with sub-items, every other item (a case, a comment, a
+  stand-alone top-level item) is a case (*A case has N words; at most M*). `itemMaxSentences` (1..500)
+  caps sentences per item; a sentence ends at `.` `!` `?` `…` before a space and an uppercase letter or
+  an opening quote, not inside a decimal or after an abbreviation such as «млн.» or «U.S.». Digest 0.6
+  sets compact links, 1 sentence, 32 words per case and 20 per theme by the owner's review of 27.09;
+  Digest 0.4.1–0.5 had no case length.
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.
