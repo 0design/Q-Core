@@ -137,32 +137,24 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
 /* factCheck: a model step's claim records for the final text, checked here deterministically:
    - every list item of the final text has exactly one kept claim record ({item: its 1-based position});
    - a kept claim is "supported" or "revised"; any other verdict (unsupported, overstated…) must be revised or removed;
-   - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim (or in order with a few source words left out, quoteInOrder) — case,
+   - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim (or as ellipsis-marked verbatim pieces in order, quoteInOrder) — case,
      spaces, quote marks and dashes normalised — in the title or text of one of those sources as the Core holds them;
    - every number in the item's own words is among the numbers of its quotes or linked sources' title/text (numberTokens);
    - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
    The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
-/* A quote is grounded when it occurs verbatim, or (Core39, live run 58c169c9) when every one of its words occurs in
-   the source in the same order with only a few source words left out: at most 3 between two quote words and at
-   most max(3, a quarter of the quote's words) in total. A word the source does not have is never accepted. */
+/* A quote is grounded when it occurs verbatim, or (Core39, live run 58c169c9) when it marks every omission with
+   an ellipsis («…» or «...») and each piece between them occurs verbatim in the source, in the same order. A word
+   left out silently (a dropped scope such as «tool-based») is never accepted. */
 function quoteInOrder(quote, ground) {
-  const words = text => (text.match(/[\p{L}\p{N}]+/gu) ?? []).map(w => w.toLocaleLowerCase('en'));
-  const q = words(quote), g = words(ground);
-  if (q.length < 3) return false;
-  const budget = Math.max(3, Math.floor(q.length / 4));
-  for (let start = 0; start < g.length; start++) {
-    if (g[start] !== q[0]) continue;
-    let at = start, skipped = 0, ok = true;
-    for (let i = 1; i < q.length && ok; i++) {
-      let next = -1;
-      for (let j = at + 1; j <= Math.min(g.length - 1, at + 4); j++) if (g[j] === q[i]) { next = j; break; }
-      if (next < 0) { ok = false; break; }
-      skipped += next - at - 1; at = next;
-      if (skipped > budget) ok = false;
-    }
-    if (ok) return true;
+  const pieces = quote.split(/…|\.\.\./).map(piece => piece.replace(/^[\s.,;:!?"'()\-]+|[\s.,;:!?"'()\-]+$/g, '')).filter(Boolean);
+  if (pieces.length < 2 || pieces.some(piece => (piece.match(/[\p{L}\p{N}]+/gu) ?? []).length < 2)) return false;
+  let at = 0;
+  for (const piece of pieces) {
+    const found = ground.indexOf(piece, at);
+    if (found < 0) return false;
+    at = found + piece.length;
   }
-  return false;
+  return true;
 }
 function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf = index => citedUrls(nestedItems[index].text)) {
   insist(record && typeof record === 'object' && Array.isArray(record.claims), 'factCheck must reference a fact-check output {claims:[...], text}');
