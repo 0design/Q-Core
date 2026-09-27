@@ -131,7 +131,7 @@ const HEADER = "**Штучно-інтелектуальний дайджест �
 const withArticles = async () => withFetch(pages, async () => (await articles(selected())).output);
 const check = (sources, item, claim) => {
   const text = `${HEADER}${item}\n`;
-  return runVerifySources({ config: CHECKS }, { priorOutputs: { articles: sources, factcheck: { text, claims: [{ item: 1, ...claim }] } }, priorStepNames: {} });
+  return runVerifySources({ config: CHECKS }, { priorOutputs: { articles: sources, review: { edits: [] }, factcheck: { text, claims: [{ item: 1, ...claim }] } }, priorStepNames: {} });
 };
 const IT_ITEM = (words) => `- ${words} ([The Decoder](${IT}))`;
 
@@ -162,9 +162,9 @@ test("live run 97688656: «160» where the article says «about 160» is refused
 });
 
 test("Digest 0.7.0: the articles step feeds the fact check and the checks; the prompt says the article decides", () => {
-  assert.equal(DIGEST.version, "0.7.1");
+  assert.ok(["0.7.1", "0.8.0"].includes(DIGEST.version));
   const ids = DIGEST.steps.map((s) => s.id);
-  assert.deepEqual(ids.slice(ids.indexOf("clusters")), ["clusters", "articles", "draft", "factcheck", "checks", "approval", "delivery"]);
+  assert.deepEqual(ids.slice(ids.indexOf("clusters")), ["clusters", "articles", "draft", "factcheck", ...(ids.includes("review") ? ["review"] : []), "checks", "approval", "delivery"]);
   const art = DIGEST.steps.find((s) => s.id === "articles");
   assert.equal(art.kind, "parse-web");
   assert.deepEqual([art.config.articles, art.config.source, art.config.maxTotalChars], ["true", "{{steps.clusters.output}}", "30000"]);
@@ -286,7 +286,7 @@ test("review P2: the approval preview shows the fact-check summary; the limitati
   const quote = ["Two-thirds raised their hands", "invented words that are nowhere"];
   const out = check(read, IT_ITEM("Дві третини з близько 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "revised", reason: "about", sources: [IT], quote }).output;
   const preview = JSON.stringify(out, null, 2).split("\n").slice(0, 40).join("\n");
-  assert.match(preview, /"factCheckSummary": "1 claims: 0 supported, 1 revised, 0 removed; articles read for 3 of 3 sources; quotes not found in the source, set aside: item 1 «invented words that are nowhere»"/);
+  assert.match(preview, /"factCheckSummary": "1 claims: 0 supported, 1 revised, 0 removed; review: 0 revised, 0 removed; articles read for 3 of 3 sources; quotes not found in the source, set aside: item 1 «invented words that are nowhere»"/);
   assert.match(out.limitation, /verbatim in the article \(where parse-web articles read it\), title or summary/);
   const summaryOnly = { ...read, sources: read.sources.map(({ articleStatus, articleText, ...s }) => s) };
   const plain = check(summaryOnly, IT_ITEM("Дві третини з 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "supported", sources: [IT], quote: ["Two-thirds raised their hands"] }).output;

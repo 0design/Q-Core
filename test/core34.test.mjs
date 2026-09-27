@@ -236,8 +236,8 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.7.1'].includes(manifest.version));
-  const draftText = /^0\.[67]/.test(manifest.version) ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
+  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.7.1', '0.8.0'].includes(manifest.version));
+  const draftText = /^0\.[678]/.test(manifest.version) ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
   // From 0.6.0 a fact-check call follows the draft: it returns the checked text and a claim record per list item.
   const factChecked = manifest.steps.some(s => s.id === 'factcheck');
   const factCheck = JSON.stringify({ text: draftText.trim(), claims: [
@@ -255,9 +255,11 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
     { topic: 'OpenAI pause', summary: 'Two outlets report the pause.', sources: [1, 3] },
     { topic: 'Muse', summary: 'Muse filesystem.', sources: [C] },
   ] });
+  // From 0.8.0 a review call follows the fact check; an empty patch keeps every item.
+  const reviewed = manifest.steps.some(s => s.id === 'review');
   let modelCalls = 0;
   const handler = url => {
-    if (url.startsWith('https://openrouter.ai')) { modelCalls += 1; return completion((factChecked ? [clusters, draftText, factCheck] : [clusters, draftText])[(modelCalls - 1) % (factChecked ? 3 : 2)]); }
+    if (url.startsWith('https://openrouter.ai')) { modelCalls += 1; const replies = factChecked ? [clusters, draftText, factCheck, ...(reviewed ? ['{"edits":[]}'] : [])] : [clusters, draftText]; return completion(replies[(modelCalls - 1) % replies.length]); }
     if (url === 'https://media.example/feed') return new Response(MEDIA);
     if (url === 'https://blog.example/atom') return new Response(BLOG);
     return new Response(rss([['Stale', 'https://empty.example/stale', 'Mon, 01 Sep 2026 00:00:00 +0000', 'Old.']]));

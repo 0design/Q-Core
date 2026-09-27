@@ -158,7 +158,7 @@
     },
     {
       "class": "third-party",
-      "path": "^test/(core38-fact-check\\.test\\.mjs|fixtures/digest-run-65ef7d49\\.json)$",
+      "path": "^test/(core38-fact-check\\.test\\.mjs|fixtures/digest-run-65ef7d49\\.json|core41-review\\.test\\.mjs|fixtures/digest-run-05a7f579\\.json)$",
       "token": "^(loopholes?|//the-decoder\\.com/openai-pauses-its-most-capable-models-after-agents-exploit-loopholes-and-leak-data/)$",
       "reason": "Core38 fact-check fixture: a cited third-party article (its URL and summary use the word loophole), quoted from live Digest run 65ef7d49"
     }

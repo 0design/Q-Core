@@ -608,6 +608,22 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   found in its source (`unmatchedQuotes`). Still model judgement: scope and attribution in words (links that
   «weren't publicly listed» vs «у відкритому доступі», vendor-reported results, what exactly was paused),
   and a number the article states both with and without «about».
+  (Core 41) `review` (with `factCheck` and `nestedList`) references a second model step's patch
+  `{edits:[{item, action: "keep"|"revise"|"remove", text, quote:[...], sources?, problem, reason}]}` for the
+  fact-checked text, applied before every other check. `item` is the 1-based position among the list
+  items of the fact-checked text; one edit per item and no new items (*names list item N, which is not an
+  item of the fact-checked text*; *has more than one review edit*; an unknown action is refused).
+  `problem` is one of overstatement, scope, attribution, generalisation, entity, language, with a
+  `reason`. `revise` replaces the item's line (same indentation) and needs verbatim `quote`s: the item's
+  claim record takes them (and `sources`, if given), verdict `revised`, reason «review <problem>: …».
+  `remove` deletes the item and turns its claim record into a removed claim, so its wording may not
+  remain; an item with sub-items is removed only together with all of them (*Review removes list item N,
+  which has sub-items…*), and a theme whose cases are all removed must go too (else it is a theme
+  without links). Kept claims are renumbered. Every check then runs on the edited text (quotes, numbers
+  and bounds, links, compact links, word and sentence caps, labels, outlet names, forbidden phrases).
+  The output adds `review: {edits:[{item, action, problem, reason, before, after}], revised, removed,
+  kept}`, and `factCheckSummary` says «review: N revised, M removed». What the reviewer flags is its own
+  judgement; the checks prove only that its edits are well formed and grounded.
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
 - (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
