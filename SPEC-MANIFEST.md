@@ -268,12 +268,29 @@ user can still get around it on purpose (remove the markers and drive a
 pseudo-terminal; remove the markers and import the library with a forged record; edit
 the unsigned run state under `.qf/`). Instructions to
 agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
-Windows consoles are refused. The `q-core agent` / `q-core content` JSON protocols keep
-their documented model: `approval` there is an assertion by the trusted local caller.
-This is an owner decision (27.09.2026), not an oversight: those protocols take
-`approval` from the calling program, so an agent that is the caller can pass it
-itself. Use the manifest route (`q-core run` + `q-core approve`) when only a person
-may decide.
+Windows consoles are refused.
+
+**The `q-core agent` / `q-core content` JSON protocols: human-only approval (Core 38,
+owner decision 27.09.2026).** The JSON channel cannot decide. A request that carries
+`approval` (approve or reject) is refused with `HUMAN_APPROVAL_REQUIRED`
+(needs_human, exit 2), with or without agent markers; the run stays at its approval
+phase and nothing is applied, verified, fetched or sent. At the approval point the
+result carries `nextAction` `ask_human_to_approve` (`humanOnly: true`, `subject`
+`specification` or `publication`, `approvalHash`, the subject, an exact `command`).
+The person runs, in their own terminal,
+`q-core agent approve <workspace> <runId> --approval-hash <hash> [--reject]` or
+`q-core content approve …` with the same arguments. It asks exactly like
+`q-core approve` (same refusals, one-time code on `/dev/tty`) and records
+`humanDecision: {hash, decision, channel: "tty-code", confirmedAt}` in the persisted
+run state (`.qf/agent-<runId>.json`, or the run in `.qf/content-state.json`); a hash
+that is not the current one is refused (`STALE_APPROVAL`). The agent then resends the
+same request without `approval`. Core applies files, runs the verifier or sends only
+on a recorded approve bound to the current approval hash; a recorded reject cancels;
+a decision for an older hash does not count. The library `recordHumanDecision`
+(`src/human-decision.mjs`) requires a confirmation record and accepts none inside an
+agent session, like `resumeRun`. The same limits apply as for `q-core approve`.
+The `approval` property stays in `contracts/v1/request.schema.json` (the hosted
+validator is shared across Cores); the runtime refuses it.
 
 **Created workflows: a human gate before any side effect (Core 37).** A policy
 on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`

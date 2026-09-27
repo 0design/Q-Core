@@ -8,6 +8,7 @@ import {
 import { join, resolve } from "node:path";
 import assert from "node:assert/strict";
 import { runAgent } from "../src/agent.mjs";
+import { recordHumanDecision } from "../src/human-decision.mjs";
 import { codexArgs } from "../src/providers/codex.mjs";
 import { subprocess, scopedEnvironment } from "../src/subprocess.mjs";
 mkdirSync(".qf", { recursive: true });
@@ -33,12 +34,9 @@ writeFileSync(
   "console.error('Intentional verifier failure');process.exit(1);",
 );
 const spec = await runAgent(r);
-assert.equal(spec.nextAction?.type, "approve_spec");
-const failed = await runAgent({
-  ...r,
-  resumeRunId: spec.runId,
-  approval: { hash: spec.nextAction.hash, decision: "approve" },
-});
+assert.equal(spec.nextAction?.type, "ask_human_to_approve");
+recordHumanDecision({ kind: "agent", workspace, runId: spec.runId, approvalHash: spec.nextAction.approvalHash, decision: "approve", confirmation: { channel: "synthetic-test-harness" } });
+const failed = await runAgent({ ...r, resumeRunId: spec.runId });
 assert.notEqual(failed.status, "success");
 assert.ok(failed.evidence.some((e) => e.outcome === "fail"));
 const cancelRequest = { ...r, requestId: "live-codex-cancel" };
@@ -55,7 +53,7 @@ const resumed = await runAgent({
   ...cancelRequest,
   resumeRunId: cancelled.runId,
 });
-assert.equal(resumed.nextAction?.type, "approve_spec");
+assert.equal(resumed.nextAction?.type, "ask_human_to_approve");
 // Adversarial sandbox probe: change only the instruction to ask the model to
 // attempt a write; retain the production permissions and disabled tools profile.
 const target = join(workspace, "sandbox-must-not-exist.txt");

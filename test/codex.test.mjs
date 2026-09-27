@@ -11,6 +11,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { codex, parseCodexResponse } from "../src/providers/codex.mjs";
 import { subprocess, scopedEnvironment } from "../src/subprocess.mjs";
+import { personDecides } from "./human-decision-helper.mjs";
 const options = {
   executable: resolve("test/fixtures/codex.mjs"),
   model: "fixture",
@@ -169,13 +170,10 @@ test("Codex caller executes approved scope and resumes through installed-style C
   };
   const first = await caller(r);
   assert.equal(first.code, 2);
-  assert.equal(first.result.nextAction.type, "approve_spec");
+  assert.equal(first.result.nextAction.type, "ask_human_to_approve");
   assert.match(readFileSync(join(workspace, "value.mjs"), "utf8"), /=>0/);
-  const approved = {
-    ...r,
-    resumeRunId: first.result.runId,
-    approval: { hash: first.result.nextAction.hash, decision: "approve" },
-  };
+  personDecides("agent", workspace, first.result);
+  const approved = { ...r, resumeRunId: first.result.runId };
   const result = await caller(approved);
   assert.equal(result.code, 0);
   assert.equal(result.result.provider.kind, "codex");

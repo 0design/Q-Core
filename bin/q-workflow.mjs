@@ -68,6 +68,8 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
   q-core approve <manifest> [runId]  a person continues a run held at a human gate
                                     (--reject to refuse it); asks for a one-time
                                     code on the terminal, refuses without one
+  q-core agent|content approve <workspace> <runId> --approval-hash <sha256> [--reject]
+                                    a person decides a JSON-protocol run (terminal code)
   q-core doctor                      check this machine before blaming the workflow
 
 Installed as q-core. There is no qf alias — that name belongs to @q-factory/bridge.

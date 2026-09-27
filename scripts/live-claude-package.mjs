@@ -28,8 +28,11 @@ async function call(r) {
 }
 let result = await call(request);
 let completedResume = false;
-if (result.nextAction?.type === 'approve_spec' && process.argv.includes('--approve-synthetic')) {
-  const approved={...request,resumeRunId:result.runId,approval:{hash:result.nextAction.hash,decision:'approve'}};
+if (result.nextAction?.type === 'ask_human_to_approve' && process.argv.includes('--approve-synthetic')) {
+  // Synthetic test-harness decision through the installed library, never the JSON channel.
+  const {recordHumanDecision}=await import(join(sandbox,'node_modules/q-core/src/human-decision.mjs'));
+  recordHumanDecision({kind:'agent',workspace,runId:result.runId,approvalHash:result.nextAction.approvalHash,decision:'approve',confirmation:{channel:'synthetic-test-harness'}});
+  const approved={...request,resumeRunId:result.runId};
   result=await call(approved);
   if (result.status==='success') {
     const cached=await call(approved); assert.equal(cached.status,'success');

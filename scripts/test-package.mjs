@@ -9,6 +9,7 @@ import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { hash } from "../src/contracts.mjs";
+import { atTerminal, ptyAvailable } from "../test/fixtures/human-terminal.mjs";
 const live = process.argv.includes("--live-codex");
 const modelIndex = process.argv.indexOf("--model");
 const liveModel = modelIndex >= 0 ? process.argv[modelIndex + 1] : null;
@@ -126,10 +127,29 @@ try {
       first = JSON.parse(e.stdout);
     }
   }
-  assert.equal(first.nextAction.type, "approve_spec");
+  assert.equal(first.nextAction.type, "ask_human_to_approve");
+  assert.equal(first.nextAction.humanOnly, true);
   delete request.clarification;
   request.resumeRunId = first.runId;
-  request.approval = { hash: first.nextAction.hash, decision: "approve" };
+  // Core 38: the JSON request cannot approve; the installed CLI refuses it.
+  let refusedApproval;
+  try {
+    exec(process.execPath, [bin, "agent", "-"], {
+      input: JSON.stringify({ ...request, approval: { hash: first.nextAction.approvalHash, decision: "approve" } }),
+    });
+  } catch (e) {
+    assert.equal(e.status, 2);
+    refusedApproval = JSON.parse(e.stdout).error.code;
+  }
+  assert.equal(refusedApproval, "HUMAN_APPROVAL_REQUIRED");
+  // A person decides at a terminal; a pseudo-terminal stands in for them here.
+  assert.ok(ptyAvailable, "python3 pty is required for the human approval step");
+  const human = atTerminal(
+    [process.execPath, bin, "agent", "approve", tmp, first.runId, "--approval-hash", first.nextAction.approvalHash],
+    { env: { ...process.env, QF_NO_UPDATE_CHECK: "1" }, cwd: tmp },
+  );
+  assert.equal(human.exit, 0, human.out);
+  assert.match(human.out, /Confirmed: approve/);
   assert.equal(
     JSON.parse(
       exec(process.execPath, [bin, "agent", "-"], {
@@ -149,6 +169,8 @@ try {
       validate: !!validation,
       legacyHumanGateExit: runCode,
       installedCodexAgent: "success",
+      jsonApprovalRefused: refusedApproval,
+      humanApproval: "tty-code via pseudo-terminal",
       completedResume: JSON.parse(
         exec(process.execPath, [bin, "agent", "-"], {
           input: JSON.stringify(request),

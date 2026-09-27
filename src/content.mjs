@@ -5,6 +5,7 @@ import { hash, insist, resultEnvelope, CoreError } from "./contracts.mjs";
 import { lockWorkspace, atomicJson } from "./workspace.mjs";
 import { recoveryAction } from "./recovery.mjs";
 import { validateCallerInput, callerInference, assertInferenceReply, invalidateInference, contentMessages } from "./caller-inference.mjs";
+import { askHumanToApprove, approvalFieldRefused, humanDecisionFor } from "./human-decision.mjs";
 /** Reusable editorial pipeline. Caller supplies explicit provider, checker and
  * receiver adapters. Receipt storage is durable; ambiguous sends are never retried.
  * Callbacks are trusted host capabilities, never executable manifest strings. */
@@ -28,6 +29,8 @@ export async function runContent(
   let lock, state, file, run;
   const cancelled = () => { if (signal?.aborted) throw new CoreError("CANCELLED", "Content operation cancelled"); };
   try {
+    // Core 38: only a person decides, with `q-core content approve` at a terminal.
+    if (approval !== undefined) throw approvalFieldRefused();
     validateCallerInput({provider,inferenceReply,cancelInference,maxInferenceJobs,inferenceTtlMs});
     insist(
       typeof requestId === "string" &&
@@ -204,19 +207,21 @@ export async function runContent(
       return out("needs_human", "Editorial checks did not pass", {
         evidence: [run.check],
       });
-    if (approval?.hash === run.approvalHash && approval?.decision === "reject") {
+    const decision = humanDecisionFor(run, run.approvalHash);
+    if (decision === "reject") {
       run.phase = "rejected";
       save();
-      return out("cancelled", "Draft rejected");
+      return out("cancelled", "Draft rejected by a person");
     }
-    if (approval?.hash !== run.approvalHash || approval?.decision !== "approve")
-      return out("needs_human", "Approve this exact draft and receiver", {
-        nextAction: {
-          type: "approve_publication",
-          hash: run.approvalHash,
+    if (decision !== "approve")
+      return out("needs_human", "A person approves this exact draft and receiver", {
+        nextAction: askHumanToApprove("content", {
+          workspace,
+          runId: run.runId,
+          approvalHash: run.approvalHash,
           text: run.text,
           receiver,
-        },
+        }),
         evidence: [run.check],
       });
     cancelled();
@@ -271,7 +276,7 @@ export async function runContent(
     });
   } catch (e) {
     const cancelled = signal?.aborted || e.code === "CANCELLED";
-    const nextAction = cancelled ? null : e.code === "INFERENCE_REQUIRED" ? e.nextAction : recoveryAction(e.code);
+    const nextAction = cancelled ? null : ["INFERENCE_REQUIRED", "HUMAN_APPROVAL_REQUIRED"].includes(e.code) ? e.nextAction : recoveryAction(e.code);
     if (run && state && file) {
       if (cancelled) invalidateInference(run);
       atomicJson(file,state);

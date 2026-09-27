@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import { runAgent } from '../src/agent.mjs';
 import { runContentRequest } from '../src/content-runner.mjs';
 import { hash } from '../src/contracts.mjs';
+import { personDecides } from './human-decision-helper.mjs';
 const provider={kind:'caller',agent:'codex',model:'current-session',payerScope:'local-cli'};
 const spec={summary:'Implement add',criteria:['Positive and negative addition passes the independent checker'],plan:['Edit value.mjs only']};
 function setup(t,extra={}) {
@@ -24,9 +25,9 @@ test('caller SDD uses real verifier fail -> bounded repair -> pass; replies are 
   assert.equal(first.nextAction.type,'provide_inference');r={...r,resumeRunId:first.runId};
   const poll=await runAgent(r);assert.deepEqual(poll.nextAction.job,first.nextAction.job);
   const drafted=await runAgent({...r,inferenceReply:answer(first,spec)});
-  assert.equal(drafted.nextAction.type,'approve_spec');
+  assert.equal(drafted.nextAction.type,'ask_human_to_approve');
   assert.equal(readFileSync(join(r.workspace,'value.mjs'),'utf8'),'export const add=()=>0;\n');
-  r.approval={hash:drafted.nextAction.hash,decision:'approve'};
+  personDecides('agent',r.workspace,drafted);
   const work=await runAgent(r);assert.equal(work.nextAction.job.outputKind,'files');
   const repair=await runAgent({...r,inferenceReply:answer(work,files('export const add=()=>0;\n'))});
   assert.equal(repair.nextAction.type,'provide_inference');assert.equal(repair.evidence[0].exitCode,1);
@@ -54,7 +55,7 @@ test('caller job refuses wrong hash, extra claims, changed scope, verifier and f
   writeFileSync(join(r.workspace,'value.mjs'),'export const add=()=>123;');
   assert.equal((await runAgent({...resume,inferenceReply:answer(first,spec)})).error.code,'STALE_INFERENCE');
   writeFileSync(join(r.workspace,'value.mjs'),'export const add=()=>0;\n');
-  assert.equal((await runAgent({...resume,inferenceReply:answer(first,spec)})).nextAction.type,'approve_spec');
+  assert.equal((await runAgent({...resume,inferenceReply:answer(first,spec)})).nextAction.type,'ask_human_to_approve');
 });
 
 test('caller cancellation invalidates the pending job and enforces the total job budget',async t=>{
@@ -64,8 +65,9 @@ test('caller cancellation invalidates the pending job and enforces the total job
   assert.equal((await runAgent({...resume,inferenceReply:answer(first,spec)})).error.code,'STALE_INFERENCE');
   const second=await runAgent(resume);assert.notEqual(second.nextAction.job.jobId,jobId);
   const a=await runAgent({...resume,inferenceReply:answer(second,spec)});
-  assert.equal(a.nextAction.type,'approve_spec');
-  assert.equal((await runAgent({...resume,approval:{hash:a.nextAction.hash,decision:'approve'}})).error.code,'BUDGET_EXHAUSTED');
+  assert.equal(a.nextAction.type,'ask_human_to_approve');
+  personDecides('agent',r.workspace,a);
+  assert.equal((await runAgent(resume)).error.code,'BUDGET_EXHAUSTED');
 });
 
 test('caller expiry, unknown-cost cap, and signal cancellation never produce generation or success',async t=>{
@@ -85,7 +87,8 @@ test('caller expiry, unknown-cost cap, and signal cancellation never produce gen
 
 test('caller repair cap is independent of the generation job cap',async t=>{
   const r=setup(t,{specification:spec,maxRepairAttempts:0}),a=await runAgent(r);
-  const resume={...r,resumeRunId:a.runId,approval:{hash:a.nextAction.hash,decision:'approve'}};
+  personDecides('agent',r.workspace,a);
+  const resume={...r,resumeRunId:a.runId};
   const job=await runAgent(resume);
   const stopped=await runAgent({...resume,inferenceReply:answer(job,files('export const add=()=>0;'))});
   assert.equal(stopped.nextAction.type,'review_failure');assert.equal(stopped.evidence[0].exitCode,1);
@@ -107,9 +110,10 @@ test('caller Content requires exact approval and keeps receipt/dedup separate fr
   const output={text:`Synthetic digest ${origin}/source`};
   source='Changed source';assert.equal((await runContentRequest({...r,inferenceReply:answer(first,output)})).error.code,'STALE_INFERENCE');
   source='Synthetic source one';
-  const draft=await runContentRequest({...r,inferenceReply:answer(first,output)});assert.equal(draft.nextAction.type,'approve_publication');assert.equal(sends,0);
+  const draft=await runContentRequest({...r,inferenceReply:answer(first,output)});assert.equal(draft.nextAction.type,'ask_human_to_approve');assert.equal(sends,0);
   assert.equal((await runContentRequest({...r,inferenceReply:answer(first,output)})).error.code,'STALE_INFERENCE');
-  const done=await runContentRequest({...r,approval:{hash:draft.nextAction.hash,decision:'approve'}});assert.equal(done.status,'success');assert.equal(sends,1);
+  personDecides('content',workspace,draft);
+  const done=await runContentRequest(r);assert.equal(done.status,'success');assert.equal(sends,1);
   assert.equal((await runContentRequest(r)).nextAction.type,'no_new_sources');assert.equal(sends,1);
   const next={...r,sources:[{id:'two',url:origin+'/source2'}]};const job=await runContentRequest(next);
   const before=reads;const {jobId,hash:h}=job.nextAction.job;

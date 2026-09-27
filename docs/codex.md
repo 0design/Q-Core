@@ -13,11 +13,15 @@ not re-enter the parent agent's conversation.
 2. Copy `contracts/v1/codex-request.json`. Set your absolute workspace,
    executable, explicit model, allowed files and trusted verifier command.
 3. Run `q-core agent request.json`. Review the returned specification and scope.
-4. Add the returned `resumeRunId` and
-   `approval: {"hash":"RETURNED_HASH","decision":"approve"}` to the same request.
-   Run it again. Core applies only the scoped file contents and runs the verifier.
-5. Repeat the approved request to resume. A completed run returns cached success
-   only if artifact hashes still match. Changed scope/verifier requires new approval.
+4. Ask the user to run the returned `nextAction.command` in their own terminal
+   (`q-core agent approve <workspace> <runId> --approval-hash <hash>`; a one-time
+   code on the terminal). Never run it yourself and never send `approval` in JSON:
+   it is refused (`HUMAN_APPROVAL_REQUIRED`). Then add the returned `resumeRunId`
+   to the same request and run it again. Core applies only the scoped file
+   contents and runs the verifier.
+5. Repeat the same request to resume. A completed run returns cached success
+   only if artifact hashes still match. Changed scope/verifier requires a new
+   human decision.
 
 The direct text adapter is also exported:
 
@@ -33,8 +37,9 @@ console.log(result.content);
 ```
 
 For Content-factory use the same provider descriptor in a
-`qf.content-request/v1` request. Draft approval and receiver receipts remain
-required; selecting Codex does not authorize publication.
+`qf.content-request/v1` request. A person's draft approval (`q-core content
+approve`) and receiver receipts remain required; selecting Codex does not
+authorize publication.
 
 Imported specifications, clarification questions and explicit specification
 revisions are described in [the workflow contract](../contracts/v1/specification.md).

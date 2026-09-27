@@ -26,10 +26,13 @@ try {
     provider:{kind:'codex',model,executable:'/Applications/ChatGPT.app/Contents/Resources/codex',payerScope:'local-cli'},
     receiver:{kind:'webhook',id:'synthetic-local-test',url:origin+'/sink'},profile:{language:'Ukrainian',tone:'factual',instructions:'One short factual paragraph. Label the content as a synthetic test. Include the supplied source URL verbatim.'}};
   const call=async request=>{const path=join(sandbox,'request.json');writeFileSync(path,JSON.stringify(request),{mode:0o600});const r=await run(process.execPath,[join(sandbox,'node_modules/q-core/bin/q-core.mjs'),'content',path]);assert.ok(r.stdout.trim(),r.stderr);const out=JSON.parse(r.stdout);results.push({exit:r.code,result:out});return out;};
+  // Synthetic test-harness decision through the installed library, never the JSON channel.
+  const {recordHumanDecision}=await import(join(sandbox,'node_modules/q-core/src/human-decision.mjs'));
   for(let i=1;i<=3;i++){
     const request={...base,sources:[{id:'source-'+i,url:origin+'/source-'+i}]};
-    const draft=await call(request);assert.equal(draft.nextAction?.type,'approve_publication',JSON.stringify(draft));assert.equal(received.length,i-1);
-    const done=await call({...request,approval:{hash:draft.nextAction.hash,decision:'approve'}});assert.equal(done.status,'success',JSON.stringify(done));
+    const draft=await call(request);assert.equal(draft.nextAction?.type,'ask_human_to_approve',JSON.stringify(draft));assert.equal(received.length,i-1);
+    recordHumanDecision({kind:'content',workspace,runId:draft.runId,approvalHash:draft.nextAction.approvalHash,decision:'approve',confirmation:{channel:'synthetic-test-harness'}});
+    const done=await call(request);assert.equal(done.status,'success',JSON.stringify(done));
     assert.equal(received.length,i);assert.equal(received[i-1].text,draft.nextAction.text);assert.ok(received[i-1].text.includes(request.sources[0].url));
     const replay=await call(request);assert.equal(replay.nextAction?.type,'no_new_sources');assert.equal(received.length,i);
   }
