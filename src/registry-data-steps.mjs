@@ -98,7 +98,7 @@ export function numberTokens(input) {
   return found;
 }
 /* An approximation or a bound right before a number («about 160», «up to 49 percent», «близько 160», «до 49%»). */
-const HEDGE = /(?:^|[^\p{L}])(?:about|around|roughly|approximately|nearly|almost|some|circa|an estimated|more than|over|up to|at least|at most|less than|fewer than|under|близько|приблизно|майже|орієнтовно|понад|більше ніж|більш ніж|до|щонайменше|менше ніж|не менше|не більше|лише близько)(?:\s+(?:на|в|у|by|to|in))?\s*(?:[~≈$€£]\s*)?$/iu;
+const HEDGE = /(?:^|[^\p{L}])(?:about|around|roughly|approximately|nearly|almost|some|circa|an estimated|more than|over|up to|at least|at most|less than|fewer than|under|близько|приблизно|майже|орієнтовно|понад|більше ніж|більш ніж|до|щонайменше|менше ніж|не менше|не більше|лише близько|більше|менше|від|десь|як мінімум|мінімум|максимум|в середньому|у середньому|під)(?:\s+(?:на|в|у|by|to|in))?\s*(?:[~≈$€£]\s*)?$/iu;
 export const hedgedBefore = before => HEDGE.test(String(before ?? '').replace(/\s+/g, ' ')) || /[~≈]\s*$/.test(String(before ?? ''));
 const unifyQuotes = s => String(s).normalize('NFKC').replace(/[‘’ʼ`´]/g, "'").replace(/[“”«»„‟]/g, '"').replace(/[‐‑‒–—−]/g, '-').replace(/…/g, '...');
 const normQuote = s => unifyQuotes(s).toLocaleLowerCase('en').replace(/\s+/g, ' ').trim();
@@ -291,52 +291,124 @@ export function isLocalHost(raw) {
   const host = String(raw).toLowerCase().replace(/\.$/, '').replace(/^\[|\]$/g, '');
   return host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal') || LOCAL_V4.test(host)
     || /^\d+$/.test(host) || /^0x/i.test(host)
-    || /^(?:::1|::|::ffff:.*|fe[89ab][0-9a-f]:.*|f[cd][0-9a-f]{2}:.*)$/.test(host);
+    || /^0(?:\.\d+){3}$/.test(host) // 0.0.0.0/8
+    // IPv6: everything that starts with «::» (unspecified, ::1, IPv4-compatible «::a.b.c.d» = «::7f00:1», IPv4-mapped),
+    // NAT64 64:ff9b::/96, link-local fe80::/10, site-local fec0::/10 and unique-local fc00::/7.
+    || /^(?:::.*|64:ff9b:.*|fe[89a-f][0-9a-f]:.*|f[cd][0-9a-f]{2}:.*)$/.test(host);
 }
 const publicHttpUrl = raw => {
   let url;
   try { url = new URL(raw); } catch { return null; }
   return /^https?:$/.test(url.protocol) && !url.username && !url.password && url.hostname && !isLocalHost(url.hostname) ? url : null;
 };
-/** Readable text of an article page: the longest <article>, else <main>, else the whole page. */
-export function articleTextOf(html) {
-  const pick = tag => [...String(html).matchAll(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`, 'gi'))].map(m => m[1]);
-  const parts = pick('article').length ? pick('article') : pick('main').length ? pick('main') : [String(html)];
-  const clean = part => cleanItemText(part.replace(/<(aside|form|figure|noscript|svg|template|iframe|button|select)\b[^>]*>[\s\S]*?<\/\1>/gi, ' '));
-  return parts.map(clean).sort((a, b) => b.length - a.length)[0] ?? '';
+/* Linear-time article extraction (Core40 review): no backtracking regex over the page, so unclosed tags cost one
+   pass, not a pass per tag. blocksOf finds <tag …>…</tag> by indexOf and continues after each block. */
+function blocksOf(lower, tag) {
+  const out = [], open = `<${tag}`, close = `</${tag}`;
+  let at = 0;
+  for (;;) {
+    const start = lower.indexOf(open, at);
+    if (start < 0) break;
+    const after = lower[start + open.length];
+    if (after !== undefined && !/[\s>/]/.test(after)) { at = start + open.length; continue; }
+    const bodyStart = lower.indexOf('>', start);
+    if (bodyStart < 0) break;
+    const end = lower.indexOf(close, bodyStart);
+    if (end < 0) break;
+    const closeEnd = lower.indexOf('>', end);
+    out.push([start, bodyStart + 1, end, closeEnd < 0 ? lower.length : closeEnd + 1]);
+    at = end + close.length;
+  }
+  return out;
 }
+const DROPPED = ['script', 'style', 'nav', 'header', 'footer', 'aside', 'form', 'figure', 'noscript', 'svg', 'template', 'iframe', 'button', 'select', 'textarea'];
+const ENTITY = { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', hellip: '…', mdash: '—', ndash: '–', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', laquo: '«', raquo: '»' };
+function pageText(html) {
+  let text = html;
+  for (const tag of DROPPED) {
+    const blocks = blocksOf(text.toLowerCase(), tag);
+    if (!blocks.length) continue;
+    let out = '', at = 0;
+    for (const [start, , , stop] of blocks) { out += `${text.slice(at, start)} `; at = stop; }
+    text = out + text.slice(at);
+  }
+  // Comments by indexOf; tags by [^<>] so a «<» without its «>» cannot swallow the page; a stray «<» becomes a space.
+  let plain = '', at = 0;
+  for (;;) {
+    const start = text.indexOf('<!--', at);
+    if (start < 0) { plain += text.slice(at); break; }
+    const end = text.indexOf('-->', start + 4);
+    plain += `${text.slice(at, start)} `;
+    if (end < 0) break;
+    at = end + 3;
+  }
+  return plain.replace(/<[^<>]*>/g, ' ').replace(/</g, ' ')
+    .replace(/&#(\d{1,7});/g, (m, n) => { const c = Number(n); return c > 0 && c <= 0x10ffff ? String.fromCodePoint(c) : ' '; })
+    .replace(/&#x([0-9a-f]{1,6});/gi, (m, n) => { const c = parseInt(n, 16); return c > 0 && c <= 0x10ffff ? String.fromCodePoint(c) : ' '; })
+    .replace(/&([a-z]+);/gi, (m, n) => ENTITY[n.toLowerCase()] ?? m).replace(/\s+/g, ' ').trim();
+}
+/** Readable text of an article page: the longest <article>, else <main>, else the whole page (extraction "body"). */
+export function extractArticle(html) {
+  const page = String(html), lower = page.toLowerCase();
+  for (const tag of ['article', 'main']) {
+    const blocks = blocksOf(lower, tag);
+    if (blocks.length) return { text: blocks.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0], extraction: tag };
+  }
+  return { text: pageText(page), extraction: 'body' };
+}
+export const articleTextOf = html => extractArticle(html).text;
 const ARTICLE_BYTES = 1_500_000;
+const ARTICLE_URL_BUDGET_MS = 30_000;
 async function fetchArticle(raw, ctx) {
+  // One budget per URL for every attempt, redirect hop and the body: 30 s in all (each attempt is also held to 20 s).
+  const budget = AbortSignal.timeout(ARTICLE_URL_BUDGET_MS);
+  const signal = ctx.signal ? AbortSignal.any([ctx.signal, budget]) : budget;
   let url = publicHttpUrl(raw);
   if (!url) return { articleStatus: 'unavailable', articleError: 'not a public http(s) URL' };
   for (let hop = 0; hop <= 3; hop++) {
     let res;
     try {
-      res = await fetchWithRetry(url.href, { headers: { 'User-Agent': 'q-core-workflow-engine/1', Accept: 'text/html,application/xhtml+xml,text/plain;q=0.8' }, redirect: 'manual', signal: ctx.signal }, { timeoutMs: 20_000, retries: 1, delaysMs: [1000] });
+      res = await fetchWithRetry(url.href, { headers: { 'User-Agent': 'q-core-workflow-engine/1', Accept: 'text/html,application/xhtml+xml,text/plain;q=0.8' }, redirect: 'manual', signal }, { timeoutMs: 20_000, retries: 1, delaysMs: [1000] });
     } catch (error) {
-      return { articleStatus: 'unavailable', articleError: error?.name === 'TimeoutError' ? 'timed out after 20 s' : String(error?.message ?? error).slice(0, 120) };
+      ctx.signal?.throwIfAborted();
+      return { articleStatus: 'unavailable', articleError: error?.name === 'TimeoutError' || budget.aborted ? 'timed out (20 s per attempt, 30 s per URL)' : String(error?.message ?? error).slice(0, 120) };
     }
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
       await res.body?.cancel().catch(() => {});
-      url = publicHttpUrl(new URL(res.headers.get('location'), url).href);
+      let next = null;
+      try { next = new URL(res.headers.get('location'), url).href; } catch { return { articleStatus: 'unavailable', articleError: 'invalid redirect location' }; }
+      url = publicHttpUrl(next);
       if (!url) return { articleStatus: 'unavailable', articleError: 'redirect to a URL that is not public http(s)' };
       continue;
     }
     if (!res.ok) { await res.body?.cancel().catch(() => {}); return { articleStatus: 'unavailable', articleError: `HTTP ${res.status}` }; }
     const type = res.headers.get('content-type') ?? '';
-    if (type && !/html|text\/plain|xml/i.test(type)) { await res.body?.cancel().catch(() => {}); return { articleStatus: 'unavailable', articleError: `not a text page (${type.slice(0, 60)})` }; }
+    // An HTML or plain-text page only: no content type, SVG, PDF, JSON or feeds are not article text.
+    if (!/^\s*(?:text\/html|application\/xhtml\+xml|text\/plain)\s*(?:;|$)/i.test(type)) { await res.body?.cancel().catch(() => {}); return { articleStatus: 'unavailable', articleError: `not an HTML or text page (${type.slice(0, 60) || 'no content type'})` }; }
     const reader = res.body?.getReader(), chunks = [];
     let bytes = 0, truncated = false;
-    if (reader) for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      const room = ARTICLE_BYTES - bytes;
-      chunks.push(Buffer.from(value.subarray(0, room)));
-      bytes += Math.min(value.length, room);
-      if (value.length > room) { truncated = true; await reader.cancel(); break; }
+    // A timeout or a dropped connection in the middle of the body makes this page unavailable, not the step failed.
+    try {
+      if (reader) for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const room = ARTICLE_BYTES - bytes;
+        chunks.push(Buffer.from(value.subarray(0, room)));
+        bytes += Math.min(value.length, room);
+        if (value.length >= room) { truncated = true; await reader.cancel().catch(() => {}); break; }
+      }
+    } catch (error) {
+      await reader?.cancel().catch(() => {});
+      ctx.signal?.throwIfAborted();
+      return { articleStatus: 'unavailable', articleError: error?.name === 'TimeoutError' || error?.name === 'AbortError' ? 'timed out while reading the page' : `reading the page failed: ${String(error?.message ?? error).slice(0, 100)}` };
     }
-    const body = Buffer.concat(chunks).toString('utf8');
-    return { articleStatus: 'ok', articleUrl: url.href, body, bodyTruncated: truncated, articleSha256: hash(body) };
+    const raw = Buffer.concat(chunks);
+    // Charset from the Content-Type or a <meta> in the first 4 KB (default utf-8); one Node cannot decode: unavailable.
+    const label = (type.match(/charset\s*=\s*["']?([\w.:-]+)/i)?.[1] ?? raw.subarray(0, 4096).toString('latin1').match(/<meta[^>]{0,200}?charset\s*=\s*["']?([\w.:-]+)/i)?.[1] ?? 'utf-8').toLowerCase();
+    let body;
+    try { body = new TextDecoder(label).decode(raw); } catch { return { articleStatus: 'unavailable', articleError: `unsupported charset ${label.slice(0, 40)}` }; }
+    return { articleStatus: 'ok', articleUrl: url.href, body, bodyTruncated: truncated, articleSha256: hash(raw), charset: label };
+
   }
   return { articleStatus: 'unavailable', articleError: 'more than 3 redirects' };
 }
@@ -358,9 +430,9 @@ async function runParseArticles(step, ctx) {
   const read = url => {
     const page = fetched.get(url);
     if (page.articleStatus !== 'ok') return { articleStatus: 'unavailable', articleError: page.articleError, articleText: null, articleTruncated: false };
-    const text = articleTextOf(page.body);
+    const { text, extraction } = extractArticle(page.body);
     if (!text.trim()) return { articleStatus: 'unavailable', articleError: 'no readable static text', articleText: null, articleTruncated: false };
-    return { articleStatus: 'ok', articleText: text.slice(0, perArticle), articleTruncated: text.length > perArticle || page.bodyTruncated, articleSha256: page.articleSha256 };
+    return { articleStatus: 'ok', articleText: text.slice(0, perArticle), articleTruncated: text.length > perArticle || page.bodyTruncated, articleExtraction: extraction, articleSha256: page.articleSha256 };
   };
   const texts = new Map(urls.map(url => [url, read(url)]));
   insist([...texts.values()].some(t => t.articleStatus === 'ok'), `parse-web articles: none of the ${urls.length} article pages could be read (${[...texts.values()][0]?.articleError})`);
@@ -874,5 +946,10 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? 'Every item has a claim record: at least one of its quotes occurs verbatim in the article, title or summary of its linked sources (other quotes that do not are listed as unmatched), and its numbers occur in its quotes or linked sources with their approximations kept; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  // factCheckSummary sits right after the text, so the approval preview (its first 40 lines) shows the verdict counts,
+  // the unread articles and every quote that was set aside as not found in its source.
+  const unmatched = factCheck ? factCheck.claims.filter(c => c.unmatchedQuotes?.length) : [];
+  const unread = sources.filter(s => s.articleStatus === 'unavailable').length;
+  const factCheckSummary = factCheck ? `${factCheck.claims.length} claims: ${factCheck.supported} supported, ${factCheck.revised} revised, ${factCheck.removed} removed; ${sources.some(s => s.articleStatus) ? `articles read for ${sources.filter(s => s.articleStatus === 'ok').length} of ${sources.length} sources${unread ? ` (${unread} unavailable: summary only)` : ''}` : 'articles not read (feed summaries only)'}; ${unmatched.length ? `quotes not found in the source, set aside: ${unmatched.map(c => `item ${c.item} «${c.unmatchedQuotes[0].slice(0, 60)}»`).join('; ')}` : 'every quote found in its source'}` : null;
+  return { output: { text, ...(factCheckSummary ? { factCheckSummary } : {}), artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? (sources.some(s => s.articleStatus === 'ok') ? '' : 'The full articles were not read: quotes and numbers are grounded on the feed-item title and summary only. ') + 'Every item has a claim record: at least one of its quotes occurs verbatim in the ' + (sources.some(s => s.articleStatus === 'ok') ? 'article (where parse-web articles read it), ' : '') + 'title or summary of its linked sources (other quotes that do not are listed as unmatched), and its numbers occur in its quotes or linked sources with their approximations kept; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }

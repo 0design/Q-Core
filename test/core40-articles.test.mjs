@@ -9,7 +9,7 @@ import test from "node:test";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { loadManifest } from "../src/manifest.mjs";
-import { runParseWeb, runVerifySources, articleTextOf, isLocalHost } from "../src/registry-data-steps.mjs";
+import { runParseWeb, runVerifySources, articleTextOf, extractArticle, isLocalHost } from "../src/registry-data-steps.mjs";
 
 const IT = "https://the-decoder.com/two-thirds-of-it-leaders-report-ai-results-but-few-would-interrupt-the-ceos-vacation-over-them/";
 const TC = "https://techcrunch.com/2026/09/25/unsecured-openai-agents-posted-53-user-images-on-the-internet-without-the-labs-knowledge/";
@@ -73,7 +73,7 @@ test("parse-web articles: an unreachable page is recorded, not fatal; when none 
   // A page that is not text, and a page with no readable text, are unavailable too.
   await withFetch((url) => (url === IT ? new Response("%PDF", { status: 200, headers: { "content-type": "application/pdf" } }) : url === TC ? html("<html><body><script>app()</script></body></html>") : pages(url)), async () => {
     const out = (await articles(selected())).output;
-    assert.match(out.sources.find((s) => s.url === IT).articleError, /not a text page/);
+    assert.match(out.sources.find((s) => s.url === IT).articleError, /not an HTML or text page/);
     assert.equal(out.sources.find((s) => s.url === TC).articleError, "no readable static text");
   });
 });
@@ -189,4 +189,108 @@ test("live run 3f16062b: an extra quote that is not verbatim is set aside as unm
   assert.deepEqual(out.factCheck.claims[0].quote, ["Julia 1, a 144.3M-parameter open decision model that runs on a CPU"]);
   assert.throws(() => run(["144.3M-parameter decision model that runs on a CPU"]), /the quote is not in the text of its linked sources/, "the only quote drops «open» silently");
   assert.throws(() => run(["144.3M-parameter decision model that runs on a CPU", "Julia 1"]), /the quote is not in the text of its linked sources/, "a short verbatim quote alone does not carry the claim");
+});
+
+// Review of PR #32 (Core40, round 1).
+const stream = (parts, { fail, endless } = {}) => {
+  let pulled = 0, cancelled = false, i = 0;
+  const body = new ReadableStream({
+    pull(controller) {
+      if (endless) { const chunk = new Uint8Array(64 * 1024).fill(120); pulled += chunk.length; if (pulled > 8_000_000) return controller.close(); return controller.enqueue(chunk); }
+      if (i < parts.length) { const chunk = new TextEncoder().encode(parts[i++]); pulled += chunk.length; return controller.enqueue(chunk); }
+      if (fail) return controller.error(fail);
+      controller.close();
+    },
+    cancel() { cancelled = true; },
+  }, { highWaterMark: 0 });
+  return { body, stats: () => ({ pulled, cancelled }) };
+};
+
+test("review P1: a page that breaks mid-body or redirects to an invalid Location is unavailable, not a failed step", async () => {
+  const reset = stream(["<article>Half a"], { fail: Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }) });
+  const slow = stream(["<article>Half b"], { fail: Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }) });
+  await withFetch((url) => (url === TC ? new Response(reset.body, { status: 200, headers: { "content-type": "text/html" } })
+    : url === EXA ? new Response(slow.body, { status: 200, headers: { "content-type": "text/html" } })
+    : url === "https://bad-location.example/a" ? new Response(null, { status: 301, headers: { location: "http://[bad" } })
+    : pages(url)), async () => {
+    const out = (await articles({ sources: [{ url: IT, ...FEED[IT] }, { url: TC, text: "t" }, { url: EXA, text: "t" }, { url: "https://bad-location.example/a", text: "t" }] })).output;
+    const err = (url) => out.sources.find((s) => s.url === url).articleError;
+    assert.equal(out.sources.find((s) => s.url === IT).articleStatus, "ok");
+    assert.match(err(TC), /^reading the page failed: socket hang up/);
+    assert.equal(err(EXA), "timed out while reading the page");
+    assert.equal(err("https://bad-location.example/a"), "invalid redirect location");
+  });
+});
+
+test("review P2: reading stops at 1.5 MB on an endless page", async () => {
+  const endless = stream([], { endless: true });
+  await withFetch(() => new Response(endless.body, { status: 200, headers: { "content-type": "text/html" } }), async () => {
+    const out = (await articles({ sources: [{ url: IT, text: "t" }] })).output;
+    const { pulled, cancelled } = endless.stats();
+    assert.ok(pulled <= 1_500_000 + 3 * 64 * 1024, `pulled ${pulled} bytes`);
+    assert.ok(cancelled, "the stream was cancelled");
+    assert.equal(out.sources[0].articleTruncated, true);
+  });
+});
+
+test("review P2: extraction is linear; a pathological 1 MB page with unclosed tags returns quickly", () => {
+  const nasty = [
+    `<article>${"<aside x".repeat(120_000)}`,
+    `<main>${"<div ".repeat(200_000)}`,
+    `${"<article ".repeat(100_000)}<!--${"a".repeat(500_000)}`,
+    `<body>${"< a ".repeat(250_000)}${"&lt;".repeat(50_000)}</body>`,
+  ];
+  for (const html of nasty) {
+    const t0 = performance.now();
+    extractArticle(html);
+    const ms = performance.now() - t0;
+    assert.ok(ms < 1500, `${html.slice(0, 20)}… took ${Math.round(ms)} ms`);
+  }
+  assert.deepEqual(extractArticle("<body><nav>menu</nav><p>Body text</p></body>"), { text: "Body text", extraction: "body" });
+  assert.equal(extractArticle("<main>Main</main>").extraction, "main");
+  assert.equal(articleTextOf("<article>A <script>x()</script>B<!-- c -->D &amp; E &#8217;</article>"), "A B D & E ’");
+});
+
+test("review P1: the approximation and bound forms of Ukrainian are kept, each accepted", async () => {
+  const sol = (article) => ({ sources: [{ url: "https://the-decoder.com/it/", title: "IT leaders", text: "Summary.", articleStatus: "ok", articleText: article, cluster: 1 }] });
+  const item = (w) => `- ${w} ІТ-керівників відповіли на питання ([The Decoder](https://the-decoder.com/it/))`;
+  const claim = { verdict: "supported", sources: ["https://the-decoder.com/it/"], quote: ["IT vice presidents answered"] };
+  const forms = { "більше 160": "more than 160", "менше 160": "fewer than 160", "від 160": "at least 160", "десь 160": "about 160", "мінімум 160": "at least 160", "як мінімум 160": "at least 160", "в середньому 160": "around 160", "у середньому 160": "around 160", "під 160": "nearly 160", "максимум 160": "at most 160", "близько 160": "about 160", "понад 160": "more than 160", "до 160": "up to 160" };
+  for (const [uk, en] of Object.entries(forms)) {
+    assert.doesNotThrow(() => check(sol(`${en} IT vice presidents answered the question.`), item(uk), claim), uk);
+  }
+  assert.throws(() => check(sol("more than 160 IT vice presidents answered the question."), item("160"), claim), /states «160» exactly; its source says «more than 160»/);
+});
+
+test("review P2: more private ranges, only HTML or text pages, decoded charsets, extraction recorded", async () => {
+  for (const host of ["::7f00:1", "::a00:1", "64:ff9b::a00:1", "0.1.2.3", "0.0.0.0", "fec0::1", "fe80::1"]) assert.ok(isLocalHost(host), host);
+  assert.ok(isLocalHost(new URL("http://[::127.0.0.1]/").hostname), "IPv4-compatible address");
+  const cp1251 = Buffer.from([0x3c, 0x61, 0x72, 0x74, 0x69, 0x63, 0x6c, 0x65, 0x3e, 0xcf, 0xf0, 0xe8, 0xe2, 0xb3, 0xf2, 0x3c, 0x2f, 0x61, 0x72, 0x74, 0x69, 0x63, 0x6c, 0x65, 0x3e]); // <article>Привіт</article>
+  await withFetch((url) => url === IT ? new Response("<svg><text>x</text></svg>", { status: 200, headers: { "content-type": "image/svg+xml" } })
+    : url === TC ? new Response("<article>no type</article>", { status: 200, headers: { "content-type": "" } })
+    : url === EXA ? new Response(cp1251, { status: 200, headers: { "content-type": "text/html; charset=windows-1251" } })
+    : url === "https://meta.example/a" ? new Response('<html><head><meta charset="x-unknown-7"></head><body>t</body></html>', { status: 200, headers: { "content-type": "text/html" } })
+    : html("<body><p>Only a body</p></body>"), async () => {
+    const out = (await articles({ sources: [IT, TC, EXA, "https://meta.example/a", "https://body.example/a"].map((url) => ({ url, text: "t" })) })).output;
+    const by = (url) => out.sources.find((s) => s.url === url);
+    assert.match(by(IT).articleError, /not an HTML or text page \(image\/svg\+xml\)/);
+    assert.match(by(TC).articleError, /not an HTML or text page \(no content type\)/);
+    assert.equal(by(EXA).articleText, "Привіт");
+    assert.equal(by("https://meta.example/a").articleError, "unsupported charset x-unknown-7");
+    assert.deepEqual([by("https://body.example/a").articleText, by("https://body.example/a").articleExtraction], ["Only a body", "body"]);
+  });
+});
+
+test("review P2: the approval preview shows the fact-check summary; the limitation says whether articles were read", async () => {
+  const read = await withArticles();
+  const quote = ["Two-thirds raised their hands", "invented words that are nowhere"];
+  const out = check(read, IT_ITEM("Дві третини з близько 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "revised", reason: "about", sources: [IT], quote }).output;
+  const preview = JSON.stringify(out, null, 2).split("\n").slice(0, 40).join("\n");
+  assert.match(preview, /"factCheckSummary": "1 claims: 0 supported, 1 revised, 0 removed; articles read for 3 of 3 sources; quotes not found in the source, set aside: item 1 «invented words that are nowhere»"/);
+  assert.match(out.limitation, /verbatim in the article \(where parse-web articles read it\), title or summary/);
+  const summaryOnly = { ...read, sources: read.sources.map(({ articleStatus, articleText, ...s }) => s) };
+  const plain = check(summaryOnly, IT_ITEM("Дві третини з 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "supported", sources: [IT], quote: ["Two-thirds raised their hands"] }).output;
+  assert.match(plain.limitation, /^The full articles were not read: quotes and numbers are grounded on the feed-item title and summary only\. Every item/);
+  assert.doesNotMatch(plain.limitation, /parse-web articles/);
+  assert.match(plain.factCheckSummary, /articles not read \(feed summaries only\); every quote found in its source/);
 });
