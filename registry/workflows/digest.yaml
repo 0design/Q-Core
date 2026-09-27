@@ -332,9 +332,12 @@ steps:
   # Digest 0.8.0 (Core41, owner decision 27.09, option c): a second, narrow reviewer. Three independent fact-checks of
   # live runs failed on meaning-level wording that the deterministic checks cannot see; this call looks only for that
   # and returns a small patch (not the digest again), which verify-sources applies before every check.
+  # A stronger model for this one step: with the workflow model the reviewer missed every meaning defect (run de073121);
+  # with Opus 5.5 an independent check found 0 meaning defects left and none added (run 4d8c2a04, ~$0.13 per run).
   - id: review
     kind: llm-call
     config:
+      model: anthropic/claude-opus-5.5
       provider: openrouter
       secretSource: keychain
       keyRef: OPENROUTER_API_KEY

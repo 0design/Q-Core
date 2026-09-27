@@ -153,7 +153,8 @@ test("Digest 0.8.0: a review call after the fact check; the checks apply its pat
   const review = DIGEST.steps.find((s) => s.id === "review");
   const fc = DIGEST.steps.find((s) => s.id === "factcheck").config;
   assert.equal(review.kind, "llm-call");
-  assert.deepEqual([review.config.provider, review.config.format, review.config.reasoning, review.config.input, review.config.model], ["openrouter", "json", "low", "{{steps.articles.output.clusters}}", fc.model]);
+  assert.deepEqual([review.config.provider, review.config.format, review.config.reasoning, review.config.input, review.config.model], ["openrouter", "json", "low", "{{steps.articles.output.clusters}}", "anthropic/claude-opus-5.5"]);
+  assert.notEqual(review.config.model, fc.model, "owner decision 27.09: a stronger model for the review step only");
   assert.ok(Number(review.config.maxTokens) <= 4000, "a small patch, not the digest again");
   assert.match(review.config.instructions, /\{\{steps\.factcheck\.output\.text\}\}/);
   const words = (s) => new RegExp(s.split(" ").join("\\s+"), "i");
@@ -198,9 +199,9 @@ test("round 2: a case removal and its theme's revision are one unit; a theme URL
   assert.throws(() => check(patched([remove(7, "not an agent system")]), { factcheck }), /item 1\) was checked against .*meta-connect.*which the item does not link as a selected source/);
 });
 
-test("the price table knows the stronger model, so a step can run it under a budget; the Digest review keeps the workflow model", async () => {
+test("the price table knows the stronger model, so a step can run it under a budget; only the Digest review runs it", async () => {
   const { rateForModel } = await import("../src/cost.mjs");
   assert.deepEqual(rateForModel("anthropic/claude-opus-5.5"), [4 / 1_000_000, 20 / 1_000_000]);
   assert.equal(rateForModel("anthropic/claude-opus-9"), null, "an unknown model stays unpriced (fails closed under a budget)");
-  assert.equal(DIGEST.steps.find((s) => s.id === "review").config.model, undefined);
+  assert.deepEqual(DIGEST.steps.filter((s) => s.config?.model === "anthropic/claude-opus-5.5").map((s) => s.id), ["review"]);
 });
