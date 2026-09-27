@@ -115,7 +115,7 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
    - a kept claim is "supported" or "revised"; any other verdict (unsupported, overstated…) must be revised or removed;
    - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim — case,
      spaces, quote marks and dashes normalised — in the title or text of one of those sources as the Core holds them;
-   - every number in the item's own words is among the numbers of its quotes (numberTokens);
+   - every number in the item's own words is among the numbers of its quotes or linked sources' title/text (numberTokens);
    - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
    The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
 function checkFactCheck(record, text, nestedItems, sources, citedUrls) {
@@ -154,9 +154,14 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls) {
       insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3 && q.length <= 600, `List item ${item}: a quote must be 3 or more words and at most 600 characters: «${quote.slice(0, 60)}»`);
       insist(grounds.some(g => g.includes(q)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
     }
-    const quoteTokens = new Set(quotes.flatMap(q => numberTokens(unifyQuotes(q)).map(t => t.token)));
-    const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(t.token));
-    insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
+    // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
+    // 461a3df0, 27.09: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote).
+    const sourceTexts = urls.flatMap(url => [byUrl.get(url).title, byUrl.get(url).text].filter(t => typeof t === 'string'));
+    // «in half» / «удвічі» (ratio 2) and «половина» (share 1/2) state the same halving; thirds stay apart (65ef7d49).
+    const canon = token => token === 'share:1/2' ? 'ratio:2' : token;
+    const quoteTokens = new Set([...quotes, ...sourceTexts].flatMap(q => numberTokens(unifyQuotes(q)).map(t => canon(t.token))));
+    const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)));
+    insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
     out.push({ item, verdict, sources: urls, quote: quotes, numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
   });
   const unmapped = nestedItems.findIndex((_, i) => !kept.has(i + 1));

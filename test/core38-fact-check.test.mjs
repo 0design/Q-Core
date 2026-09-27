@@ -94,7 +94,7 @@ test("negative examples: the five errors of live run 65ef7d49, each in a form th
     "3 the removed «agreed with the argument» is still in the text": [...withItem(4, live[3], {}), /A removed claim is still in the final text: «погодившись з аргументом/],
     "3 a quote that puts the argument in the court's mouth": [...withItem(4, live[3], { quote: ["the court agreed with the Pentagon that the company's safety restrictions could jeopardize military operations"] }), /List item 4: the quote is not in the text/],
     // 4. Three times less often, not in a third of the cases.
-    "4 «в третині випадків» on «a third as often»": [...withItem(9, live[8], {}), /List item 9 states «третині» \(share:1\/3\), which is not in its quote; numbers must be exactly as in the source/],
+    "4 «в третині випадків» on «a third as often»": [...withItem(9, live[8], {}), /List item 9 states «третині» \(share:1\/3\), which is not in its quote or linked sources; numbers must be exactly as in the source/],
     "4 a number that is not in the source": [...withItem(9, ITEMS[8].replace("з 44% до 3%", "з 44% до 5%"), {}), /states «5» \(n:5\)/],
     "4 a scale that is not in the source": [...withItem(6, ITEMS[5].replace("$11,6 млрд", "$11,6 млн"), {}), /states «11,6 млн» \(n:11600000\)/],
   };
@@ -178,4 +178,16 @@ test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate
   assert.equal(ids[ids.indexOf("approval") - 1], "checks");
   assert.match(DIGEST.steps.find((s) => s.id === "approval").config.anchor, /fact-check verdicts/);
   assert.ok(DIGEST.settings.budgetUsd >= 0.5);
+});
+
+test("live run 461a3df0: a number the linked source title states passes; a half is not a third", () => {
+  const n = ITEMS.findIndex((l) => l.includes(D_NVIDIA)) + 1;
+  assert.ok(n > 0);
+  const quote = { quote: [RUN.sources.find((s) => s.url === D_NVIDIA).text.split(/[.!?]/)[0].trim()] };
+  // «майже на половину» is in the source title («…nearly in half…»), not in the chosen quote: accepted.
+  const half = ITEMS[n - 1].replace(/майже вдвічі|майже удвічі|вдвічі|удвічі/, "майже на половину");
+  if (half !== ITEMS[n - 1]) assert.doesNotThrow(() => check(...withItem(n, half, quote)));
+  // A third is in neither the quote nor the source: refused.
+  const third = ITEMS[n - 1].replace(/\(до 49%\)|до 49%/, "на третину");
+  assert.throws(() => check(...withItem(n, third, quote)), /states «третину» \(share:1\/3\), which is not in its quote or linked sources/);
 });
