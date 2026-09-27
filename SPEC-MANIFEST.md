@@ -559,7 +559,9 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   ні, без…); every match is on word boundaries and never cuts a number («up to 4» is not in «up to 49», «49» is
   not in «49.5») (a word left out silently, added or
   reordered is refused), in the `title` or `text` of one of them as the
-  Core holds it (*the quote is not in the text of its linked sources*); a theme item needs quotes too
+  Core holds it (*the quote is not in the text of its linked sources*). From Core 40 a claim stands on
+  its verbatim quotes (at least one of 3+ words); an extra quote that is not verbatim is set aside and
+  listed as `unmatchedQuotes` for the person who approves, and its numbers do not count; a theme item needs quotes too
   (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
   of its quotes or of its linked sources' title and text (*states «…», which is not in its quote or
   linked sources*): digits with decimal commas or points and thousands separators, scales

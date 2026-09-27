@@ -85,7 +85,7 @@ test("the revised live draft passes: every item has a claim record, verbatim quo
   assert.deepEqual(out.factCheck.claims.find((c) => c.item === 1).sources, [D_OPENAI, V_MUSE], "the link-less theme stands on its cases' links");
   assert.equal(out.factCheck.claims.at(-1).verdict, "removed");
   assert.match(out.factCheck.grounding, /feed-item title and summary/);
-  assert.match(out.limitation, /full articles were not read/);
+  assert.match(out.limitation, /model.s verdict, so the human review still decides/);
 });
 
 test("the five errors of live run 65ef7d49: the records and texts the deterministic layer refuses", () => {

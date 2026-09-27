@@ -174,3 +174,19 @@ test("Digest 0.7.0: the articles step feeds the fact check and the checks; the p
   const words = (s) => new RegExp(s.split(" ").join("\\s+"), "i");
   for (const rule of ["Check each claim against the full article text", "the article, not the feed summary, decides", "vendor-reported benchmarks are not independent results", "«about 160» is «близько 160»", "weren't publicly listed"]) assert.match(fc.instructions, words(rule), rule);
 });
+
+test("live run 3f16062b: an extra quote that is not verbatim is set aside as unmatched when another verbatim quote supports the claim; a claim with no verbatim quote is still refused", async () => {
+  const { runVerifySources } = await import("../src/registry-data-steps.mjs");
+  const URL_ = "https://www.marktechpost.com/julia";
+  const TEXT = "Supersonic Labs releases Julia 1, a 144.3M-parameter open decision model that runs on a CPU and ships under Apache 2.0.";
+  const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**\n\n";
+  const LINE = `- Supersonic Labs випустила Julia 1 на 144,3 млн параметрів, що працює на CPU ([MarkTechPost](${URL_}))`;
+  const config = { draft: "{{steps.factcheck.output}}", factCheck: "{{steps.factcheck.output}}", sources: "{{steps.clusters.output}}", language: "uk", citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: HEADER, nestedList: "3" };
+  const run = (quote) => runVerifySources({ config }, { priorOutputs: { clusters: { sources: [{ url: URL_, title: "t", text: TEXT }] }, factcheck: { text: HEADER + LINE, claims: [{ item: 1, verdict: "supported", sources: [URL_], quote }] } }, priorStepNames: {} });
+  process.env.QF_DIGEST_DATE = "26.09";
+  const out = run(["144.3M-parameter decision model that runs on a CPU", "Julia 1, a 144.3M-parameter open decision model that runs on a CPU"]).output;
+  assert.deepEqual(out.factCheck.claims[0].unmatchedQuotes, ["144.3M-parameter decision model that runs on a CPU"]);
+  assert.deepEqual(out.factCheck.claims[0].quote, ["Julia 1, a 144.3M-parameter open decision model that runs on a CPU"]);
+  assert.throws(() => run(["144.3M-parameter decision model that runs on a CPU"]), /the quote is not in the text of its linked sources/, "the only quote drops «open» silently");
+  assert.throws(() => run(["144.3M-parameter decision model that runs on a CPU", "Julia 1"]), /the quote is not in the text of its linked sources/, "a short verbatim quote alone does not carry the claim");
+});

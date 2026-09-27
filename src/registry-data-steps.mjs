@@ -215,19 +215,20 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     // Grounds: the feed-item title and summary and, when parse-web articles read it, the article text (Core40).
     const groundsOf = url => { const s = byUrl.get(url); return [s.title, s.text, s.articleStatus === 'ok' ? s.articleText : null].filter(t => typeof t === 'string'); };
     const grounds = urls.flatMap(groundsOf).map(normQuote);
-    // Every quote is verbatim; at least one has 3+ words (a short one may name a product, live run f8ee3f9f).
-    insist(quotes.some(quote => (trimQuote(quote).match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3), `List item ${item}: at least one quote must be 3 or more words: «${quotes[0].slice(0, 60)}»`);
-    for (const quote of quotes) {
-      const q = trimQuote(quote);
-      insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && q.length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
-      insist(grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
-    }
+    // A claim stands on its verbatim quotes: at least one of 3+ words (a short one may name a product, live run
+    // f8ee3f9f). Core40 (live run 3f16062b): an extra quote that is not verbatim is set aside and listed as unmatched
+    // for the person who approves, instead of failing a claim another verbatim quote supports; its numbers do not count.
+    for (const quote of quotes) insist(trimQuote(quote).length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
+    const grounded = quote => { const q = trimQuote(quote); return (q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)); };
+    const matchedQuotes = quotes.filter(grounded), unmatchedQuotes = quotes.filter(quote => !grounded(quote));
+    insist(matchedQuotes.length > 0, `List item ${item}: the quote is not in the text of its linked sources: «${(unmatchedQuotes[0] ?? "").slice(0, 80)}»`);
+    insist(matchedQuotes.some(quote => (trimQuote(quote).match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3), matchedQuotes.length < quotes.length ? `List item ${item}: the quote is not in the text of its linked sources: «${(unmatchedQuotes[0] ?? "").slice(0, 80)}»` : `List item ${item}: at least one quote must be 3 or more words: «${quotes[0].slice(0, 60)}»`);
     // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
     // 461a3df0, 27.09: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote).
     const sourceTexts = urls.flatMap(groundsOf);
     // «in half» / «удвічі» (ratio 2) and «половина» (share 1/2) state the same halving; thirds stay apart (65ef7d49).
     const canon = token => token === 'share:1/2' ? 'ratio:2' : token;
-    const quoteTokens = new Set([...quotes, ...sourceTexts].flatMap(q => numberTokens(unifyQuotes(q)).map(t => canon(t.token))));
+    const quoteTokens = new Set([...matchedQuotes, ...sourceTexts].flatMap(q => numberTokens(unifyQuotes(q)).map(t => canon(t.token))));
     const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)));
     insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
     // An approximation or bound stays (Core40, live run 97688656: «160 ІТ-керівників» for «about 160 IT vice presidents»,
@@ -237,12 +238,12 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     const occurrences = (texts, t) => texts.flatMap(q => numberTokens(unifyQuotes(q))).filter(o => canon(o.token) === canon(t.token));
     const articles = urls.map(url => byUrl.get(url)).filter(s => s.articleStatus === 'ok' && typeof s.articleText === 'string').map(s => s.articleText);
     for (const t of numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !hedgedBefore(t.before))) {
-      const inArticles = occurrences(articles, t), inQuotes = occurrences(quotes, t);
+      const inArticles = occurrences(articles, t), inQuotes = occurrences(matchedQuotes, t);
       const where = inArticles.length ? inArticles : inQuotes.length ? inQuotes : occurrences(sourceTexts, t);
       const hedged = where.length > 0 && where.every(o => hedgedBefore(o.before));
       insist(!hedged, `List item ${item} states «${t.surface}» exactly; its source says «${(HEDGE.exec(String(where[0]?.before ?? '').replace(/\s+/g, ' '))?.[0] ?? '').replace(/^[^\p{L}~≈]+/u, '').trim()} ${where[0]?.surface}»: keep the approximation or bound («близько», «майже», «до», «понад»): ${itemText.slice(0, 60)}`);
     }
-    out.push({ item, verdict, sources: urls, quote: quotes, numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
+    out.push({ item, verdict, sources: urls, quote: matchedQuotes, ...(unmatchedQuotes.length ? { unmatchedQuotes } : {}), numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
   });
   const unmapped = nestedItems.findIndex((_, i) => !kept.has(i + 1));
   insist(unmapped < 0, `List item ${unmapped + 1} has no claim record; every item of the final text is fact-checked: ${nestedItems[unmapped]?.text.slice(0, 60)}`);
@@ -873,5 +874,5 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? 'Every item has a claim record: its quotes occur verbatim in the feed-item title or summary of its linked sources and its numbers are among the quoted numbers; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, and the full articles were not read, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? 'Every item has a claim record: at least one of its quotes occurs verbatim in the article, title or summary of its linked sources (other quotes that do not are listed as unmatched), and its numbers occur in its quotes or linked sources with their approximations kept; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }
