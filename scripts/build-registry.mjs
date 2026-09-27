@@ -75,7 +75,8 @@ export function buildRegistry(sourceRoot = root) {
       entry.sha256 = sha(asset(file));
       if (section === 'workflows') {
         if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Workflow value is required');
-        const manifest = loadManifest(resolve(sourceRoot, file));
+        // Registry workflows are reviewed by pull request before publication (Core37 GATE_REQUIRED exempts them).
+        const manifest = loadManifest(resolve(sourceRoot, file), { reviewed: true });
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
         Object.assign(entry, workflowMetadata(manifest));
       }

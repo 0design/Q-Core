@@ -55,7 +55,7 @@ the machine.
 
 | Surface | State |
 | --- | --- |
-| This Core `0.2.0-q-core.36` | Pinned by Registry `2026.09.27-registry.22` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
+| This Core `0.2.0-q-core.37` | Pinned by Registry `2026.09.27-registry.23` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
 | Registry workflows | `digest` 0.5.0 (ten public AI feeds by default, meaning clusters across sources ranked by independent outlets, a nested list of themes, cases and comments without section labels, every item linked, a fixed header checked before approval, HTTP or local-file delivery), `podcast-summary` 0.1.0 (one transcript, no channel header; replaces `podcast-digest`) and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
@@ -294,6 +294,14 @@ An agent never runs this command. Without a terminal, inside an agent session
 `q-core run`, `reply`, `clarify` or `resume` that parked the run, show
 the subject, ask the user to run the command and wait. Details and limits:
 SPEC-MANIFEST.md, `reviewer: human`.
+
+From Core 37 a workflow you create must have a human gate before any step that
+writes files (`workspace-apply`) or sends data (`api-request` POST/PUT/PATCH/DELETE);
+`q-core validate` and `q-core run` refuse it otherwise (`GATE_REQUIRED`). A
+`workspace-read` that no later step uses is refused too (`UNUSED_WORKSPACE_READ`).
+Reviewed Registry workflows installed unchanged with `q-core install` keep their
+published shape. A rejected, dismissed or unanswered question is not approval, and
+an agent never replaces a Q-Core step with its own script.
 
 ## Legacy YAML commands
 

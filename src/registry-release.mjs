@@ -195,7 +195,8 @@ export async function installPinned({
   }
   const bytes = await verify(entry);
   const parsed = parseYaml(bytes.toString("utf8"));
-  validateManifest(parsed);
+  // Bytes match the pinned, reviewed Registry release.
+  validateManifest(parsed, { reviewed: true });
   insist(
     parsed.id === id && parsed.version === version,
     "Manifest identity mismatch",

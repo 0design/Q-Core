@@ -20,14 +20,17 @@ steps:
     kind: api-request
     config:
       url: "https://example.test/x"
+      method: GET
 ${extra}`);
 
 test("the four shipped parity manifests all validate", () => {
   for (const f of ["parity-no-human", "parity-human-gate", "parity-budget-zero", "parity-fan-out"]) {
-    const m = loadManifest(join(MANIFESTS, `${f}.yaml`));
+    const m = loadManifest(join(MANIFESTS, `${f}.yaml`), { reviewed: true });
     assert.equal(m.id, f);
     assert.ok(m.steps.length > 0);
   }
+  // Core37: the gate-free case A is a reviewed shape only; created unreviewed, it is refused.
+  assert.throws(() => loadManifest(join(MANIFESTS, "parity-no-human.yaml")), /GATE_REQUIRED/);
 });
 
 test("config values are all normalised to strings — that is what the engine reads", () => {
