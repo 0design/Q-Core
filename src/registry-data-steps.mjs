@@ -17,6 +17,31 @@ const stringList = (step, field, ctx) => {
 const strip = html => html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<(script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&(?:nbsp|amp|quot|lt|gt);/g, s => ({'&nbsp;':' ', '&amp;':'&', '&quot;':'"', '&lt;':'<', '&gt;':'>'})[s]).replace(/\s+/g, ' ').trim();
 
 /** A deliberately small readable-text extractor, not a browser or a facts verifier. */
+/* Section-label matching (Core37): an item's opening words compared without markup a model may add around a
+   label — HTML tags or escaped tags (&lt;b&gt;), Markdown emphasis, quotes («Кейси»), and leading emoji or bullets (📌). */
+const HTML_ENTITIES = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'", nbsp: ' ', laquo: '«', raquo: '»' };
+function labelHead(text) {
+  let t = String(text);
+  for (let i = 0; i < 2; i++) t = t.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : (HTML_ENTITIES[e.toLowerCase()] ?? m));
+  return t.replace(/<\/?[a-z][^>]*>/gi, '').replace(/[*_~`«»“”„‟"'‘’‹›]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('uk');
+}
+/* Outlet names a link text may use for a host (Core37): every host label except generic prefixes (www, m, blog,
+   news…), generic second levels before a country code (co, com, org… as in bbc.co.uk) and generic or country
+   top-level domains. So blog.google → google, bbc.co.uk → bbc, electrek.co → electrek, theverge.com → theverge. */
+const GENERIC_PREFIX = new Set(['www', 'm', 'mobile', 'amp', 'blog', 'blogs', 'news', 'feeds', 'feed', 'rss', 'en', 'uk', 'us', 'edition', 'go']);
+const GENERIC_SECOND = new Set(['co', 'com', 'org', 'net', 'gov', 'ac', 'edu', 'or', 'ne', 'go', 'gv', 'mil', 'nic']);
+const GENERIC_TLD = new Set(['com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'info', 'biz', 'io', 'ai', 'app', 'dev', 'tech', 'news', 'media', 'blog', 'online', 'site', 'xyz', 'me', 'tv', 'fm', 'so', 'to', 'ly', 'example', 'test', 'invalid', 'localhost']);
+const OUTLET_ALIASES = { t: ['telegram'], x: ['twitter'] };
+function outletNames(host) {
+  const parts = String(host).toLowerCase().split('.').filter(Boolean);
+  if (parts.length < 2) return parts;
+  let end = parts.length;
+  const last = parts[end - 1];
+  if (last.length === 2 || GENERIC_TLD.has(last)) end--;
+  if (end >= 2 && parts[end - 1].length <= 3 && GENERIC_SECOND.has(parts[end - 1]) && last.length === 2) end--;
+  const names = parts.slice(0, end).filter((p, i, all) => !(GENERIC_PREFIX.has(p) && i < all.length - 1));
+  return names.length ? names : [parts[Math.max(0, end - 1)]];
+}
 export function runParseWeb(step, ctx) {
   if (step.config.items != null) return runParseFeedItems(step, ctx);
   const inputs = step.config.source ? [value(step, 'source', ctx)] : Object.values(ctx.priorOutputs).filter(v => v && typeof v.url === 'string' && typeof v.body === 'string');
@@ -354,8 +379,8 @@ export function runVerifySources(step, ctx) {
     const labels = step.config.forbiddenLabels == null ? [] : stringList(step, 'forbiddenLabels', ctx);
     insist(labels.every(label => typeof label === 'string' && label.trim().length > 0), 'forbiddenLabels must be a JSON array of nonempty strings');
     for (const item of nestedItems) {
-      const head = item.text.replace(/[*_]/g, '').trim().toLocaleLowerCase('uk');
-      const label = labels.find(l => { const low = l.toLocaleLowerCase('uk'); return head === low || (head.startsWith(low) && /^[\s]*(?:[:：—–-]|\(|\[|$)/.test(head.slice(low.length))); });
+      const head = labelHead(item.text);
+      const label = labels.find(l => { const low = labelHead(l); return low && head.startsWith(low) && /^[^\p{L}\p{N}]*(?:[:：—–\-.(\[]|$)/u.test(head.slice(low.length)); });
       insist(!label, `A list item opens with the section label «${label}»: ${item.text.slice(0, 60)}`);
     }
     // outletLinkText: every selected-source link in an item names its outlet (the link text contains the site name).
@@ -365,9 +390,11 @@ export function runVerifySources(step, ctx) {
         if (!urls.has(url)) continue;
         let host = '';
         try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { host = ''; }
-        const parts = host.split('.');
-        const site = norm(parts.length > 1 ? parts[parts.length - 2] : host), text = norm(label);
-        insist(site && text && (text.includes(site) || site.includes(text)), `A source link must name its outlet («${label}» for ${host}): ${item.text.slice(0, 60)}`);
+        const text = norm(label), names = outletNames(host).map(norm).filter(Boolean);
+        const words = label.toLocaleLowerCase('en').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+        // A one- or two-letter name (x.com, t.me) must be a whole word of the link text, or a known outlet name.
+        const matches = site => site.length < 3 ? words.includes(site) || (OUTLET_ALIASES[site] ?? []).some(a => text.includes(a)) : text.includes(site) || (text.length >= 3 && site.includes(text));
+        insist(text && names.some(matches), `A source link must name its outlet («${label}» for ${host}): ${item.text.slice(0, 60)}`);
       }
     }
   }

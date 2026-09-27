@@ -106,6 +106,7 @@
     "src/update-check.mjs",
     "src/upstream-adapters.mjs",
     "src/workspace.mjs",
+    "src/workflow-policy.mjs",
     "src/yaml.mjs"
   ],
   "registryRelease": {

@@ -148,6 +148,13 @@
       "line": "the-decoder\\.com/openai-pauses",
       "token": "^//the-decoder\\.com/openai-pauses-its-most-capable-models-after-agents-exploit-loopholes-and-leak-data/$",
       "reason": "a cited third-party article URL (the word loopholes), recorded in the Core34 live Digest transcript"
+    },
+    {
+      "class": "generic-control-flow",
+      "path": "^test/core37\\.test\\.mjs$",
+      "line": "kind: loop",
+      "reason": "Core37 gate test: SPEC 5.7 control-flow kind",
+      "token": "^loop$"
     }
   ]
 }

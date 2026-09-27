@@ -238,8 +238,9 @@ One kind, two modes; they differ only in *who* decides.
 | `mode` | `check` is `RESERVED` — refused | |
 
 **`reviewer: human`** parks the run as `waiting_human`. `q-core approve` continues it,
-`--reject` fails it. **A human gate is optional** — nothing in the format or the
-engine assumes a run must meet a person.
+`--reject` fails it. A human gate is optional for a workflow with no side effect,
+and for a reviewed Registry workflow installed unchanged. **A workflow you create
+needs one before any side effect (Core 37)** — see "Created workflows" below.
 
 **Only a person decides a human gate (Core 35).** `q-core approve` (and `--reject`)
 asks on the controlling terminal: it prints the subject and a fresh one-time code to
@@ -269,6 +270,34 @@ the unsigned run state under `.qf/`). Instructions to
 agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
 Windows consoles are refused. The `q-core agent` / `q-core content` JSON protocols keep
 their documented model: `approval` there is an assertion by the trusted local caller.
+This is an owner decision (27.09.2026), not an oversight: those protocols take
+`approval` from the calling program, so an agent that is the caller can pass it
+itself. Use the manifest route (`q-core run` + `q-core approve`) when only a person
+may decide.
+
+**Created workflows: a human gate before any side effect (Core 37).** A policy
+on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
+stays byte-identical so one hosted validator serves several Cores): `q-core
+validate`, `q-core run`, `q-core approve` and the host refuse a
+workflow in which a step that writes files (`workspace-apply`) or sends data
+(every `api-request` except exactly `method: GET` to a literal `http(s)` URL: any
+other method value, a templated method, no method (`POST`), a `file:` URL or a
+templated URL, which can fall back to the local file sink) has no human
+`approval-gate` earlier on the same path (`GATE_REQUIRED`). A gate
+inside an `if` or `switch` branch guards only that branch; a gate before a
+branching step or a `fan-out` guards everything in it; an agent gate does not
+count. Reviewed Registry workflows keep their published shape: a manifest whose
+`<file>.lock.json` (written by `q-core install` and, from Core 37, `q-core init`)
+names the SHA-256 of these exact bytes is exempt; the Registry build and catalogue
+read the format only. An adapted copy is a
+created workflow. Every workflow is also refused when a `workspace-read` output
+is used by no later step (`UNUSED_WORKSPACE_READ`; a later `llm-call` without
+`input` receives every prior output and counts as a use): Q-Core would read the project
+and do nothing, while the work happens outside the engine. Limits: the check reads
+the manifest only. It cannot see a script an agent runs outside Q-Core, and a
+forged lock file is a deliberate bypass like the ones listed above. The library
+functions (`loadManifest`, `validateManifest`, `createRun`/`driveRun`) check the
+format only; the policy is `loadWorkflow` / `assertWorkflowPolicy`.
 
 **`reviewer: agent`** is a machine check whose verdict is `{pass, reason}`.
 Today that check is an LLM judge; `mode: check` (a real, non-model checker) is
@@ -468,8 +497,15 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   goes back up (rank 1 = most independent outlets). Item text may not open another list, a quote
   or a code fence (it would render deeper than its indentation). `forbiddenLabels` (JSON
   array) refuses an item that opens with a section label (bold or plain, before `:`, `—`,
-  `(` or the end), even with a link. `outletLinkText: "true"` requires every selected-source
-  link in an item to name its outlet (the link text contains the site name of the URL).
+  `(` or the end), even with a link. From Core 37 the comparison ignores markup around
+  the label: HTML and escaped HTML tags (`&lt;b&gt;`), Markdown emphasis, quotes
+  (`«Кейси»`) and leading emoji or bullets (`📌`). `outletLinkText: "true"` requires every
+  selected-source link in an item to name its outlet: the link text contains one of the
+  host's names, i.e. its labels without generic prefixes (`www`, `blog`, `news`…),
+  generic second levels before a country code (`co` in `bbc.co.uk`) and generic or
+  country top-level domains (`blog.google` → Google, `bbc.co.uk` → BBC). A one- or
+  two-letter name (`t.me`, `x.com`) must be a whole word of the link text or a known
+  outlet name (Telegram, Twitter).
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

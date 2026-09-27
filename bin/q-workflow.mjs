@@ -27,7 +27,9 @@ import { copyFileSync, existsSync, readFileSync, readdirSync, statSync, unlinkSy
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadManifest, validateManifest, ManifestError } from "../src/manifest.mjs";
+import { createHash } from "node:crypto";
+import { validateManifest, ManifestError } from "../src/manifest.mjs";
+import { loadWorkflow as loadManifest } from "../src/workflow-policy.mjs";
 import { createRun, driveRun, resumeRun, waitingGate, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
 import { confirmHumanDecision, HumanConfirmationError } from "../src/human-confirmation.mjs";
 import { RunStore } from "../src/state.mjs";
@@ -629,6 +631,13 @@ async function cmdInit(args, flags) {
   if (existsSync(dest)) fail(`${shortPath(dest)} already exists — not overwriting it.`);
   if (remote) writeFileSync(dest, remote.text, "utf8");
   else copyFileSync(join(WORKFLOWS_DIR, basename(entry.file)), dest);
+  /* Core37: record that these bytes are the reviewed Registry workflow, so the copy runs with its
+     published shape. Editing the copy changes its SHA-256 and makes it a created workflow again. */
+  {
+    const copied = readFileSync(dest), doc = parseYaml(copied.toString("utf8"));
+    const version = doc.version == null ? "0" : String(doc.version);
+    writeFileSync(`${dest}.lock.json`, JSON.stringify({ protocolVersion: "qf.registry-lock/v1", source: remote ? remote.url : "q-core init (package snapshot)", id: doc.id, version, resolved: [{ key: `workflows/${doc.id}@${version}`, sha256: createHash("sha256").update(copied).digest("hex") }] }, null, 2) + "\n"); // replaces a stale lock of an earlier, deleted copy
+  }
 
   process.stdout.write(`${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);
   if (remote) {
