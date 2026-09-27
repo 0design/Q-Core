@@ -142,6 +142,15 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
    - every number in the item's own words is among the numbers of its quotes or linked sources' title/text (numberTokens);
    - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
    The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
+/* Substring search on word boundaries: «up to 4» is not found inside «up to 49» (review of Q-Core #31). */
+function wordIndexOf(ground, piece, from = 0) {
+  for (let at = ground.indexOf(piece, from); at >= 0; at = ground.indexOf(piece, at + 1)) {
+    const before = at === 0 ? '' : ground[at - 1], after = ground[at + piece.length] ?? '';
+    if (!/[\p{L}\p{N}]/u.test(before) && !/[\p{L}\p{N}]/u.test(after)) return at;
+  }
+  return -1;
+}
+const NEGATION = /(?<![\p{L}\p{N}])(?:not|no|never|without|none|nor|n't|не|ні|без|ніколи|жодн\p{L}*)(?![\p{L}\p{N}])/iu;
 /* A quote is grounded when it occurs verbatim, or (Core39, live run 58c169c9) when it marks every omission with
    an ellipsis («…» or «...») and each piece between them (2–4 pieces of 2+ words) occurs verbatim in the source, in
    the same order, within one passage (span ≤ twice the quote + 120 characters). A word left out silently (a dropped scope such as «tool-based») is never accepted. */
@@ -150,11 +159,12 @@ function quoteInOrder(quote, ground) {
   if (pieces.length < 2 || pieces.length > 4 || pieces.some(piece => (piece.match(/[\p{L}\p{N}]+/gu) ?? []).length < 2)) return false;
   // The pieces must come from one passage: their span in the source is at most twice the quote plus 120 characters.
   const quoted = pieces.join(' ').length;
-  for (let start = ground.indexOf(pieces[0]); start >= 0; start = ground.indexOf(pieces[0], start + 1)) {
+  for (let start = wordIndexOf(ground, pieces[0]); start >= 0; start = wordIndexOf(ground, pieces[0], start + 1)) {
     let at = start + pieces[0].length, ok = true;
     for (const piece of pieces.slice(1)) {
-      const found = ground.indexOf(piece, at);
-      if (found < 0) { ok = false; break; }
+      const found = wordIndexOf(ground, piece, at);
+      // A left-out part may not carry a negation: «does … reduce» must not stand for «does not reduce».
+      if (found < 0 || NEGATION.test(ground.slice(at, found))) { ok = false; break; }
       at = found + piece.length;
     }
     if (ok && at - start <= quoted * 2 + 120) return true;
@@ -198,7 +208,7 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     for (const quote of quotes) {
       const q = trimQuote(quote);
       insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && q.length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
-      insist(grounds.some(g => g.includes(q) || quoteInOrder(q, g)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
+      insist(grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
     }
     // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
     // 461a3df0, 27.09: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote).
@@ -395,7 +405,9 @@ export function runVerifySources(step, ctx) {
     const list = text.search(/^[-*+] /m);
     insist(list >= 0, 'The draft has no list after the header');
     // Only a header line may be replaced: anything else before the list (a paragraph, a second line) is refused.
-    insist(text.slice(0, list).split(/\r?\n/).filter(line => line.trim()).length <= 1, 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
+    const before = text.slice(0, list).split(/\r?\n/).filter(line => line.trim());
+    // Only a bold header line may stand there (the model's copy of the fixed header); prose is refused, not dropped.
+    insist(before.length === 0 || (before.length === 1 && /^\*\*.+\*\*$/.test(before[0].trim())), 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
     text = requiredPrefix + text.slice(list);
   }
   if (requiredPrefix !== null) insist(text.startsWith(requiredPrefix), 'Draft does not begin with the required literal prefix');

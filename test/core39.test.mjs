@@ -105,3 +105,20 @@ test("bounds: ellipsis pieces from far-apart passages and prose before the list 
   assert.throws(() => run(HEADER + LIST, "SoL-Pi cuts … token usage … by up to … 49 percent … with little change"), /the quote is not in the text/, "more than four pieces");
   assert.throws(() => run(HEADER + "Вступний абзац без посилання.\n\n" + LIST, "SoL-Pi cuts coding agents' token usage"), /nested bullet list only|required literal prefix/, "prose before the list");
 });
+
+test("review of #31: a quote matches on word boundaries (no «up to 4» inside «up to 49»); an omission may not drop a negation; a prose line is not a header", async () => {
+  const { runVerifySources } = await import("../src/registry-data-steps.mjs");
+  const URL_ = "https://the-decoder.com/sol-pi";
+  const TEXT = "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance. The patch does not reduce latency by 30 percent.";
+  const HEADER = "**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋26.09**\n\n";
+  const config = { draft: "{{steps.factcheck.output}}", factCheck: "{{steps.factcheck.output}}", sources: "{{steps.clusters.output}}", language: "uk", citation: "links", forbidLocalLinks: "true", fixedLinks: '["https://t.me/xyiikc","https://QFactory.io"]', requiredPrefix: HEADER, nestedList: "3" };
+  const run = (text, quote) => runVerifySources({ config }, { priorOutputs: { clusters: { sources: [{ url: URL_, title: "t", text: TEXT }] }, factcheck: { text, claims: [{ item: 1, verdict: "supported", sources: [URL_], quote: [quote] }] } }, priorStepNames: {} });
+  process.env.QF_DIGEST_DATE = "26.09";
+  const item = (n) => `- SoL-Pi скорочує використання токенів до ${n}% ([The Decoder](${URL_}))`;
+  assert.doesNotThrow(() => run(HEADER + item(49), "token usage by up to 49 percent"));
+  assert.throws(() => run(HEADER + item(4), "token usage by up to 4"), /the quote is not in the text|not in its quote or linked sources/, "a truncated number");
+  assert.throws(() => run(HEADER + item(4), "SoL-Pi cuts … by up to 4"), /the quote is not in the text|not in its quote or linked sources/, "a truncated number through an ellipsis");
+  assert.throws(() => run(HEADER + item(49), "The patch does … reduce latency by 30 percent"), /the quote is not in the text/, "a dropped negation");
+  assert.throws(() => run("Агенти стали вдвічі дешевшими за 90% випадків.\n\n" + item(49), "token usage by up to 49 percent"), /text before the list/, "a prose line instead of the header");
+  assert.doesNotThrow(() => run("**Будь-яка жирна шапка**\n\n" + item(49), "token usage by up to 49 percent"), "a bold header line is replaced");
+});
