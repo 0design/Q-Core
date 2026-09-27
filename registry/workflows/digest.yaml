@@ -1,8 +1,8 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: many sources to one approved Ukrainian trend digest"
-version: 0.6.1
-description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments): a theme is a short conclusion without links, each case one short sentence with the key fact, linked to its sources. A fact-check step then checks each claim against its linked source (feed-item title and summary), revises or removes unsupported or overstated claims and records a verdict per claim; the checks require a verbatim source quote and the source's numbers for every item. Checks citations and the list shape, stops at an exact human approval of the fact-checked text, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
+version: 0.7.0
+description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments): a theme is a short conclusion without links, each case one short sentence with the key fact, linked to its sources. The articles behind the selected sources are read (static text; an unreachable page falls back to its feed summary), and a fact-check step checks each claim against its linked source's article, revises or removes unsupported or overstated claims and records a verdict per claim; the checks require a verbatim source quote and the source's numbers for every item. Checks citations and the list shape, stops at an exact human approval of the fact-checked text, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
 triggers:
@@ -121,6 +121,16 @@ steps:
       source: "{{steps.unique.output}}"
       clusters: "{{steps.cluster.output}}"
       maxClusters: 8
+  # Core40 (owner decision 27.09): the fact check grounds on the article, not only on the feed summary. One GET per
+  # selected source (public http(s) only), static text, 30000 characters across all articles so the fact-check input
+  # stays under the llm-call input bound; an unreachable page is recorded and falls back to the summary.
+  - id: articles
+    kind: parse-web
+    config:
+      articles: "true"
+      source: "{{steps.clusters.output}}"
+      maxChars: 6000
+      maxTotalChars: 30000
   - id: draft
     kind: llm-call
     config:
@@ -184,8 +194,9 @@ steps:
         Describe only what the item text supports; the articles themselves
         were not read, so do not add numbers, quotes or details beyond it.
         Check each claim against its linked source as you write. Numbers exactly
-        as in the source, with the same meaning («a third as often» is «утричі
-        рідше», not «у третині випадків»). No generalisation beyond the sources:
+        as in the source, with the same meaning («about a third as often» is «приблизно
+        утричі рідше», not «у третині випадків»); keep «about», «nearly», «up to»
+        as «близько», «майже», «до». No generalisation beyond the sources:
         a theme states only what its cases' sources say together, never risks,
         trends, motives or failures that no source names. Who did or decided
         what stays as the source says it (a court ruling is not agreement with
@@ -207,7 +218,7 @@ steps:
       provider: openrouter
       secretSource: keychain
       keyRef: OPENROUTER_API_KEY
-      input: "{{steps.clusters.output.clusters}}"
+      input: "{{steps.articles.output.clusters}}"
       retries: 1
       timeoutSec: 300
       format: json
@@ -219,9 +230,19 @@ steps:
       instructions: |
         You fact-check a Ukrainian digest draft before a person approves it.
         The input is the selected meaning clusters as JSON, each with its
-        sources (url, feed, title, published, text). A source's title and text
-        are the feed item's title and summary only; the article was not read, so
-        a claim is supported only by what that title or summary says.
+        sources (url, feed, title, published, text, articleStatus, articleText).
+        title and text are the feed item's title and summary; articleText is the
+        article itself (static page text, possibly cut) when articleStatus is
+        "ok". Check each claim against the full article text: the article, not
+        the feed summary, decides. When the article is "unavailable", only the
+        title and summary support a claim. Keep from the article its
+        attributions (a company's or vendor's own results stay «за даними
+        компанії»; vendor-reported benchmarks are not independent results), its
+        approximations and bounds («about 160» is «близько 160», «up to» is
+        «до») and its exact scope (links that «weren't publicly listed» are not
+        «у відкритому доступі»; what exactly was paused). When the article
+        contradicts the summary or the draft, follow the article. Quotes may
+        come from the title, the summary or the article text.
         The draft to check, between the markers:
         <<<DRAFT
         {{steps.draft.output.text}}
@@ -237,8 +258,8 @@ steps:
           drop the clause, or the whole item when nothing supported is left.
         Numbers exactly as in the source: every number, amount, percentage,
         ratio («утричі», «удвічі») or share («третина») an item states must be
-        in its quote with the same meaning; «a third as often» is «утричі
-        рідше», not «у третині випадків».
+        in its quote with the same meaning; «about a third as often» is
+        «приблизно утричі рідше», not «у третині випадків».
         No generalisation beyond the sources: a theme item states only what the
         quotes of its cases support together; no risks, trends, motives or
         failures that no source names. A court ruling is not agreement with a
@@ -298,7 +319,8 @@ steps:
       themeMaxWords: "20"
       itemMaxSentences: "1"
       forbiddenPhrases: '{"не зважаючи":"незважаючи","кодувальних агентів":"агентів для програмування","кодувальні агенти":"агенти для програмування","кодувальним агентам":"агентам для програмування"}'
-      sources: "{{steps.clusters.output}}"
+      # The articles output keeps the clusters' ranks (nestedOrder) and adds each source's articleText for the quotes.
+      sources: "{{steps.articles.output}}"
       language: uk
       citation: links
       forbidLocalLinks: "true"

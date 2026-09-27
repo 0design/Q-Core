@@ -37,7 +37,7 @@ const ITEMS = [
   `  - Anthropic заплатить Akamai $11,6 млрд за сім років за хмарні потужності на CPU, а Akamai дає їй частку до 5% акцій ([TechCrunch](${T_AKAMAI}))`,
   `  - Британська Nscale перед IPO у США залучила $3,36 млрд конвертованого фінансування на дата-центри для AI ([TechCrunch](${T_NSCALE}))`,
   `- Microsoft представила Copilot «super app», що об'єднує чат, кодування та агентів в одному інтерфейсі ([The Verge](${V_MS}))`,
-  `- У дослідженні з понад 3000 учасників доступ до AI знизив частку відповідей «не знаю» з 44% до 3%, а правильних відповідей користувачі AI давали втричі рідше ([The Decoder](${D_STUDY}))`,
+  `- У дослідженні з понад 3000 учасників доступ до AI знизив частку відповідей «не знаю» з 44% до 3%, а правильних відповідей користувачі AI давали приблизно втричі рідше ([The Decoder](${D_STUDY}))`,
   `- Система Nvidia SoL-Pi скорочує витрати токенів агентів для програмування майже вдвічі (до 49%) без помітної втрати якості ([The Decoder](${D_NVIDIA}))`,
 ];
 const CLAIMS = [
@@ -64,7 +64,7 @@ const clone = (v) => JSON.parse(JSON.stringify(v));
 const { caseMaxWords, themeMaxWords, itemMaxSentences, ...UNCAPPED } = CHECKS;
 const bare = (line) => line.replace(/\s*\((?:\[[^\]\n]*\]\([^)\s]*\)(?:,\s*)?)+\)/g, "");
 const check = (text, claims = CLAIMS, { config = CHECKS, fact } = {}) =>
-  runVerifySources({ config }, { priorOutputs: { clusters: { sources: RUN.sources }, factcheck: fact ?? { claims, text } }, priorStepNames: {} });
+  runVerifySources({ config }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, factcheck: fact ?? { claims, text } }, priorStepNames: {} });
 // One item of the revised text replaced by its wording in the live draft, with the claim record a model gave for it.
 const withItem = (n, line, patch) => {
   const items = [...ITEMS]; items[n - 1] = line;
@@ -131,7 +131,7 @@ test("negative examples: the claim records must cover the final text exactly", (
   for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
   // The checked (and approved, and delivered) text is the fact-checked text, not the draft before it.
   const draftWired = { ...CHECKS, draft: "{{steps.draft.output}}" };
-  assert.throws(() => runVerifySources({ config: draftWired }, { priorOutputs: { clusters: { sources: RUN.sources }, draft: { text: REVISED.replace("вкладати мільярди", "вкладати сотні мільярдів") }, factcheck: { claims: CLAIMS, text: REVISED } }, priorStepNames: {} }), /The checked draft must be the fact-checked text/);
+  assert.throws(() => runVerifySources({ config: draftWired }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, draft: { text: REVISED.replace("вкладати мільярди", "вкладати сотні мільярдів") }, factcheck: { claims: CLAIMS, text: REVISED } }, priorStepNames: {} }), /The checked draft must be the fact-checked text/);
   assert.throws(() => check(REVISED, CLAIMS, { fact: { text: REVISED } }), /factCheck must reference a fact-check output/);
   const { nestedList, nestedOrder, forbiddenLabels, outletLinkText, citation, compactLinks, caseMaxWords: _c, themeMaxWords: _t, itemMaxSentences: _s, ...flat } = CHECKS;
   assert.throws(() => check(REVISED, CLAIMS, { config: flat }), /factCheck requires nestedList and citation: links/);
@@ -141,7 +141,7 @@ test("negative examples: the claim records must cover the final text exactly", (
 test("without the fact check the live draft passes the 0.5 format checks: the fact check is what refuses it", () => {
   const { factCheck, forbiddenPhrases, draft, compactLinks, caseMaxWords, themeMaxWords, itemMaxSentences, ...format } = CHECKS;
   const live = RUN.draft;
-  assert.doesNotThrow(() => runVerifySources({ config: { ...format, draft: "{{steps.draft.output}}" } }, { priorOutputs: { clusters: { sources: RUN.sources }, draft: { text: live } }, priorStepNames: {} }), "format-only checks let the five errors through");
+  assert.doesNotThrow(() => runVerifySources({ config: { ...format, draft: "{{steps.draft.output}}" } }, { priorOutputs: { clusters: { sources: RUN.sources }, articles: { sources: RUN.sources }, draft: { text: live } }, priorStepNames: {} }), "format-only checks let the five errors through");
 });
 
 test("numberTokens: digits with scales and decimal commas, ratios, shares and counts in Ukrainian and English", () => {
@@ -163,7 +163,7 @@ test("numberTokens: digits with scales and decimal commas, ratios, shares and co
 });
 
 test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate binds the checked text", () => {
-  assert.equal(DIGEST.version, "0.6.1");
+  assert.ok(["0.6.1", "0.7.0"].includes(DIGEST.version));
   const ids = DIGEST.steps.map((s) => s.id);
   assert.deepEqual(ids.slice(ids.indexOf("draft")), ["draft", "factcheck", "checks", "approval", "delivery"]);
   const draft = DIGEST.steps.find((s) => s.id === "draft").config;
@@ -173,7 +173,7 @@ test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate
   assert.equal(fc.format, "json");
   assert.equal(fc.model, undefined, "the same model as the draft: the workflow model");
   assert.equal(draft.model, undefined);
-  assert.equal(fc.input, "{{steps.clusters.output.clusters}}");
+  assert.equal(fc.input, "{{steps.articles.output.clusters}}", "Digest 0.7: the fact check reads the articles");
   assert.ok(Number(draft.maxTokens) >= 8000, "run 65ef7d49 drafted 5506 tokens against a 6000 bound");
   assert.match(fc.instructions, /\{\{steps\.draft\.output\.text\}\}/);
   assert.ok(Number(fc.maxTokens) >= 12000, fc.maxTokens);

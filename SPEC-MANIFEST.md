@@ -492,6 +492,19 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   use `{{env.NAME}}`) keep a publication window and drop undated items;
   `maxItemsPerSource` 1..50 (default 10), `itemChars` 100..2000 (default 400), at
   most 100 items. A page that is not a feed, or an empty window, fails.
+  (Core 40) `articles: "true"` with `source` referencing selected sources (`{sources}` or a
+  `deduplicate clusters` output) reads the article behind each source URL: at most 20 distinct URLs,
+  one GET each (20 s, 1 retry on a network error, 429 or 5xx, at most 3 redirects, 1.5 MB per page),
+  http(s) only, no credentials in the URL and never a local or private-network host (localhost,
+  `.local`, loopback, RFC 1918, link-local, CGNAT, IPv6 loopback/ULA/link-local; checked on every
+  redirect hop by the literal host; a public name that resolves to a private address is not detected).
+  The text is the page's longest `<article>`, else `<main>`, else the page, without scripts, navigation,
+  headers, footers, asides, forms and figures; no JavaScript runs. `maxChars` (500..10000, default
+  4000) caps one article; `maxTotalChars` (1000..200000) shares one budget equally among the readable
+  articles. The output is the input with each source (and each cluster's sources, ranks kept) given
+  `articleStatus` (`ok`|`unavailable`), `articleText` (or null), `articleTruncated`, `articleError`,
+  plus `articles: {read, unavailable, charsPerArticle}`. An unreachable page, a non-text page or a
+  page without static text is recorded as unavailable; when none is readable the step fails.
 - `deduplicate`: `source` references `{sources:[{url,text,...}]}`. Exact URL/text
   duplicates are removed; `sourceHash` identifies the selected set. With `clusters`
   (a model step's `{clusters:[{topic, summary, sources}]}`), sources are named by
@@ -571,6 +584,15 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   in the source, removed wording left). When the model records such wording as `supported` with a
   genuine quote (The Verge: «pause training of its most powerful models»), it passes: errors 1-3
   rest on the fact-check model's verdict and the human gate.
+  (Core 40) With sources from `parse-web articles`, quotes and numbers may also come from each linked
+  source's `articleText` (when `articleStatus` is `ok`), and an approximation or bound stays: a number
+  the item states bare is refused when every place that states it — the linked articles when they state
+  it, else the quotes, else the title and summary — has «about», «around», «nearly», «up to», «more
+  than», «близько», «майже», «до», «понад»… right before it (*states «160» exactly; its source says
+  «about 160»*). Ukrainian collective numerals (двоє…десятеро) are numbers. The output `grounding` says
+  whether articles were read. Still model judgement: scope and attribution in words (links that
+  «weren't publicly listed» vs «у відкритому доступі», vendor-reported results, what exactly was paused),
+  and a number the article states both with and without «about».
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
 - (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
