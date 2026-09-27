@@ -1018,7 +1018,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "28e7699786ac44f76bee9723433eca882954d22ae0e9b9a155d0852ed7b6a82a",
+      "sha256": "8db1264cf3ee1712ec4b3f6362b7dd8b2ea3fccf74b9c0000875c55e567b7d29",
       "steps": 19,
       "kinds": [
         "fetch",
@@ -2179,9 +2179,9 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.38.tgz",
-    "artifactSha256": "aaeafc9a8fde48bf5e9b9aa9df772604f09c023a236836099f70690a31af5995",
-    "integrity": "sha512-lPd2ntGyDPg+QFKLgRPPLcxV348y3BJLmcD/3cSxsl0pD+X5l3xN0zMrnnsrqkFdzxCse3l2fqyCeWQRhb37pg==",
-    "schemaSha256": "c76ae56217fd6edcbcbe252ab40b30af342416231e6d4a05db394359e8874dff",
+    "artifactSha256": "84736ee72f6ff3e44b9cdc0225d0913fc490f3fa6d929d9b98cf776cc4fdde27",
+    "integrity": "sha512-T2Uez09tpvpcXlgPUqZAzG7Nj8pHWkpd1WjmIBIZM7V8uXCA8z2EAJmZHBayTgd6HuhrxCE8n3aF53iC7CSj2w==",
+    "schemaSha256": "ce30743a86eb9736049a5ba9a74aff5f4b8cdb392506867439d9558ffc19ce0e",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
     "source": "Core.38 successor of Core.37: the q-core agent (SDD) and q-core content JSON protocols refuse an approval field from the caller (HUMAN_APPROVAL_REQUIRED); a person decides with q-core agent approve / q-core content approve, which show the subject and a one-time code on the controlling terminal like q-core approve, and the caller resumes without approval. verify-sources factCheck binds a per-claim fact-check record (verdict, verbatim source quote, numbers) to every item of the final digest; Digest 0.6.0 adds a fact-check step before the human gate. The format validator, YAML parser and request schema are byte-identical to Core.37; the created-workflow policy of Core.37 is unchanged; SPEC-MANIFEST documents both",
@@ -2976,5 +2976,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "36e3d0bed3a917b5a55014360d3308a4ac656a1ccdb6f29cbc3764cfa27f274a"
+  "releaseSha256": "e36a57896874ca2a91fd2ab9f5806ed9a9b99c27facc3a9efcd40c9800634749"
 }
