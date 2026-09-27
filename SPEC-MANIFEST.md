@@ -546,6 +546,18 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   whether a verbatim quote supports the wording remains the model's verdict for the human to review.
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
+- (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
+  theme) carries no links at all (*A list item with sub-items carries no links under compactLinks; its
+  cases link the sources*); every item without sub-items still links a selected source under
+  `citation: links`. A link-less parent is ranked by `nestedOrder` through its sub-items' clusters, and
+  its `factCheck` record may name only sources its sub-items link. `caseMaxWords` and `themeMaxWords`
+  (1..500) cap the words of an item, counted without link markup and the «([Outlet](url), …)»
+  parentheses: a theme is a top-level item with sub-items, every other item (a case, a comment, a
+  stand-alone top-level item) is a case (*A case has N words; at most M*). `itemMaxSentences` (1..500)
+  caps sentences per item; a sentence ends at `.` `!` `?` `…` before a space and an uppercase letter or
+  an opening quote, not inside a decimal or after an abbreviation such as «млн.» or «U.S.». Digest 0.6
+  sets compact links, 1 sentence, 32 words per case and 20 per theme by the owner's review of 27.09;
+  Digest 0.4.1–0.5 had no case length.
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

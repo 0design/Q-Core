@@ -8,7 +8,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadManifest } from "../src/manifest.mjs";
-import { runVerifySources, numberTokens } from "../src/registry-data-steps.mjs";
+import { runVerifySources, numberTokens, nestedWords, nestedSentences } from "../src/registry-data-steps.mjs";
 
 process.env.QF_DIGEST_DATE = "26.09";
 const RUN = JSON.parse(readFileSync(resolve("test/fixtures/digest-run-65ef7d49.json"), "utf8"));
@@ -24,37 +24,43 @@ const HEADER = "**Штучно-інтелектуальний дайджест �
 const DIGEST = loadManifest(resolve("registry/workflows/digest.yaml"));
 const CHECKS = DIGEST.steps.find((s) => s.id === "checks").config;
 
-// The live draft corrected the way the independent fact-check asked, one line per list item.
+// The live draft corrected the way the independent fact-check asked, in the Digest 0.6 form (owner review 27.09):
+// compact links (a theme with cases carries none, its cases link the sources) and short items (one sentence each).
 const ITEMS = [
-  `- Інциденти з агентами змусили OpenAI призупинити найпотужніші моделі, а Muse від Meta показувала користувачам свою файлову систему ([The Decoder](${D_OPENAI}), [The Verge](${V_MUSE}))`,
-  `  - OpenAI призупинила навчання, тестування та інференс із доступом до інструментів для своїх найпотужніших моделей: одна модель через DNS-лазівку вийшла в інтернет, інша навмисно злила GitHub-токен і двічі проігнорувала прямі вказівки дослідника ([The Verge](${V_OPENAI}), [The Decoder](${D_OPENAI}))`,
-  `  - Muse від Meta показувала допитливим користувачам свою файлову систему, а Meta зробила її ще доступнішою ([The Verge](${V_MUSE}))`,
-  `- Апеляційний суд дозволив Пентагону визнати Anthropic ризиком для ланцюга поставок і відсторонити її від військових контрактів; за словами Anthropic, саме це визнання вже коштувало їй мільярди ([Wired](${W_COURT}), [The Decoder](${D_COURT}))`,
-  `- AI-компанії продовжують вкладати мільярди в хмарні потужності й дата-центри ([TechCrunch](${T_AKAMAI}), [TechCrunch](${T_NSCALE}))`,
-  `  - Anthropic зобов'язалася сплатити Akamai $11,6 млрд протягом семи років за хмарні потужності на CPU з можливим зростанням приблизно до $20 млрд, а Akamai дає Anthropic потенційну частку до 5% своїх акцій ([TechCrunch](${T_AKAMAI}))`,
-  `  - Британська Nscale перед IPO у США залучила $3,36 млрд конвертованого фінансування від Third Point, Nvidia та інших на розбудову дата-центрів під AI ([TechCrunch](${T_NSCALE}))`,
-  `- Microsoft офіційно представила новий Copilot «super app», що об'єднує чат, кодування та агентів в одному інтерфейсі, а асистента Scout перейменувала на Autopilot; компанія вважає, що він буде таким же впливовим, як Office ([The Verge](${V_MS}))`,
-  `- Дослідження за участю понад 3000 людей показало, що сам доступ до AI майже знищує готовність визнавати незнання: в одному експерименті частка відповідей «не знаю» впала з 44% до 3%, хоча AI майже завжди помилявся, а користувачі AI відповідали правильно втричі рідше за тих, хто його не мав ([The Decoder](${D_STUDY}))`,
-  `- Система Nvidia SoL-Pi оптимізує проміжний шар між моделлю та середовищем, скорочуючи витрати токенів агентів для програмування майже вдвічі (до 49%) без помітної втрати якості; для її розробки дослідницький агент перевірив 152 підходи у понад 3000 прогонах ([The Decoder](${D_NVIDIA}))`,
+  `- OpenAI призупинила найпотужніші моделі після інцидентів з агентами, а Muse від Meta відкрила користувачам свою файлову систему`,
+  `  - OpenAI призупинила навчання, оцінку та інференс з доступом до інструментів для найпотужніших моделей, після того як агенти обійшли ізоляцію й злили GitHub-токен ([The Verge](${V_OPENAI}), [The Decoder](${D_OPENAI}))`,
+  `  - Meta зробила файлову систему Muse ще доступнішою для користувачів ([The Verge](${V_MUSE}))`,
+  `- Апеляційний суд дозволив Пентагону визнати Anthropic ризиком для ланцюга поставок, і, за словами компанії, це вже коштувало їй мільярди ([Wired](${W_COURT}), [The Decoder](${D_COURT}))`,
+  `- AI-компанії продовжують вкладати мільярди в хмарні потужності й дата-центри`,
+  `  - Anthropic заплатить Akamai $11,6 млрд за сім років за хмарні потужності на CPU, а Akamai дає їй частку до 5% акцій ([TechCrunch](${T_AKAMAI}))`,
+  `  - Британська Nscale перед IPO у США залучила $3,36 млрд конвертованого фінансування на дата-центри для AI ([TechCrunch](${T_NSCALE}))`,
+  `- Microsoft представила Copilot «super app», що об'єднує чат, кодування та агентів в одному інтерфейсі ([The Verge](${V_MS}))`,
+  `- У дослідженні з понад 3000 учасників доступ до AI знизив частку відповідей «не знаю» з 44% до 3%, а правильних відповідей користувачі AI давали втричі рідше ([The Decoder](${D_STUDY}))`,
+  `- Система Nvidia SoL-Pi скорочує витрати токенів агентів для програмування майже вдвічі (до 49%) без помітної втрати якості ([The Decoder](${D_NVIDIA}))`,
 ];
 const CLAIMS = [
+  // A theme without links is checked against the sources its cases link.
   { item: 1, verdict: "revised", sources: [D_OPENAI, V_MUSE], quote: ['OpenAI pauses its "most capable models" after agents exploit loopholes and leak data', "Meta's Muse would expose its filesystem to curious users"], reason: "The draft generalised that frontier models escape their limits; the sources report two incidents, and Meta's filesystem exposure is not an escape." },
-  { item: 2, verdict: "revised", sources: [D_OPENAI], quote: ["OpenAI has paused tool-based training, evaluation, and inference for its most capable models", "another deliberately leaked a GitHub token and twice ignored a researcher's direct instructions"], reason: "Only tool-based training, evaluation and inference was paused." },
-  { item: 3, verdict: "revised", sources: [V_MUSE], quote: ["Meta makes the Muse filesystem even more accessible", "Meta's Muse would expose its filesystem to curious users"], reason: "Meta treats the exposure as intended; not a slip under the hood." },
+  { item: 2, verdict: "revised", sources: [D_OPENAI], quote: ["OpenAI has paused tool-based training, evaluation, and inference for its most capable models", "One research model exploited a DNS loophole to reach the internet from a locked-down environment, while another deliberately leaked a GitHub token"], reason: "Only tool-based training, evaluation and inference was paused." },
+  { item: 3, verdict: "revised", sources: [V_MUSE], quote: ["Meta makes the Muse filesystem even more accessible"], reason: "Meta treats the exposure as intended; not a slip under the hood." },
   { item: 4, verdict: "revised", sources: [D_COURT], quote: ["A federal appeals court has upheld the Pentagon's decision to bar Anthropic from military contracts", "Anthropic says the designation has already cost it billions"], reason: "The court did not adopt the Pentagon's argument; the cost is the designation's." },
   { verdict: "removed", text: "погодившись з аргументом Міноборони, що безпекові обмеження Anthropic можуть загрожувати операціям", reason: "The argument is Hegseth's; the source does not say the court agreed with it." },
   { item: 5, verdict: "revised", sources: [T_AKAMAI, T_NSCALE], quote: ["Anthropic has committed $11.6 billion over seven years to Akamai's cloud infrastructure", "Nscale secures $3.36B in convertible financing"], reason: "Regulatory risks and compute costs appear in no source." },
   { verdict: "removed", text: "не зважаючи на регуляторні ризики та зростання витрат на обчислення", reason: "No source mentions regulatory risks or rising compute costs." },
-  { item: 6, verdict: "supported", sources: [T_AKAMAI], quote: ["Anthropic has committed $11.6 billion over seven years to Akamai's cloud infrastructure, a bet on CPUs that could grow to about $20 billion, and in an unusual arrangement, Akamai is giving Anthropic a potential stake of up to 5% of its stock"] },
-  { item: 7, verdict: "supported", sources: [T_NSCALE], quote: ["Ahead of US IPO, British AI neocloud Nscale secures $3.36B in convertible financing", "The funding, which comes from Third Point, Nvidia, and others, will fuel the company's massive AI data center buildout"] },
-  { item: 8, verdict: "supported", sources: [V_MS], quote: ["Microsoft is officially unveiling it today", "bundles three AI capabilities into a single interface of chat, coding, and agents", "rebranding Scout, the AI personal assistant it unveiled at Build earlier this year, as Autopilot", "Microsoft thinks its new Copilot ‘super app’ will be as influential as Office"] },
-  { item: 9, verdict: "revised", sources: [D_STUDY], quote: ["A study with more than 3,000 participants shows that just having access to AI answers nearly eliminated people's willingness to say \"I don't know.\"", "it dropped from 44 to 3 percent, even though the AI was almost always wrong", "were correct only about a third as often as those without it"], reason: "Three times less often, not in a third of the cases." },
-  { item: 10, verdict: "revised", sources: [D_NVIDIA], quote: ["Nvidia's SoL-Pi system cuts coding agent token usage nearly in half", "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance", "A research agent tested 152 approaches across more than 3,000 runs"], reason: "«кодувальних агентів» is a calque." },
+  { item: 6, verdict: "supported", sources: [T_AKAMAI], quote: ["Anthropic has committed $11.6 billion over seven years to Akamai's cloud infrastructure, a bet on CPUs", "Akamai is giving Anthropic a potential stake of up to 5% of its stock"] },
+  { item: 7, verdict: "supported", sources: [T_NSCALE], quote: ["Ahead of US IPO, British AI neocloud Nscale secures $3.36B in convertible financing", "will fuel the company's massive AI data center buildout"] },
+  { item: 8, verdict: "supported", sources: [V_MS], quote: ["Microsoft is officially unveiling it today", "bundles three AI capabilities into a single interface of chat, coding, and agents"] },
+  { item: 9, verdict: "revised", sources: [D_STUDY], quote: ["A study with more than 3,000 participants shows that just having access to AI answers nearly eliminated people's willingness to say \"I don't know.\"", "it dropped from 44 to 3 percent", "were correct only about a third as often as those without it"], reason: "Three times less often, not in a third of the cases." },
+  { item: 10, verdict: "revised", sources: [D_NVIDIA], quote: ["Nvidia's SoL-Pi system cuts coding agent token usage nearly in half", "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance"], reason: "«кодувальних агентів» is a calque; the count of runs is a secondary detail." },
 ];
 const textOf = (items) => `${HEADER}${items.join("\n")}\n`;
 const REVISED = textOf(ITEMS);
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
+// The fact-check negatives substitute the live draft's long wording, so they run without the length caps (which
+// have their own tests below); a live theme's links are dropped because under compactLinks a theme carries none.
+const { caseMaxWords, themeMaxWords, itemMaxSentences, ...UNCAPPED } = CHECKS;
+const bare = (line) => line.replace(/\s*\((?:\[[^\]\n]*\]\([^)\s]*\)(?:,\s*)?)+\)/g, "");
 const check = (text, claims = CLAIMS, { config = CHECKS, fact } = {}) =>
   runVerifySources({ config }, { priorOutputs: { clusters: { sources: RUN.sources }, factcheck: fact ?? { claims, text } }, priorStepNames: {} });
 // One item of the revised text replaced by its wording in the live draft, with the claim record a model gave for it.
@@ -67,12 +73,14 @@ const withItem = (n, line, patch) => {
 test("the revised live draft passes: every item has a claim record, verbatim quotes, the source's numbers; verdicts are in the output", () => {
   const out = check(REVISED).output;
   assert.ok(out.checks.includes("fact-checked-claims") && out.checks.includes("no-forbidden-phrases"), out.checks.join());
+  for (const added of ["compact-links", "nested-item-word-limits", "nested-item-sentences"]) assert.ok(out.checks.includes(added), added);
   for (const kept of ["nested-list-depth", "nested-order-by-cluster", "no-section-labels", "outlet-link-text", "every-thesis-cites-a-selected-source"]) assert.ok(out.checks.includes(kept), kept);
   assert.equal(out.text, REVISED);
   assert.deepEqual([out.factCheck.supported, out.factCheck.revised, out.factCheck.removed], [3, 7, 2]);
   assert.equal(out.factCheck.claims.length, 12);
   assert.deepEqual(out.factCheck.claims.find((c) => c.item === 9).numbers.sort(), ["n:3", "n:3000", "n:44", "ratio:3"]);
-  assert.deepEqual(out.factCheck.claims.find((c) => c.item === 6).numbers, ["n:11600000000", "n:20000000000", "n:5"]);
+  assert.deepEqual(out.factCheck.claims.find((c) => c.item === 6).numbers, ["n:11600000000", "n:5"]);
+  assert.deepEqual(out.factCheck.claims.find((c) => c.item === 1).sources, [D_OPENAI, V_MUSE], "the link-less theme stands on its cases' links");
   assert.equal(out.factCheck.claims.at(-1).verdict, "removed");
   assert.match(out.factCheck.grounding, /feed-item title and summary/);
   assert.match(out.limitation, /full articles were not read/);
@@ -83,10 +91,10 @@ test("negative examples: the five errors of live run 65ef7d49, each in a form th
   assert.equal(live.length, 10);
   const cases = {
     // 1. Theme generalisations beyond the sources.
-    "1a theme: models escape their limits, with no supporting quote": [...withItem(1, live[0], { sources: [V_OPENAI, D_OPENAI], quote: [] }), /List item 1 has no quote from its linked sources; every claim, a theme's generalisation included/],
-    "1a theme kept although the fact check found it overstated": [...withItem(1, live[0], { sources: [V_OPENAI, D_OPENAI], verdict: "overstated" }), /verdict «overstated»; a claim is supported, revised .* or removed/],
-    "1b regulatory risks appear in no source": [...withItem(5, live[4], { quote: ["despite regulatory risks and rising compute costs"] }), /List item 5: the quote is not in the text of its linked sources: «despite regulatory risks/],
-    "1b the removed generalisation is still in the text": [...withItem(5, live[4], {}), /A removed claim is still in the final text: «не зважаючи на регуляторні ризики/],
+    "1a theme: models escape their limits, with no supporting quote": [...withItem(1, bare(live[0]), { sources: [V_OPENAI, D_OPENAI], quote: [] }), /List item 1 has no quote from its linked sources; every claim, a theme's generalisation included/],
+    "1a theme kept although the fact check found it overstated": [...withItem(1, bare(live[0]), { sources: [V_OPENAI, D_OPENAI], verdict: "overstated" }), /verdict «overstated»; a claim is supported, revised .* or removed/],
+    "1b regulatory risks appear in no source": [...withItem(5, bare(live[4]), { quote: ["despite regulatory risks and rising compute costs"] }), /List item 5: the quote is not in the text of its linked sources: «despite regulatory risks/],
+    "1b the removed generalisation is still in the text": [...withItem(5, bare(live[4]), {}), /A removed claim is still in the final text: «не зважаючи на регуляторні ризики/],
     // 2. OpenAI paused only its models with tool access.
     "2 a quote that drops «tool-based»": [...withItem(2, live[1], { quote: ["OpenAI has paused training, evaluation, and inference for its most capable models"] }), /List item 2: the quote is not in the text of its linked sources/],
     // 3. The court did not agree with the Pentagon's argument; the cost is the designation's.
@@ -98,11 +106,11 @@ test("negative examples: the five errors of live run 65ef7d49, each in a form th
     "4 a number that is not in the source": [...withItem(9, ITEMS[8].replace("з 44% до 3%", "з 44% до 5%"), {}), /states «5» \(n:5\)/],
     "4 a scale that is not in the source": [...withItem(6, ITEMS[5].replace("$11,6 млрд", "$11,6 млн"), {}), /states «11,6 млн» \(n:11600000\)/],
   };
-  for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
+  for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims, { config: UNCAPPED }), error, name);
   // 5. Language: not deterministic in general (the fact-check prompt asks for natural Ukrainian); the two known
   // errors are refused by the Digest's forbiddenPhrases.
   assert.throws(() => check(...withItem(5, ITEMS[4].replace("вкладати мільярди", "вкладати мільярди, не зважаючи на витрати"), {})), /uses «не зважаючи»; write «незважаючи»/);
-  assert.throws(() => check(...withItem(10, live[9], {})), /uses «кодувальних агентів»; write «агентів для програмування»/);
+  assert.throws(() => check(...withItem(10, live[9], {}), { config: UNCAPPED }), /uses «кодувальних агентів»; write «агентів для програмування»/);
 });
 
 test("negative examples: the claim records must cover the final text exactly", () => {
@@ -121,15 +129,15 @@ test("negative examples: the claim records must cover the final text exactly", (
   for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
   // The checked (and approved, and delivered) text is the fact-checked text, not the draft before it.
   const draftWired = { ...CHECKS, draft: "{{steps.draft.output}}" };
-  assert.throws(() => runVerifySources({ config: draftWired }, { priorOutputs: { clusters: { sources: RUN.sources }, draft: { text: RUN.draft }, factcheck: { claims: CLAIMS, text: REVISED } }, priorStepNames: {} }), /The checked draft must be the fact-checked text/);
+  assert.throws(() => runVerifySources({ config: draftWired }, { priorOutputs: { clusters: { sources: RUN.sources }, draft: { text: REVISED.replace("вкладати мільярди", "вкладати сотні мільярдів") }, factcheck: { claims: CLAIMS, text: REVISED } }, priorStepNames: {} }), /The checked draft must be the fact-checked text/);
   assert.throws(() => check(REVISED, CLAIMS, { fact: { text: REVISED } }), /factCheck must reference a fact-check output/);
-  const { nestedList, nestedOrder, forbiddenLabels, outletLinkText, citation, ...flat } = CHECKS;
+  const { nestedList, nestedOrder, forbiddenLabels, outletLinkText, citation, compactLinks, caseMaxWords: _c, themeMaxWords: _t, itemMaxSentences: _s, ...flat } = CHECKS;
   assert.throws(() => check(REVISED, CLAIMS, { config: flat }), /factCheck requires nestedList and citation: links/);
   assert.throws(() => check(REVISED, CLAIMS, { config: { ...CHECKS, forbiddenPhrases: '["не зважаючи"]' } }), /forbiddenPhrases must be a JSON object/);
 });
 
-test("without the fact check the live draft passes the format checks: the fact check is what refuses it", () => {
-  const { factCheck, forbiddenPhrases, draft, ...format } = CHECKS;
+test("without the fact check the live draft passes the 0.5 format checks: the fact check is what refuses it", () => {
+  const { factCheck, forbiddenPhrases, draft, compactLinks, caseMaxWords, themeMaxWords, itemMaxSentences, ...format } = CHECKS;
   const live = RUN.draft;
   assert.doesNotThrow(() => runVerifySources({ config: { ...format, draft: "{{steps.draft.output}}" } }, { priorOutputs: { clusters: { sources: RUN.sources }, draft: { text: live } }, priorStepNames: {} }), "format-only checks let the five errors through");
 });
@@ -190,4 +198,63 @@ test("live run 461a3df0: a number the linked source title states passes; a half 
   // A third is in neither the quote nor the source: refused.
   const third = ITEMS[n - 1].replace(/\(до 49%\)|до 49%/, "на третину");
   assert.throws(() => check(...withItem(n, third, quote)), /states «третину» \(share:1\/3\), which is not in its quote or linked sources/);
+});
+
+test("compactLinks: a theme with cases carries no links, every other item does; a link-less theme is ranked and fact-checked by its cases", () => {
+  const items = (patch) => { const list = [...ITEMS]; for (const [n, line] of Object.entries(patch)) list[n - 1] = line; return textOf(list); };
+  const linked = `${ITEMS[0]} ([The Decoder](${D_OPENAI}))`;
+  const cases = {
+    "a theme with links": [items({ 1: linked }), CLAIMS, /A list item with sub-items carries no links under compactLinks; its cases link the sources/],
+    "a theme with a bare URL": [items({ 5: `${ITEMS[4]} ${T_AKAMAI}` }), CLAIMS, /carries no links under compactLinks/],
+    "a case without links": [items({ 3: bare(ITEMS[2]) }), CLAIMS, /Every thesis needs a link to a selected source; uncited: Meta зробила/],
+    "a stand-alone top-level item without links": [items({ 8: bare(ITEMS[7]) }), CLAIMS, /Every thesis needs a link to a selected source; uncited: Microsoft/],
+    "a theme's claim record cites a URL none of its cases link": [REVISED, clone(CLAIMS).map((c) => (c.item === 1 ? { ...c, sources: [D_OPENAI, T_MUSE] } : c)), /item 1\) was checked against .*meta-opens-early-access.*which the item does not link as a selected source \(a theme without links stands on the links of its sub-items\)/],
+  };
+  for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
+  // Ranking: the link-less cloud theme holds clusters 4 and 5, so it may not come before the court item (cluster 2).
+  const swapped = [ITEMS[0], ITEMS[1], ITEMS[2], ITEMS[4], ITEMS[5], ITEMS[6], ITEMS[3], ...ITEMS.slice(7)];
+  assert.throws(() => check(textOf(swapped), CLAIMS, { config: { ...CHECKS, factCheck: undefined, draft: "{{steps.factcheck.output}}" } }), /ordered by weight \(cluster rank 2 comes after 4\)/);
+  // Without compactLinks (0.5 behaviour) the link-less theme is an uncited thesis.
+  assert.throws(() => check(REVISED, CLAIMS, { config: { ...CHECKS, compactLinks: undefined } }), /Every thesis needs a link to a selected source; uncited: OpenAI призупинила найпотужніші/);
+  assert.throws(() => check(REVISED, CLAIMS, { config: { ...CHECKS, compactLinks: "yes" } }), /compactLinks must be "true" or "false"/);
+  assert.throws(() => runVerifySources({ config: { draft: "{{steps.d.output}}", sources: "{{steps.c.output}}", compactLinks: "true" } }, { priorOutputs: { c: { sources: RUN.sources }, d: { text: `Текст і [The Verge](${V_MS})` } }, priorStepNames: {} }), /requires nestedList/);
+});
+
+test("short items: one sentence each, at most 32 words for a case and 20 for a theme, links not counted", () => {
+  const items = (n, line) => { const list = [...ITEMS]; list[n - 1] = line; return textOf(list); };
+  const at = (n) => ITEMS[n - 1].replace(/ \(\[[^\n]*$/, ""), links = (n) => ITEMS[n - 1].slice(at(n).length);
+  const cases = {
+    "a second sentence in a case": [items(10, `${at(10)}. Агент перевірив 152 підходи у понад 3000 прогонах${links(10)}`), /A list item has 2 sentences; at most 1, the key fact only/],
+    "a trailing comment sentence": [items(8, `${at(8)}! «Це новий Office», вважають у компанії${links(8)}`), /has 2 sentences/],
+    "a second sentence in a theme": [items(5, `${ITEMS[4]}. Інвестори не зупиняються`), /has 2 sentences/],
+    "a case over 32 words": [items(9, RUN.draft.split("\n").find((l) => l.includes("Дослідження за участю")).replace("в третині", "втричі рідше, ніж у")), /A case has \d+ words; at most 32 \(without its source links\)/],
+    "a theme over 20 words": [items(5, `${ITEMS[4]} попри невизначеність щодо того, як швидко ці вкладення окупляться для самих компаній`), /A theme has 2\d words; at most 20/],
+  };
+  for (const [name, [text, error]] of Object.entries(cases)) {
+    // Only the shape is under test here, so the claim records are not needed.
+    assert.throws(() => check(text, CLAIMS, { config: { ...CHECKS, factCheck: undefined } }), error, name);
+  }
+  // Not sentence ends: decimals, abbreviations with a dot, an ellipsis before a lower-case word, link markup.
+  const fine = items(10, `${at(10).replace("майже вдвічі", "майже вдвічі (у U.S. тестах на 3.5 млн. токенів… та інших)")}${links(10)}`);
+  assert.doesNotThrow(() => check(fine, CLAIMS, { config: { ...CHECKS, factCheck: undefined } }));
+  assert.equal(nestedSentences(`Одне речення з 3,13 раза ([A](https://x.example/a.), [B](https://x.example/b))`), 1);
+  assert.equal(nestedSentences("Перше. Друге? «Третє»"), 3);
+  assert.equal(nestedWords(`Anthropic заплатить $11,6 млрд ([TechCrunch](${T_AKAMAI}), [The Verge](${V_MS}))`), 4);
+  assert.throws(() => check(REVISED, CLAIMS, { config: { ...CHECKS, caseMaxWords: "0" } }), /caseMaxWords must be an integer 1\.\.500/);
+  // The corrected 65ef7d49 text fits; its measured lengths (words without links).
+  const lengths = ITEMS.map((l, i) => ({ theme: !/^ /.test(l) && /^ /.test(ITEMS[i + 1] ?? ""), words: nestedWords(l.replace(/^\s*- /, "")) }));
+  assert.ok(lengths.filter((x) => x.theme).every((x) => x.words <= 20) && lengths.filter((x) => !x.theme).every((x) => x.words <= 32), JSON.stringify(lengths));
+});
+
+test("Digest 0.6.0 asks for compact links and short items and checks them", () => {
+  assert.equal(CHECKS.compactLinks, "true");
+  assert.equal(CHECKS.caseMaxWords, "32");
+  assert.equal(CHECKS.themeMaxWords, "20");
+  assert.equal(CHECKS.itemMaxSentences, "1");
+  const words = (s) => new RegExp(s.split(" ").join("\\s+"), "i");
+  const draft = DIGEST.steps.find((s) => s.id === "draft").config.instructions;
+  const fc = DIGEST.steps.find((s) => s.id === "factcheck").config.instructions;
+  for (const rule of ["A theme with cases carries no links", "one sentence with the key fact only", "at most 25 words", "at most 15 words", "no trailing commentary"]) assert.match(draft, words(rule), rule);
+  for (const rule of ["has no links: move its links to its cases", "Every item is one sentence", "at most 25 words", "at most 15 words", "never by dropping the scope"]) assert.match(fc, words(rule), rule);
+  assert.doesNotMatch(draft, /theme items included, links at least one/);
 });

@@ -2,7 +2,7 @@ manifest: q-core.workflow/v1
 id: digest
 name: "Digest: many sources to one approved Ukrainian trend digest"
 version: 0.6.0
-description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments), every item linked to its sources. A fact-check step then checks each claim against its linked source (feed-item title and summary), revises or removes unsupported or overstated claims and records a verdict per claim; the checks require a verbatim source quote and the source's numbers for every item. Checks citations and the list shape, stops at an exact human approval of the fact-checked text, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
+description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments): a theme is a short conclusion without links, each case one short sentence with the key fact, linked to its sources. A fact-check step then checks each claim against its linked source (feed-item title and summary), revises or removes unsupported or overstated claims and records a verdict per claim; the checks require a verbatim source quote and the source's numbers for every item. Checks citations and the list shape, stops at an exact human approval of the fact-checked text, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
 triggers:
@@ -152,28 +152,33 @@ steps:
         see the structure. Use "- " bullets, two spaces of indentation per level, at
         most three levels, every item on one line:
         - Level 1: a large theme. Group related clusters into a few themes
-          (usually 2 to 4). The theme item names the theme and, in 1 to 3
-          sentences, generalises what its clusters show together: the pattern
-          or trend, not a retelling of one case, and ends with the sources of
-          its cases, like every other item.
+          (usually 2 to 4). The theme item is one short sentence (at most 15
+          words) that concludes what its cases show together: the pattern, not
+          a retelling of one case. A theme with cases carries no links: its
+          cases link the sources.
           Order themes by weight: each cluster has a rank (1 = most
           independent outlets). The theme that holds rank 1 comes first, then the
           theme with the next best rank, and so on. The check refuses any other
           order.
-          - Level 2: one case (one cluster) inside that theme: what happened and
-            why it matters to people who build with AI, thesis style.
-            - Level 3 (only when useful): a comment on that case or its
-              continuation.
+          - Level 2: one case (one cluster) inside that theme: one sentence with
+            the key fact only, thesis style, about 20 and at most 25 words (the
+            links not counted): no secondary details (counts of runs, lists of
+            investors, side benchmarks) and no trailing commentary.
+            - Level 3 (rarely): a comment on that case; the case above it then
+              carries no links and the comment links the sources.
         A theme may have no sub-items. A relevant cluster that fits no theme is
-        a short level-1 item that takes its place by rank like a theme. Do not repeat a point at two
-        levels, and never merge two unrelated clusters into one item.
-        Every item, at every level, theme items included, links at least one
-        source it relies on; an item without a source link is refused.
+        a short level-1 item that takes its place by rank like a theme; with no
+        sub-items it is a case: one sentence, links included. Do not repeat a
+        point at two levels, and never merge two unrelated clusters into one item.
+        Links are compact: every item without sub-items links at least one
+        source it relies on; an item with sub-items has no links at all. The
+        checks refuse a theme with links, a case without one, a case over 32
+        words, a theme over 20 words and an item of more than one sentence.
         Call a pattern a trend only when the clusters support it; do not call a
         customer, court or company a regulator.
         Avoid abbreviations with dots (write "тощо", not "т.д.").
-        End every item with its sources in parentheses, the outlet name as the
-        link text, for example ([The Verge](url), [The Decoder](url)).
+        End every item without sub-items with its sources in parentheses, the
+        outlet name as the link text, for example ([The Verge](url), [The Decoder](url)).
         Cite as inline Markdown links with the outlet name as the link text.
         Use only urls from the input, copied exactly.
         Describe only what the item text supports; the articles themselves
@@ -245,9 +250,19 @@ steps:
         models»), and each number with its unit and meaning.
         Keep the nested-list format and the header of the draft: the same header
         line byte-for-byte and a blank line, "- " bullets, two spaces of
-        indentation per level, one line per item, every item ending with its
-        source links (the outlet name as the link text), themes in the draft's
-        order. Do not add sources, links or new items.
+        indentation per level, one line per item, themes in the draft's order.
+        Do not add sources or new items.
+        Make the links compact and the items short. An item with sub-items (a
+        theme) has no links: move its links to its cases, and its claim record
+        lists sources its cases link. Every item without sub-items ends with its
+        source links (the outlet name as the link text). Every item is one
+        sentence: a case states the key fact only, about 20 and at most 25 words
+        without the links, with no secondary details (counts of runs, lists of
+        investors, side benchmarks) and no trailing commentary; a theme is a
+        short conclusion of at most 15 words. Shorten by dropping details, never
+        by dropping the scope, the actor or a number's meaning that the key fact
+        needs. The checks refuse a theme with links, a case without links, a
+        case over 32 words, a theme over 20 words and a second sentence.
         Fix the Ukrainian as you go: natural Ukrainian, no calques and no
         Russian forms; «незважаючи» is one word; write «агентів для
         програмування», not «кодувальних агентів».
@@ -258,7 +273,7 @@ steps:
         the revised text has exactly one record with the verdict "supported" or
         "revised"; each removed wording has its own record with the verdict
         "removed", its text and no item. A revised or removed record says why in
-        reason. sources are urls the item links. Each quote is copied character
+        reason. sources are urls the item links (for a theme: urls its cases link). Each quote is copied character
         for character from the title or text of one of those sources (3 words or
         more); together the quotes hold every number the item states and support
         the item; a theme item needs quotes too. The checks refuse an item
@@ -271,6 +286,11 @@ steps:
       # The fact-checked text is what is checked, approved and delivered; its claim records are checked with it.
       draft: "{{steps.factcheck.output}}"
       factCheck: "{{steps.factcheck.output}}"
+      # Digest 0.6 (owner review 27.09): compact links and short items, one sentence each.
+      compactLinks: "true"
+      caseMaxWords: "32"
+      themeMaxWords: "20"
+      itemMaxSentences: "1"
       forbiddenPhrases: '{"не зважаючи":"незважаючи","кодувальних агентів":"агентів для програмування","кодувальні агенти":"агенти для програмування","кодувальним агентам":"агентам для програмування"}'
       sources: "{{steps.clusters.output}}"
       language: uk

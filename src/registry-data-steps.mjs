@@ -97,6 +97,19 @@ const normQuote = s => unifyQuotes(s).toLocaleLowerCase('en').replace(/\s+/g, ' 
 const trimQuote = s => normQuote(s).replace(/^[\s.,;:!?"'()\-]+|[\s.,;:!?"'()\-]+$/g, '');
 /** An item's own words: Markdown links (their text is an outlet name), bare URLs and emphasis removed. */
 const plainClaim = s => String(s).replace(/\[[^\]\n]*\]\([^)\s]*(?:\s+"[^"\n]*")?\)/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\(\s*[,;\s]*\)/g, ' ').replace(/[*_~`]/g, '').replace(/\s+/g, ' ').trim();
+/** Words of a list item without its source links (the «([Outlet](url), …)» parentheses are not counted). */
+export const nestedWords = s => (plainClaim(s).match(/[\p{L}\p{N}][\p{L}\p{N}'’ʼ.,%-]*/gu) ?? []).length;
+const ABBREVIATION = /(?:^|[^\p{L}])(?:млн|млрд|трлн|тис|грн|дол|див|напр|ін|рр?|ст|пор|U\.S|U\.K|e\.g|i\.e|vs|etc|Inc|Ltd|Corp|Co|Dr|Mr|Mrs|Ms|No|St|Jr|Sr|\p{Lu})$/u;
+/** Sentences of a list item, counted conservatively (see itemMaxSentences). */
+export function nestedSentences(s) {
+  const t = plainClaim(s);
+  let count = 1;
+  for (const m of t.matchAll(/[.!?…]+["»”’)]*\s+(?=[\p{Lu}«"„“])/gu)) {
+    if (m[0].startsWith('.') && !m[0].startsWith('..') && ABBREVIATION.test(t.slice(0, m.index))) continue;
+    count += 1;
+  }
+  return count;
+}
 const claimWords = s => new Set((normQuote(plainClaim(s)).match(/[\p{L}\p{N}]{3,}/gu) ?? []));
 /* forbiddenPhrases: {"wrong": "right"} — known wrong spellings or calques, matched as whole words, case-insensitively. */
 function checkForbiddenPhrases(step, text) {
@@ -118,7 +131,7 @@ const FACT_VERDICTS = ['supported', 'revised', 'removed'];
    - every number in the item's own words is among the numbers of its quotes or linked sources' title/text (numberTokens);
    - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
    The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
-function checkFactCheck(record, text, nestedItems, sources, citedUrls) {
+function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf = index => citedUrls(nestedItems[index].text)) {
   insist(record && typeof record === 'object' && Array.isArray(record.claims), 'factCheck must reference a fact-check output {claims:[...], text}');
   insist(typeof record.text === 'string' && record.text.trim() === text.trim(), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
   insist(record.claims.length > 0 && record.claims.length <= 100, 'factCheck needs 1..100 claim records');
@@ -142,10 +155,10 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls) {
     insist(!kept.has(item), `List item ${item} has more than one claim record (claims ${kept.get(item) + 1} and ${index + 1})`);
     kept.set(item, index);
     const itemText = nestedItems[item - 1].text;
-    const cited = new Set(citedUrls(itemText));
+    const cited = new Set(citedOf(item - 1));
     const urls = Array.isArray(claim.sources) ? claim.sources : [];
     insist(urls.length > 0 && urls.every(url => typeof url === 'string'), `${label} (item ${item}) needs the sources it was checked against`);
-    for (const url of urls) insist(byUrl.has(url) && cited.has(url), `${label} (item ${item}) was checked against ${url}, which the item does not link as a selected source`);
+    for (const url of urls) insist(byUrl.has(url) && cited.has(url), `${label} (item ${item}) was checked against ${url}, which the item does not link as a selected source${nestedItems[item - 1].parent ? ' (a theme without links stands on the links of its sub-items)' : ''}`);
     const quotes = (Array.isArray(claim.quote) ? claim.quote : claim.quote == null ? [] : [claim.quote]).filter(q => typeof q === 'string' && q.trim());
     insist(quotes.length > 0, `List item ${item} has no quote from its linked sources; every claim, a theme's generalisation included, needs a verbatim quote that supports it: ${itemText.slice(0, 60)}`);
     const grounds = urls.flatMap(url => [byUrl.get(url).title, byUrl.get(url).text].filter(t => typeof t === 'string').map(normQuote));
@@ -512,6 +525,12 @@ export function runVerifySources(step, ctx) {
       previous = depth;
       return { depth, text: m[2] };
     });
+    // An item with sub-items is a parent (a theme at level 1); its sub-items run until the depth returns to its own.
+    nestedItems.forEach((item, index) => {
+      let end = index;
+      while (end + 1 < nestedItems.length && nestedItems[end + 1].depth > item.depth) end += 1;
+      Object.assign(item, { parent: end > index, end });
+    });
     // forbiddenLabels: ["Кейси", ...] — an item may not open with a section label (bold or plain, before ":", "—",
     // "(" or the end), even when it carries a link: readers see the structure without labels.
     const labels = step.config.forbiddenLabels == null ? [] : stringList(step, 'forbiddenLabels', ctx);
@@ -587,11 +606,46 @@ export function runVerifySources(step, ctx) {
     const count = blocks.flatMap(sentencesOf).length;
     insist(count >= min && count <= max, `${heading} must have ${min}..${max} sentences; found ${count}`);
   }
+  // compactLinks: "true" (Core38) — an item with sub-items carries no links: its cases link the sources, and the
+  // parent (a theme) is a plain conclusion. A top-level item without sub-items keeps its links like any case.
+  const compact = step.config.compactLinks === 'true' || step.config.compactLinks === true;
+  if (step.config.compactLinks != null) insist((compact || String(step.config.compactLinks) === 'false') && nestedItems, 'compactLinks must be "true" or "false" and requires nestedList');
+  if (compact) for (const item of nestedItems.filter(i => i.parent))
+    insist(!/https?:\/\/|\]\(/i.test(item.text), `A list item with sub-items carries no links under compactLinks; its cases link the sources: ${item.text.slice(0, 60)}`);
+  // The sources an item stands on: its own links, or under compactLinks for a parent the links of its sub-items.
+  const citedOf = index => {
+    const item = nestedItems[index];
+    if (!(compact && item.parent)) return citedUrls(item.text);
+    return [...new Set(nestedItems.slice(index + 1, item.end + 1).flatMap(sub => citedUrls(sub.text)))];
+  };
+  // caseMaxWords / themeMaxWords / itemMaxSentences (Core38): short items. A theme is a top-level item with sub-items;
+  // every other item (a case, a comment, a stand-alone top-level item) is a case. Words are counted without the link
+  // parentheses and link markup; a sentence ends at . ! ? … before a space and an uppercase letter or an opening quote,
+  // not after an abbreviation (млн., U.S.) or inside a decimal.
+  const cap = field => {
+    if (step.config[field] == null) return null;
+    insist(nestedItems, `${field} requires nestedList`);
+    const n = Number(step.config[field]);
+    insist(Number.isInteger(n) && n >= 1 && n <= 500, `${field} must be an integer 1..500`);
+    return n;
+  };
+  const caseMax = cap('caseMaxWords'), themeMax = cap('themeMaxWords'), maxSentences = cap('itemMaxSentences');
+  if (nestedItems) nestedItems.forEach(item => {
+    const theme = item.depth === 1 && item.parent, max = theme ? themeMax : caseMax;
+    if (max !== null) {
+      const words = nestedWords(item.text);
+      insist(words <= max, `A ${theme ? 'theme' : 'case'} has ${words} words; at most ${max} (without its source links): ${item.text.slice(0, 60)}`);
+    }
+    if (maxSentences !== null) {
+      const count = nestedSentences(item.text);
+      insist(count <= maxSentences, `A list item has ${count} sentences; at most ${maxSentences}, the key fact only: ${item.text.slice(0, 60)}`);
+    }
+  });
   if (linkCitations) {
     const cites = piece => citedUrls(piece).length > 0;
     // A list item is one thesis; in prose every sentence is one (a sentence may lean on the link that closes the next
     // one only if it has none itself — that is refused, so each claim carries its own source).
-    const pieces = nestedItems ? nestedItems.map(item => item.text) : theses.flatMap(section => section.items.flatMap(item => /^(?:[-*+]|\d+[.)])\s/.test(item) ? [item] : sentencesOf(item)));
+    const pieces = nestedItems ? nestedItems.filter(item => !(compact && item.parent)).map(item => item.text) : theses.flatMap(section => section.items.flatMap(item => /^(?:[-*+]|\d+[.)])\s/.test(item) ? [item] : sentencesOf(item)));
     const uncited = pieces.filter(piece => !cites(piece));
     insist(uncited.length === 0, `Every thesis needs a link to a selected source; uncited: ${uncited[0]?.slice(0, 60)}`);
   }
@@ -616,7 +670,7 @@ export function runVerifySources(step, ctx) {
   let factCheck = null;
   if (step.config.factCheck != null) {
     insist(nestedItems && linkCitations, 'factCheck requires nestedList and citation: links');
-    factCheck = checkFactCheck(value(step, 'factCheck', ctx), text, nestedItems, sources, citedUrls);
+    factCheck = checkFactCheck(value(step, 'factCheck', ctx), text, nestedItems, sources, citedUrls, citedOf);
   }
   if (step.config.forbiddenPhrases != null) checkForbiddenPhrases(step, text);
   if (timestampCitations) {
@@ -643,5 +697,5 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? 'Every item has a claim record: its quotes occur verbatim in the feed-item title or summary of its linked sources and its numbers are among the quoted numbers; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, and the full articles were not read, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(compact ? ['compact-links'] : []), ...(caseMax !== null || themeMax !== null ? ['nested-item-word-limits'] : []), ...(maxSentences !== null ? ['nested-item-sentences'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? 'Every item has a claim record: its quotes occur verbatim in the feed-item title or summary of its linked sources and its numbers are among the quoted numbers; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, and the full articles were not read, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }
