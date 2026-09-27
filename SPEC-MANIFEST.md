@@ -496,7 +496,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   `deduplicate clusters` output) reads the article behind each source URL: at most 20 distinct URLs,
   one GET each (20 s, 1 retry on a network error, 429 or 5xx, at most 3 redirects, 1.5 MB per page),
   http(s) only, no credentials in the URL and never a local or private-network host (localhost,
-  `.local`, loopback, RFC 1918, link-local, CGNAT, IPv6 loopback/ULA/link-local; checked on every
+  `.local`, 127.0.0.0/8, RFC 1918, link-local, CGNAT, IPv6 ::1, ULA and link-local; checked on every
   redirect hop by the literal host; a public name that resolves to a private address is not detected).
   The text is the page's longest `<article>`, else `<main>`, else the page, without scripts, navigation,
   headers, footers, asides, forms and figures; no JavaScript runs. `maxChars` (500..10000, default
