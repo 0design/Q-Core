@@ -1018,7 +1018,7 @@
       "permissions": {
         "execution": "explicit-local-scope"
       },
-      "sha256": "53bc987183f319660ff408abbe3d04ac76f0d47a5d729c159b80bceb55d2dcaa",
+      "sha256": "bf273ac09ea56a6d2536ad2668efe61d78c9677f513a604e1e1913ca84c166b5",
       "steps": 21,
       "kinds": [
         "fetch",
@@ -2179,9 +2179,9 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.41.tgz",
-    "artifactSha256": "c74f31ceb45a306fa36b1963801f41318f84a1d76c20a684dd0d68f601cfe9bb",
-    "integrity": "sha512-920762zKvT4UTlMwo8d/GTFG3TvnqYt7XKwAz1Oirt2k9rm6ey3ykTgJvlY/AJg7tIxtm3OiBzrkXOJqx5EqaA==",
-    "schemaSha256": "733ed4edc724c31162307e48e72f71efa2d4e929ead6638da01af6a1c7c6871b",
+    "artifactSha256": "d6327aec4245b817809e8dd763272d10fb34c976cba44b81f04f7e822e993e8e",
+    "integrity": "sha512-bQC1okKQ6T/Y/9Nz9SX/EeKjewbNGEoxhfDOArjcGEb+Q1NWOs7OhGE14fviFeJoK+NpplwOvjo5V+Hb/J6ckA==",
+    "schemaSha256": "1545717bd8070025ef8f95b9789ad5ca3001569c3b10379dd5fc8a6ad8860fd4",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
     "source": "Core.41 successor of Core.40: verify-sources takes an optional review patch (keep, revise or remove per list item, with verbatim quotes) from a second model step and applies it deterministically before every check, which then runs on the edited text; Digest 0.8.0 adds a reviewer call that looks only for overstatement, scope, attribution, generalisation and entity problems. The format validator, YAML parser and request schema are byte-identical to Core.40",
@@ -2976,5 +2976,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "2e8284ef2476dcd4e2ad7456b7134fa1e6dde7da684e0205cab0e5542e9a0e5e"
+  "releaseSha256": "3936ddb67ec7351a01fb6159bd6c3c6eb741e6043b437357be48d2cb12ecd114"
 }
