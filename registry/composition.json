@@ -124,8 +124,8 @@
       "id": "digest",
       "name": "Digest",
       "contentType": "workflow-template",
-      "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources.",
-      "version": "0.5.0",
+      "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against them before approval.",
+      "version": "0.6.0",
       "status": "implementation-candidate",
       "inference": "openrouter",
       "dependencies": [
@@ -154,7 +154,8 @@
         "Read the selected feeds for a time window",
         "Deduplicate meanings into ranked clusters",
         "Compose themes, cases and comments as a nested list ordered by weight",
-        "Check every item link, the header and the list shape",
+        "Fact-check every claim against its linked source; revise or remove what it does not support",
+        "Check every item link, the header, the list shape and each claim's quote and numbers",
         "Obtain draft-specific approval",
         "Deliver once to the authorized destination"
       ],

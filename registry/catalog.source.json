@@ -957,10 +957,10 @@
     {
       "id": "digest",
       "name": "Digest",
-      "description": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources.",
-      "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources.",
+      "description": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against them before approval.",
+      "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against them before approval.",
       "file": "workflows/digest.yaml",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "author": "0design",
       "license": "MIT",
       "origin": {

@@ -155,6 +155,12 @@
       "line": "kind: loop",
       "reason": "Core37 gate test: SPEC 5.7 control-flow kind",
       "token": "^loop$"
+    },
+    {
+      "class": "third-party",
+      "path": "^test/(core38-fact-check\\.test\\.mjs|fixtures/digest-run-65ef7d49\\.json)$",
+      "token": "^(loopholes?|//the-decoder\\.com/openai-pauses-its-most-capable-models-after-agents-exploit-loopholes-and-leak-data/)$",
+      "reason": "Core38 fact-check fixture: a cited third-party article (its URL and summary use the word loophole), quoted from live Digest run 65ef7d49"
     }
   ]
 }

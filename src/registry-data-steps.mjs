@@ -42,6 +42,139 @@ function outletNames(host) {
   const names = parts.slice(0, end).filter((p, i, all) => !(GENERIC_PREFIX.has(p) && i < all.length - 1));
   return names.length ? names : [parts[Math.max(0, end - 1)]];
 }
+/* Fact check (Core38): the numbers a claim states, as comparable tokens. Digits (11,6 · 11.6 · 3,000 · 3 000) with a
+   scale word or suffix (млрд, billion, $3.36B…) become values; a few words that carry a number become typed tokens:
+   a ratio (втричі, «three times less», «a third as often», «nearly in half»), a share of a whole (третина, «a third
+   of», половина) and a count (двічі, twice). A claim's tokens must all be among its quote's tokens, so «в третині
+   випадків» (a share) does not pass on «a third as often» (a ratio). Only these forms are read; a number written
+   out in other Ukrainian words is not compared. */
+const NUMBER_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, twice: 2, thrice: 3 };
+const B = '(?<![\\p{L}\\p{N}])', E = '(?![\\p{L}\\p{N}])';
+const COMPARATIVE = '(?:less|fewer|more|lower|higher|smaller|larger|bigger|faster|slower|cheaper|as)';
+const NUMBER_PHRASES = [
+  // Ratios first, so «a third as often» is not also read as a share.
+  [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|ів)?${E}`, 'giu'), m => `ratio:${Number(m[1].replace(',', '.'))}`],
+  [new RegExp(`${B}[ву]\\s+(два|дві|три|чотири|п['’ʼ]?ять|десять)\\s+раз(?:и|ів)${E}`, 'giu'), m => `ratio:${{ 'два': 2, 'дві': 2, 'три': 3, 'чотири': 4, 'десять': 10 }[m[1].toLowerCase()] ?? 5}`],
+  [new RegExp(`${B}(?:[ву]дві[чк]і|[ву]двоє|наполовину|подвоїл\\p{L}*|подвоєн\\p{L}*)${E}`, 'giu'), () => 'ratio:2'],
+  [new RegExp(`${B}(?:[ву]тричі|[ву]троє|потроїл\\p{L}*)${E}`, 'giu'), () => 'ratio:3'],
+  [new RegExp(`${B}(?:[ву]четверо)${E}`, 'giu'), () => 'ratio:4'],
+  [new RegExp(`${B}(?:[ву]п['’ʼ]?ятеро)${E}`, 'giu'), () => 'ratio:5'],
+  [new RegExp(`${B}(?:[ву]десятеро)${E}`, 'giu'), () => 'ratio:10'],
+  [new RegExp(`${B}(\\d+(?:\\.\\d+)?|two|three|four|five|six|seven|eight|nine|ten)[\\s-]+times\\s+${COMPARATIVE}${E}`, 'giu'), m => `ratio:${NUMBER_WORDS[m[1].toLowerCase()] ?? Number(m[1])}`],
+  [new RegExp(`${B}(\\d+(?:\\.\\d+)?)\\s*[x×]${E}`, 'giu'), m => `ratio:${Number(m[1])}`],
+  [new RegExp(`${B}(?:twice|half)\\s+as${E}|${B}in\\s+half${E}|${B}halv(?:e|ed|es|ing)${E}|${B}doubl(?:e|ed|es|ing)${E}`, 'giu'), () => 'ratio:2'],
+  [new RegExp(`${B}(?:a|one)[\\s-]+third\\s+as${E}|${B}tripl(?:e|ed|es|ing)${E}`, 'giu'), () => 'ratio:3'],
+  [new RegExp(`${B}(?:a|one)[\\s-]+(?:quarter|fourth)\\s+as${E}`, 'giu'), () => 'ratio:4'],
+  // Shares of a whole.
+  [new RegExp(`${B}(?:дв[іа]\\s+третин\\p{L}*|two[\\s-]+thirds)${E}`, 'giu'), () => 'share:2/3'],
+  [new RegExp(`${B}(?:третин\\p{L}*|(?:a|one)[\\s-]+third|one\\s+in\\s+three)${E}`, 'giu'), () => 'share:1/3'],
+  [new RegExp(`${B}(?:половин\\p{L}*|half)${E}`, 'giu'), () => 'share:1/2'],
+  [new RegExp(`${B}(?:чверт\\p{L}*|(?:a|one)[\\s-]+(?:quarter|fourth))${E}`, 'giu'), () => 'share:1/4'],
+  // Counts of times.
+  [new RegExp(`${B}(?:двічі|twice)${E}`, 'giu'), () => 'count:2'],
+  [new RegExp(`${B}(?:тричі|thrice)${E}`, 'giu'), () => 'count:3'],
+];
+const SCALES = [[/^\s*(?:трлн|трильйон\p{L}*|trillion)(?![\p{L}\p{N}])/iu, 1e12], [/^\s*(?:млрд|мільярд\p{L}*|billion|bn)(?![\p{L}\p{N}])/iu, 1e9], [/^B(?![\p{L}\p{N}])/u, 1e9], [/^\s*(?:млн|мільйон\p{L}*|million|mln)(?![\p{L}\p{N}])/iu, 1e6], [/^M(?![\p{L}\p{N}])/u, 1e6], [/^\s*(?:тис\.|тисяч\p{L}*|thousand)(?![\p{L}\p{N}])/iu, 1e3], [/^[Kk](?![\p{L}\p{N}])/u, 1e3]];
+export function numberTokens(input) {
+  let text = String(input).normalize('NFKC');
+  const found = [];
+  for (const [re, token] of NUMBER_PHRASES) text = text.replace(re, (...args) => { found.push({ token: token(args), surface: args[0] }); return ' '.repeat(args[0].length); });
+  // English number words count as numbers too (a quote may write «three» where a claim writes 3).
+  text = text.replace(new RegExp(`${B}(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)${E}`, 'giu'), (w, word, at) => { found.push({ token: `n:${NUMBER_WORDS[word.toLowerCase()]}`, surface: w, quoteOnly: true }); return ' '.repeat(w.length); });
+  const DIGITS = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?![\d.,]\d)|\d{1,3}(?:,\d{3})+(?![\d.,]\d)|\d+(?:[.,]\d+)?)(?!\p{N})/gu;
+  for (const m of text.matchAll(DIGITS)) {
+    const raw = m[1];
+    const value = /^\d{1,3}(?:[ \u00a0\u202f]\d{3})+$/.test(raw) || /^\d{1,3}(?:,\d{3})+$/.test(raw) ? Number(raw.replace(/[ \u00a0\u202f,]/g, '')) : Number(raw.replace(',', '.'));
+    const rest = text.slice(m.index + m[0].length);
+    const scale = SCALES.find(([re]) => re.test(rest));
+    const scaled = scale ? value * scale[1] : value;
+    found.push({ token: `n:${Number(scaled.toPrecision(12))}`, surface: scale ? `${raw}${rest.match(scale[0])[0]}` : raw });
+  }
+  return found;
+}
+const unifyQuotes = s => String(s).normalize('NFKC').replace(/[‘’ʼ`´]/g, "'").replace(/[“”«»„‟]/g, '"').replace(/[‐‑‒–—−]/g, '-').replace(/…/g, '...');
+const normQuote = s => unifyQuotes(s).toLocaleLowerCase('en').replace(/\s+/g, ' ').trim();
+const trimQuote = s => normQuote(s).replace(/^[\s.,;:!?"'()\-]+|[\s.,;:!?"'()\-]+$/g, '');
+/** An item's own words: Markdown links (their text is an outlet name), bare URLs and emphasis removed. */
+const plainClaim = s => String(s).replace(/\[[^\]\n]*\]\([^)\s]*(?:\s+"[^"\n]*")?\)/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\(\s*[,;\s]*\)/g, ' ').replace(/[*_~`]/g, '').replace(/\s+/g, ' ').trim();
+const claimWords = s => new Set((normQuote(plainClaim(s)).match(/[\p{L}\p{N}]{3,}/gu) ?? []));
+/* forbiddenPhrases: {"wrong": "right"} — known wrong spellings or calques, matched as whole words, case-insensitively. */
+function checkForbiddenPhrases(step, text) {
+  let map;
+  try { map = JSON.parse(step.config.forbiddenPhrases); } catch { map = null; }
+  insist(map && typeof map === 'object' && !Array.isArray(map) && Object.entries(map).every(([k, v]) => k.trim() && typeof v === 'string' && v.trim()), 'forbiddenPhrases must be a JSON object of a wrong phrase to its right form');
+  const lower = normQuote(text);
+  for (const [wrong, right] of Object.entries(map)) {
+    const re = new RegExp(`${B}${normQuote(wrong).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')}${E}`, 'u');
+    insist(!re.test(lower), `The text uses «${wrong}»; write «${right}»`);
+  }
+}
+const FACT_VERDICTS = ['supported', 'revised', 'removed'];
+/* factCheck: a model step's claim records for the final text, checked here deterministically:
+   - every list item of the final text has exactly one kept claim record ({item: its 1-based position});
+   - a kept claim is "supported" or "revised"; any other verdict (unsupported, overstated…) must be revised or removed;
+   - its sources are selected sources the item links, and each of its quotes (≥ 3 words) occurs verbatim — case,
+     spaces, quote marks and dashes normalised — in the title or text of one of those sources as the Core holds them;
+   - every number in the item's own words is among the numbers of its quotes (numberTokens);
+   - a removed claim ({verdict: "removed", text}) is not in the final text (same words, ≥ 80% of them in one item).
+   The model's judgment that a quote supports the wording is not proven here; the quote and numbers are. */
+function checkFactCheck(record, text, nestedItems, sources, citedUrls) {
+  insist(record && typeof record === 'object' && Array.isArray(record.claims), 'factCheck must reference a fact-check output {claims:[...], text}');
+  insist(typeof record.text === 'string' && record.text.trim() === text.trim(), 'The checked draft must be the fact-checked text (factCheck.text); the draft before the fact check is not delivered');
+  insist(record.claims.length > 0 && record.claims.length <= 100, 'factCheck needs 1..100 claim records');
+  const byUrl = new Map(sources.map(source => [source.url, source]));
+  const kept = new Map(), removed = [], out = [];
+  record.claims.forEach((claim, index) => {
+    const label = `Fact check claim ${index + 1}`;
+    insist(claim && typeof claim === 'object', `${label} is not an object`);
+    const verdict = claim.verdict;
+    insist(FACT_VERDICTS.includes(verdict), `${label} has the verdict «${verdict}»; a claim is supported, revised (an unsupported or overstated claim rewritten to what the source says) or removed`);
+    insist(verdict === 'supported' || typeof claim.reason === 'string' && claim.reason.trim(), `${label} (${verdict}) needs a reason`);
+    if (verdict === 'removed') {
+      insist(claim.item == null, `${label} is removed but still names list item ${claim.item}; a removed claim is not in the final text`);
+      insist(typeof claim.text === 'string' && claim.text.trim(), `${label} is removed and needs the removed text`);
+      removed.push(claim);
+      out.push({ verdict, text: claim.text, reason: claim.reason });
+      return;
+    }
+    const item = Number(claim.item);
+    insist(Number.isInteger(item) && item >= 1 && item <= nestedItems.length, `${label} names list item ${claim.item}, which is not an item of the final text (1..${nestedItems.length})`);
+    insist(!kept.has(item), `List item ${item} has more than one claim record (claims ${kept.get(item) + 1} and ${index + 1})`);
+    kept.set(item, index);
+    const itemText = nestedItems[item - 1].text;
+    const cited = new Set(citedUrls(itemText));
+    const urls = Array.isArray(claim.sources) ? claim.sources : [];
+    insist(urls.length > 0 && urls.every(url => typeof url === 'string'), `${label} (item ${item}) needs the sources it was checked against`);
+    for (const url of urls) insist(byUrl.has(url) && cited.has(url), `${label} (item ${item}) was checked against ${url}, which the item does not link as a selected source`);
+    const quotes = (Array.isArray(claim.quote) ? claim.quote : claim.quote == null ? [] : [claim.quote]).filter(q => typeof q === 'string' && q.trim());
+    insist(quotes.length > 0, `List item ${item} has no quote from its linked sources; every claim, a theme's generalisation included, needs a verbatim quote that supports it: ${itemText.slice(0, 60)}`);
+    const grounds = urls.flatMap(url => [byUrl.get(url).title, byUrl.get(url).text].filter(t => typeof t === 'string').map(normQuote));
+    for (const quote of quotes) {
+      const q = trimQuote(quote);
+      insist((q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3 && q.length <= 600, `List item ${item}: a quote must be 3 or more words and at most 600 characters: «${quote.slice(0, 60)}»`);
+      insist(grounds.some(g => g.includes(q)), `List item ${item}: the quote is not in the text of its linked sources: «${quote.slice(0, 80)}»`);
+    }
+    const quoteTokens = new Set(quotes.flatMap(q => numberTokens(unifyQuotes(q)).map(t => t.token)));
+    const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(t.token));
+    insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
+    out.push({ item, verdict, sources: urls, quote: quotes, numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
+  });
+  const unmapped = nestedItems.findIndex((_, i) => !kept.has(i + 1));
+  insist(unmapped < 0, `List item ${unmapped + 1} has no claim record; every item of the final text is fact-checked: ${nestedItems[unmapped]?.text.slice(0, 60)}`);
+  for (const claim of removed) {
+    const words = claimWords(claim.text), plain = normQuote(plainClaim(claim.text));
+    const present = nestedItems.find(({ text: t }) => {
+      const itemPlain = normQuote(plainClaim(t)), itemWords = claimWords(t);
+      if (plain.length >= 12 && itemPlain.includes(plain)) return true;
+      const shared = [...words].filter(w => itemWords.has(w)).length;
+      return words.size >= 4 && shared / words.size >= 0.8;
+    });
+    insist(!present, `A removed claim is still in the final text: «${claim.text.slice(0, 60)}» in «${present?.text.slice(0, 60)}»`);
+  }
+  out.sort((a, b) => (a.item ?? Infinity) - (b.item ?? Infinity));
+  const count = verdict => out.filter(c => c.verdict === verdict).length;
+  return { claims: out, supported: count('supported'), revised: count('revised'), removed: count('removed'), grounding: 'feed-item title and summary of each linked source, as the Core holds them; the full articles are not read' };
+}
 export function runParseWeb(step, ctx) {
   if (step.config.items != null) return runParseFeedItems(step, ctx);
   const inputs = step.config.source ? [value(step, 'source', ctx)] : Object.values(ctx.priorOutputs).filter(v => v && typeof v.url === 'string' && typeof v.body === 'string');
@@ -474,6 +607,13 @@ export function runVerifySources(step, ctx) {
       last = best;
     }
   }
+  // factCheck (Core38): claim records of a fact-check model step for this exact text; see checkFactCheck.
+  let factCheck = null;
+  if (step.config.factCheck != null) {
+    insist(nestedItems && linkCitations, 'factCheck requires nestedList and citation: links');
+    factCheck = checkFactCheck(value(step, 'factCheck', ctx), text, nestedItems, sources, citedUrls);
+  }
+  if (step.config.forbiddenPhrases != null) checkForbiddenPhrases(step, text);
   if (timestampCitations) {
     insist(requiredHeadings.length > 0, 'citation: timestamps requires requiredHeadings');
     const known = new Set(sources.flatMap(source => String(source.text ?? '').match(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g) ?? []));
@@ -498,5 +638,5 @@ export function runVerifySources(step, ctx) {
   insist(links.length > 0 && links.every(link => allowed.has(link)), 'Draft includes an unverified URL or no source links');
   if (!timestampCitations && !linkCitations) insist([...urls].every(url => links.includes(url)), 'Draft must cite each selected source');
   if (step.config.language === 'uk') insist(/[іїєґІЇЄҐ]/.test(text), 'Draft does not contain Ukrainian language markers');
-  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : [])], limitation: 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
+  return { output: { text, artifactHash: hash(text), sourceHash: hash(sources), ...(fixedLinks.length === 0 ? {} : { fixedLinks }), checks: ['bounded-text', 'source-link-allowlist', timestampCitations ? 'selected-sources-cited-by-timestamp' : linkCitations ? 'every-thesis-cites-a-selected-source' : 'all-selected-sources-cited', ...(requiredPrefix === null ? [] : ['required-literal-prefix']), ...(requiredHeadings.length === 0 ? [] : ['required-markdown-sections']), ...(introLinks.length === 0 ? [] : ['intro-links-inline']), ...(forbidLocal ? ['no-local-links'] : []), ...(timestampCitations ? ['timestamp-citations'] : []), ...(sectionItems ? ['section-item-counts'] : []), ...(sectionSentences ? ['section-sentence-counts'] : []), ...(itemMaxWords ? ['item-word-limits'] : []), ...(oneClusterPerItem ? ['one-cluster-per-item'] : []), ...(nestedItems ? ['nested-list-depth'] : []), ...(step.config.nestedOrder != null ? ['nested-order-by-cluster'] : []), ...(step.config.forbiddenLabels != null ? ['no-section-labels'] : []), ...(step.config.outletLinkText === 'true' || step.config.outletLinkText === true ? ['outlet-link-text'] : []), ...(factCheck ? ['fact-checked-claims'] : []), ...(step.config.forbiddenPhrases != null ? ['no-forbidden-phrases'] : [])], ...(factCheck ? { factCheck } : {}), limitation: factCheck ? 'Every item has a claim record: its quotes occur verbatim in the feed-item title or summary of its linked sources and its numbers are among the quoted numbers; removed claims are absent. Whether a quote supports the wording is the fact-check model\'s verdict, and the full articles were not read, so the human review still decides.' : 'These checks verify provenance and format; factual claims still require independent review of the cited material.' } };
 }
