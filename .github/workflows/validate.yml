@@ -47,6 +47,11 @@ jobs:
       - name: public surface allowlist and private markers
         run: node scripts/check-public-surface.mjs
 
+      # Q-Core holds the Core and what is published from it. Run results,
+      # receipts, evidence, transcripts, captured media and archives stay out.
+      - name: no run artifacts tracked
+        run: node scripts/check-no-run-artifacts.mjs
+
       # The standalone Registry builder validates every manifest, metadata and
       # generated catalog without executing contributed workflows or using secrets.
       - name: Registry manifests and generated catalog
