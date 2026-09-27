@@ -295,7 +295,9 @@ is used by no later step (`UNUSED_WORKSPACE_READ`; a later `llm-call` without
 `input` receives every prior output and counts as a use): Q-Core would read the project
 and do nothing, while the work happens outside the engine. Limits: the check reads
 the manifest only. It cannot see a script an agent runs outside Q-Core, and a
-forged lock file is a deliberate bypass like the ones listed above.
+forged lock file is a deliberate bypass like the ones listed above. The library
+functions (`loadManifest`, `validateManifest`, `createRun`/`driveRun`) check the
+format only; the policy is `loadWorkflow` / `assertWorkflowPolicy`.
 
 **`reviewer: agent`** is a machine check whose verdict is `{pass, reason}`.
 Today that check is an LLM judge; `mode: check` (a real, non-model checker) is
@@ -501,7 +503,9 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   selected-source link in an item to name its outlet: the link text contains one of the
   host's names, i.e. its labels without generic prefixes (`www`, `blog`, `news`…),
   generic second levels before a country code (`co` in `bbc.co.uk`) and generic or
-  country top-level domains (`blog.google` → Google, `bbc.co.uk` → BBC).
+  country top-level domains (`blog.google` → Google, `bbc.co.uk` → BBC). A one- or
+  two-letter name (`t.me`, `x.com`) must be a whole word of the link text or a known
+  outlet name (Telegram, Twitter).
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.

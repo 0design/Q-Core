@@ -3,8 +3,9 @@
  *
  * Kept OUT of manifest.mjs on purpose: the hosted MCP serves several exact Cores with one bundled
  * validator and requires manifest.mjs, yaml.mjs and the request schema to be byte-identical across
- * them. The format is unchanged; this module adds a policy on top of it, applied by every CLI command
- * and the host when they load a manifest (loadWorkflow), and by the hosted MCP `validate`.
+ * them. The format is unchanged; this module adds a policy on top of it, applied by `q-core validate`,
+ * `run`, `approve` and the host when they load a manifest (loadWorkflow). Library calls (loadManifest,
+ * createRun/driveRun) do not apply it; a hosted validator must call assertWorkflowPolicy itself.
  *
  * - GATE_REQUIRED: a step that writes files (workspace-apply) or sends data (api-request POST, PUT,
  *   PATCH, DELETE; POST is the default) needs a human approval-gate earlier on the same path.
