@@ -611,7 +611,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   (Core 41) `review` (with `factCheck` and `nestedList`) references a second model step's patch
   `{edits:[{item, before, action: "keep"|"revise"|"remove", text, quote:[...], sources?, problem, reason}]}` for
   the fact-checked text. The patch is applied edit by edit: each edit (a theme removal together with the
-  removals of all its cases) is tried on top of the edits accepted so far and every check runs on the
+  removals of all its cases, and a case removal together with a revision of its theme) is tried on top of the edits accepted so far and every check runs on the
   result; an edit that is malformed or fails any check is rejected with its reason and its item keeps the
   fact-checked line, which already passed. Rejected edits are tried once more after the others (a case
   removal may need a theme revision listed later). Only a review output without an `edits` array fails the
@@ -628,7 +628,10 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   (*theme item N stands on sources its remaining cases no longer link; revise the theme in the same
   review*). Kept claims are renumbered. The output adds `review: {edits:[{item, action, problem, reason,
   before, after}], revised, removed, kept, rejected:[{item, action, problem, error}]}`, and
-  `factCheckSummary` says «review: N revised, M removed, K rejected». What the reviewer flags is its own
+  `factCheckSummary` says «review: N revised, M removed, K rejected». `reviewSummary`, right after it so the
+  approval preview shows it, lists each changed or rejected item in item order («review item 5 revised
+  (scope): <reason>», «review item 7 rejected (attribution): <reason> — not applied: <error>»; reasons cut to
+  100 and errors to 80 characters), at most 12 lines plus «…and N more». What the reviewer flags is its own
   judgement; the checks prove only that its accepted edits are well formed and grounded.
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
