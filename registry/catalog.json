@@ -3,8 +3,8 @@
   "workflows": [
     {
       "id": "brand-mentions",
-      "name": "Know what the news says about your brand",
-      "description": "Filter a brand-search feed into linked mentions and an overall tone report, ready for your webhook.",
+      "name": "Find your brand in a news feed",
+      "description": "Filter a supplied brand-search feed into linked mentions and an overall tone summary, then send the report to your webhook.",
       "file": "workflows/brand-mentions.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -89,7 +89,7 @@
         }
       ],
       "brief": {
-        "summary": "Filter a brand-search feed into linked mentions and an overall tone report, ready for your webhook.",
+        "summary": "Filter a supplied brand-search feed into linked mentions and an overall tone summary, then send the report to your webhook.",
         "howItWorks": [
           "Reads up to 10 items from the feed at QCORE_SOURCE_URL.",
           "A model keeps only items that really discuss the brand: publication, one sentence, link.",
@@ -181,8 +181,8 @@
     },
     {
       "id": "budget-guard",
-      "name": "Check your spending cap before real work",
-      "description": "A budget-stop example: a zero-dollar cap should halt the run before a paid model call or outgoing message.",
+      "name": "Test a budget stop before paid calls",
+      "description": "Try a zero-dollar cap: the run should stop before a paid model call or outgoing message, with the reason recorded locally.",
       "file": "workflows/budget-guard.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -263,7 +263,7 @@
         }
       ],
       "brief": {
-        "summary": "A budget-stop example: a zero-dollar cap should halt the run before a paid model call or outgoing message.",
+        "summary": "Try a zero-dollar cap: the run should stop before a paid model call or outgoing message, with the reason recorded locally.",
         "howItWorks": [
           "Reads 3 items from the feed at QCORE_SOURCE_URL.",
           "Reaches the model step, where the $0 budget stops the run before any paid call.",
@@ -338,8 +338,8 @@
     },
     {
       "id": "content-factory",
-      "name": "Turn your sources into a post you approve",
-      "description": "Draft a Telegram post from source material, check its rules, and review the exact text before publishing.",
+      "name": "Turn source material into a Telegram post you approve",
+      "description": "Draft one Telegram post with links for its claims. Check the writing rules, review the exact text, and approve it before publishing.",
       "file": "workflows/content-factory.yaml",
       "version": "1.1.0",
       "steps": 5,
@@ -430,7 +430,7 @@
         }
       ],
       "brief": {
-        "summary": "Draft a Telegram post from source material, check its rules, and review the exact text before publishing.",
+        "summary": "Draft one Telegram post with links for its claims. Check the writing rules, review the exact text, and approve it before publishing.",
         "howItWorks": [
           "Fetches JSON material from QCORE_SOURCE_URL.",
           "A model writes one post: under 900 characters, no emoji or hashtags, a link for every claim, one idea.",
@@ -529,8 +529,8 @@
     },
     {
       "id": "content-feed",
-      "name": "Get the useful news from your feed",
-      "description": "Turn an RSS feed into a short digest of worthwhile items and send it to Telegram.",
+      "name": "Send the useful items from your RSS feed to Telegram",
+      "description": "Get a short digest of worthwhile feed items with links and a skipped-item count, delivered as one Telegram message.",
       "file": "workflows/content-feed.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -616,7 +616,7 @@
         }
       ],
       "brief": {
-        "summary": "Turn an RSS feed into a short digest of worthwhile items and send it to Telegram.",
+        "summary": "Get a short digest of worthwhile feed items with links and a skipped-item count, delivered as one Telegram message.",
         "howItWorks": [
           "Reads up to 8 items from the feed at QCORE_SOURCE_URL.",
           "A model writes a digest: an opening count line, then '— title · link' per item worth reading, and how many were skipped.",
@@ -711,8 +711,8 @@
     },
     {
       "id": "feed-fanout",
-      "name": "See why each feed item matters",
-      "description": "Summarize up to five feed items individually and send each as a separate webhook message.",
+      "name": "Get a separate summary for each feed item",
+      "description": "Summarize up to the first five feed items individually and send each title, link and one-sentence summary to your webhook.",
       "file": "workflows/feed-fanout.yaml",
       "version": "1.1.0",
       "steps": 4,
@@ -797,7 +797,7 @@
         }
       ],
       "brief": {
-        "summary": "Summarize up to five feed items individually and send each as a separate webhook message.",
+        "summary": "Summarize up to the first five feed items individually and send each title, link and one-sentence summary to your webhook.",
         "howItWorks": [
           "Reads up to 20 items from the feed at QCORE_SOURCE_URL.",
           "Opens a separate lane for each of the first 5 items; how many were skipped is reported.",
@@ -883,8 +883,8 @@
     },
     {
       "id": "json-digest",
-      "name": "Give your tools a structured feed summary",
-      "description": "Create a JSON feed summary, reject invalid JSON, and send its item count to your webhook.",
+      "name": "Turn RSS headlines into structured JSON",
+      "description": "Produce a JSON count and title list from your feed. Reject invalid JSON and send the count, run ID and cost to your webhook.",
       "file": "workflows/json-digest.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -964,7 +964,7 @@
         }
       ],
       "brief": {
-        "summary": "Create a JSON feed summary, reject invalid JSON, and send its item count to your webhook.",
+        "summary": "Produce a JSON count and title list from your feed. Reject invalid JSON and send the count, run ID and cost to your webhook.",
         "howItWorks": [
           "Reads up to 5 items from the feed at QCORE_SOURCE_URL.",
           "A model must return exactly {\"count\": n, \"titles\": [...]}; prose fails the step.",
@@ -1049,8 +1049,8 @@
     },
     {
       "id": "price-watch",
-      "name": "Review a currency-rate alert before sending",
-      "description": "Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook.",
+      "name": "Review a currency-rate alert before it is sent",
+      "description": "Check USD/UAH against a threshold, review the proposed alert, and approve it before it reaches your webhook.",
       "file": "workflows/price-watch.yaml",
       "version": "1.1.0",
       "steps": 4,
@@ -1136,7 +1136,7 @@
         }
       ],
       "brief": {
-        "summary": "Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook.",
+        "summary": "Check USD/UAH against a threshold, review the proposed alert, and approve it before it reaches your webhook.",
         "howItWorks": [
           "Reads the public rate feed open.er-api.com/v6/latest/USD (fixed in the manifest).",
           "An agent gate (a model judge) passes only if USD/UAH is above 42.0; otherwise the decision is handed to you.",
@@ -1217,8 +1217,8 @@
     },
     {
       "id": "release-watch",
-      "name": "Spot important changes in GitHub releases",
-      "description": "Summarize a repository's releases and flag reported breaking changes, deprecations and security fixes.",
+      "name": "See the important changes in repository releases",
+      "description": "Read a repository’s release notes in one brief, with reported breaking changes, deprecations and security fixes called out.",
       "file": "workflows/release-watch.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1303,7 +1303,7 @@
         }
       ],
       "brief": {
-        "summary": "Summarize a repository's releases and flag reported breaking changes, deprecations and security fixes.",
+        "summary": "Read a repository’s release notes in one brief, with reported breaking changes, deprecations and security fixes called out.",
         "howItWorks": [
           "Reads the 5 latest entries from the releases feed at QCORE_SOURCE_URL (e.g. github.com/<owner>/<repo>/releases.atom).",
           "A model writes '<version> · what changed' per release and a WATCH line, or says in one line that nothing needs action.",
@@ -1389,8 +1389,8 @@
     },
     {
       "id": "strict-gate",
-      "name": "Stop a rate alert that fails your rule",
-      "description": "A model-review example: continue when the currency rate passes its rubric, or stop the run on failure.",
+      "name": "Stop a rate alert when its rule fails",
+      "description": "Use a model-review gate to allow a rate alert only when the supplied value passes its rubric; a failed check stops the run.",
       "file": "workflows/strict-gate.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1474,7 +1474,7 @@
         }
       ],
       "brief": {
-        "summary": "A model-review example: continue when the currency rate passes its rubric, or stop the run on failure.",
+        "summary": "Use a model-review gate to allow a rate alert only when the supplied value passes its rubric; a failed check stops the run.",
         "howItWorks": [
           "Reads a JSON document with rates from QCORE_SOURCE_URL.",
           "An agent gate (a model judge) passes only if json.rates.UAH is above 42.0; on failure the run ends (no escalation).",
@@ -1554,8 +1554,8 @@
     },
     {
       "id": "webhook-relay",
-      "name": "Move JSON between your tools",
-      "description": "Read a JSON endpoint and forward its payload to a webhook, with no AI model call.",
+      "name": "Forward endpoint data to your webhook without AI",
+      "description": "Read a JSON endpoint and send its data inside a webhook payload with the run ID. No model call is required.",
       "file": "workflows/webhook-relay.yaml",
       "version": "1.1.0",
       "steps": 2,
@@ -1627,7 +1627,7 @@
         }
       ],
       "brief": {
-        "summary": "Read a JSON endpoint and forward its payload to a webhook, with no AI model call.",
+        "summary": "Read a JSON endpoint and send its data inside a webhook payload with the run ID. No model call is required.",
         "howItWorks": [
           "Reads JSON from QCORE_SOURCE_URL.",
           "POSTs {forwarded: <the JSON>, run: <run id>} to QCORE_WEBHOOK_URL."
@@ -1682,8 +1682,8 @@
     },
     {
       "id": "wide-fanout",
-      "name": "Check how your workflow handles too many items",
-      "description": "A fan-out example: read up to 60 feed items, forward the first 12 and report how many were skipped.",
+      "name": "Limit a large feed to twelve items",
+      "description": "Read up to sixty feed items, forward up to the first twelve to your webhook, and record how many were skipped.",
       "file": "workflows/wide-fanout.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1759,7 +1759,7 @@
         }
       ],
       "brief": {
-        "summary": "A fan-out example: read up to 60 feed items, forward the first 12 and report how many were skipped.",
+        "summary": "Read up to sixty feed items, forward up to the first twelve to your webhook, and record how many were skipped.",
         "howItWorks": [
           "Reads up to 60 items from the feed at QCORE_SOURCE_URL.",
           "Opens one lane per item, capped at 12; the skipped count is recorded.",
@@ -1815,8 +1815,8 @@
     },
     {
       "id": "digest",
-      "name": "Make sense of the news across your sources",
-      "description": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery.",
+      "name": "Turn scattered news into one source-linked digest",
+      "description": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
       "value": "See the themes across sources, with links to check before you share.",
       "file": "workflows/digest.yaml",
       "version": "0.8.1",
@@ -1896,7 +1896,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery.",
+        "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
         "howItWorks": [
           "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
@@ -2021,8 +2021,8 @@
     },
     {
       "id": "digest-cli",
-      "name": "Make sense of the news with your coding agent",
-      "description": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key.",
+      "name": "Build a source-linked digest with your coding agent",
+      "description": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
       "value": "Use your existing coding-agent session for source checks and drafting; approve delivery separately.",
       "file": "workflows/digest-cli.yaml",
       "version": "0.8.1",
@@ -2093,7 +2093,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key.",
+        "summary": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
         "howItWorks": [
           "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
@@ -2212,8 +2212,8 @@
     },
     {
       "id": "podcast-summary",
-      "name": "Find the key ideas in a podcast transcript",
-      "description": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval.",
+      "name": "Find the key moments in a podcast transcript",
+      "description": "Turn two transcript parts into a concise Ukrainian summary with checked timestamps. Review the exact text before approval.",
       "value": "Find the important ideas and return to their timestamps without rereading the transcript.",
       "file": "workflows/podcast-summary.yaml",
       "version": "0.1.0",
@@ -2274,7 +2274,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval.",
+        "summary": "Turn two transcript parts into a concise Ukrainian summary with checked timestamps. Review the exact text before approval.",
         "howItWorks": [
           "Fetches the two transcript parts from their URLs.",
           "Extracts readable text and removes exact duplicates.",
@@ -2392,8 +2392,8 @@
     },
     {
       "id": "podcast-summary-cli",
-      "name": "Summarize a podcast with your coding agent",
-      "description": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key.",
+      "name": "Summarize a transcript with your coding agent",
+      "description": "Use Claude or Codex to produce the same Ukrainian transcript summary with checked timestamps, without an OpenRouter key.",
       "value": "Get a timestamped summary through your existing coding-agent session.",
       "file": "workflows/podcast-summary-cli.yaml",
       "version": "0.1.0",
@@ -2454,7 +2454,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key.",
+        "summary": "Use Claude or Codex to produce the same Ukrainian transcript summary with checked timestamps, without an OpenRouter key.",
         "howItWorks": [
           "Fetches the two transcript parts from their URLs.",
           "Extracts readable text and removes exact duplicates.",
@@ -2564,8 +2564,8 @@
     },
     {
       "id": "sdd-pipeline",
-      "name": "SDD: agree on the result before changing code",
-      "description": "Define the change, scope and acceptance criteria first. Approve the specification, then let your agent implement it and verify the allowed files.",
+      "name": "Keep a code change within the scope you approve",
+      "description": "Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result.",
       "value": "Make the expected result explicit, then test the approved change against it.",
       "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
@@ -2630,7 +2630,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Use specification-driven development for a scoped project change: agree on the intended result, constraints and acceptance criteria before implementation. Approve that exact specification in your terminal; your agent changes only allowed files, an independent verifier checks the result, and failed checks trigger a bounded repair cycle with local evidence.",
+        "summary": "Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result.",
         "howItWorks": [
           "Reads only the files your workspace policy allows and pins the verifier inputs.",
           "Your coding agent writes a brief: summary, checkable criteria, plan.",

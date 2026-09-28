@@ -1,0 +1,182 @@
+{
+  "status": "candidate; not published",
+  "scope": "all16 metadata only; R2 deferred features unchanged",
+  "entries": [
+    {
+      "id": "brand-mentions",
+      "before": {
+        "name": "Know what the news says about your brand",
+        "description": "Filter a brand-search feed into linked mentions and an overall tone report, ready for your webhook."
+      },
+      "after": {
+        "name": "Find your brand in a news feed",
+        "description": "Filter a supplied brand-search feed into linked mentions and an overall tone summary, then send the report to your webhook."
+      }
+    },
+    {
+      "id": "budget-guard",
+      "before": {
+        "name": "Check your spending cap before real work",
+        "description": "A budget-stop example: a zero-dollar cap should halt the run before a paid model call or outgoing message."
+      },
+      "after": {
+        "name": "Test a budget stop before paid calls",
+        "description": "Try a zero-dollar cap: the run should stop before a paid model call or outgoing message, with the reason recorded locally."
+      }
+    },
+    {
+      "id": "content-factory",
+      "before": {
+        "name": "Turn your sources into a post you approve",
+        "description": "Draft a Telegram post from source material, check its rules, and review the exact text before publishing."
+      },
+      "after": {
+        "name": "Turn source material into a Telegram post you approve",
+        "description": "Draft one Telegram post with links for its claims. Check the writing rules, review the exact text, and approve it before publishing."
+      }
+    },
+    {
+      "id": "content-feed",
+      "before": {
+        "name": "Get the useful news from your feed",
+        "description": "Turn an RSS feed into a short digest of worthwhile items and send it to Telegram."
+      },
+      "after": {
+        "name": "Send the useful items from your RSS feed to Telegram",
+        "description": "Get a short digest of worthwhile feed items with links and a skipped-item count, delivered as one Telegram message."
+      }
+    },
+    {
+      "id": "feed-fanout",
+      "before": {
+        "name": "See why each feed item matters",
+        "description": "Summarize up to five feed items individually and send each as a separate webhook message."
+      },
+      "after": {
+        "name": "Get a separate summary for each feed item",
+        "description": "Summarize up to the first five feed items individually and send each title, link and one-sentence summary to your webhook."
+      }
+    },
+    {
+      "id": "json-digest",
+      "before": {
+        "name": "Give your tools a structured feed summary",
+        "description": "Create a JSON feed summary, reject invalid JSON, and send its item count to your webhook."
+      },
+      "after": {
+        "name": "Turn RSS headlines into structured JSON",
+        "description": "Produce a JSON count and title list from your feed. Reject invalid JSON and send the count, run ID and cost to your webhook."
+      }
+    },
+    {
+      "id": "price-watch",
+      "before": {
+        "name": "Review a currency-rate alert before sending",
+        "description": "Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook."
+      },
+      "after": {
+        "name": "Review a currency-rate alert before it is sent",
+        "description": "Check USD/UAH against a threshold, review the proposed alert, and approve it before it reaches your webhook."
+      }
+    },
+    {
+      "id": "release-watch",
+      "before": {
+        "name": "Spot important changes in GitHub releases",
+        "description": "Summarize a repository's releases and flag reported breaking changes, deprecations and security fixes."
+      },
+      "after": {
+        "name": "See the important changes in repository releases",
+        "description": "Read a repository’s release notes in one brief, with reported breaking changes, deprecations and security fixes called out."
+      }
+    },
+    {
+      "id": "strict-gate",
+      "before": {
+        "name": "Stop a rate alert that fails your rule",
+        "description": "A model-review example: continue when the currency rate passes its rubric, or stop the run on failure."
+      },
+      "after": {
+        "name": "Stop a rate alert when its rule fails",
+        "description": "Use a model-review gate to allow a rate alert only when the supplied value passes its rubric; a failed check stops the run."
+      }
+    },
+    {
+      "id": "webhook-relay",
+      "before": {
+        "name": "Move JSON between your tools",
+        "description": "Read a JSON endpoint and forward its payload to a webhook, with no AI model call."
+      },
+      "after": {
+        "name": "Forward endpoint data to your webhook without AI",
+        "description": "Read a JSON endpoint and send its data inside a webhook payload with the run ID. No model call is required."
+      }
+    },
+    {
+      "id": "wide-fanout",
+      "before": {
+        "name": "Check how your workflow handles too many items",
+        "description": "A fan-out example: read up to 60 feed items, forward the first 12 and report how many were skipped."
+      },
+      "after": {
+        "name": "Limit a large feed to twelve items",
+        "description": "Read up to sixty feed items, forward up to the first twelve to your webhook, and record how many were skipped."
+      }
+    },
+    {
+      "id": "digest",
+      "before": {
+        "name": "Make sense of the news across your sources",
+        "description": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery."
+      },
+      "after": {
+        "name": "Turn scattered news into one source-linked digest",
+        "description": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery."
+      }
+    },
+    {
+      "id": "digest-cli",
+      "before": {
+        "name": "Make sense of the news with your coding agent",
+        "description": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key."
+      },
+      "after": {
+        "name": "Build a source-linked digest with your coding agent",
+        "description": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key."
+      }
+    },
+    {
+      "id": "podcast-summary",
+      "before": {
+        "name": "Find the key ideas in a podcast transcript",
+        "description": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval."
+      },
+      "after": {
+        "name": "Find the key moments in a podcast transcript",
+        "description": "Turn two transcript parts into a concise Ukrainian summary with checked timestamps. Review the exact text before approval."
+      }
+    },
+    {
+      "id": "podcast-summary-cli",
+      "before": {
+        "name": "Summarize a podcast with your coding agent",
+        "description": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key."
+      },
+      "after": {
+        "name": "Summarize a transcript with your coding agent",
+        "description": "Use Claude or Codex to produce the same Ukrainian transcript summary with checked timestamps, without an OpenRouter key."
+      }
+    },
+    {
+      "id": "sdd-pipeline",
+      "before": {
+        "name": "SDD: agree on the result before changing code",
+        "description": "Define the change, scope and acceptance criteria first. Approve the specification, then let your agent implement it and verify the allowed files."
+      },
+      "after": {
+        "name": "Keep a code change within the scope you approve",
+        "description": "Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result."
+      }
+    }
+  ]
+}
