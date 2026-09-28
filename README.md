@@ -1,8 +1,8 @@
+[![Use QFactory.io — just ask your ChatGPT, Claude or Cursor](https://raw.githubusercontent.com/0design/Q-Core/main/docs/assets/use-qfactory-cover.webp)](https://qfactory.io)
+
 # Q-Core
 
 **Workflows that make your coding agent show a checked result, not just say "done".**
-
-![QFactory: copy one prompt on qfactory.io and hand it to your coding agent](https://raw.githubusercontent.com/0design/Q-Core/main/docs/assets/quickstart.gif)
 
 Q-Core is the local engine behind [QFactory](https://qfactory.io). A workflow is a
 versioned YAML manifest: its steps, checks, human gates, allowed repairs and stop
