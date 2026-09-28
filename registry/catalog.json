@@ -3,8 +3,8 @@
   "workflows": [
     {
       "id": "brand-mentions",
-      "name": "Find your brand mentions",
-      "description": "Filter a news feed for relevant mentions of your brand.",
+      "name": "Know what the news says about your brand",
+      "description": "Filter a brand-search feed into linked mentions and an overall tone report, ready for your webhook.",
       "file": "workflows/brand-mentions.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -41,7 +41,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -63,7 +63,7 @@
         "status": "historical-unverified"
       },
       "sha256": "8882cd8eaf7f88560d6b4d9909777615c8a35c80b35715fc88da4ce55dabb979",
-      "value": "Find relevant brand mentions without reading every source item manually.",
+      "value": "See relevant mentions and their overall tone without reading every feed item.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -89,7 +89,7 @@
         }
       ],
       "brief": {
-        "summary": "Reads a news/search feed for your brand, keeps only genuine mentions (one line each plus overall tone) and posts the result to your webhook; says 'No mentions today.' when there are none.",
+        "summary": "Filter a brand-search feed into linked mentions and an overall tone report, ready for your webhook.",
         "howItWorks": [
           "Reads up to 10 items from the feed at QCORE_SOURCE_URL.",
           "A model keeps only items that really discuss the brand: publication, one sentence, link.",
@@ -181,8 +181,8 @@
     },
     {
       "id": "budget-guard",
-      "name": "Test the budget ceiling",
-      "description": "Verify that a zero budget stops the workflow before a paid step.",
+      "name": "Check your spending cap before real work",
+      "description": "A budget-stop example: a zero-dollar cap should halt the run before a paid model call or outgoing message.",
       "file": "workflows/budget-guard.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -219,7 +219,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -241,7 +241,7 @@
         "status": "no-live-proof"
       },
       "sha256": "6cfa525f2bb4ae6a31c69c1103032f0513e8c5499227f8217cba58a9a6b2c4b6",
-      "value": "Check how a configured spending limit stops a model-backed workflow before using it on real work.",
+      "value": "See the budget stop before you risk a paid run.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -263,7 +263,7 @@
         }
       ],
       "brief": {
-        "summary": "A test that proves the spending cap works: with a $0 budget the run must stop at the model step and send nothing.",
+        "summary": "A budget-stop example: a zero-dollar cap should halt the run before a paid model call or outgoing message.",
         "howItWorks": [
           "Reads 3 items from the feed at QCORE_SOURCE_URL.",
           "Reaches the model step, where the $0 budget stops the run before any paid call.",
@@ -338,8 +338,8 @@
     },
     {
       "id": "content-factory",
-      "name": "Draft, check, approve, publish",
-      "description": "Prepare a post and pause for your approval before publishing.",
+      "name": "Turn your sources into a post you approve",
+      "description": "Draft a Telegram post from source material, check its rules, and review the exact text before publishing.",
       "file": "workflows/content-factory.yaml",
       "version": "1.1.0",
       "steps": 5,
@@ -377,7 +377,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -404,7 +404,7 @@
         "status": "historical-unverified"
       },
       "sha256": "134901e471a005a509b6cf103b51db46e6df04881e492d35513473b2512068fe",
-      "value": "Turn source material into a checked draft with an explicit approval step before delivery.",
+      "value": "Keep the final publishing decision in your hands while your agent prepares the draft.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -430,7 +430,7 @@
         }
       ],
       "brief": {
-        "summary": "Drafts one short channel post from source material, runs a machine check of formal rules, waits for your yes, then publishes it to Telegram.",
+        "summary": "Draft a Telegram post from source material, check its rules, and review the exact text before publishing.",
         "howItWorks": [
           "Fetches JSON material from QCORE_SOURCE_URL.",
           "A model writes one post: under 900 characters, no emoji or hashtags, a link for every claim, one idea.",
@@ -529,8 +529,8 @@
     },
     {
       "id": "content-feed",
-      "name": "Content feed",
-      "description": "Read an RSS feed, write a short morning digest and send it to Telegram. Repeated runs may redeliver; receiver-side deduplication requires separate configuration.",
+      "name": "Get the useful news from your feed",
+      "description": "Turn an RSS feed into a short digest of worthwhile items and send it to Telegram.",
       "file": "workflows/content-feed.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -567,7 +567,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -590,7 +590,7 @@
         "status": "historical-unverified"
       },
       "sha256": "134062a186acb1f928f661eab44b995c42bc33236213c3eada50c933829c49ac",
-      "value": "Condense a source feed into a readable update so the user does not need to review every item manually.",
+      "value": "Catch the main points without reading the whole feed.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -616,7 +616,7 @@
         }
       ],
       "brief": {
-        "summary": "Reads an RSS feed and sends a short plain-text morning digest (one line per worthwhile item, with a count of skipped noise) to Telegram.",
+        "summary": "Turn an RSS feed into a short digest of worthwhile items and send it to Telegram.",
         "howItWorks": [
           "Reads up to 8 items from the feed at QCORE_SOURCE_URL.",
           "A model writes a digest: an opening count line, then '— title · link' per item worth reading, and how many were skipped.",
@@ -711,8 +711,8 @@
     },
     {
       "id": "feed-fanout",
-      "name": "Feed fan-out",
-      "description": "Give each entry its own model call and outgoing message.",
+      "name": "See why each feed item matters",
+      "description": "Summarize up to five feed items individually and send each as a separate webhook message.",
       "file": "workflows/feed-fanout.yaml",
       "version": "1.1.0",
       "steps": 4,
@@ -749,7 +749,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -771,7 +771,7 @@
         "status": "historical-unverified"
       },
       "sha256": "431cf400b5a9bf2c7dd08d2e9fedf4e2156fc532d9fd5aa40594cb5118cdc9b0",
-      "value": "Process multiple feed items consistently and collect the results without repeating the same manual steps.",
+      "value": "Give each feed item its own summary, within a clear processing limit.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -797,7 +797,7 @@
         }
       ],
       "brief": {
-        "summary": "Handles each feed item separately: one model sentence per item ('what it is, who would care'), each sent as its own webhook message.",
+        "summary": "Summarize up to five feed items individually and send each as a separate webhook message.",
         "howItWorks": [
           "Reads up to 20 items from the feed at QCORE_SOURCE_URL.",
           "Opens a separate lane for each of the first 5 items; how many were skipped is reported.",
@@ -883,8 +883,8 @@
     },
     {
       "id": "json-digest",
-      "name": "Get a structured digest",
-      "description": "Request a JSON summary and reject incorrectly formatted output.",
+      "name": "Give your tools a structured feed summary",
+      "description": "Create a JSON feed summary, reject invalid JSON, and send its item count to your webhook.",
       "file": "workflows/json-digest.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -920,7 +920,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -942,7 +942,7 @@
         "status": "historical-unverified"
       },
       "sha256": "61535abad89a4a72c9984b6993ab69a0c43257daec74d85d3a93a6d7bdcd5fee",
-      "value": "Produce a structured summary that a downstream service can consume without manual reformatting.",
+      "value": "Check that the model returned usable JSON before sending the item count onward.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -964,7 +964,7 @@
         }
       ],
       "brief": {
-        "summary": "Asks a model for a strict JSON summary of a feed ({count, titles}) and fails the step if the answer is not valid JSON; sends the count to a webhook.",
+        "summary": "Create a JSON feed summary, reject invalid JSON, and send its item count to your webhook.",
         "howItWorks": [
           "Reads up to 5 items from the feed at QCORE_SOURCE_URL.",
           "A model must return exactly {\"count\": n, \"titles\": [...]}; prose fails the step.",
@@ -1049,8 +1049,8 @@
     },
     {
       "id": "price-watch",
-      "name": "Watch for price changes",
-      "description": "Read a price source and prepare an update for your destination.",
+      "name": "Review a currency-rate alert before sending",
+      "description": "Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook.",
       "file": "workflows/price-watch.yaml",
       "version": "1.1.0",
       "steps": 4,
@@ -1085,7 +1085,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1110,7 +1110,7 @@
         "status": "historical-unverified"
       },
       "sha256": "2ebcd052f6f2f781fbf4f223b3b27f8ab3680201eabe6efbfd95b5a7a1c937c4",
-      "value": "Surface relevant price updates without repeatedly checking the source manually.",
+      "value": "Review the model’s rate check before deciding whether to send the alert.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -1136,7 +1136,7 @@
         }
       ],
       "brief": {
-        "summary": "Checks the USD/UAH rate, lets a model judge decide whether it is above 42.0, then waits for your approval before sending an alert.",
+        "summary": "Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook.",
         "howItWorks": [
           "Reads the public rate feed open.er-api.com/v6/latest/USD (fixed in the manifest).",
           "An agent gate (a model judge) passes only if USD/UAH is above 42.0; otherwise the decision is handed to you.",
@@ -1217,8 +1217,8 @@
     },
     {
       "id": "release-watch",
-      "name": "Release watch",
-      "description": "Follow a public GitHub repository and summarize what changed.",
+      "name": "Spot important changes in GitHub releases",
+      "description": "Summarize a repository's releases and flag reported breaking changes, deprecations and security fixes.",
       "file": "workflows/release-watch.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1255,7 +1255,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1277,7 +1277,7 @@
         "status": "historical-unverified"
       },
       "sha256": "dbcd1511c22046af8d0ac7de67b659956890c884607639ce18b5fc8454e94bc3",
-      "value": "Summarize new software releases and highlight items worth reviewing without reading the full release feed.",
+      "value": "Find release notes worth reviewing without reading the full release feed.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -1303,7 +1303,7 @@
         }
       ],
       "brief": {
-        "summary": "Reads a GitHub releases feed and writes a short note: one line per release plus a WATCH line for breaking changes, deprecations or security fixes; posts it to a webhook.",
+        "summary": "Summarize a repository's releases and flag reported breaking changes, deprecations and security fixes.",
         "howItWorks": [
           "Reads the 5 latest entries from the releases feed at QCORE_SOURCE_URL (e.g. github.com/<owner>/<repo>/releases.atom).",
           "A model writes '<version> · what changed' per release and a WATCH line, or says in one line that nothing needs action.",
@@ -1389,8 +1389,8 @@
     },
     {
       "id": "strict-gate",
-      "name": "Check before continuing",
-      "description": "Review an output against a rubric before the next step.",
+      "name": "Stop a rate alert that fails your rule",
+      "description": "A model-review example: continue when the currency rate passes its rubric, or stop the run on failure.",
       "file": "workflows/strict-gate.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1426,7 +1426,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1452,7 +1452,7 @@
         "status": "historical-unverified"
       },
       "sha256": "f38ff47e8c37a445429fd22098a6d860cc218c605e61c0c9fcdf5b573d371fb7",
-      "value": "Check a draft against an explicit rubric before allowing the next workflow step.",
+      "value": "Make passing the review rule a condition for continuing the example.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -1474,7 +1474,7 @@
         }
       ],
       "brief": {
-        "summary": "Shows a machine check that is allowed to end the run: if a JSON rate is not above 42.0, the run stops instead of asking a person.",
+        "summary": "A model-review example: continue when the currency rate passes its rubric, or stop the run on failure.",
         "howItWorks": [
           "Reads a JSON document with rates from QCORE_SOURCE_URL.",
           "An agent gate (a model judge) passes only if json.rates.UAH is above 42.0; on failure the run ends (no escalation).",
@@ -1554,8 +1554,8 @@
     },
     {
       "id": "webhook-relay",
-      "name": "Pass data to a webhook",
-      "description": "Read a JSON endpoint and forward its data without a model call.",
+      "name": "Move JSON between your tools",
+      "description": "Read a JSON endpoint and forward its payload to a webhook, with no AI model call.",
       "file": "workflows/webhook-relay.yaml",
       "version": "1.1.0",
       "steps": 2,
@@ -1590,7 +1590,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1605,7 +1605,7 @@
         "status": "historical-unverified"
       },
       "sha256": "ed66add0ee204bcd1da7633c82840b1e563cfc2dfbc1008b0101dd152b76672b",
-      "value": "Move source data to a configured receiver without a manual copy-and-paste step.",
+      "value": "Connect a JSON source to a receiver without manual copy-and-paste or a model bill.",
       "executionProfile": {
         "inference": "none",
         "callerReady": true
@@ -1627,7 +1627,7 @@
         }
       ],
       "brief": {
-        "summary": "Reads a JSON endpoint and forwards its data to your webhook, with no model call.",
+        "summary": "Read a JSON endpoint and forward its payload to a webhook, with no AI model call.",
         "howItWorks": [
           "Reads JSON from QCORE_SOURCE_URL.",
           "POSTs {forwarded: <the JSON>, run: <run id>} to QCORE_WEBHOOK_URL."
@@ -1682,8 +1682,8 @@
     },
     {
       "id": "wide-fanout",
-      "name": "Test fan-out limits",
-      "description": "Explore per-item processing with explicit limits and truncation.",
+      "name": "Check how your workflow handles too many items",
+      "description": "A fan-out example: read up to 60 feed items, forward the first 12 and report how many were skipped.",
       "file": "workflows/wide-fanout.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1718,7 +1718,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1733,7 +1733,7 @@
         "status": "historical-unverified"
       },
       "sha256": "52c0af677376ce94b3e5aa91c748d770089c74d9fb0f18245273abf711283caa",
-      "value": "Verify bounded fan-out behavior before applying a workflow to a large input set.",
+      "value": "See what gets processed and what gets skipped before scaling up.",
       "executionProfile": {
         "inference": "none",
         "callerReady": true
@@ -1759,7 +1759,7 @@
         }
       ],
       "brief": {
-        "summary": "A test of fan-out limits: reads up to 60 feed items, sends only the first 12 to a webhook and reports how many were skipped.",
+        "summary": "A fan-out example: read up to 60 feed items, forward the first 12 and report how many were skipped.",
         "howItWorks": [
           "Reads up to 60 items from the feed at QCORE_SOURCE_URL.",
           "Opens one lane per item, capped at 12; the skipped count is recorded.",
@@ -1815,9 +1815,9 @@
     },
     {
       "id": "digest",
-      "name": "Digest",
-      "description": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
-      "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
+      "name": "Make sense of the news across your sources",
+      "description": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery.",
+      "value": "See the themes across sources, with links to check before you share.",
       "file": "workflows/digest.yaml",
       "version": "0.8.1",
       "author": "0design",
@@ -1829,7 +1829,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1896,7 +1896,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Turns ten public AI news feeds for a date window into one fact-checked Ukrainian digest (themes, cases, links to sources), stops for your exact approval, then delivers it once to an HTTP receiver or a local file.",
+        "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery.",
         "howItWorks": [
           "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
@@ -2021,9 +2021,9 @@
     },
     {
       "id": "digest-cli",
-      "name": "Digest (CLI)",
-      "description": "Digest through your coding agent: the same steps as Digest (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
-      "value": "Digest through your coding agent: the same steps as Digest (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
+      "name": "Make sense of the news with your coding agent",
+      "description": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key.",
+      "value": "Use your existing coding-agent session for source checks and drafting; approve delivery separately.",
       "file": "workflows/digest-cli.yaml",
       "version": "0.8.1",
       "author": "0design",
@@ -2035,7 +2035,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2093,7 +2093,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "The Digest workflow with every model step answered by your coding agent (Claude or Codex): one fact-checked Ukrainian digest from news feeds, no OpenRouter key.",
+        "summary": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key.",
         "howItWorks": [
           "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
@@ -2212,9 +2212,9 @@
     },
     {
       "id": "podcast-summary",
-      "name": "Podcast summary",
-      "description": "Turn one podcast or video transcript into a timestamped Ukrainian summary with no channel header, stopping at your approval. Replaces podcast-digest.",
-      "value": "Turn one podcast or video transcript into a timestamped Ukrainian summary with no channel header, stopping at your approval. Replaces podcast-digest.",
+      "name": "Find the key ideas in a podcast transcript",
+      "description": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval.",
+      "value": "Find the important ideas and return to their timestamps without rereading the transcript.",
       "file": "workflows/podcast-summary.yaml",
       "version": "0.1.0",
       "author": "0design",
@@ -2226,7 +2226,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2274,7 +2274,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Turns one podcast or video transcript (two parts with [mm:ss] markers) into a short timestamped Ukrainian summary and stops at your exact approval; nothing is sent anywhere.",
+        "summary": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval.",
         "howItWorks": [
           "Fetches the two transcript parts from their URLs.",
           "Extracts readable text and removes exact duplicates.",
@@ -2392,9 +2392,9 @@
     },
     {
       "id": "podcast-summary-cli",
-      "name": "Podcast summary (CLI)",
-      "description": "Podcast summary through your coding agent: the same steps as podcast-summary 0.1.0, with the draft answered by the agent you are running in — no OpenRouter key.",
-      "value": "Podcast summary through your coding agent: the same steps as podcast-summary 0.1.0, with the draft answered by the agent you are running in — no OpenRouter key.",
+      "name": "Summarize a podcast with your coding agent",
+      "description": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key.",
+      "value": "Get a timestamped summary through your existing coding-agent session.",
       "file": "workflows/podcast-summary-cli.yaml",
       "version": "0.1.0",
       "author": "0design",
@@ -2406,7 +2406,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2454,7 +2454,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "The podcast-summary workflow with the draft answered by your coding agent (Claude or Codex): one timestamped Ukrainian summary of a transcript, no OpenRouter key.",
+        "summary": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key.",
         "howItWorks": [
           "Fetches the two transcript parts from their URLs.",
           "Extracts readable text and removes exact duplicates.",
@@ -2564,9 +2564,9 @@
     },
     {
       "id": "sdd-pipeline",
-      "name": "SDD pipeline",
-      "description": "Turn an intent into an approved specification and a verified project change.",
-      "value": "Turn an intent into an approved specification and a verified project change.",
+      "name": "SDD: agree on the result before changing code",
+      "description": "Define the change, scope and acceptance criteria first. Approve the specification, then let your agent implement it and verify the allowed files.",
+      "value": "Make the expected result explicit, then test the approved change against it.",
       "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
       "author": "0design",
@@ -2578,7 +2578,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2630,7 +2630,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Turns a written intent into an approved specification and a change to allowed project files, checked by your own verifier command with bounded repair.",
+        "summary": "Use specification-driven development for a scoped project change: agree on the intended result, constraints and acceptance criteria before implementation. Approve that exact specification in your terminal; your agent changes only allowed files, an independent verifier checks the result, and failed checks trigger a bounded repair cycle with local evidence.",
         "howItWorks": [
           "Reads only the files your workspace policy allows and pins the verifier inputs.",
           "Your coding agent writes a brief: summary, checkable criteria, plan.",
@@ -2685,7 +2685,8 @@
           "An ambiguous intent must be clarified; the agent must not invent product decisions.",
           "Inference jobs per run are bounded (12 by default), repairs included.",
           "Model output is not deterministic; the order of steps, checks and stops is.",
-          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm).",
+          "This workflow implements a scoped specification-to-change cycle; it does not provide a full project planning framework or guarantee production readiness."
         ],
         "exampleRequests": [
           "Add input validation to src/form.ts and prove it with npm test.",
@@ -2769,7 +2770,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2922,7 +2923,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3004,7 +3005,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3054,7 +3055,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3106,7 +3107,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3164,7 +3165,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -3224,7 +3225,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3274,7 +3275,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3324,7 +3325,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3381,7 +3382,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3422,7 +3423,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3461,7 +3462,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3503,7 +3504,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3552,7 +3553,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3602,7 +3603,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3680,7 +3681,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3722,7 +3723,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3764,7 +3765,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3800,7 +3801,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3833,7 +3834,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.44",
+        "version": "0.2.0-q-core.45",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3853,20 +3854,20 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.28-registry.32-candidate",
+  "releaseVersion": "2026.09.28-registry.33-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.44",
+    "version": "0.2.0-q-core.45",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.44.tgz",
-    "artifactSha256": "321e5a63743f1d7e8294642376a0f7e5abc79679c3cff69e992c330eca2f8f7f",
-    "integrity": "sha512-A9S13t6ZJrfCt1C/IbGWIqTKH0zqdQ3RgqMWISffCM0j++cxkeEqMRIPy8d1CqMigxGXMbiDqUREWkAAgqA+dQ==",
+    "artifact": "vendor/q-core-0.2.0-q-core.45.tgz",
+    "artifactSha256": "d87c1ede71094e2c121f43ff1696f5600bafd900b300a288393b1ce0acc3268f",
+    "integrity": "sha512-eNfidx53j/jbPrasP/xwLTurCyQEX3pxWhPI4d7+Kur3pgZM16SqGaC9z/P5h7IVNTivh6a+775+bzk4i1WqfQ==",
     "schemaSha256": "20b130d6ec1fc9412a3bfd0fb0e72843f9adaedea9860d223f0f5a819a5c487f",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.44 successor of Core.43: step data stays data — values from steps, items and run are percent-encoded in url and cannot change its scheme or host; headers and verify-sources JSON lists are parsed before substitution; the steps placeholder never crosses a brace; {{…}} inside data no longer trips unresolved-placeholder checks; SPEC-MANIFEST §6 documents these rules. README: the template table links each workflow name to its page (no separate start-prompt column). The format validator, YAML parser and request schema are byte-identical to Core.43.",
+    "source": "Core.45 metadata successor of Core.44: names and descriptions for all 16 workflows, accurate scoped SDD value, and matching README. Runtime, manifests, validators and schemas are unchanged.",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -4302,7 +4303,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.44",
+          "version": "0.2.0-q-core.45",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4397,7 +4398,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.44",
+          "version": "0.2.0-q-core.45",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4498,7 +4499,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.44",
+          "version": "0.2.0-q-core.45",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4567,7 +4568,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.44",
+          "version": "0.2.0-q-core.45",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4658,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "12837e3e81fb1a64fa84b3bdeada92905498d33637073a1279dede3232cb13e1"
+  "releaseSha256": "6303981a980eb3d9052fd042df244e139fbeab89554013f3d78151b03c4b79a9"
 }
