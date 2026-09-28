@@ -9,7 +9,7 @@ triggers:
   - kind: manual
 settings:
   # CLI variant of Digest 0.8.0: every llm-call answers through the caller (q-core reply), no OpenRouter key and no
-  # separate model bill. Same steps as digest 0.8.0; the owner accepted run 5b9ffaf1 used exactly this adaptation.
+  # separate model bill. The same steps and input bindings as the owner-accepted Digest 0.8.0 run 5b9ffaf1.
   budgetUsd: null
 steps:
   - id: techcrunch

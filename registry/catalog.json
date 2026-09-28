@@ -2183,7 +2183,7 @@
         },
         "price": "No separate model bill: the four model steps run in your Claude or Codex subscription; cost is recorded as unknown, not free.",
         "limits": [
-          "The owner accepted a real Digest 0.8.0 run made with exactly this adaptation (run 5b9ffaf1, 28.09); this catalog entry itself is a candidate.",
+          "The owner accepted a real Digest 0.8.0 run with the same steps and input bindings (run 5b9ffaf1, 28.09); this catalog entry itself is a candidate.",
           "Each model step receives at most 60000 bytes; the inputs are already bound to one step each.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run.",
           "Articles are read as static text only; unreachable pages fall back to the feed summary.",
@@ -2196,7 +2196,7 @@
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "81ec1e87ac8b4ba5f4b4b71b17ba69083ec009051a14aee6d584c50867f19ee1",
+      "sha256": "20851d782ca9c1ebf8889b7b1e014dd77dc55be83d6b31eba08dc539f59dd5be",
       "steps": 21,
       "kinds": [
         "fetch",
@@ -4658,5 +4658,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "68cfb945fe4deca2ff463235f770bcf5eb748c6737d6a54bc0200c5b1fb2ce92"
+  "releaseSha256": "39790062f3b699a2aa688a6aaf293520a70b4e38fdb36b89035a9e72ea4122a8"
 }
