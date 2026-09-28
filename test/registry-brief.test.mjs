@@ -1,4 +1,4 @@
-// Registry29 (0D-422, owner decision 28.09): every workflow and component carries a structured brief, so an agent
+// Registry29 (owner decision 28.09): every workflow and component carries a structured brief, so an agent
 // briefs the user from Registry data instead of inventing steps, settings or prices.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

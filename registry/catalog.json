@@ -1988,7 +1988,7 @@
             }
           ]
         },
-        "price": "OpenRouter: about $0.3 per run (cap $0.5 in the manifest; the review step alone about $0.13). CLI route: $0 separate model bill, uses your Claude/Codex subscription; this is the route the accepted run used.",
+        "price": "OpenRouter: an estimate of about $0.3 per run, not measured for 0.8.0 (cap $0.5 in the manifest). CLI route: no separate model bill, it uses your Claude or Codex subscription; this is the route of the accepted run.",
         "limits": [
           "Version 0.8.0 was accepted by the owner after a real run through the CLI route; the OpenRouter route was not re-verified for 0.8.0.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run: later steps read them.",
@@ -4295,5 +4295,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "53f2da7e60385c2878e909e7b2e5c500b1da42ba0c3582a98f569c9fe4780f93"
+  "releaseSha256": "665993247de63f0e69a2ce314b18476617d5d19c19c1d53c103a4b187bd44f18"
 }

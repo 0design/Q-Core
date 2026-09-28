@@ -1997,7 +1997,7 @@
             }
           ]
         },
-        "price": "OpenRouter: about $0.3 per run (cap $0.5 in the manifest; the review step alone about $0.13). CLI route: $0 separate model bill, uses your Claude/Codex subscription; this is the route the accepted run used.",
+        "price": "OpenRouter: an estimate of about $0.3 per run, not measured for 0.8.0 (cap $0.5 in the manifest). CLI route: no separate model bill, it uses your Claude or Codex subscription; this is the route of the accepted run.",
         "limits": [
           "Version 0.8.0 was accepted by the owner after a real run through the CLI route; the OpenRouter route was not re-verified for 0.8.0.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run: later steps read them.",
