@@ -2,7 +2,7 @@
 
 ## Kind
 
-- [ ] Loop
+- [ ] Workflow
 - [ ] Component
 - [ ] Demo
 
@@ -10,18 +10,18 @@ Do not hand-edit `catalog.json`. After you add files, run `npm run catalog` and 
 
 ---
 
-## Loop
+## Workflow
 
-One manifest, one pull request. A `.yaml` file in `loops/`.
+One manifest, one pull request. A `.yaml` file in `workflows/`.
 
-- [ ] `qloop validate loops/your-loop.yaml` passes
+- [ ] `q-core validate workflows/your-workflow.yaml` passes
 - [ ] It runs as shipped, against a real key-free endpoint where you can
 - [ ] No secrets in the file — `{{env.YOUR_VAR}}` only
 - [ ] Comments say WHY, not what
 - [ ] The irreversible step is last, and behind a gate if it publishes, charges, sends or deletes
 - [ ] `settings.budgetUsd` is set explicitly
 - [ ] An agent-gate rubric is a condition, not a wish
-- [ ] Optional proof: `examples/<id>.run.json` and `examples/<id>.txt` via `node scripts/record-proof.mjs <id>`
+- [ ] Optional proof: `examples/<id>.run.json` and `examples/<id>.txt` via `node scripts/record-proof.mjs <workflow-id>`
 
 ---
 
@@ -40,9 +40,9 @@ A contract in `registry/components/<id>.json`. Not a new engine kind unless SPEC
 
 ## Demo
 
-A named run in `registry/demos/<id>.json` against a loop that already exists.
+A named run in `registry/demos/<id>.json` against a workflow that already exists.
 
-- [ ] `loopId` matches a file in `loops/`
+- [ ] `workflowId` matches a file in `workflows/`
 - [ ] `proof` points at a recorded file in `examples/` (or says there is none)
 - [ ] `live` is true only when `resultUrl` is a public URL that actually works
 - [ ] Ran `npm run catalog`

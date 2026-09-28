@@ -11,26 +11,27 @@
  *   3. execute, record output + tokens + cost
  *
  * A run that stops at a human gate is not finished and not failed: it is
- * `waiting_human`, held on disk, and `qloops approve` continues it from exactly
- * there. The loop re-reads its own step list on every iteration, which is why a
+ * `waiting_human`, held on disk, and `q-core approve` continues it from exactly
+ * there. The workflow re-reads its own step list on every iteration, which is why a
  * run parked yesterday resumes today with nothing kept in memory.
  *
- * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a loop
- * that ends in `api-request` is a complete loop.
+ * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a workflow
+ * that ends in `api-request` is a complete workflow.
  */
-import { flattenLoopSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
-import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel } from "./steps.mjs";
+import { agentSessionMarker } from './human-confirmation.mjs';
+import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
+import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination, llmCallPolicy } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
 import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-steps.mjs";
 import { runWorkspaceRead, runSpecification, runWorkspaceApply, runVerifyArtifact, runDetermined, assertFreshWorkspaceArtifact } from "./registry-workspace-steps.mjs";
 import { snapshot, contextFiles } from './workspace.mjs';
 import { assertInferenceReply, invalidateInference } from "./caller-inference.mjs";
-import { resolveTemplate } from "./template.mjs";
+import { resolveTemplate, missingEnvRefs } from "./template.mjs";
 import { num, str } from "./config.mjs";
 import { resolveTemplateValue } from "./template.mjs";
-import { usdForTokens } from "./cost.mjs";
 import { RunStore, newRunId } from "./state.mjs";
 import { hash, insist } from "./contracts.mjs";
+import { questions } from "./specification.mjs";
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -39,6 +40,43 @@ export const DEFAULT_MAX_TOKENS = 1200;
 export const MAX_EXPANDED_RUN_ROWS = 10_000;
 
 const ENGINE_KINDS = new Set(["fetch", "llm-call", "api-request", "approval-gate", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"]);
+
+function clarificationAnswers(value) {
+  insist(value && typeof value === 'object' && !Array.isArray(value), 'Clarification answers must be an object', 'INVALID_CLARIFICATION');
+  insist(/^[a-f0-9]{64}$/.test(value.hash) && Array.isArray(value.answers) && value.answers.length > 0 && value.answers.length <= 10, 'Clarification requires question hash and bounded answers', 'INVALID_CLARIFICATION');
+  insist(value.answers.every(answer => answer && typeof answer.id === 'string' && answer.id.length > 0 && answer.id.length <= 80 && typeof answer.answer === 'string' && answer.answer.trim() && answer.answer.length <= 4000), 'Clarification answers must be nonempty and bounded', 'INVALID_CLARIFICATION');
+  insist(new Set(value.answers.map(answer => answer.id)).size === value.answers.length, 'Clarification cannot answer one question more than once', 'INVALID_CLARIFICATION');
+  return { hash: value.hash, answers: value.answers.map(({ id, answer }) => ({ id, answer })) };
+}
+
+function consumeClarification(run, input) {
+  const clarification = clarificationAnswers(input);
+  const answerHash = hash(clarification.answers);
+  const pending = run.pendingClarification;
+  if (!pending) {
+    const previous = run.clarificationHistory?.find(entry => entry.hash === clarification.hash && entry.answerHash === answerHash);
+    insist(previous, 'Clarification is stale, unknown, or differs from the accepted answer set', 'STALE_CLARIFICATION');
+    return false;
+  }
+  insist(run.status === 'waiting_human', 'Clarification can only resume a waiting run', 'STALE_CLARIFICATION');
+  insist(clarification.hash === pending.hash, 'Clarification does not match the current exact question set', 'STALE_CLARIFICATION');
+  const expected = pending.questions.map(question => question.id).sort();
+  const actual = clarification.answers.map(answer => answer.id).sort();
+  insist(expected.length === actual.length && expected.every((id, index) => id === actual[index]), 'Clarification must answer every current question exactly once', 'INVALID_CLARIFICATION');
+  const row = run.steps.find(step => step.seq === pending.seq && step.status === 'waiting_human');
+  insist(row, 'Clarification waiting step is missing', 'STALE_CLARIFICATION');
+  run.clarificationHistory ??= [];
+  run.clarificationHistory.push({ ...pending, answers: clarification.answers, answerHash, answeredAt: new Date().toISOString() });
+  run.clarificationContext = { hash: pending.hash, questions: pending.questions, answers: clarification.answers };
+  delete run.pendingClarification;
+  row.status = 'pending'; row.output = null; row.gateReason = null; row.errorText = null; row.startedAt = null; row.finishedAt = null;
+  run.status = 'running'; run.summary = 'Clarification accepted; requesting a Q/A-bound specification.'; run.finishedAt = null;
+  return true;
+}
+
+function isSddClarification(run, step, output) {
+  return run.workflowId === 'sdd-pipeline' && step.stepId === 'brief' && output && typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 1 && Array.isArray(output.questions);
+}
 
 /** The three knobs, resolved once per run, with where each value came from. */
 export function resolveKnobs(settings = {}) {
@@ -52,8 +90,8 @@ export function resolveKnobs(settings = {}) {
     limits: settings.limits ?? null,
     exit: settings.exit ?? { kind: "always_done" },
     provenance: {
-      model: settings.model ? "loop settings" : process.env.OPENROUTER_MODEL ? "OPENROUTER_MODEL" : "not configured",
-      budget: "budgetUsd" in settings ? "loop settings" : "default",
+      model: settings.model ? "workflow settings" : process.env.OPENROUTER_MODEL ? "OPENROUTER_MODEL" : "not configured",
+      budget: "budgetUsd" in settings ? "workflow settings" : "default",
     },
   };
 }
@@ -81,11 +119,11 @@ function summarise(status, rows, dryRun = false) {
 
 /** Build the initial run record from a manifest. */
 export function createRun(manifest, { trigger = "manual" } = {}) {
-  const flat = flattenLoopSteps(manifest.steps);
+  const flat = flattenWorkflowSteps(manifest.steps);
   return {
     runId: newRunId(),
-    loopId: manifest.id,
-    loopName: manifest.name,
+    workflowId: manifest.id,
+    workflowName: manifest.name,
     manifestFile: manifest.file ?? null,
     trigger,
     status: "running",
@@ -125,6 +163,29 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
   };
 }
 
+/** Unset or empty `{{env.NAME}}` references (no default) that a run cannot do without. An api-request without a
+ *  receiptKey is exempt as a whole: with its URL unset it writes to the .qf/out/ sink (SPEC §9). */
+export function requiredEnvMissing(steps) {
+  const missing = new Set();
+  for (const step of steps) {
+    if (step.kind === "api-request" && !step.config?.receiptKey) continue;
+    for (const value of Object.values(step.config ?? {})) for (const name of missingEnvRefs(value)) missing.add(name);
+  }
+  return [...missing];
+}
+
+/** file:/// destinations that are already resolvable are checked before the first step, not after an approval. */
+export function destinationProblems(steps) {
+  const problems = [];
+  for (const step of steps) {
+    if (step.kind !== "api-request" || typeof step.config?.url !== "string") continue;
+    const url = resolveTemplate(step.config.url, { priorOutputs: {} });
+    if (!/^file:/i.test(url) || /\{\{/.test(url)) continue;
+    try { checkFileDestination(url); } catch (e) { problems.push(`${step.stepId ?? step.id}: ${e.message}`); }
+  }
+  return problems;
+}
+
 /**
  * Drive a run to its next stopping point: success, failure, or a human gate.
  *
@@ -134,6 +195,10 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
 export async function driveRun(run, opts = {}) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
   let inferenceReply = opts.inferenceReply;
+  if (opts.clarification !== undefined) {
+    insist(inferenceReply === undefined, 'Submit clarification separately from a caller inference reply', 'INVALID_CLARIFICATION');
+    consumeClarification(run, opts.clarification);
+  }
   assertInferenceReply(run, inferenceReply);
   if (run.status === 'success' && run.workspacePolicy) {
     const artifact = run.steps.findLast(s => s.kind === 'workspace-apply' && s.status === 'success')?.output;
@@ -145,19 +210,43 @@ export async function driveRun(run, opts = {}) {
 
   /* SENSITIVITY IS NOT IMPLEMENTED HERE — and it is refused, not ignored.
      The profile exists to stop irreversible or outbound steps and hand them to a
-     person. Running the loop anyway "because the local runner is simpler" would
+     person. Running the workflow anyway "because the local runner is simpler" would
      perform exactly the actions the knob was set to prevent, silently. */
   if (knobs.sensitivity) {
     throw new Error(
       "This manifest sets settings.sensitivity, which the local runner does not implement. " +
         "It is refused rather than ignored: the profile exists to hold back irreversible steps, " +
-        "and ignoring it would carry them out. Run this loop in the product, or remove the profile.",
+        "and ignoring it would carry them out. Run this workflow in the product, or remove the profile.",
     );
   }
 
   const persist = () => {
     if (store) store.save(run);
   };
+
+  /* Required environment, checked once before the first step so a missing input
+     is named up front instead of surfacing as a literal "{{env.NAME}}" URL later.
+     A reference with a default ({{env.NAME:-value}}) is optional, and so is an
+     api-request URL without a receiptKey (it falls back to the .qf/out/ sink). */
+  if (!dryRun && run.steps.every((s) => s.status === "pending")) {
+    const missing = requiredEnvMissing(run.steps);
+    const problems = missing.length ? [] : destinationProblems(run.steps);
+    if (missing.length || problems.length) {
+      const now = new Date().toISOString();
+      const first = run.steps[0];
+      first.status = "failed";
+      first.startedAt = first.finishedAt = now;
+      first.errorText = missing.length
+        ? `Missing environment variables: ${missing.join(", ")}. Set them before running (q-core catalog shows what each workflow needs).`
+        : `Invalid delivery destination before any step ran: ${problems.join("; ")}`;
+      run.status = "failed";
+      run.summary = first.errorText;
+      run.finishedAt = now;
+      persist();
+      onStep(first);
+      return run;
+    }
+  }
 
   for (;;) {
     if (opts.signal?.aborted) {
@@ -238,10 +327,28 @@ export async function driveRun(run, opts = {}) {
     const spent = run.steps.reduce((acc, s) => acc + Number(s.costUsd ?? 0), 0);
     const cliStep = next.kind === "llm-call" && next.config.provider === "cli";
     const paidKind = (next.kind === "llm-call" && !cliStep) || next.kind === "approval-gate";
+    /* An unknown cost (null) is not zero. With a ceiling set, the run cannot
+       prove it is under it, so the next paid step does not start. */
+    const unknownSpend = run.steps.find((s) => s.costUsd === null);
+    /* A human gate calls no model, so an unknown spend does not stop it; the
+       legacy spent >= ceiling check below still applies to it as before. */
+    const modelCall = paidKind && !(next.kind === "approval-gate" && (str(next.config, "reviewer") ?? "human") === "human");
+    if (modelCall && knobs.budgetUsd !== null && unknownSpend) {
+      next.status = "failed";
+      next.gateReason = "budget";
+      next.errorText = `Run budget cannot be checked: the cost of step "${unknownSpend.stepId}" is unknown (no provider cost and no known price for its model). Set budgetUsd to null to lift the ceiling on purpose, or use a model with a reported or known price.`;
+      next.startedAt = next.finishedAt = new Date().toISOString();
+      run.status = "failed";
+      run.summary = `Stopped by budget: spend is unknown against the $${knobs.budgetUsd.toFixed(4)} ceiling.`;
+      run.finishedAt = new Date().toISOString();
+      persist();
+      onStep(next);
+      return run;
+    }
     if (paidKind && knobs.budgetUsd !== null && spent >= knobs.budgetUsd) {
       next.status = "failed";
       next.gateReason = "budget";
-      next.errorText = `Run budget exhausted: spent $${spent.toFixed(4)} of the $${knobs.budgetUsd.toFixed(4)} ceiling (the loop's "budgetUsd" knob).`;
+      next.errorText = `Run budget exhausted: spent $${spent.toFixed(4)} of the $${knobs.budgetUsd.toFixed(4)} ceiling (the workflow's "budgetUsd" knob).`;
       next.startedAt = next.finishedAt = new Date().toISOString();
       run.status = "failed";
       run.summary = `Stopped by budget: $${spent.toFixed(4)} ≥ $${knobs.budgetUsd.toFixed(4)}.`;
@@ -254,7 +361,7 @@ export async function driveRun(run, opts = {}) {
     /* ── 2. EXECUTE ─────────────────────────────────────────────────────── */
     const ctx = {
       runId: run.runId,
-      templateId: run.loopId,
+      templateId: run.workflowId,
       stepId: next.stepId,
       priorOutputs,
       priorStepNames,
@@ -263,7 +370,7 @@ export async function driveRun(run, opts = {}) {
       apiKey,
       /* What the run has spent BEFORE this step — the number {{run.costUsd}}
          resolves to. On the last api-request it is the run's whole cost. */
-      spentUsd: spent,
+      spentUsd: unknownSpend ? null : spent,
       /* Only present when there is somewhere to write. Without a store there is
          no `.qf/` and no fallback — the request goes out or it does not. */
       fileSink: store ? (body) => store.writeSink(run.runId, body) : null,
@@ -282,9 +389,22 @@ export async function driveRun(run, opts = {}) {
        outgoing request. It proves the manifest resolves and the order is what
        the author expected, and it says "planned", never "success". */
     if (dryRun) {
+      try {
+        next.output = plannedOutput(step, ctx, knobs);
+      } catch (e) {
+        /* An invalid call policy is reported by the dry run, not first by a paid run. */
+        next.status = "failed";
+        next.errorText = e instanceof Error ? e.message : String(e);
+        next.finishedAt = new Date().toISOString();
+        run.status = "failed";
+        run.summary = next.errorText;
+        run.finishedAt = next.finishedAt;
+        persist();
+        onStep(next);
+        return run;
+      }
       next.status = "planned";
       next.finishedAt = new Date().toISOString();
-      next.output = plannedOutput(step, ctx, knobs);
       persist();
       onStep(next);
       continue;
@@ -297,10 +417,13 @@ export async function driveRun(run, opts = {}) {
         if (knobs.budgetUsd !== null) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null and use bounded inference jobs.');
         const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }) : undefined;
         if (step.config.input && explicitInput === undefined) throw new Error('CLI input reference did not resolve');
+        const input = run.clarificationContext && run.workflowId === 'sdd-pipeline' && next.stepId === 'brief'
+          ? { ...explicitInput, clarification: structuredClone(run.clarificationContext) }
+          : explicitInput;
         const response = registryCliStep(run, {
           stepId: `${next.seq}:${next.stepId}`,
           instructions: resolveTemplate(str(step.config, 'instructions') ?? '', { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }),
-          input: run.repairContext ? { input: step.config.input ? explicitInput : priorOutputs, repair: run.repairContext } : step.config.input ? explicitInput : next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
+          input: run.repairContext ? { input: step.config.input ? input : priorOutputs, repair: run.repairContext } : step.config.input ? input : next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
           provider: opts.callerProvider, reply: inferenceReply, save: persist,
           maxInferenceJobs: opts.maxInferenceJobs, inferenceTtlMs: opts.inferenceTtlMs,
         });
@@ -312,6 +435,25 @@ export async function driveRun(run, opts = {}) {
         if (format === 'json' && (!output || typeof output !== 'object')) throw new Error('CLI JSON output must be an object or array');
         result = { output, unknownUsage: true, provider: response.provider };
       } else result = await dispatch(step, ctx, knobs);
+      if (isSddClarification(run, next, result.output)) {
+        const requested = questions(result.output.questions);
+        const inference = run.inferenceHistory?.at(-1);
+        const clarification = {
+          type: 'clarify_spec',
+          runId: run.runId,
+          hash: hash({ workflowId: run.workflowId, runId: run.runId, stepId: next.stepId, inferenceJobId: inference?.jobId ?? null, questions: requested }),
+          questions: requested,
+        };
+        insist(inference?.status === 'consumed', 'Clarification must follow a consumed caller job', 'STALE_INFERENCE');
+        next.status = 'waiting_human'; next.gateReason = 'clarification'; next.output = clarification;
+        next.tokensIn = null; next.tokensOut = null; next.costUsd = null; next.provider = result.provider; next.finishedAt = null;
+        run.tokensIn = null; run.tokensOut = null; run.costUsd = null;
+        run.pendingClarification = { hash: clarification.hash, questions: requested, seq: next.seq, stepId: next.stepId, inferenceJobId: inference.jobId };
+        run.status = 'waiting_human'; run.summary = 'Waiting for answers to the exact clarification questions.'; run.finishedAt = null;
+        persist(); onStep(next);
+        return run;
+      }
+      if (run.clarificationContext && run.workflowId === 'sdd-pipeline' && next.stepId === 'brief') delete run.clarificationContext;
       if (['verify-artifact', 'determined'].includes(next.kind) && result.output.outcome === 'fail') {
         run.repairHistory ??= [];
         run.repairHistory.push(result.output);
@@ -328,20 +470,24 @@ export async function driveRun(run, opts = {}) {
         for (const row of run.steps.filter(s => s.seq >= from.seq && s.seq <= next.seq)) { row.status = 'pending'; row.output = null; row.errorText = null; row.startedAt = null; row.finishedAt = null; }
         persist(); continue;
       }
-      const costUsd = result.costUsd ?? usdForTokens(result.tokensIn ?? 0, result.tokensOut ?? 0);
+      /* A model step reports its own cost: the provider's figure, the table
+         price of the model that answered, or null (unknown). Steps that call no
+         model cost nothing. No step is priced at another model's rate. */
+      const costUsd = "costUsd" in result ? result.costUsd : 0;
       next.status = result.waitingHuman ? "waiting_human" : "success";
       next.gateReason = result.waitingHuman ? "gate" : null;
       next.output = result.output;
       next.tokensIn = result.tokensIn ?? 0;
       next.tokensOut = result.tokensOut ?? 0;
-      next.costUsd = result.unknownUsage ? null : Number(costUsd.toFixed(4));
+      next.costUsd = result.unknownUsage || costUsd === null ? null : roundUsd(costUsd);
+      if (result.costSource) next.costSource = result.costSource;
       if (result.provider) next.provider = result.provider;
       if (result.unknownUsage) { next.tokensIn = null; next.tokensOut = null; }
       next.finishedAt = result.waitingHuman ? null : new Date().toISOString();
 
       run.tokensIn = run.tokensIn === null || next.tokensIn === null ? null : run.tokensIn + next.tokensIn;
       run.tokensOut = run.tokensOut === null || next.tokensOut === null ? null : run.tokensOut + next.tokensOut;
-      run.costUsd = run.costUsd === null || next.costUsd === null ? null : Number((run.costUsd + next.costUsd).toFixed(4));
+      run.costUsd = run.costUsd === null || next.costUsd === null ? null : roundUsd(run.costUsd + next.costUsd);
       persist();
       onStep(next);
 
@@ -361,6 +507,7 @@ export async function driveRun(run, opts = {}) {
         return run;
       }
       if (opts.signal?.aborted) {
+        recordSpend(run, next, e?.spend);
         next.status = "failed";
         next.errorText = "Run cancelled.";
         next.finishedAt = new Date().toISOString();
@@ -374,6 +521,7 @@ export async function driveRun(run, opts = {}) {
       next.status = "failed";
       next.errorText = e instanceof Error ? e.message : String(e);
       next.finishedAt = new Date().toISOString();
+      recordSpend(run, next, e?.spend);
       run.status = "failed";
       run.summary = next.errorText;
       run.finishedAt = new Date().toISOString();
@@ -382,6 +530,24 @@ export async function driveRun(run, opts = {}) {
       return run;
     }
   }
+}
+
+/** USD kept to the micro-dollar: a cheap model's real cost must not round to zero. */
+function roundUsd(value) {
+  return Number(value.toFixed(6));
+}
+
+/* A paid call that was billed and then failed (truncated, empty, over its cap,
+   refused by an Agent-Gate) still spent money. The step and the run record it. */
+function recordSpend(run, row, spend) {
+  if (!spend || typeof spend !== "object") return;
+  row.costUsd = spend.costUsd === null ? null : roundUsd(spend.costUsd);
+  row.costSource = spend.costSource;
+  row.tokensIn = spend.tokensIn ?? null;
+  row.tokensOut = spend.tokensOut ?? null;
+  run.costUsd = run.costUsd === null || row.costUsd === null ? null : roundUsd(run.costUsd + row.costUsd);
+  run.tokensIn = run.tokensIn === null || row.tokensIn === null ? null : run.tokensIn + row.tokensIn;
+  run.tokensOut = run.tokensOut === null || row.tokensOut === null ? null : run.tokensOut + row.tokensOut;
 }
 
 async function dispatch(step, ctx, knobs) {
@@ -411,14 +577,19 @@ async function dispatch(step, ctx, knobs) {
 function plannedOutput(step, ctx, knobs) {
   const label = stepLabel(step);
   if (step.kind === "llm-call") {
-    return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step) };
+    if (step.config.provider === "cli") return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step) };
+    const { retries, timeoutMs, maxCallCostUsd } = llmCallPolicy(step.config, label);
+    return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step), retries, maxAttempts: retries + 1, timeoutSec: timeoutMs / 1000, maxCallCostUsd: maxCallCostUsd ?? null };
   }
   if (step.kind === "fetch" || step.kind === "api-request") {
     const raw = str(step.config, "url") ?? "";
     return { planned: true, step: label, url: raw, method: str(step.config, "method") ?? (step.kind === "fetch" ? "GET" : "POST") };
   }
   if (step.kind === "approval-gate") {
-    return { planned: true, step: label, reviewer: str(step.config, "reviewer") ?? "human" };
+    const reviewer = str(step.config, "reviewer") ?? "human";
+    if (reviewer !== "agent") return { planned: true, step: label, reviewer };
+    const { retries, timeoutMs, maxCallCostUsd } = llmCallPolicy(step.config, label);
+    return { planned: true, step: label, reviewer, model: stepModel(step, knobs), retries, maxAttempts: retries + 1, timeoutSec: timeoutMs / 1000, maxCallCostUsd: maxCallCostUsd ?? null };
   }
   return { planned: true, step: label };
 }
@@ -657,16 +828,36 @@ function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
   }
 }
 
-/** Continue a run that is parked at a human gate. */
-export async function resumeRun(run, { decision, approvalHash, ...opts }) {
-  insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
+/** The human gate a run is parked at; checks a bound approval hash before anyone is asked. */
+export function waitingGate(run, approvalHash) {
   const gate = run.steps.find((s) => s.status === "waiting_human");
   if (!gate) throw new Error(`Run ${run.runId} is not waiting on anyone (status: ${run.status}).`);
   if (gate.config.bind === 'sha256') {
     const subject = run.steps.filter(s => s.seq < gate.seq && s.status === 'success' && s.output != null).at(-1)?.output ?? null;
     insist(approvalHash === gate.output.approvalHash && hash(subject) === approvalHash && hash(gate.output.subject) === approvalHash, 'Approval does not match the current exact subject', 'STALE_APPROVAL');
   }
+  return gate;
+}
+
+/**
+ * Continue a run that is parked at a human gate.
+ *
+ * `confirmation` is the record of how a person made this decision. The CLI
+ * (`q-core approve`) passes the record of a one-time code typed at the terminal
+ * (src/human-confirmation.mjs); an embedding host passes its own record
+ * ({ channel, ... }) and is responsible for having asked a person. There is no
+ * default: a caller that has no human decision cannot continue the gate. Inside an
+ * agent session no record is accepted (q-core approve has already refused there).
+ */
+export async function resumeRun(run, { decision, approvalHash, confirmation, ...opts }) {
+  insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
+  insist(confirmation && typeof confirmation.channel === 'string' && confirmation.channel.trim() && (confirmation.decision ?? decision) === decision,
+    'A human gate continues only with a human confirmation record (q-core approve asks at the terminal)', 'HUMAN_CONFIRMATION_REQUIRED');
+  const marker = agentSessionMarker(process.env);
+  insist(!marker, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal`, 'HUMAN_CONFIRMATION_REQUIRED');
+  const gate = waitingGate(run, approvalHash);
   gate.decision = decision;
+  gate.confirmation = { channel: confirmation.channel, confirmedAt: confirmation.confirmedAt ?? new Date().toISOString() };
   if (decision === "reject") {
     gate.status = "failed";
     gate.errorText = "Rejected at the gate by a human.";

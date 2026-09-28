@@ -2,12 +2,17 @@
   "id": "llm-call-openrouter",
   "name": "llm-call/openrouter",
   "kind": "step",
-  "description": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+  "description": "OpenRouter inference with an explicit model, a local secret reference from the environment or the macOS Keychain, bounded retries and timeout, an optional per-call money cap, and the provider's own cost in the run record. This is not the current CLI agent.",
   "input": {
     "instructions": {
       "type": "string",
       "required": true,
-      "notes": "templated. SPEC-MANIFEST.md \u00a75.2."
+      "notes": "templated. SPEC-MANIFEST.md §5.2."
+    },
+    "input": {
+      "type": "reference",
+      "required": false,
+      "notes": "One step-output reference, for example {{steps.unique.output}}; the model then sees only that value instead of every prior output (capped at 60 000 characters). A reference that does not resolve fails before anything is sent."
     },
     "format": {
       "type": "string",
@@ -27,18 +32,43 @@
     "role": {
       "type": "string",
       "required": false,
-      "notes": "prepended as \"You are the \u27e8role\u27e9 agent\u2026\""
+      "notes": "prepended as \"You are the ⟨role⟩ agent…\""
     },
     "model": {
       "type": "string",
       "required": false,
-      "notes": "overrides the loop's model."
+      "notes": "overrides the workflow's model."
+    },
+    "secretSource": {
+      "type": "string",
+      "required": false,
+      "notes": "env | keychain. Default env. keychain reads the key from the local macOS Keychain (service com.qfactory.q-core.openrouter, account openrouter:<keyRef>; store it with q-core auth set openrouter); the key never appears in the workflow, environment or run record."
+    },
+    "keyRef": {
+      "type": "string",
+      "required": false,
+      "notes": "Uppercase secret alias, default OPENROUTER_API_KEY. With secretSource env it names the environment variable; with keychain it names the Keychain entry."
+    },
+    "retries": {
+      "type": "number",
+      "required": false,
+      "notes": "0..5, default 2. At most retries + 1 billable attempts; retried only on network, timeout, 429 and 5xx. Out of range fails the step before the key is read."
+    },
+    "timeoutSec": {
+      "type": "number",
+      "required": false,
+      "notes": "1..600 seconds per attempt, default 90."
+    },
+    "maxCallCostUsd": {
+      "type": "number",
+      "required": false,
+      "notes": "Optional per-call money cap in USD, (0, 100]. The worst case of every attempt at the model's listed price must fit, or the call is not made (COST_LIMIT); a model with no listed price is refused (COST_UNKNOWN)."
     }
   },
   "output": {
     "text": {
       "type": "string",
-      "notes": "format: text \u2014 {text, model}."
+      "notes": "format: text — {text, model}."
     },
     "model": {
       "type": "string",
@@ -47,6 +77,10 @@
     "json": {
       "type": "object",
       "notes": "When format: json, the output is the parsed object instead of {text, model}."
+    },
+    "costUsd": {
+      "type": "number | null",
+      "notes": "Run record: costUsd is the provider's reported cost (costSource provider), else the listed price of the model that answered (rate-table), else null (unknown). A finite budgetUsd stops the next paid step while any cost is unknown."
     }
   },
   "needsEnv": [
@@ -56,7 +90,7 @@
   "usedBy": [],
   "runtimeKind": "llm-call",
   "contentType": "component",
-  "value": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+  "value": "OpenRouter inference with an explicit model, a local secret reference from the environment or the macOS Keychain, bounded retries and timeout, an optional per-call money cap, and the provider's own cost in the run record. This is not the current CLI agent.",
   "acceptance": {
     "status": "pending",
     "evidence": []

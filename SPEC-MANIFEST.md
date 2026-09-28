@@ -1,6 +1,6 @@
-# SPEC-MANIFEST — `qloops.loop/v1`
+# SPEC-MANIFEST — `q-core.workflow/v1`
 
-The file format a loop is written in, and exactly what the runner does with each
+The file format a workflow is written in, and exactly what the runner does with each
 field.
 
 **One rule governs this document: nothing is described here that the engine does
@@ -31,14 +31,14 @@ than one document per file, tab indentation, duplicate keys.
 ## 2. Top level
 
 ```yaml
-manifest: qloops.loop/v1      # REQUIRED, verbatim
-id: content-feed          # REQUIRED — names the loop in state and logs
+manifest: q-core.workflow/v1      # REQUIRED, verbatim
+id: content-feed          # REQUIRED — names the workflow in state and logs
 name: "Morning digest"    # defaults to id
 version: 1.0.0            # free-form
 description: >            # free-form
-  What this loop is for.
+  What this workflow is for.
 owner: oleg               # free-form
-enabled: true             # false ⇒ `qloop run` does nothing and says so
+enabled: true             # false ⇒ `q-core run` does nothing and says so
 triggers: [...]           # §3
 settings: {...}           # §4
 steps: [...]              # REQUIRED, at least one — §5
@@ -65,9 +65,9 @@ triggers:
 ```
 
 Kinds: `schedule` · `manual` · `webhook` · `signal` · `intent-input` ·
-`loop-input` · `event`.
+`workflow-input` · `event`.
 
-**The runner does not act on any of them.** `qloop run` performs one pass; `cron:`
+**The runner does not act on any of them.** `q-core run` performs one pass; `cron:`
 documents the intended cadence, and launchd or cron actually fires it (README
 §Scheduling). In the product, the scheduler is what reads these.
 
@@ -90,7 +90,7 @@ settings:
 Precedence, strongest first: a step's own `config.model` → `settings.model` →
 `OPENROUTER_MODEL`. No model is selected implicitly. A model-backed YAML step
 requires an explicit OpenRouter model; it does not use CLI caller inference.
-`qloop validate` reports the selected model or an unconfigured value.
+`q-core validate` reports the selected model or an unconfigured value.
 
 ### 4.2 Budget (knob 3)
 
@@ -107,15 +107,25 @@ Three distinct states, and they mean different things:
 | `budgetUsd: 0.10` | that ceiling |
 | `budgetUsd: null` | no ceiling, **lifted on purpose** |
 
-The rate is the same table the product bills on (`src/cost.mjs`), so a manifest
-costs the same in both homes.
+A model step's cost is, in order: the provider's own reported cost
+(`usage.cost`, `costSource: provider`) → the listed price of the model that
+actually answered (`src/cost.mjs`, `costSource: rate-table`) → **unknown**
+(`costUsd: null`, `costSource: unknown`). An unlisted model is never billed at
+another model's rate. A 4xx/429/5xx answer is treated as not billed; an attempt
+that ended without a readable answer (timeout, dropped connection, cancellation,
+unreadable body) may have been billed, so that call's cost is unknown even if a
+retry succeeded. Unknown is not zero: with a ceiling set, the next model call
+(`llm-call`, agent `approval-gate`) does not start while any step's cost is
+unknown (`gateReason: budget`), and `{{run.costUsd}}` renders `unknown`. Lift the
+ceiling on purpose (`budgetUsd: null`) to run such steps anyway. A billed call
+that then fails (truncated, empty, over its cap) keeps its cost in the run.
 
 ### 4.3 Sensitivity (knob 1) — REFUSED by this runner
 
 `settings.sensitivity` is part of the format and the product implements it. **The
 local runner refuses a manifest that sets one** rather than run it with the knob
 ignored: the profile exists to hold back irreversible and outbound steps, so
-ignoring it would carry them out. Run such a loop in the product, or remove the
+ignoring it would carry them out. Run such a workflow in the product, or remove the
 profile.
 
 ### 4.4 Windowed limits · exit criteria
@@ -123,7 +133,7 @@ profile.
 `limits` (daily / weekly / monthly caps on runs and spend) and `exit` are
 validated for shape and carried through to the product, which enforces them.
 **The local runner does not enforce `limits`** — it has no cross-run ledger to
-count against. `qloop validate` says so on the line where it prints them.
+count against. `q-core validate` says so on the line where it prints them.
 
 ---
 
@@ -170,10 +180,25 @@ The RSS reader is regex-based, not an XML parser. It handles CDATA, `<item>` and
 | `maxTokens` | | default 1200 |
 | `temperature` | | default 0.3 |
 | `role` | prepended as "You are the ⟨role⟩ agent…" | |
-| `model` | overrides the loop's model | |
+| `model` | overrides the workflow's model | |
+| `secretSource` | `env` \| `keychain` | default `env` |
+| `keyRef` | uppercase secret alias | default `OPENROUTER_API_KEY` |
+| `retries` | 0..5, at most `retries + 1` billable attempts | default 2 |
+| `timeoutSec` | 1..600, per attempt | default 90 |
+| `maxCallCostUsd` | per-call money cap, (0, 100] | none |
+| `input` | one step-output reference, e.g. `{{steps.unique.output}}` | every prior output |
+
+`retries`, `timeoutSec` and `maxCallCostUsd` apply to an agent `approval-gate` too.
+They are checked before the key is read or anything is sent, and `--dry-run`
+reports them; an out-of-range value fails the step, it is never clamped.
+`maxCallCostUsd` refuses a call whose worst case (prompt bytes + `maxTokens`, every
+attempt) exceeds the cap at the model's listed price, and refuses a model with no
+listed price rather than guessing (`COST_UNKNOWN`).
 
 The step's **input is every prior successful output**, as JSON, capped at 60 000
-characters. Inside a fan-out lane, its own item comes first.
+characters. Inside a fan-out lane, its own item comes first. With `input` set to one
+step-output reference, the model sees only that value (same cap); a reference that
+does not resolve fails the step before anything is sent.
 
 Output: `{text, model}`, or the parsed object when `format: json`.
 
@@ -195,10 +220,10 @@ travel down the chain and out through the next request as if it were real.
 | `timeoutSec` | | default 30 |
 
 Without `body`, the last successful output is sent in an envelope
-`{runId, templateId, payload}` — a receiver has to know which run and which loop
+`{runId, templateId, payload}` — a receiver has to know which run and which workflow
 sent a thing.
 
-**A loop may end here.** This is a complete loop, not an unfinished one.
+**A workflow may end here.** This is a complete workflow, not an unfinished one.
 
 ### 5.4 `approval-gate` — Human-Gate or Agent-Gate
 
@@ -212,9 +237,93 @@ One kind, two modes; they differ only in *who* decides.
 | `escalateOn` | `objection` hands a failed check to a person | default `objection` |
 | `mode` | `check` is `RESERVED` — refused | |
 
-**`reviewer: human`** parks the run as `waiting_human`. `qloop approve` continues it,
-`--reject` fails it. **A human gate is optional** — nothing in the format or the
-engine assumes a run must meet a person.
+**`reviewer: human`** parks the run as `waiting_human`. `q-core approve` continues it,
+`--reject` fails it. A human gate is optional for a workflow with no side effect,
+and for a reviewed Registry workflow installed unchanged. **A workflow you create
+needs one before any side effect (Core 37)** — see "Created workflows" below.
+
+**Only a person decides a human gate (Core 35).** `q-core approve` (and `--reject`)
+asks on the controlling terminal: it prints the subject and a fresh one-time code to
+`/dev/tty` (never to stdout or stderr) and continues only when the same code is typed
+back there. It refuses, exits 2 and leaves the run waiting when
+- an agent-session marker is set (`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CLAUDE_CODE_SESSION_ID`, `AI_AGENT`,
+  `CODEX_SANDBOX`, `CODEX_SANDBOX_NETWORK_DISABLED`, `CODEX_THREAD_ID`, `CURSOR_AGENT`,
+  `GEMINI_CLI`, `OPENCODE`);
+- stdin or stdout is not a terminal (a pipe, a file, an agent's command runner);
+- the process has no controlling terminal, or the code does not match.
+
+The refusal names the exact command for the person (`--json` adds `nextAction`
+`ask_human_to_approve`, `humanOnly: true`), and every JSON result of a run parked at a
+human gate carries the same `nextAction` (`q-core run`, `reply`, `clarify`, `resume`,
+`approve --json` at a second gate, `status --json`). An agent shows the subject, asks the
+user to run that command in their own terminal and waits; it never runs it itself.
+The library `resumeRun` requires a `confirmation` record (`{channel, ...}`) and stores
+its channel on the gate step; `q-core approve` records `tty-code`. Inside an agent
+session `resumeRun` accepts no record at all. An embedding host that passes its own
+record is responsible for having asked a person.
+
+Limits: this stops an agent that runs `q-core approve` itself or from its own script,
+and a blind or piped answer. It is not an identity service: a process of the same OS
+user can still get around it on purpose (remove the markers and drive a
+pseudo-terminal; remove the markers and import the library with a forged record; edit
+the unsigned run state under `.qf/`). Instructions to
+agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
+Windows consoles are refused.
+
+**The `q-core agent` / `q-core content` JSON protocols: human-only approval (Core 38,
+owner decision 27.09.2026).** The JSON channel cannot decide. A request that carries
+`approval` (approve or reject) is refused with `HUMAN_APPROVAL_REQUIRED`
+(needs_human, exit 2), with or without agent markers; the run stays at its approval
+phase and nothing is applied, verified, fetched or sent. At the approval point the
+result carries `nextAction` `ask_human_to_approve` (`humanOnly: true`, `subject`
+`specification` or `publication`, `approvalHash`, the subject, an exact `command`).
+The person runs, in their own terminal,
+`q-core agent approve <workspace> <runId> --approval-hash <hash> [--reject]` or
+`q-core content approve …` with the same arguments. It asks exactly like
+`q-core approve` (same refusals, one-time code on `/dev/tty`) and records
+`humanDecision: {hash, decision, channel: "tty-code", confirmedAt}` in the persisted
+run state (`.qf/agent-<runId>.json`, or the run in `.qf/content-state.json`); a hash
+that is not the current one is refused (`STALE_APPROVAL`). The agent then resends the
+same request without `approval`. Core applies files, runs the verifier or sends only
+on a recorded approve bound to the current approval hash; a recorded reject cancels;
+a decision for an older hash does not count. The library `recordHumanDecision`
+(`src/human-decision.mjs`) requires a confirmation record and accepts none inside an
+agent session, like `resumeRun`. The same limits apply as for `q-core approve`.
+The `approval` property stays in `contracts/v1/request.schema.json` (the hosted
+validator is shared across Cores); the runtime refuses it.
+
+**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
+(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
+(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
+carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
+sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
+(the `command` in `nextAction`) in their own terminal, then the caller resends the same
+request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
+request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
+
+**Created workflows: a human gate before any side effect (Core 37).** A policy
+on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
+stays byte-identical so one hosted validator serves several Cores): `q-core
+validate`, `q-core run`, `q-core approve` and the host refuse a
+workflow in which a step that writes files (`workspace-apply`) or sends data
+(every `api-request` except exactly `method: GET` to a literal `http(s)` URL: any
+other method value, a templated method, no method (`POST`), a `file:` URL or a
+templated URL, which can fall back to the local file sink) has no human
+`approval-gate` earlier on the same path (`GATE_REQUIRED`). A gate
+inside an `if` or `switch` branch guards only that branch; a gate before a
+branching step or a `fan-out` guards everything in it; an agent gate does not
+count. Reviewed Registry workflows keep their published shape: a manifest whose
+`<file>.lock.json` (written by `q-core install` and, from Core 37, `q-core init`)
+names the SHA-256 of these exact bytes is exempt; the Registry build and catalogue
+read the format only. An adapted copy is a
+created workflow. Every workflow is also refused when a `workspace-read` output
+is used by no later step (`UNUSED_WORKSPACE_READ`; a later `llm-call` without
+`input` receives every prior output and counts as a use): Q-Core would read the project
+and do nothing, while the work happens outside the engine. Limits: the check reads
+the manifest only. It cannot see a script an agent runs outside Q-Core, and a
+forged lock file is a deliberate bypass like the ones listed above. The library
+functions (`loadManifest`, `validateManifest`, `createRun`/`driveRun`) check the
+format only; the policy is `loadWorkflow` / `assertWorkflowPolicy`.
 
 **`reviewer: agent`** is a machine check whose verdict is `{pass, reason}`.
 Today that check is an LLM judge; `mode: check` (a real, non-model checker) is
@@ -302,7 +411,7 @@ Resolved inside `url`, `body`, `headers`, `instructions` and `over`.
 arriving at a receiver is a visible failure; an empty string is a silent one.
 
 `{{env.…}}` exists so a manifest never carries a secret. A manifest is a file
-that goes into git — "share the loop" must not mean "share the bot token".
+that goes into git — "share the workflow" must not mean "share the bot token".
 
 ---
 
@@ -310,9 +419,10 @@ that goes into git — "share the loop" must not mean "share the bot token".
 
 - A failed step **stops the run**. `.qf/last-run.json` records the status, the
   reason and the failing step; the process exits non-zero.
-- **Fixed runtime retries, not manifest-configurable.** Fetch, model and API
-  requests retry transient network/timeout/429/5xx failures twice, with 1.5s/4s
-  backoff. Other 4xx fail immediately. Exhaustion remains a failure. Body parsing
+- **Runtime retries.** Fetch, model and API requests retry transient
+  network/timeout/429/5xx failures twice, with 1.5s/4s backoff. A model step
+  (`llm-call`, agent `approval-gate`) sets its own `retries` (0..5); fetch and API
+  retries are not manifest-configurable. Other 4xx fail immediately. Exhaustion remains a failure. Body parsing
   failures are not retried. Explicit transport cancellation does not retry.
 - **No idempotency key.** A retry after an ambiguous response or a re-run can
   repeat outgoing writes. Publishing requires receiver de-duplication; this
@@ -320,14 +430,14 @@ that goes into git — "share the loop" must not mean "share the bot token".
 - **No `continue_on_error` / `optional`.** One unreachable source fails the run.
   This is a known cost, not an oversight.
 - A run parked at a gate is neither failed nor finished: it is held on disk and
-  `qloop approve` resumes it from exactly there.
+  `q-core approve`, run by a person at a terminal, resumes it from exactly there.
 
 ---
 
 ## 8. Memory
 
 There is none, between runs. No cursor, no "last seen", nowhere to put one. A
-feed loop sends what the feed holds now. Claiming otherwise would be the most
+feed workflow sends what the feed holds now. Claiming otherwise would be the most
 expensive kind of wrong.
 
 ---
@@ -335,24 +445,21 @@ expensive kind of wrong.
 ## 9. Divergences
 
 The runner and the product engine execute the same manifest identically, and a
-parity test (`scripts/loop-parity.ts`) enforces that across four cases: a loop
+parity test in the product engine enforces that across four cases: a workflow
 with no human, a gate that holds, a budget that cuts, and a fan-out lane per
 item.
 
-**On an unset `{{env.X}}` in a URL, neither home fires the request** (owner
-decision, 2026-08-02). They differ only in what they do instead:
+**On an unset `{{env.X}}` in a URL, neither home fires the request.** They differ
+only in what they do instead:
 
 | | |
 |---|---|
 | engine | the step **fails**, naming the variable: "TELEGRAM_BOT_TOKEN is not set … the missing value is a secret, not a broken endpoint" |
 | runner | the payload goes to `.qf/out/<runId>.txt`, the run continues, and the CLI says `⚠ NOT SENT` |
 
-Both refuse to send blind. The runner's file sink exists so a loop can be proven
-end to end **before** its real receiver has credentials — which is the whole
-point of running it locally. Before this was aligned, the engine posted to a URL
-with braces still in it and read back a 404, i.e. it reported "no such bot" when
-the truth was "no token in the environment" — two different problems needing two
-different fixes.
+Both refuse to send blind. The runner's file sink lets you validate an end-to-end
+flow before configuring a real receiver. A missing environment value is reported
+as a missing value, rather than treated as a receiver endpoint.
 
 **What the runner does not enforce at all:** `settings.sensitivity` (refused
 outright) and `settings.limits` (validated, not counted — there is no cross-run
@@ -362,7 +469,7 @@ ledger locally). The product enforces both.
 
 ## 10. Versioning
 
-`manifest: qloops.loop/v1` is the contract. Within `v1`, fields may be **added**;
+`manifest: q-core.workflow/v1` is the contract. Within `v1`, fields may be **added**;
 nothing that exists is repurposed or removed. A runner meeting a version it does
 not read says so by name instead of trying its luck.
 
@@ -370,7 +477,7 @@ not read says so by name instead of trying its luck.
 precisely so that implementing them later cannot break a manifest that was
 written against this document.
 
-## 11. Registry composition additions (Core candidate)
+## 11. Registry composition additions
 
 The Registry driver also executes `parse-web`, `deduplicate`, `verify-sources`,
 `workspace-read`, `specification`, `workspace-apply` and `verify-artifact`.
@@ -380,18 +487,178 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   selects prior fetched text pages. `maxChars` is 500..10000 per page (default6000).
   Static text extraction excludes scripts/navigation and reports truncation. It
   does not execute JavaScript or assert that source statements are factual.
+  `items: feed` splits each RSS/Atom page into items `{n, url, feed, title, published,
+  text, textTruncated}` (entities decoded, HTML stripped); `since`/`until` (ISO, may
+  use `{{env.NAME}}`) keep a publication window and drop undated items;
+  `maxItemsPerSource` 1..50 (default 10), `itemChars` 100..2000 (default 400), at
+  most 100 items. A page that is not a feed, or an empty window, fails.
+  (Core 40) `articles: "true"` with `source` referencing selected sources (`{sources}` or a
+  `deduplicate clusters` output) reads the article behind each source URL: at most 20 distinct URLs,
+  in parallel, one GET each (each attempt 20 s, 1 retry on a network error, 429 or 5xx, at most 3
+  redirects, 1.5 MB per page, and one 30 s budget per URL for all attempts, hops and the body),
+  http(s) only, no credentials in the URL and never a local or private-network host (localhost,
+  `.local`, `.internal`, 0.0.0.0/8, 127.0.0.0/8, RFC 1918, link-local, CGNAT, numeric hosts, every IPv6
+  address starting with `::` (IPv4-compatible and IPv4-mapped included), NAT64 64:ff9b::/96,
+  fc00::/7, fe80::/10 and fec0::/10; checked on every redirect hop by the literal host; a public name
+  that resolves to a private address is not detected). Only `text/html`, `application/xhtml+xml` and
+  `text/plain` responses are read; the charset comes from the Content-Type or a `<meta>` in the first
+  4 KB (default utf-8), and one Node cannot decode makes the page unavailable. The text is the page's
+  longest `<article>`, else `<main>`, else the page (`articleExtraction`: `article`|`main`|`body`),
+  without scripts, styles, navigation, headers, footers, asides, forms, figures and comments; no
+  JavaScript runs, and extraction is linear in the page size (unclosed tags cannot make it slow).
+  `maxChars` (500..10000, default 4000) caps one article; `maxTotalChars` (1000..200000) shares one
+  budget equally among the readable articles. The output is the input with each source (and each
+  cluster's sources, ranks kept) given `articleStatus` (`ok`|`unavailable`), `articleText` (or null),
+  `articleTruncated`, `articleExtraction`, `articleError`, plus `articles: {read, unavailable,
+  charsPerArticle}`. An unreachable page, an error or timeout while reading the body, an invalid or
+  non-public redirect, a non-text page, an undecodable charset or a page without static text is recorded
+  as unavailable; when none is readable the step fails.
 - `deduplicate`: `source` references `{sources:[{url,text,...}]}`. Exact URL/text
-  duplicates are removed; `sourceHash` identifies the selected set.
+  duplicates are removed; `sourceHash` identifies the selected set. With `clusters`
+  (a model step's `{clusters:[{topic, summary, sources}]}`), sources are named by
+  item number `n` or exact URL; every one must be selected and a source is in one
+  cluster only. Clusters are ranked by independent outlets, then the model's order,
+  and the first `maxClusters` (1..20, default 8) are kept. Output `{clusters:[{rank,
+  modelRank, topic, summary, independentOutlets, sources}], sources}`; each kept
+  source carries its `cluster` rank.
 - `verify-sources`: `draft` references text or `{text}` and `sources` references
   the selected sources. Requires every selected source URL, rejects unknown URLs
   and enforces a 16000-character bound. Optional `language: uk` checks Ukrainian
-  markers, not linguistic quality. Facts need independent review.
+  markers, not linguistic quality. Facts need independent review. `citation: links`
+  instead requires a selected-source link in every list item and every prose
+  sentence of the required sections (not every source must be cited);
+  `sectionSentences` / `sectionItems` (`{"## H":"min..max"}`) bound prose sentences
+  and list items, one line each, with no ### sub-headings or nested items; `itemMaxWords`
+  (`{"## H":N}`) bounds a list item; `oneClusterPerItem` (`["## H"]`) holds each list
+  item to one cluster and each cluster to one item. Links inside inline code or HTML
+  comments do not count as citations. `introLinks`
+  no longer need `requiredPrefix` (the introduction then starts the draft).
+- (Core 36) `verify-sources` `nestedList: "N"` (N = 1..6) replaces the section contract
+  (`requiredHeadings`, `introLinks` and the section shape checks may not be set with it):
+  after `requiredPrefix` the draft is only a nested bullet list (`-`, `*` or `+`), one
+  line per item, indented by a consistent 2-4 spaces per level, never skipping a level,
+  at most N levels deep. A heading, a section label, a paragraph or a numbered item is
+  refused. With `citation: links` every item at every level links a selected source. `nestedOrder:
+  cluster` (with `nestedList` and sources from `deduplicate clusters`) orders the top-level
+  items by weight: the best cluster rank cited by an item or anything nested under it never
+  goes back up (rank 1 = most independent outlets). Item text may not open another list, a quote
+  or a code fence (it would render deeper than its indentation). `forbiddenLabels` (JSON
+  array) refuses an item that opens with a section label (bold or plain, before `:`, `—`,
+  `(` or the end), even with a link. From Core 37 the comparison ignores markup around
+  the label: HTML and escaped HTML tags (`&lt;b&gt;`), Markdown emphasis, quotes
+  (`«Кейси»`) and leading emoji or bullets (`📌`). `outletLinkText: "true"` requires every
+  selected-source link in an item to name its outlet: the link text contains one of the
+  host's names, i.e. its labels without generic prefixes (`www`, `blog`, `news`…),
+  generic second levels before a country code (`co` in `bbc.co.uk`) and generic or
+  country top-level domains (`blog.google` → Google, `bbc.co.uk` → BBC). A one- or
+  two-letter name (`t.me`, `x.com`) must be a whole word of the link text or a known
+  outlet name (Telegram, Twitter).
+- (Core 38) `verify-sources` `factCheck` (with `nestedList` and `citation: links`) references a
+  fact-check model step's output `{claims:[...], text}`; `draft` must resolve to the same `text`
+  (the checked, approved and delivered text is the fact-checked one, otherwise *The checked draft
+  must be the fact-checked text*). Each list item of the text, at any level, has exactly one kept
+  record `{item, verdict: "supported"|"revised", sources:[url], quote:[...], reason}` (`item` = its
+  1-based position; *List item N has no claim record* / *has more than one claim record*). Any other
+  verdict (`unsupported`, `overstated`) is refused: such a claim is revised or removed. `sources` are
+  selected sources the item links; each quote (3+ words, at most 600 characters) occurs verbatim —
+  case, spaces, quote marks and dashes normalised — or, from Core 39, as 2–4 pieces of 2+ words separated by
+  an ellipsis («…» or «...») that each occur verbatim, in order, within one passage (span at most twice
+  the quote plus 120 characters), a left-out part carrying no negation (not, no, never, without, не,
+  ні, без…); every match is on word boundaries and never cuts a number («up to 4» is not in «up to 49», «49» is
+  not in «49.5») (a word left out silently, added or
+  reordered is refused), in the `title` or `text` of one of them as the
+  Core holds it (*the quote is not in the text of its linked sources*). From Core 40 a claim stands on
+  its verbatim quotes (at least one of 3+ words); an extra quote that is not verbatim is set aside and
+  listed as `unmatchedQuotes` for the person who approves, and its numbers do not count; a theme item needs quotes too
+  (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
+  of its quotes or of its linked sources' title and text (*states «…», which is not in its quote or
+  linked sources*): digits with decimal commas or points and thousands separators, scales
+  (млн/млрд/billion, `$3.36B`), ratios (утричі, удвічі, «у 1,5 раза», «three times less», «1.5x»,
+  «2.5-fold», «a third as often», «in half»; a half and «in half» match), shares (третина, половина, «a third of») and counts (двічі,
+  twice); other number words are not compared. A removed record `{verdict: "removed", text, reason}`
+  names no item, and its wording may not remain (*A removed claim is still in the final text*: the
+  text is contained in an item, or one item holds a run of consecutive words covering at least 60% of
+  it, 4 words or more; shared words in another order do not count, so a rewrite of a removed original
+  passes). The output adds
+  `factCheck: {claims, supported, revised, removed, grounding}`, so the human gate (which binds the
+  checks output) binds the text and the verdicts. For feed items the grounding is the feed-item
+  title and summary (`parse-web items: feed` `itemChars`); the linked articles are not read, and
+  whether a verbatim quote supports the wording remains the model's verdict for the human to review.
+  What this deterministic layer catches of the five errors an independent fact-check found in Digest
+  0.5.0 run 65ef7d49: (4) a wrong number or meaning («у третині випадків» for «a third as often») is
+  refused whatever the model records; (5) the listed wrong phrases («не зважаючи», «кодувальних
+  агентів») are refused by `forbiddenPhrases`, other language errors are left to the prompt; (1) a
+  theme that generalises beyond its sources, (2) an overstated scope («training, testing and
+  inference» for tool-based work only) and (3) a misattributed ruling or cost are refused only when
+  the fact-check record admits them (verdict `unsupported`/`overstated`, no quote, a quote that is not
+  in the source, removed wording left). When the model records such wording as `supported` with a
+  genuine quote (The Verge: «pause training of its most powerful models»), it passes: errors 1-3
+  rest on the fact-check model's verdict and the human gate.
+  (Core 40) With sources from `parse-web articles`, quotes and numbers may also come from each linked
+  source's `articleText` (when `articleStatus` is `ok`), and an approximation or bound stays: a number
+  the item states bare is refused when every place that states it — the linked articles when they state
+  it, else the quotes, else the title and summary — has an approximation or bound right before it
+  (about, around, roughly, approximately, nearly, almost, some, up to, more than, over, at least, at
+  most, fewer than, under; близько, приблизно, майже, орієнтовно, десь, під, до, від, понад, більше
+  (ніж), менше (ніж), щонайменше, мінімум, як мінімум, максимум, в/у середньому) (*states «160» exactly;
+  its source says «about 160»*); the item keeps one of them («більше 160» for «more than 160» passes).
+  Ukrainian collective numerals (двоє…десятеро) are numbers. The output `grounding` and `limitation`
+  say whether articles were read, and `factCheckSummary`, right after `text` so the approval preview
+  shows it, gives the verdict counts, how many articles were read and every quote set aside as not
+  found in its source (`unmatchedQuotes`). Still model judgement: scope and attribution in words (links that
+  «weren't publicly listed» vs «у відкритому доступі», vendor-reported results, what exactly was paused),
+  and a number the article states both with and without «about».
+  (Core 41) `review` (with `factCheck` and `nestedList`) references a second model step's patch
+  `{edits:[{item, before, action: "keep"|"revise"|"remove", text, quote:[...], sources?, problem, reason}]}` for
+  the fact-checked text. The patch is applied edit by edit: each edit (a theme removal together with the
+  removals of all its cases, and a case removal together with a revision of its theme) is tried on top of the edits accepted so far and every check runs on the
+  result; an edit that is malformed or fails any check is rejected with its reason and its item keeps the
+  fact-checked line, which already passed. Rejected edits are tried once more after the others (a case
+  removal may need a theme revision listed later). Only a review output without an `edits` array fails the
+  run. `item` is the 1-based position among the list items of the fact-checked text and `before` the start
+  of that item's line (at least 30 characters, or the whole line); one edit per item; no new items. `keep`
+  carries only `item`, `before` and optionally `reason`. `problem` (for revise and remove) is one of
+  overstatement, scope, attribution, generalisation, entity, language, with a `reason`. `revise` replaces
+  the line (same indentation) and needs verbatim `quote`s: the item's claim record takes them (and
+  `sources`, if given), verdict `revised`, reason «review <problem>: …». `remove` deletes the item and turns
+  its claim record into a removed claim whose text is exactly the removed line, so its wording may not
+  remain; an item with sub-items goes only with all of them, and a review never removes every item. After
+  an edit a theme's claim record keeps only the sources its remaining cases link (a URL no case ever linked
+  stays, so the fact check still refuses it); when its quotes no longer occur in them the edit is rejected
+  (*theme item N stands on sources its remaining cases no longer link; revise the theme in the same
+  review*). Kept claims are renumbered. The output adds `review: {edits:[{item, action, problem, reason,
+  before, after}], revised, removed, kept, rejected:[{item, action, problem, error}]}`, and
+  `factCheckSummary` says «review: N revised, M removed, K rejected». `reviewSummary`, right after it so the
+  approval preview shows it, lists each changed or rejected item in item order («review item 5 revised
+  (scope): <reason>», «review item 7 rejected (attribution): <reason> — not applied: <error>»; reasons cut to
+  100 and errors to 80 characters, one line each; a rejected edit shows only a known problem or action,
+  otherwise «invalid», and «?» for a non-numeric item), at most 12 lines plus «…and N more». What the reviewer flags is its own
+  judgement; the checks prove only that its accepted edits are well formed and grounded.
+  `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
+  words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
+- (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
+  theme) carries no links at all (*A list item with sub-items carries no links under compactLinks; its
+  cases link the sources*); every item without sub-items still links a selected source under
+  `citation: links`. A link-less parent is ranked by `nestedOrder` through its sub-items' clusters, and
+  its `factCheck` record may name only sources its sub-items link. `caseMaxWords` and `themeMaxWords`
+  (1..500) cap the words of an item, counted without link markup and the «([Outlet](url), …)»
+  parentheses: a theme is a top-level item with sub-items, every other item (a case, a comment, a
+  stand-alone top-level item) is a case (*A case has N words; at most M*). `itemMaxSentences` (1..500)
+  caps sentences per item; a sentence ends at `.` `!` `?` `…` before a space and an uppercase letter or
+  an opening quote, not inside a decimal or after an abbreviation such as «млн.» or «U.S.». Digest 0.6
+  sets compact links, 1 sentence, 32 words per case and 20 per theme by the owner's review of 27.09;
+  Digest 0.4.1–0.5 had no case length.
+- `llm-call` (OpenRouter) may set `reasoning: off | low | medium | high` (Core 39). It is sent as the
+  OpenRouter `reasoning` parameter (`off` disables reasoning, the others bound its effort); without it
+  nothing is sent. A completion that spends `maxTokens` before any content fails as `OUTPUT_LIMIT`.
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
   bound its input instead of sending every prior raw output. Caller replies stay
   bound to the exact pending job. No alternate provider fallback exists.
-- A human `approval-gate` with `bind: sha256` requires `qloops approve <manifest>
+- A human `approval-gate` with `bind: sha256` requires `q-core approve <manifest>
   <runId> --approval-hash <hash>` (also for rejection). The displayed hash binds
   the exact persisted subject; a mismatched/stale subject cannot be approved.
+  From Core 35 the command takes the decision only from a person at a terminal
+  (one-time code on `/dev/tty`); see `reviewer: human` above.
 - `api-request` may declare `receiptKey` resolving to a SHA-256 source identity.
   Persistent receipt is claimed before sending; delivered repeats return the
   receipt without a new request. Failure/interruption is uncertain and requires
@@ -416,15 +683,18 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   or changed checker stops. Limit exhaustion is `needs_human`, never success.
   Repair evidence and revisions are retained. Interrupted applies require manual
   reconciliation; they are never blindly repeated.
+  With `factCheck`, `requiredPrefix` and `nestedList` (Core 39) the one header line before the first list
+  line of the fact-checked text is replaced by `requiredPrefix` (the fixed header is never the model's to
+  copy) when it is a bold `**…**` line with every `fixedLinks` URL; any other text before the list is refused.
 
-These contracts describe the implementation candidate. Public release and real
-Registry acceptance require independent pinned-package evidence.
+Use an exact package pin and validate the actual template in its target
+environment before relying on a Registry composition.
 - `determined` shares `source`, `specification` and `repairFrom` references. It
   reuses the determined reducer's AND/freshness checks over approved criteria;
   all criteria bind to the explicitly selected independent verifier suite. The
   Registry driver persists pauses and bounded repair attempts around that reducer.
-- `qloops cancel <manifest> <runId>` cancels only a paused inference/approval run.
-  It invalidates the pending job. `qloops resume <manifest> <runId>` explicitly
+- `q-core cancel <manifest> <runId>` cancels only a paused inference/approval run.
+  It invalidates the pending job. `q-core resume <manifest> <runId>` explicitly
   resumes that paused cancellation with a new job, without repeating completed
   steps. An interrupted active side effect cannot use this shortcut.
 - `fetch.maxBodyBytes` optionally raises the bounded response capture from 64000

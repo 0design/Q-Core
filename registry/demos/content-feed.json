@@ -1,6 +1,6 @@
 {
   "id": "content-feed",
-  "loopId": "content-feed",
+  "workflowId": "content-feed",
   "name": "Morning digest",
   "description": "Reads a feed, writes a short digest, sends it. Proof is the recorded run in the repo, not a hosted playback.",
   "proof": "demos/content-feed.txt",

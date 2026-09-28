@@ -1,7 +1,7 @@
 {
   "protocolVersion": "qf.agent/v1",
   "requestId": "fixture",
-  "loop": {
+  "workflow": {
     "id": "synthetic-sdd",
     "version": "1.0.0"
   },

@@ -1,5 +1,5 @@
 /** Types for the driver. Hand-written — see manifest.d.mts on why. */
-import type { LoopManifest, LoopManifestSettings, LoopManifestStep } from "./manifest.d.mts";
+import type { WorkflowManifest, WorkflowManifestSettings, WorkflowManifestStep } from "./manifest.d.mts";
 
 export type RunStatus = "running" | "success" | "failed" | "cancelled" | "waiting_human" | "waiting_inference" | "needs_human";
 export type StepStatus = "pending" | "running" | "success" | "failed" | "waiting_human" | "planned";
@@ -12,10 +12,10 @@ export interface RunStep {
   depth: number;
   laneOf: string | null;
   config: Record<string, string>;
-  then: LoopManifestStep[] | null;
-  else?: LoopManifestStep[] | null;
-  cases?: Record<string, LoopManifestStep[]> | null;
-  default?: LoopManifestStep[] | null;
+  then: WorkflowManifestStep[] | null;
+  else?: WorkflowManifestStep[] | null;
+  cases?: Record<string, WorkflowManifestStep[]> | null;
+  default?: WorkflowManifestStep[] | null;
   status: StepStatus;
   decision: string | null;
   gateReason: string | null;
@@ -24,6 +24,8 @@ export interface RunStep {
   tokensIn: number | null;
   tokensOut: number | null;
   costUsd: number | null;
+  /** Where a model step's cost came from; absent on steps that call no model. */
+  costSource?: "provider" | "rate-table" | "unknown";
   item?: unknown;
   itemIndex: number | null;
   startedAt: string | null;
@@ -32,8 +34,8 @@ export interface RunStep {
 
 export interface Run {
   runId: string;
-  loopId: string;
-  loopName: string;
+  workflowId: string;
+  workflowName: string;
   manifestFile: string | null;
   trigger: string;
   status: RunStatus;
@@ -45,6 +47,9 @@ export interface Run {
   tokensOut: number | null;
   steps: RunStep[];
   pendingInference?: { protocolVersion: string; jobId: string; hash: string; runId: string; phase: string; inputHash: string; expiresAt: number; messages: Array<{ role: string; content: string }>; outputKind: string };
+  pendingClarification?: { hash: string; questions: Array<{ id: string; question: string }>; seq: number; stepId: string; inferenceJobId: string };
+  clarificationContext?: { hash: string; questions: Array<{ id: string; question: string }>; answers: Array<{ id: string; answer: string }> };
+  clarificationHistory?: Array<{ hash: string; questions: Array<{ id: string; question: string }>; seq: number; stepId: string; inferenceJobId: string; answers: Array<{ id: string; answer: string }>; answerHash: string; answeredAt: string }>;
   callerProvider?: DriveOptions['callerProvider'];
   executionKnobs?: Knobs;
   workspacePolicy?: { workspace: string; allowedPaths: string[]; intent: string; verifier: { command: string; args: string[]; timeoutMs: number }; maxRepairAttempts?: number; specification?: { summary: string; criteria: string[]; plan: string[] } };
@@ -64,10 +69,11 @@ export interface Knobs {
 export interface DriveOptions {
   store?: unknown;
   knobs?: Knobs;
-  settings?: LoopManifestSettings;
+  settings?: WorkflowManifestSettings;
   apiKey?: string | null;
   callerProvider?: { kind: 'caller'; agent: 'codex' | 'claude'; model: string; payerScope: 'local-cli' };
   inferenceReply?: { jobId: string; hash: string; output: { text: string } };
+  clarification?: { hash: string; answers: Array<{ id: string; answer: string }> };
   maxInferenceJobs?: number;
   inferenceTtlMs?: number;
   dryRun?: boolean;
@@ -79,9 +85,12 @@ export declare const DEFAULT_RUN_BUDGET_USD: number;
 export declare const DEFAULT_MAX_TOKENS: number;
 export declare const MAX_EXPANDED_RUN_ROWS: number;
 
-export declare function resolveKnobs(settings?: LoopManifestSettings): Knobs;
-export declare function createRun(manifest: LoopManifest, opts?: { trigger?: string }): Run;
+export declare function resolveKnobs(settings?: WorkflowManifestSettings): Knobs;
+export declare function createRun(manifest: WorkflowManifest, opts?: { trigger?: string }): Run;
 export declare function driveRun(run: Run, opts?: DriveOptions): Promise<Run>;
-export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject"; approvalHash?: string }): Promise<Run>;
+/** A record of how a person made the decision; q-core approve records "tty-code". */
+export interface HumanConfirmation { channel: string; decision?: "approve" | "reject"; confirmedAt?: string }
+export declare function waitingGate(run: Run, approvalHash?: string): RunStep;
+export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject"; approvalHash?: string; confirmation: HumanConfirmation }): Promise<Run>;
 export declare function cancelWaitingRun(run: Run, opts?: DriveOptions): Run;
 export declare function resumeCancelledRun(run: Run, opts?: DriveOptions): Promise<Run>;

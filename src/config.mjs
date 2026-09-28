@@ -7,7 +7,7 @@
  * rules drift, a manifest starts meaning two different things depending on where
  * it runs, which is the exact failure a standalone runner is most likely to have.
  *
- * `config` values are ALWAYS strings, here as in the database: the loop builder
+ * `config` values are ALWAYS strings, here as in the database: the workflow builder
  * stores numbers and booleans as text, so `timeoutSec: 30` in YAML is normalised
  * to "30" by the manifest loader before any of this is reached.
  */

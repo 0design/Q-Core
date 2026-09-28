@@ -3,13 +3,13 @@
   "name": "Verify source links",
   "kind": "step",
   "contentType": "component",
-  "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
-  "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+  "description": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
+  "value": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
   "input": {
     "draft": {
       "type": "reference",
       "required": true,
-      "notes": "Text or {text}, at most 16000 characters."
+      "notes": "Text or {text}, at most 16000 characters. Markdown link targets are read exactly; bare URLs are read from the remaining text."
     },
     "sources": {
       "type": "reference",
@@ -20,12 +20,67 @@
       "type": "string",
       "required": false,
       "notes": "uk checks Ukrainian text markers; not a language-quality or fact-check guarantee."
+    },
+    "fixedLinks": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON array of fixed HTTP(S) presentation links (for example a fixed header) allowed in addition to selected-source URLs. Every other link must be a selected source, and every selected source must still be cited. May use {{env.NAME}}; an unresolved placeholder fails. With a format contract, scheme-less addresses with a path (t.me/x, example.com/page) are refused too."
+    },
+    "requiredPrefix": {
+      "type": "string",
+      "required": false,
+      "notes": "Byte-exact literal prefix the draft must begin with, checked before any approval gate. May use {{env.NAME}}; an unresolved placeholder fails."
+    },
+    "requiredHeadings": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON array of exact level-two Markdown headings. When set, the draft must contain exactly these ## headings in this order, each with nonempty content; ### sub-headings are allowed. A heading nested in a list item or a quote is refused."
+    },
+    "requiredEnvPatterns": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON object of NAME to regular expression. Each environment variable must be set and match fully before approval (for example a DD.MM date in a fixed header)."
+    },
+    "introLinks": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON array of HTTP(S) URLs allowed only once each, as an inline Markdown link inside the introduction sentence between requiredPrefix (or the top of the draft when there is none) and the first required section; a standalone or labelled link line, a bare URL or any other occurrence fails. Requires requiredHeadings."
+    },
+    "citation": {
+      "type": "string",
+      "required": false,
+      "notes": "\"timestamps\": sources are cited by [mm:ss] (or [h:mm:ss]) markers copied from the selected source text instead of their URLs; every marker must exist in the sources, every paragraph or list item in the required sections needs one, and no other time format is allowed. Implies forbidLocalLinks. \"links\": every list item, and every sentence of prose, in the required sections links at least one selected source (header links, inline code and HTML comments do not count; ### sub-headings are refused there); unlike the default, not every selected source has to be cited. Both require requiredHeadings."
+    },
+    "forbidLocalLinks": {
+      "type": "string",
+      "required": false,
+      "notes": "\"true\": no localhost, private-network, .local or file: link may appear in the draft."
+    },
+    "sectionSentences": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON object of a required heading to \"min..max\" sentences; that section must be prose (no list or quote). Link targets, URLs and decimal points do not end a sentence."
+    },
+    "sectionItems": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON object of a required heading to \"min..max\" top-level list items; that section must be a list only, one line per item, no nested items."
+    },
+    "itemMaxWords": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON object of a required heading to 5..500: the most words a list item there may have (link targets not counted)."
+    },
+    "oneClusterPerItem": {
+      "type": "json-string",
+      "required": false,
+      "notes": "JSON array of required headings: each list item there cites sources of one cluster only, and no two items cite the same cluster. Requires sources from deduplicate clusters."
     }
   },
   "output": {
     "result": {
       "type": "object",
-      "notes": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee."
+      "notes": "{text, artifactHash, sourceHash, fixedLinks?, checks, limitation}. Checks selected citation URLs, optional fixed and introduction links and optional literal format contracts; not a factual-accuracy guarantee."
     }
   },
   "needsEnv": [],
@@ -33,12 +88,26 @@
   "implementation": {
     "status": "implemented",
     "source": "src/registry-data-steps.mjs",
-    "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+    "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
   },
   "acceptance": {
     "status": "accepted",
-    "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
     "evidence": [
+      {
+        "file": "demos/digest-multisource.txt",
+        "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+        "componentVersion": "0.5.0",
+        "coreVersion": "0.2.0-q-core.34",
+        "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+      },
+      {
+        "file": "demos/digest-format.txt",
+        "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
+        "componentVersion": "0.4.0",
+        "coreVersion": "0.2.0-q-core.32",
+        "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
+      },
       {
         "file": "demos/digest-huyiks.txt",
         "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",

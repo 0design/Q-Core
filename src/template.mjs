@@ -17,7 +17,7 @@ const ITEM_RE = /\{\{\s*(item|index)(?:\.([^}\s]+))?\s*\}\}/g;
  * `{{env.NAME}}` — a value from the environment.
  *
  * A manifest is a file that lives in git. A bot token, an API key, a chat id:
- * none of them may appear in its text, or "share your loop" turns into "share
+ * none of them may appear in its text, or "share your workflow" turns into "share
  * your secret". Referencing the environment is the only way to write
  * `https://api.telegram.org/bot<TOKEN>/sendMessage` without putting the token in.
  *
@@ -26,10 +26,17 @@ const ITEM_RE = /\{\{\s*(item|index)(?:\.([^}\s]+))?\s*\}\}/g;
  * literal braces in a URL are visible, whereas an empty string would produce a
  * request to somewhere nobody can account for afterwards.
  */
-const ENV_RE = /\{\{\s*env\.([A-Z][A-Z0-9_]*)\s*\}\}/g;
+const ENV_RE = /\{\{\s*env\.([A-Z][A-Z0-9_]*)(?::-([^{}]*?))?\s*\}\}/g;
+
+/** `{{env.NAME:-default}}` — the default applies when NAME is unset or empty. */
+const envValue = (name, fallback) => {
+  const value = process.env[name];
+  if ((value === undefined || value === "") && fallback !== undefined) return fallback.trim();
+  return value;
+};
 
 /**
- * `{{run.costUsd}}` · `{{run.id}}` · `{{run.loopId}}` — facts about THIS run,
+ * `{{run.costUsd}}` · `{{run.id}}` · `{{run.workflowId}}` — facts about THIS run,
  * as they stand at the moment the step executes.
  *
  * `costUsd` is what the run has spent SO FAR — every step before this one. On
@@ -38,9 +45,10 @@ const ENV_RE = /\{\{\s*env\.([A-Z][A-Z0-9_]*)\s*\}\}/g;
  * for $0.0006" line instead of a number somebody typed in once and forgot.
  *
  * It is a running total, not a forecast: a step in the middle sees only what
- * came before it, which is the only number that is actually known there.
+ * came before it, which is the only number that is actually known there. It is
+ * rendered with six decimals, and as "unknown" when any earlier step's cost is.
  */
-const RUN_RE = /\{\{\s*run\.(id|loopId|costUsd)\s*\}\}/g;
+const RUN_RE = /\{\{\s*run\.(id|workflowId|costUsd)\s*\}\}/g;
 
 
 function getByPath(value, path) {
@@ -93,7 +101,7 @@ const ANY_RE = new RegExp(
 
 /** Resolve every placeholder in `text` to a STRING. */
 export function resolveTemplate(text, ctx) {
-  return String(text).replace(ANY_RE, (match, ref, path, itemName, itemPath, envName, runField) => {
+  return String(text).replace(ANY_RE, (match, ref, path, itemName, itemPath, envName, envFallback, runField) => {
     if (ref !== undefined) {
       const resolved = resolveStepRef(ref, ctx);
       if (!resolved) return match;
@@ -104,10 +112,13 @@ export function resolveTemplate(text, ctx) {
       const v = lookupItemVar(itemName, itemPath, ctx);
       return v === undefined ? match : stringify(v);
     }
-    if (envName !== undefined) return process.env[envName] ?? match;
+    if (envName !== undefined) return envValue(envName, envFallback) ?? match;
     const v = ctx.run?.[runField];
+    /* An unknown spend is said out loud, never rendered as $0: a post must not
+       carry a cost line that the run could not measure. */
+    if (runField === "costUsd" && v === null) return "unknown";
     if (v === undefined || v === null) return match;
-    return runField === "costUsd" ? Number(v).toFixed(4) : String(v);
+    return runField === "costUsd" ? Number(v).toFixed(6) : String(v);
   });
 }
 
@@ -115,7 +126,8 @@ export function resolveTemplate(text, ctx) {
 export function missingEnvRefs(text) {
   const out = new Set();
   for (const m of String(text).matchAll(ENV_RE)) {
-    if (process.env[m[1]] === undefined) out.add(m[1]);
+    const value = envValue(m[1], m[2]);
+    if (value === undefined || value === "") out.add(m[1]);
   }
   return [...out];
 }

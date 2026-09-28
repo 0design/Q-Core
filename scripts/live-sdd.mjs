@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { runAgent } from "../src/agent.mjs";
+import { recordHumanDecision } from "../src/human-decision.mjs";
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(name);
   return i < 0 ? fallback : process.argv[i + 1];
@@ -19,7 +20,7 @@ writeFileSync(
 const request = {
   protocolVersion: "qf.agent/v1",
   requestId: "controlled-live-sdd",
-  loop: { id: "sdd-pipeline", version: "1.0.0" },
+  workflow: { id: "sdd-pipeline", version: "1.0.0" },
   intent:
     "Implement arithmetic add(a,b) in value.mjs. The independent verifier checks positive and negative inputs. Only value.mjs is writable.",
   workspace,
@@ -42,11 +43,12 @@ const request = {
 };
 let result = await runAgent(request);
 console.error(JSON.stringify({ workspace, spec: result.nextAction ?? null }));
-if (approve && result.nextAction?.type === "approve_spec") {
+if (approve && result.nextAction?.type === "ask_human_to_approve") {
   // Explicit opt-in approves only the generated specification in this newly
-  // created synthetic workspace. It does not approve any external publication.
+  // created synthetic workspace (library test-harness record, not the JSON
+  // channel). It does not approve any external publication.
   request.resumeRunId = result.runId;
-  request.approval = { hash: result.nextAction.hash, decision: "approve" };
+  recordHumanDecision({ kind: "agent", workspace, runId: result.runId, approvalHash: result.nextAction.approvalHash, decision: "approve", confirmation: { channel: "synthetic-test-harness" } });
   result = await runAgent(request);
   if (result.status === "success") {
     const cached = await runAgent(request);

@@ -18,7 +18,7 @@ const result = {
   ).version,
   manifests: [],
 };
-for (const entry of catalog.loops) {
+for (const entry of catalog.workflows) {
   try {
     const data = readFileSync(join(root, "apps/web/src/data", entry.file));
     if (entry.sha256 && hash(data) !== entry.sha256)
@@ -33,7 +33,7 @@ for (const entry of catalog.loops) {
     result.manifests.push({ id: entry.id, status: "failed", error: e.message });
   }
 }
-result.coreArtifactSha256 = hash(readFileSync(`artifacts/qloops-${result.installedCore}.tgz`));
+result.coreArtifactSha256 = hash(readFileSync(`artifacts/q-core-${result.installedCore}.tgz`));
 result.integrationStatus =
   pin.version === result.installedCore && pin.artifactSha256 === result.coreArtifactSha256
     ? "awaiting-consumer-tests"

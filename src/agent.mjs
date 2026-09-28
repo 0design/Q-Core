@@ -1,6 +1,6 @@
 import { specification, questions, recordSpec } from "./specification.mjs";
 import { randomUUID } from "node:crypto";
-import { readFileSync, existsSync, lstatSync, statSync } from "node:fs";
+import { readFileSync, existsSync, lstatSync, statSync, realpathSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import {
   validateRequest,
@@ -22,6 +22,7 @@ import { claude } from "./providers/claude.mjs";
 import { openRouter } from "./providers/openrouter.mjs";
 import { recoveryAction } from "./recovery.mjs";
 import { callerInference, assertInferenceReply, invalidateInference } from "./caller-inference.mjs";
+import { askHumanToApprove, approvalFieldRefused, humanDecisionFor } from "./human-decision.mjs";
 const humanCodes = new Set([
   "SCOPE_DENIED",
   "MISSING_CHECKER",
@@ -44,6 +45,7 @@ const humanCodes = new Set([
   "INFERENCE_REQUIRED",
   "INFERENCE_EXPIRED",
   "STALE_INFERENCE",
+  "HUMAN_APPROVAL_REQUIRED",
 ]);
 function parseObject(text) {
   const clean = text
@@ -89,6 +91,20 @@ function verifierSources(request) {
   return sources;
 }
 
+/** Read-only: the human nextAction of a resumed run that waits at approval, or null. */
+function waitingAction(r) {
+  try {
+    if (!r.resumeRunId) return null;
+    const file = join(realpathSync(r.workspace), ".qf", `agent-${r.resumeRunId}.json`);
+    if (!existsSync(file) || lstatSync(file).isSymbolicLink()) return null;
+    const state = JSON.parse(readFileSync(file, "utf8"));
+    if (state.phase !== "approval") return null;
+    return askHumanToApprove("agent", { workspace: r.workspace, runId: state.runId, approvalHash: state.approvalHash, spec: state.spec, specRevision: state.specRevision ?? 1 });
+  } catch {
+    return null;
+  }
+}
+
 export async function runAgent(
   request,
   { signal, generate, launch = subprocess } = {},
@@ -101,7 +117,10 @@ export async function runAgent(
     stateWritable = false;
   try {
     r = validateRequest(r);
-    if ((process.env.CLAUDECODE && r.provider.kind !== "caller") || Number(process.env.QLOOPS_DEPTH || 0) > 0)
+    // Core 38: only a person decides, with `q-core agent approve` at a terminal.
+    // The JSON channel cannot approve or reject, with or without agent markers.
+    if (r.approval !== undefined) throw approvalFieldRefused(waitingAction(r));
+    if ((process.env.CLAUDECODE && r.provider.kind !== "caller") || Number(process.env.QCORE_DEPTH || 0) > 0)
       throw new CoreError(
         "UNSUPPORTED_NESTING",
         "Active nesting guard; use an explicit caller-owned broker",
@@ -347,22 +366,23 @@ export async function runAgent(
         },
       );
     if (state.phase === "approval") {
-      if (r.approval?.decision === "reject") {
+      const decision = humanDecisionFor(state, state.approvalHash);
+      if (decision === "reject") {
         state.phase = "rejected";
-        return finish("cancelled", "Specification rejected");
+        return finish("cancelled", "Specification rejected by a person");
       }
-      if (r.approval?.hash !== state.approvalHash)
+      if (decision !== "approve")
         return finish(
           "needs_human",
-          "Approve the exact specification and policy before execution",
+          "A person approves the exact specification and policy before execution",
           null,
-          {
-            type: "approve_spec",
+          askHumanToApprove("agent", {
+            workspace: r.workspace,
             runId,
-            hash: state.approvalHash,
+            approvalHash: state.approvalHash,
             spec: state.spec,
             specRevision: state.specRevision ?? 1,
-          },
+          }),
         );
       insist(
         hash(snapshot(r.workspace, r.allowedPaths)) === hash(state.before),
@@ -421,7 +441,7 @@ export async function runAgent(
         );
         const checked = await launch(r.verifier.command, r.verifier.args, {
           cwd: r.workspace,
-          env: scopedEnvironment({ QLOOPS_DEPTH: "1", QLOOPS_RUN_ID: runId }),
+          env: scopedEnvironment({ QCORE_DEPTH: "1", QCORE_RUN_ID: runId }),
           signal: combined,
           timeoutMs: r.deadlineMs,
         });
@@ -483,7 +503,7 @@ export async function runAgent(
       summary: e instanceof CoreError ? e.message : code,
       error: { code, message: e instanceof CoreError ? e.message : code },
       nextAction:
-        code === "INFERENCE_REQUIRED" ? e.nextAction
+        code === "INFERENCE_REQUIRED" || code === "HUMAN_APPROVAL_REQUIRED" ? e.nextAction
         : code === "MODEL_UNAVAILABLE"
           ? { type: "configure_provider", requestedModel: r.provider?.model ?? null }
           : code === "MISSING_CHECKER"

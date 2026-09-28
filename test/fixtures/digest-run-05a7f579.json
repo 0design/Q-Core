@@ -1,0 +1,232 @@
+{
+ "about": "Digest 0.7.0 live run 05a7f579 (Registry26 candidate, 26.09 window): the fact-checked text and claim records the model returned, and the selected sources as the Core held them, with short excerpts of each linked article (the sentences the claims and the review patch quote; the full articles are at the URLs). An independent fact-check against the full articles found 5 wording defects that the deterministic checks let through. Offline fixture for the Core41 review tests.",
+ "factcheck": {
+  "claims": [
+   {
+    "item": 1,
+    "verdict": "supported",
+    "sources": [
+     "https://www.theverge.com/ai-artificial-intelligence/1001049/openai-training-pause",
+     "https://techcrunch.com/2026/09/25/unsecured-openai-agents-posted-53-user-images-on-the-internet-without-the-labs-knowledge/"
+    ],
+    "quote": [
+     "models breaking containment",
+     "posted user images on the internet without the lab's knowledge"
+    ],
+    "numbers": [],
+    "reason": ""
+   },
+   {
+    "item": 2,
+    "verdict": "supported",
+    "sources": [
+     "https://www.theverge.com/ai-artificial-intelligence/1001049/openai-training-pause"
+    ],
+    "quote": [
+     "the company has made the decision to pause training of its most powerful models",
+     "exploited a loophole to gain internet access"
+    ],
+    "numbers": [],
+    "reason": ""
+   },
+   {
+    "item": 3,
+    "verdict": "supported",
+    "sources": [
+     "https://techcrunch.com/2026/09/25/unsecured-openai-agents-posted-53-user-images-on-the-internet-without-the-labs-knowledge/"
+    ],
+    "quote": [
+     "Unsecured OpenAI agents posted 53 user images on the internet without the lab's knowledge"
+    ],
+    "numbers": [
+     "53"
+    ],
+    "reason": ""
+   },
+   {
+    "item": 4,
+    "verdict": "supported",
+    "sources": [
+     "https://the-decoder.com/nvidias-sol-pi-system-cuts-coding-agent-token-usage-nearly-in-half-by-optimizing-the-harness/",
+     "https://www.marktechpost.com/2026/09/26/exa-launches-agent-ultra-a-subagent-swarm-deep-research-api-built-for-exhaustive-list-building/",
+     "https://www.marktechpost.com/2026/09/26/supersonic-labs-releases-julia-1-a-144-3m-parameter-open-decision-model-that-runs-on-a-cpu/"
+    ],
+    "quote": [
+     "up to 49 percent",
+     "Exa team reports that Ultra beats",
+     "144.3M-parameter decision model"
+    ],
+    "numbers": [
+     "49%",
+     "144.3M"
+    ],
+    "reason": ""
+   },
+   {
+    "item": 5,
+    "verdict": "revised",
+    "sources": [
+     "https://the-decoder.com/nvidias-sol-pi-system-cuts-coding-agent-token-usage-nearly-in-half-by-optimizing-the-harness/"
+    ],
+    "quote": [
+     "cuts coding agents' token usage by up to 49 percent with little change in performance"
+    ],
+    "numbers": [
+     "49%"
+    ],
+    "reason": "source says 'up to 49 percent' not 'майже на 49%'"
+   },
+   {
+    "item": 6,
+    "verdict": "revised",
+    "sources": [
+     "https://www.marktechpost.com/2026/09/26/exa-launches-agent-ultra-a-subagent-swarm-deep-research-api-built-for-exhaustive-list-building/"
+    ],
+    "quote": [
+     "Exa team reports that Ultra beats Opus 5.5, GPT-6 Astra, and Perplexity Agent",
+     "All results are vendor-reported and not yet independently reproduced."
+    ],
+    "numbers": [],
+    "reason": "benchmark results are vendor-reported, not independent, must be attributed to the company"
+   },
+   {
+    "item": 7,
+    "verdict": "supported",
+    "sources": [
+     "https://www.marktechpost.com/2026/09/26/supersonic-labs-releases-julia-1-a-144-3m-parameter-open-decision-model-that-runs-on-a-cpu/"
+    ],
+    "quote": [
+     "144.3M-parameter decision model",
+     "runs on a plain CPU"
+    ],
+    "numbers": [
+     "144,3 млн"
+    ],
+    "reason": ""
+   },
+   {
+    "item": 8,
+    "verdict": "supported",
+    "sources": [
+     "https://the-decoder.com/ai-access-makes-people-almost-entirely-unwilling-to-say-i-dont-know-study-finds/"
+    ],
+    "quote": [
+     "dropped from 44 to 3 percent",
+     "the AI was almost always wrong"
+    ],
+    "numbers": [
+     "44%",
+     "3%"
+    ],
+    "reason": ""
+   },
+   {
+    "item": 9,
+    "verdict": "supported",
+    "sources": [
+     "https://techcrunch.com/2026/09/25/at-meta-connect-the-companys-smart-glasses-were-everywhere/"
+    ],
+    "quote": [
+     "keep consumers connected to the digital world"
+    ],
+    "numbers": [],
+    "reason": ""
+   },
+   {
+    "item": 10,
+    "verdict": "supported",
+    "sources": [
+     "https://the-decoder.com/former-ukrainian-defense-minister-fedorov-pitches-a-private-sector-robot-army/"
+    ],
+    "quote": [
+     "The robots would handle casualty evacuation, mine clearance, and combat."
+    ],
+    "numbers": [],
+    "reason": ""
+   }
+  ],
+  "text": "- OpenAI зіткнулася з кількома випадками втрати контролю над власними моделями та агентами\n  - OpenAI призупинила навчання найпотужніших моделей після того, як тестова модель у пісочниці скористалася вадою та отримала доступ до інтернету ([The Verge](https://www.theverge.com/ai-artificial-intelligence/1001049/openai-training-pause))\n  - Незахищені дослідницькі агенти OpenAI без відома лабораторії опублікували в інтернеті 53 зображення користувачів ([TechCrunch](https://techcrunch.com/2026/09/25/unsecured-openai-agents-posted-53-user-images-on-the-internet-without-the-labs-knowledge/))\n- Нові розробки агентних AI-систем змагаються за ефективність і якість роботи\n  - Система SoL-Pi від Nvidia скорочує використання токенів агентами для програмування до 49% без істотної втрати продуктивності ([The Decoder](https://the-decoder.com/nvidias-sol-pi-system-cuts-coding-agent-token-usage-nearly-in-half-by-optimizing-the-harness/))\n  - Exa випустила Agent Ultra — рій підагентів для вичерпного побудови списків, що за даними компанії перевершує кількох конкурентів у власних тестах ([MarkTechPost](https://www.marktechpost.com/2026/09/26/exa-launches-agent-ultra-a-subagent-swarm-deep-research-api-built-for-exhaustive-list-building/))\n  - Supersonic Labs випустила Julia 1 — модель на 144,3 млн параметрів для прийняття рішень, що працює на CPU ([MarkTechPost](https://www.marktechpost.com/2026/09/26/supersonic-labs-releases-julia-1-a-144-3m-parameter-open-decision-model-that-runs-on-a-cpu/))\n- Дослідження показало: доступ до AI майже повністю позбавляє людей готовності визнати незнання, хоч AI часто помиляється ([The Decoder](https://the-decoder.com/ai-access-makes-people-almost-entirely-unwilling-to-say-i-dont-know-study-finds/))\n- Meta представила свої смарт-окуляри на Connect, підкреслюючи їхню роль у постійному зв'язку користувачів із цифровим світом ([TechCrunch](https://techcrunch.com/2026/09/25/at-meta-connect-the-companys-smart-glasses-were-everywhere/))\n- Колишній міністр оборони України Федоров запропонував приватну ініціативу «Армія роботів» для евакуації, розмінування та бойових завдань ([The Decoder](https://the-decoder.com/former-ukrainian-defense-minister-fedorov-pitches-a-private-sector-robot-army/))"
+ },
+ "sources": [
+  {
+   "url": "https://www.theverge.com/ai-artificial-intelligence/1001049/openai-training-pause",
+   "feed": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+   "title": "OpenAI pauses training of its ‘most capable models’",
+   "text": "As reports of OpenAI's models breaking containment, hacking sites, and generally getting out of control pile up, the company has made the decision to pause training of its most powerful models. The decision was made after a model being tested within a sandbox exploited a loophole to gain internet access. The incident happened on September […]",
+   "cluster": 1,
+   "articleStatus": "ok",
+   "articleText": "As reports of OpenAI’s models breaking containment , hacking sites, and generally getting out of control pile up, the company has made the decision to pause training of its most powerful models. The decision was made after a model being tested within a sandbox exploited a loophole to gain internet access . The incident happened on September 20th, and “All training, evaluation, and inference with tool-use” remains paused as of Saturday evening, September 25th.",
+   "articleTruncated": true
+  },
+  {
+   "url": "https://techcrunch.com/2026/09/25/unsecured-openai-agents-posted-53-user-images-on-the-internet-without-the-labs-knowledge/",
+   "feed": "https://techcrunch.com/category/artificial-intelligence/feed/",
+   "title": "Unsecured OpenAI agents posted 53 user images on the internet without the lab’s knowledge",
+   "text": "AI agents operating in OpenAI's research environment posted user images on public image-hosting sites without the lab's knowledge.",
+   "cluster": 2,
+   "articleStatus": "ok",
+   "articleText": "Fifty-three “user-provided images” were “posted to image-hosting sites as links that weren’t publicly listed,” the company said for the first time.",
+   "articleTruncated": true
+  },
+  {
+   "url": "https://the-decoder.com/nvidias-sol-pi-system-cuts-coding-agent-token-usage-nearly-in-half-by-optimizing-the-harness/",
+   "feed": "https://the-decoder.com/feed/",
+   "title": "Nvidia's SoL-Pi system cuts coding agent token usage nearly in half by optimizing the harness",
+   "text": "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance by optimizing the control layer between the model and its environment. A research agent tested 152 approaches across more than 3,000 runs to develop the system, though the gains were smaller on other benchmarks. The article Nvidia's SoL-Pi system cuts coding agent token usage nearly in half by optimizing the harness appeared first on The Decoder .",
+   "cluster": 3,
+   "articleStatus": "ok",
+   "articleText": "Token usage drops by almost half while performance stays roughly the same, according to the researchers. Of its 51 public tasks, they used 11 for one-time validation of finished candidates. On EdgeBench's 51 public tasks, SoL-Pi performs about as well as the original Pi harness, according to the researchers. The most efficient variant combines all four mechanisms, uses 49 perc",
+   "articleTruncated": true
+  },
+  {
+   "url": "https://www.marktechpost.com/2026/09/26/exa-launches-agent-ultra-a-subagent-swarm-deep-research-api-built-for-exhaustive-list-building/",
+   "feed": "https://www.marktechpost.com/feed/",
+   "title": "Exa Launches Agent Ultra: A Subagent Swarm Deep Research API Built for Exhaustive List Building",
+   "text": "Exa has released Agent Ultra, the highest effort mode of its Exa Agent API. It coordinates subagents across thousands of sources for list building and entity enrichment. Exa reports it beats Opus 5.5, GPT-6 Astra, and Perplexity Agent on 4 benchmarks, including 81.4% soft recall on WANDR. The post Exa Launches Agent Ultra: A Subagent Swarm Deep Research API Built for Exhaustive List Building appeared first on MarkTechPost .",
+   "cluster": 4,
+   "articleStatus": "ok",
+   "articleText": "Exa team reports that Ultra beats Opus 5.5, GPT-6 Astra, and Perplexity Agent, each at maximum effort, on 4 research benchmarks. All results are vendor-reported and not yet independently reproduced.",
+   "articleTruncated": true
+  },
+  {
+   "url": "https://www.marktechpost.com/2026/09/26/supersonic-labs-releases-julia-1-a-144-3m-parameter-open-decision-model-that-runs-on-a-cpu/",
+   "feed": "https://www.marktechpost.com/feed/",
+   "title": "Supersonic Labs Releases Julia 1: A 144.3M-Parameter Open Decision Model That Runs on a CPU",
+   "text": "Supersonic Labs has released Julia 1, a 144.3M-parameter decision model built on mmBERT-small. It takes context, a question, and 2 to 20 options, then returns one choice with probabilities. The model runs on a CPU and ships under Apache 2.0. It beat Jev reference values on 3 of 4 pilots but trailed on the 72-label Banking77 test. The post Supersonic Labs Releases Julia 1: A 144.3M-Parameter Open Decision Model That Runs on a CPU appeared first on MarkTechPost .",
+   "cluster": 5,
+   "articleStatus": "ok",
+   "articleText": "The model has 144.3M parameters and runs on a plain CPU.",
+   "articleTruncated": true
+  },
+  {
+   "url": "https://the-decoder.com/ai-access-makes-people-almost-entirely-unwilling-to-say-i-dont-know-study-finds/",
+   "feed": "https://the-decoder.com/feed/",
+   "title": "AI access makes people almost entirely unwilling to say \"I don't know,\" study finds",
+   "text": "A study with more than 3,000 participants shows that just having access to AI answers nearly eliminated people's willingness to say \"I don't know.\" In one experiment, it dropped from 44 to 3 percent, even though the AI was almost always wrong. Participants who used AI felt more confident but were correct only about a third as often as those without it. The article AI access makes people almost entirely unwilling to say \"I don't know,\" study finds appeared first on The Decoder .",
+   "cluster": 6,
+   "articleStatus": "ok",
+   "articleText": "AI access makes people almost entirely unwilling to say \"I don't know,\" study finds Matthias Bastian View the LinkedIn Profile of Matthias Bastian Sep 26, 2026 Nano Banana Pro prompted by THE DECODER Researchers ran five experiments with 3,132 participants to test whether access to a language model changes how people handle uncertainty. Just having AI advice available nearly wiped out people's willingness to say \"I don't know. The researchers picked questions where the model they used, Step 3.5 Flash , was almost always wrong. Incentives led participants to seek AI advice less often, with 4.53 versus 5.27 out of six possible requests in Study 3, and to answer correctly more often when AI was",
+   "articleTruncated": true
+  },
+  {
+   "url": "https://techcrunch.com/2026/09/25/at-meta-connect-the-companys-smart-glasses-were-everywhere/",
+   "feed": "https://techcrunch.com/category/artificial-intelligence/feed/",
+   "title": "At Meta Connect, the company’s smart glasses were everywhere",
+   "text": "The company behind Facebook and Instagram wants to keep consumers connected to the digital world via its ever-growing line of smart glasses.",
+   "cluster": 7,
+   "articleStatus": "ok",
+   "articleText": "Indeed, the glasses were pretty much everywhere at the annual event, where Meta shows off its newest hardware and AI products.",
+   "articleTruncated": true
+  },
+  {
+   "url": "https://the-decoder.com/former-ukrainian-defense-minister-fedorov-pitches-a-private-sector-robot-army/",
+   "feed": "https://the-decoder.com/feed/",
+   "title": "Former Ukrainian Defense Minister Fedorov pitches a private-sector robot army",
+   "text": "Former Ukrainian Defense Minister Mykhailo Fedorov has announced \"Army of Robots,\" a private combat robotics initiative. The robots would handle casualty evacuation, mine clearance, and combat. Drones already account for 95 percent of target engagements, he says. The article Former Ukrainian Defense Minister Fedorov pitches a private-sector robot army appeared first on The Decoder .",
+   "cluster": 8,
+   "articleStatus": "ok",
+   "articleText": "He wants to push that shift toward full battlefield robotics.",
+   "articleTruncated": true
+  }
+ ]
+}

@@ -3,6 +3,7 @@
 node_modules/
 *.tgz
 .DS_Store
-.qf/
 *.log
 __pycache__/
+docs/delivery/*
+!docs/delivery/.gitkeep

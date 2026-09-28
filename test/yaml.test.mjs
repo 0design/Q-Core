@@ -1,8 +1,8 @@
 /**
  * The YAML reader is a subset, and a subset only earns trust if its EDGES are
  * tested — the things it refuses matter as much as the things it reads. A reader
- * that silently mis-parses a manifest produces a loop that runs and is not the
- * loop that was written, which is the worst failure this package can have.
+ * that silently mis-parses a manifest produces a workflow that runs and is not the
+ * workflow that was written, which is the worst failure this package can have.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

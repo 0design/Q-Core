@@ -9,6 +9,7 @@ export {
 } from "./contracts.mjs";
 export { coreCapabilities } from "./capabilities.mjs";
 export { loadManifest, validateManifest } from "./manifest.mjs";
+export { loadWorkflow, assertWorkflowPolicy, sideEffectOf } from "./workflow-policy.mjs";
 export { openRouter } from "./providers/openrouter.mjs";
 export { claude } from "./providers/claude.mjs";
 export { runAgent } from "./agent.mjs";

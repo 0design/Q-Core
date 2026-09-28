@@ -1,6 +1,6 @@
 # determined: execute → verify → repair
 
-`determined` is the reusable execution reducer exported by `qloops`. Import it
+`determined` is the reusable execution reducer exported by `q-core`. Import it
 from the installed package. It does not create a service, invoke a model, launch
 shell commands or grant workspace permissions on its own. A trusted host supplies
 `execute`, `verify`, and `getArtifact`. The shipped
@@ -41,27 +41,21 @@ reconciliation belong to the host; the reducer returns `history` for storage.
 
 Results contain `status`, `planHash`, `history` (attempt, artifact snapshot and
 per-criterion outcomes), and a reason when human attention is needed. Invalid
-plan input throws `INVALID_REQUEST` before execution. Candidate core.4 strengthens
-snapshot/cancellation handling and changes operational callback failures from
-unhandled rejection to `needs_human`; consumers should handle that outcome.
+plan input throws `INVALID_REQUEST` before execution. Operational callback failures
+return `needs_human`; consumers should handle that outcome.
 
 ## A2D successor and historical compatibility
 
-The archived donor identifies package `a2done`, binary/MCP ID `a2d`, and `.a2d`
-state. These identifiers remain historical; qloops does not replace their binary,
-MCP tools, hooks or saved state automatically. Do not point old clients at a
-nonexistent `qloops a2d` command, rename state files, or delete donor history.
+The historical package `a2done`, binary/MCP ID `a2d`, and `.a2d` state have no
+automatic compatibility layer. q-core does not replace their binary, MCP tools,
+hooks or saved state. Do not point old clients at a nonexistent `q-core a2d`
+command or rename state files.
 
 For a new integration, convert plan-time criteria/verifiers to the descriptors
 above, supply an authorized executor plus independent evidence callbacks, and
 persist the resulting versioned history. Reapprove scope and regenerate evidence;
 old completion claims are not transferable approval. Use `determined` for the new
-loop identity. `unslop` is a separate curated design-canon loop; historical
-`unslop-design` references do not alias the A2D mechanism. Canonical registry
-aliases/manifests and updates to archived donor instructions belong to their owners.
+workflow identity.
 The shipped [A2D migration guide](../../docs/a2d-migration.md) gives the supported
 replacement steps and fail-closed compatibility checks. It does not grant access
-to the archived donor or define an automatic state conversion.
-
-The source mapping is retained in the canonical Linear record [0D-263](https://linear.app/0dhaus/issue/0D-263).
-No donor code, hosted product, canon, credentials or configuration is copied.
+or define an automatic state conversion.

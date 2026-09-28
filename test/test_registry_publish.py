@@ -166,7 +166,7 @@ class ReleaseApprovalTest(unittest.TestCase):
             for name in ('gh', 'git'):
                 (root / name).chmod(0o755)
             env = {**os.environ, 'PATH': directory + os.pathsep + os.environ['PATH'],
-                   'GITHUB_REPOSITORY': '0design/qloops', 'GITHUB_EVENT_NAME': event,
+                   'GITHUB_REPOSITORY': '0design/Q-Core', 'GITHUB_EVENT_NAME': event,
                    'RELEASE_APPROVED': str(manual).lower()}
             result = subprocess.run(['node', str(Path(__file__).parents[1] / 'scripts/check-reviewed-release.mjs'), commit],
                                     env=env, capture_output=True)

@@ -1,13 +1,13 @@
-manifest: qloops.loop/v1
+manifest: q-core.workflow/v1
 
 # =============================================================================
-# PARITY CASE A — a loop that never meets a person.
+# PARITY CASE A — a workflow that never meets a person.
 #
 # fetch → llm-call → api-request. This is the case the whole taxonomy argument
-# rests on: human-gate is OPTIONAL, and a loop that ends in an outgoing request
-# is a finished loop, not an unfinished one.
+# rests on: human-gate is OPTIONAL, and a workflow that ends in an outgoing request
+# is a finished workflow, not an unfinished one.
 #
-# The receiver is 127.0.0.1:19876, started by scripts/loop-parity.ts. The port is
+# The receiver is 127.0.0.1:19876, started by the product-engine parity test. The port is
 # written out rather than injected so this file is a real manifest you can read
 # and run, not a template with holes in it.
 # =============================================================================

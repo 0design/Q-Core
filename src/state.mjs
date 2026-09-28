@@ -12,7 +12,7 @@
  * copy of it, it is a different thing with a different job.
  *
  * WRITES ARE ATOMIC (tmp + rename). A run interrupted mid-write must not leave a
- * half-written JSON that the next `qloops status` then refuses to parse — that turns
+ * half-written JSON that the next `q-core status` then refuses to parse — that turns
  * one failed run into a permanently broken directory.
  */
 import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync, existsSync, lstatSync, unlinkSync } from "node:fs";
@@ -27,8 +27,17 @@ export function stateDirFor(manifestFile) {
   return join(dirname(resolve(manifestFile)), STATE_DIR_NAME);
 }
 
+/** `.qf/` is local run state: it ignores itself in git so it never clutters a user's project. */
+function ensureIgnored(dir) {
+  const ignore = join(dir, ".gitignore");
+  try {
+    if (dir.endsWith(`/${STATE_DIR_NAME}`) && !existsSync(ignore)) writeFileSync(ignore, "*\n", { flag: "wx" });
+  } catch { /* best effort: another process created it, or the directory is read-only */ }
+}
+
 function writeJsonAtomic(file, value) {
   mkdirSync(dirname(file), { recursive: true });
+  for (let dir = dirname(file); dir !== dirname(dir); dir = dirname(dir)) if (dir.endsWith(`/${STATE_DIR_NAME}`)) { ensureIgnored(dir); break; }
   const tmp = `${file}.${process.pid}.tmp`;
   writeFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   renameSync(tmp, file);
@@ -64,6 +73,7 @@ export class RunStore {
 
   recordSpecification(identity, value) {
     mkdirSync(this.dir, { recursive: true, mode: 0o700 });
+    ensureIgnored(this.dir);
     insist(!lstatSync(this.dir).isSymbolicLink(), 'Unsafe specification directory');
     const file = join(this.dir, `spec-${hash(identity)}.json`), lock = `${file}.lock`;
     writeFileSync(lock, '', { flag: 'wx', mode: 0o600 });
@@ -84,7 +94,7 @@ export class RunStore {
 
   /**
    * The outcome pointer. This is the failure notification: a monitor that only
-   * ever sees "nothing arrived today" cannot tell a broken loop from a quiet
+   * ever sees "nothing arrived today" cannot tell a broken workflow from a quiet
    * one, so the reason is written down even when — especially when — it failed.
    */
   saveLastRun(run) {
@@ -92,7 +102,7 @@ export class RunStore {
     const waiting = run.steps.find((s) => s.status === "waiting_human");
     writeJsonAtomic(join(this.dir, "last-run.json"), {
       runId: run.runId,
-      loopId: run.loopId,
+      workflowId: run.workflowId,
       status: run.status,
       summary: run.summary,
       reason: failed?.errorText ?? (waiting ? `waiting on a human at step "${waiting.name}"` : null),
@@ -108,7 +118,7 @@ export class RunStore {
     return readJson(join(this.dir, "last-run.json"));
   }
 
-  /** Newest first. Used by `qloops status`. */
+  /** Newest first. Used by `q-core status`. */
   listRuns(limit = 20) {
     if (!existsSync(this.runsDir)) return [];
     return readdirSync(this.runsDir)
@@ -123,6 +133,7 @@ export class RunStore {
   writeSink(runId, body) {
     this.runFile(runId); // validate caller-provided identity before constructing an output path
     mkdirSync(this.outDir, { recursive: true });
+    ensureIgnored(this.dir);
     const file = join(this.outDir, `${runId}.txt`);
     writeFileSync(file, body, "utf8");
     return file;

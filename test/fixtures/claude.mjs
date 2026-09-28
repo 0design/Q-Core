@@ -14,9 +14,9 @@ writeFileSync(
     args: process.argv.slice(2),
     input,
     cwd: process.cwd(),
-    depth: process.env.QLOOPS_DEPTH,
-    runId: process.env.QLOOPS_RUN_ID,
-    secretLeaked: !!process.env.QLOOPS_TEST_SECRET,
+    depth: process.env.QCORE_DEPTH,
+    runId: process.env.QCORE_RUN_ID,
+    secretLeaked: !!process.env.QCORE_TEST_SECRET,
   }),
 );
 if (mode === "timeout") {

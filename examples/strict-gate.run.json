@@ -1,6 +1,6 @@
 {
   "runId": "3cd50b0b-9aae-4f8a-a672-a792c4cb1723",
-  "loopId": "strict-gate",
+  "workflowId": "strict-gate",
   "status": "success",
   "summary": "Completed 3/3 steps.",
   "startedAt": "2026-08-02T06:29:36.545Z",

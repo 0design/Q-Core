@@ -9,17 +9,17 @@ const site=resolve(process.argv[2]),root=resolve('.'),dataRoot=join(site,'apps/w
 const catalogBytes=readFileSync(join(dataRoot,'catalog.json')),catalog=JSON.parse(catalogBytes);
 const pin=JSON.parse(readFileSync(join(site,'contracts/core.lock.json')));
 assert.equal(catalog.core.version,pin.version);
-const retained=join(root,'artifacts',`qloops-${pin.version}.tgz`);assert.equal(hash(readFileSync(retained)),pin.artifactSha256);
-const sandbox=mkdtempSync(join(tmpdir(),'qloops-registry-caller-'));
+const retained=join(root,'artifacts',`q-core-${pin.version}.tgz`);assert.equal(hash(readFileSync(retained)),pin.artifactSha256);
+const sandbox=mkdtempSync(join(tmpdir(),'q-core-registry-caller-'));
 const commands=[],requests=[],received=[];
 const run=async(exe,args,cwd,env={})=>{
-  const r=await subprocess(exe,args,{cwd,env:{...scopedEnvironment(),QF_NO_UPDATE_CHECK:'1',QFACTORY_REGISTRY:'',QLOOP_CATALOG_URL:'',...env},timeoutMs:30000});
+  const r=await subprocess(exe,args,{cwd,env:{...scopedEnvironment(),QF_NO_UPDATE_CHECK:'1',QFACTORY_REGISTRY:'',QCORE_CATALOG_URL:'',...env},timeoutMs:30000});
   commands.push({args,exit:r.code,stdoutHash:hash(r.stdout),stderrHash:hash(r.stderr)});return r;
 };
 let candidateBytes, incompatibleBytes;
 const assets=new Map([['catalog.json',catalogBytes]]);
-for(const section of ['loops','components','demos'])for(const e of catalog[section]??[]){
-  const file=e.file??`${section}/${e.id}.json`;assert.match(file,/^(loops|components|demos)\/[a-z0-9-]+\.(yaml|json)$/);
+for(const section of ['workflows','components','demos'])for(const e of catalog[section]??[]){
+  const file=e.file??`${section}/${e.id}.json`;assert.match(file,/^(workflows|components|demos)\/[a-z0-9-]+\.(yaml|json)$/);
   const bytes=readFileSync(join(dataRoot,file));assert.equal(hash(bytes),e.sha256);assets.set(file,bytes);
 }
 const server=createServer(async(req,res)=>{
@@ -43,21 +43,21 @@ try {
   // A separate synthetic catalog changes only engine metadata. The exact Site
   // catalog remains unchanged and is always exercised with its retained pin.
   const synthetic=structuredClone(catalog);synthetic.releaseVersion='synthetic-core-compatibility';synthetic.core.version=pack.version;
-  for(const section of ['loops','components','demos'])for(const e of synthetic[section]??[])if(e.engine)e.engine.version=pack.version;
+  for(const section of ['workflows','components','demos'])for(const e of synthetic[section]??[])if(e.engine)e.engine.version=pack.version;
   candidateBytes=Buffer.from(JSON.stringify(synthetic));
   // A rejection test must not depend on the Site pin being out of date.
   const incompatible=structuredClone(synthetic);
   incompatible.core.version=pack.version+'-incompatible';
-  for(const section of ['loops','components','demos'])for(const e of incompatible[section]??[])if(e.engine)e.engine.version=incompatible.core.version;
+  for(const section of ['workflows','components','demos'])for(const e of incompatible[section]??[])if(e.engine)e.engine.version=incompatible.core.version;
   incompatibleBytes=Buffer.from(JSON.stringify(incompatible));
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const host=`http://127.0.0.1:${server.address().port}`;
-  const bin=cwd=>join(cwd,'node_modules/qloops/bin/qloops.mjs');
+  const bin=cwd=>join(cwd,'node_modules/q-core/bin/q-core.mjs');
   const installArgs=(base,sha,dest)=>['install',base,sha,'webhook-relay','1.1.0',dest];
   const originalHash=hash(catalogBytes),dest=join(old,'relay.yaml');
   assert.equal((await run(process.execPath,[bin(old),...installArgs(host+'/registry',originalHash,dest)],old)).code,0);
-  assert.equal(hash(readFileSync(dest)),catalog.loops.find(e=>e.id==='webhook-relay').sha256);
+  assert.equal(hash(readFileSync(dest)),catalog.workflows.find(e=>e.id==='webhook-relay').sha256);
   assert.equal((await run(process.execPath,[bin(old),'validate',dest],old)).code,0);
-  const env={QLOOP_SOURCE_URL:host+'/source',QLOOP_WEBHOOK_URL:host+'/sink'};
+  const env={QCORE_SOURCE_URL:host+'/source',QCORE_WEBHOOK_URL:host+'/sink'};
   assert.equal((await run(process.execPath,[bin(old),'run',dest],old,env)).code,0);
   assert.equal(received.length,1);
   const mismatch=await run(process.execPath,[bin(current),...installArgs(host+'/incompatible',hash(incompatibleBytes),join(current,'mismatch.yaml'))],current);

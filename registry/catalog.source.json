@@ -1,11 +1,11 @@
 {
   "catalogVersion": 2,
-  "loops": [
+  "workflows": [
     {
       "id": "brand-mentions",
       "name": "Find your brand mentions",
       "description": "Filter a news feed for relevant mentions of your brand.",
-      "file": "loops/brand-mentions.yaml",
+      "file": "workflows/brand-mentions.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -23,8 +23,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
       "measured": null,
@@ -41,28 +41,27 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "bbfb2052c86fe95be130fc4d87c6af8ec757ba91f51d21bca681ad22367b3362",
       "value": "Find relevant brand mentions without reading every source item manually.",
@@ -70,7 +69,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -83,19 +82,109 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         },
         {
           "id": "schedule",
           "version": "1.0.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Reads a news/search feed for your brand, keeps only genuine mentions (one line each plus overall tone) and posts the result to your webhook; says 'No mentions today.' when there are none.",
+        "howItWorks": [
+          "Reads up to 10 items from the feed at QCORE_SOURCE_URL.",
+          "A model keeps only items that really discuss the brand: publication, one sentence, link.",
+          "It adds a final TONE line (positive / neutral / negative / mixed), or replies exactly 'No mentions today.'",
+          "The text is POSTed as {\"text\": …} to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "A feed URL that already searches for your brand (e.g. a news search RSS)."
+        ],
+        "outputs": [
+          "A short plain-text list of mentions with a tone line, POSTed to your webhook, or a file in .qf/out/ if no webhook is set."
+        ],
+        "knobs": [
+          {
+            "name": "QCORE_SOURCE_URL",
+            "what": "Which feed is searched (env var)."
+          },
+          {
+            "name": "limit",
+            "what": "Items read from the feed, 10 in the manifest (bm-fetch step)."
+          },
+          {
+            "name": "instructions",
+            "what": "Line format and tone rule, in the bm-filter step of the manifest."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run spending cap, $0.10 in the manifest."
+          },
+          {
+            "name": "OPENROUTER_MODEL",
+            "what": "Model used on the OpenRouter route (env var)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "An RSS feed URL for your brand search",
+            "A webhook receiver URL (optional)",
+            "OpenRouter API key, only on the OpenRouter route"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+            },
+            {
+              "id": "cli",
+              "how": "Edited copy: in bm-filter add provider: cli and input: \"{{steps.bm-fetch.output}}\", set settings.budgetUsd: null, run q-core run --caller-provider provider.json (agent claude|codex), answer each job with q-core reply. Add a human approval-gate before bm-send (required in edited copies)."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the RSS/Atom feed to read",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; capped at $0.10 per run by the manifest, depends on the model you set. CLI route: no separate model bill, uses your agent subscription.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "The feed has to do the brand search itself; the workflow only filters what the feed returns.",
+          "Mention quality is model judgement, not verified.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Each morning, tell me which news items really mention our product and their tone.",
+          "Filter a Google News RSS search for my studio name and post real mentions to my webhook."
+        ]
+      }
     },
     {
       "id": "budget-guard",
       "name": "Test the budget ceiling",
-      "description": "Verify that a zero budget stops the loop before a paid step.",
-      "file": "loops/budget-guard.yaml",
+      "description": "Verify that a zero budget stops the workflow before a paid step.",
+      "file": "workflows/budget-guard.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -113,8 +202,8 @@
       "budgetUsd": 0,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
       "measured": null,
@@ -131,28 +220,27 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "7a123c7e7a2be4ebf41c75c7f6c0eb99b94a4a245babb0722b0ead3bdc243526",
       "value": "Check how a configured spending limit stops a model-backed workflow before using it on real work.",
@@ -160,7 +248,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -173,15 +261,88 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "A test that proves the spending cap works: with a $0 budget the run must stop at the model step and send nothing.",
+        "howItWorks": [
+          "Reads 3 items from the feed at QCORE_SOURCE_URL.",
+          "Reaches the model step, where the $0 budget stops the run before any paid call.",
+          "The send step to QCORE_WEBHOOK_URL is never reached; the run record names the budget as the reason."
+        ],
+        "inputs": [
+          "Any working RSS feed URL (only used to reach the model step)."
+        ],
+        "outputs": [
+          "A stopped run in the local run record (.qf/) with the budget named as the reason; nothing is sent."
+        ],
+        "knobs": [
+          {
+            "name": "settings.budgetUsd",
+            "what": "Set to 0 on purpose; changing it defeats the test."
+          },
+          {
+            "name": "QCORE_SOURCE_URL",
+            "what": "Feed used to get to the model step (env var)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "An RSS feed URL",
+            "OpenRouter key/model are listed by the catalog, but the paid call must not happen"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published. The budget check runs before the model call, so no OpenRouter charge is expected."
+            },
+            {
+              "id": "cli",
+              "how": "Not meaningful: the CLI route needs settings.budgetUsd: null, which removes the cap this workflow exists to test."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the RSS/Atom feed to read",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Listed by the catalog; a correct run never sends to it",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "$0 expected: the run is designed to stop before the paid step.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "It is a test of the budget mechanism, not a useful output.",
+          "Whether the catalog-listed OpenRouter variables must be set for the run to start is unknown.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Show me that a $0 budget really stops a model step before it spends anything.",
+          "Test the spending cap before I point a workflow at real work."
+        ]
+      }
     },
     {
       "id": "content-factory",
       "name": "Draft, check, approve, publish",
       "description": "Prepare a post and pause for your approval before publishing.",
-      "file": "loops/content-factory.yaml",
+      "file": "workflows/content-factory.yaml",
       "version": "1.1.0",
       "steps": 5,
       "topLevelSteps": 5,
@@ -200,7 +361,7 @@
       "budgetUsd": 0.4,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
+        "QCORE_SOURCE_URL",
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID",
         "OPENROUTER_MODEL"
@@ -218,14 +379,14 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         },
         {
           "id": "approval-gate",
@@ -235,7 +396,7 @@
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
+          "QCORE_SOURCE_URL",
           "TELEGRAM_BOT_TOKEN",
           "TELEGRAM_CHAT_ID",
           "OPENROUTER_MODEL"
@@ -243,8 +404,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "318948e4c25539662c6d3a7dbc8550f0ec89a1d22e6c3f1350b8e8d7900f7fa3",
       "value": "Turn source material into a checked draft with an explicit approval step before delivery.",
@@ -252,7 +412,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -265,19 +425,116 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         },
         {
           "id": "schedule",
           "version": "1.0.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Drafts one short channel post from source material, runs a machine check of formal rules, waits for your yes, then publishes it to Telegram.",
+        "howItWorks": [
+          "Fetches JSON material from QCORE_SOURCE_URL.",
+          "A model writes one post: under 900 characters, no emoji or hashtags, a link for every claim, one idea.",
+          "An agent gate (a model judge) checks those rules; a failure is handed to you.",
+          "A human gate shows you the post and waits for approval.",
+          "After approval the post is sent to Telegram via sendMessage."
+        ],
+        "inputs": [
+          "A JSON endpoint with the source material.",
+          "Your approval of the post."
+        ],
+        "outputs": [
+          "One published Telegram message in your chat/channel (or a file in .qf/out/ if Telegram variables are unset)."
+        ],
+        "knobs": [
+          {
+            "name": "instructions",
+            "what": "Post rules and voice, in the cf-write step."
+          },
+          {
+            "name": "rubric",
+            "what": "What the machine check enforces, in the cf-rules step."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.40 in the manifest."
+          },
+          {
+            "name": "TELEGRAM_CHAT_ID",
+            "what": "Where the post goes (env var)."
+          },
+          {
+            "name": "OPENROUTER_MODEL",
+            "what": "Model for the draft and the agent gate on the OpenRouter route."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A JSON source URL",
+            "A Telegram bot token and a chat the bot can post to",
+            "OpenRouter key for the draft on the OpenRouter route; the agent gate always uses OpenRouter"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL; the same key and model also run the agent gate."
+            },
+            {
+              "id": "cli",
+              "how": "Local adapted copy: in cf-write add provider: cli and input: \"{{steps.cf-source.output}}\", budgetUsd: null, q-core run --caller-provider provider.json, then q-core reply. The agent gate has no CLI mode: without an OpenRouter key it hands the check to you."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the JSON source material",
+              "required": true
+            },
+            {
+              "name": "TELEGRAM_BOT_TOKEN",
+              "what": "Telegram bot token for sendMessage; if unset, the message goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "TELEGRAM_CHAT_ID",
+              "what": "Telegram chat or channel id to post into",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; capped at $0.40 per run (draft plus agent-gate check). CLI route: no separate model bill for the draft.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "The agent gate is a model judge, not a deterministic checker.",
+          "Approval happens in your own terminal (q-core approve with a one-time code); an agent cannot approve.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Draft one Telegram post a day from my JSON feed and publish only after I approve it.",
+          "Write a short channel post with links from this source, check the rules, ask me first."
+        ]
+      }
     },
     {
       "id": "content-feed",
       "name": "Content feed",
       "description": "Read an RSS feed, write a short morning digest and send it to Telegram. Repeated runs may redeliver; receiver-side deduplication requires separate configuration.",
-      "file": "loops/content-feed.yaml",
+      "file": "workflows/content-feed.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -295,7 +552,7 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
+        "QCORE_SOURCE_URL",
         "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID",
         "OPENROUTER_MODEL"
@@ -313,20 +570,20 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
+          "QCORE_SOURCE_URL",
           "TELEGRAM_BOT_TOKEN",
           "TELEGRAM_CHAT_ID",
           "OPENROUTER_MODEL"
@@ -334,8 +591,7 @@
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "f9d588e3bbf9041e02e7057aae83d48b3c7e6f2a59b8d521064f8349ce9cb207",
       "value": "Condense a source feed into a readable update so the user does not need to review every item manually.",
@@ -343,7 +599,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -356,19 +612,112 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         },
         {
           "id": "schedule",
           "version": "1.0.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Reads an RSS feed and sends a short plain-text morning digest (one line per worthwhile item, with a count of skipped noise) to Telegram.",
+        "howItWorks": [
+          "Reads up to 8 items from the feed at QCORE_SOURCE_URL.",
+          "A model writes a digest: an opening count line, then '— title · link' per item worth reading, and how many were skipped.",
+          "The digest (under 3000 characters) is sent to Telegram via sendMessage, with no human gate."
+        ],
+        "inputs": [
+          "An RSS/Atom feed URL."
+        ],
+        "outputs": [
+          "One Telegram message per run in your chat (or a file in .qf/out/ if Telegram variables are unset)."
+        ],
+        "knobs": [
+          {
+            "name": "QCORE_SOURCE_URL",
+            "what": "Which feed is read (env var)."
+          },
+          {
+            "name": "limit",
+            "what": "Items read, 8 in the cf-fetch step."
+          },
+          {
+            "name": "instructions",
+            "what": "Digest format and length, in the cf-digest step."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.10."
+          },
+          {
+            "name": "TELEGRAM_CHAT_ID",
+            "what": "Destination chat (env var)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "An RSS feed URL",
+            "A Telegram bot token and chat id",
+            "OpenRouter key, only on the OpenRouter route"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+            },
+            {
+              "id": "cli",
+              "how": "Edited copy: in cf-digest add provider: cli and input: \"{{steps.cf-fetch.output}}\", set settings.budgetUsd: null, run q-core run --caller-provider provider.json (agent claude|codex), answer each job with q-core reply. Add a human approval-gate before cf-send (required in edited copies)."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the RSS/Atom feed to read",
+              "required": true
+            },
+            {
+              "name": "TELEGRAM_BOT_TOKEN",
+              "what": "Telegram bot token for sendMessage; if unset, the message goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "TELEGRAM_CHAT_ID",
+              "what": "Telegram chat or channel id to post into",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; capped at $0.10 per run. CLI route: no separate model bill.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
+          "Repeated runs can resend the same items; deduplication on the receiving side must be set up separately.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Send a short morning digest of this RSS feed to my Telegram chat.",
+          "One Telegram message a day with the worthwhile items from a design blog feed."
+        ]
+      }
     },
     {
       "id": "feed-fanout",
       "name": "Feed fan-out",
       "description": "Give each entry its own model call and outgoing message.",
-      "file": "loops/feed-fanout.yaml",
+      "file": "workflows/feed-fanout.yaml",
       "version": "1.1.0",
       "steps": 4,
       "topLevelSteps": 2,
@@ -387,8 +736,8 @@
       "budgetUsd": 0.15,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
       "measured": null,
@@ -404,28 +753,27 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "d771e462d1f40b06672a2b654153df8da3373190b209c3eb6e5f74e15c541864",
       "value": "Process multiple feed items consistently and collect the results without repeating the same manual steps.",
@@ -433,7 +781,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -450,15 +798,99 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Handles each feed item separately: one model sentence per item ('what it is, who would care'), each sent as its own webhook message.",
+        "howItWorks": [
+          "Reads up to 20 items from the feed at QCORE_SOURCE_URL.",
+          "Opens a separate lane for each of the first 5 items; how many were skipped is reported.",
+          "In each lane a model writes one sentence about the item.",
+          "Each lane POSTs index, title, link and the sentence to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "An RSS/Atom feed URL."
+        ],
+        "outputs": [
+          "Up to 5 separate JSON messages to your webhook (or files in .qf/out/), plus a truncation note in the run record."
+        ],
+        "knobs": [
+          {
+            "name": "maxItems",
+            "what": "Lanes opened, 5 in the ff-lane step (1–50)."
+          },
+          {
+            "name": "limit",
+            "what": "Items read, 20 in ff-fetch."
+          },
+          {
+            "name": "instructions",
+            "what": "What the per-item sentence says, in ff-take."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.15."
+          }
+        ],
+        "requires": {
+          "access": [
+            "An RSS feed URL",
+            "A webhook receiver URL (optional)",
+            "OpenRouter key, only on the OpenRouter route"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+            },
+            {
+              "id": "cli",
+              "how": "Local adapted copy: in ff-take add provider: cli (its instructions already carry the item's title and link; bind only the step the instructions read), budgetUsd: null, q-core run --caller-provider provider.json, one q-core reply per lane. Add a human approval-gate before the ff-lane fan-out."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the RSS/Atom feed to read",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; capped at $0.15 per run (up to 5 short calls). CLI route: no separate model bill.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Only the first 5 items are processed unless maxItems is raised.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "For each of the latest 5 posts in this feed, send one sentence on who should care to my webhook.",
+          "Process feed items one by one and push each summary to my webhook."
+        ]
+      }
     },
     {
       "id": "json-digest",
       "name": "Get a structured digest",
       "description": "Request a JSON summary and reject incorrectly formatted output.",
-      "file": "loops/json-digest.yaml",
+      "file": "workflows/json-digest.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -476,8 +908,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
       "measured": null,
@@ -493,28 +925,27 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "cb730da45f69c57a3f4fbcf2a97df8339907d443b7fb9f4631ed12f308bad449",
       "value": "Produce a structured summary that a downstream service can consume without manual reformatting.",
@@ -522,7 +953,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -535,15 +966,98 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Asks a model for a strict JSON summary of a feed ({count, titles}) and fails the step if the answer is not valid JSON; sends the count to a webhook.",
+        "howItWorks": [
+          "Reads up to 5 items from the feed at QCORE_SOURCE_URL.",
+          "A model must return exactly {\"count\": n, \"titles\": [...]}; prose fails the step.",
+          "POSTs count, run id and run cost to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "An RSS/Atom feed URL."
+        ],
+        "outputs": [
+          "A JSON message {count, run, cost} to your webhook, or a file in .qf/out/ if no webhook is set."
+        ],
+        "knobs": [
+          {
+            "name": "instructions",
+            "what": "The JSON shape requested, in the jd-shape step."
+          },
+          {
+            "name": "body",
+            "what": "Which fields are sent, in jd-send."
+          },
+          {
+            "name": "limit",
+            "what": "Items read, 5."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.10."
+          }
+        ],
+        "requires": {
+          "access": [
+            "An RSS feed URL",
+            "A webhook receiver URL (optional)",
+            "OpenRouter key, only on the OpenRouter route"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+            },
+            {
+              "id": "cli",
+              "how": "Edited copy: in jd-shape add provider: cli and input: \"{{steps.jd-fetch.output}}\", set settings.budgetUsd: null, run q-core run --caller-provider provider.json (agent claude|codex), answer each job with q-core reply. Add a human approval-gate before jd-send (required in edited copies)."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the RSS/Atom feed to read",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; capped at $0.10 per run. CLI route: no separate model bill; the cost field then reads unknown.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "Only the count is sent in the published body; titles stay in the run record.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Give my service a strict JSON count and titles of a feed, or fail.",
+          "Test that a model returns valid JSON before my backend consumes it."
+        ]
+      }
     },
     {
       "id": "price-watch",
       "name": "Watch for price changes",
       "description": "Read a price source and prepare an update for your destination.",
-      "file": "loops/price-watch.yaml",
+      "file": "workflows/price-watch.yaml",
       "version": "1.1.0",
       "steps": 4,
       "topLevelSteps": 4,
@@ -561,7 +1075,7 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_WEBHOOK_URL",
+        "QCORE_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
       "measured": null,
@@ -577,9 +1091,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -588,20 +1102,19 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "70e82b724ede0a7da8b3e25bd07bebd7a6198811d8653c271115dd269428d6c7",
       "value": "Surface relevant price updates without repeatedly checking the source manually.",
@@ -609,7 +1122,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -622,19 +1135,98 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         },
         {
           "id": "schedule",
           "version": "1.0.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Checks the USD/UAH rate, lets a model judge decide whether it is above 42.0, then waits for your approval before sending an alert.",
+        "howItWorks": [
+          "Reads the public rate feed open.er-api.com/v6/latest/USD (fixed in the manifest).",
+          "An agent gate (a model judge) passes only if USD/UAH is above 42.0; otherwise the decision is handed to you.",
+          "A human gate asks you to confirm sending.",
+          "POSTs 'Rate alert — USD/UAH is …' to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "Nothing beyond configuration; the rate source and the 42.0 threshold are in the manifest.",
+          "Your approval."
+        ],
+        "outputs": [
+          "One alert message to your webhook, or a file in .qf/out/ if no webhook is set."
+        ],
+        "knobs": [
+          {
+            "name": "url",
+            "what": "Rate source, in the pw-fetch step."
+          },
+          {
+            "name": "rubric",
+            "what": "Currency and threshold (UAH above 42.0), in pw-judge."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.10."
+          },
+          {
+            "name": "QCORE_WEBHOOK_URL",
+            "what": "Where the alert goes (env var)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A webhook receiver URL (optional)",
+            "OpenRouter key and model for the agent gate"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment and OPENROUTER_MODEL; they run the agent gate."
+            },
+            {
+              "id": "cli",
+              "how": "Not applicable: there is no llm-call step to switch, and the agent gate has no CLI mode. Without an OpenRouter key the gate hands the decision to you instead of waving it through."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "Key for the agent gate; without it the check is handed to you",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "Model for the agent gate",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; one short judge call, capped at $0.10 per run.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
+          "A model judges a simple number comparison; the threshold check is not deterministic.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Alert me via webhook when USD/UAH goes above 42, after I confirm.",
+          "Daily rate check that only bothers me on unusual days."
+        ]
+      }
     },
     {
       "id": "release-watch",
       "name": "Release watch",
       "description": "Follow a public GitHub repository and summarize what changed.",
-      "file": "loops/release-watch.yaml",
+      "file": "workflows/release-watch.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -652,8 +1244,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
       "measured": null,
@@ -670,28 +1262,27 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "053b60d872a176426d35ac9fd55b653a0ed889eb57362cffe17f841e8271361c",
       "value": "Summarize new software releases and highlight items worth reviewing without reading the full release feed.",
@@ -699,7 +1290,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -712,19 +1303,103 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         },
         {
           "id": "schedule",
           "version": "1.0.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Reads a GitHub releases feed and writes a short note: one line per release plus a WATCH line for breaking changes, deprecations or security fixes; posts it to a webhook.",
+        "howItWorks": [
+          "Reads the 5 latest entries from the releases feed at QCORE_SOURCE_URL (e.g. github.com/<owner>/<repo>/releases.atom).",
+          "A model writes '<version> · what changed' per release and a WATCH line, or says in one line that nothing needs action.",
+          "POSTs the note as {\"text\": …} to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "The releases feed URL of a public GitHub repository."
+        ],
+        "outputs": [
+          "A plain-text release note to your webhook, or a file in .qf/out/ if no webhook is set."
+        ],
+        "knobs": [
+          {
+            "name": "QCORE_SOURCE_URL",
+            "what": "Which repository's releases feed (env var)."
+          },
+          {
+            "name": "limit",
+            "what": "Releases read, 5."
+          },
+          {
+            "name": "instructions",
+            "what": "Note format and what counts as WATCH, in rw-note."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.10."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A public GitHub releases feed URL",
+            "A webhook receiver URL (optional)",
+            "OpenRouter key, only on the OpenRouter route"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+            },
+            {
+              "id": "cli",
+              "how": "Edited copy: in rw-note add provider: cli and input: \"{{steps.rw-fetch.output}}\", set settings.budgetUsd: null, run q-core run --caller-provider provider.json (agent claude|codex), answer each job with q-core reply. Add a human approval-gate before rw-send (required in edited copies)."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the GitHub releases Atom feed",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; capped at $0.10 per run. CLI route: no separate model bill.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
+          "The WATCH line is model judgement from release notes; it can miss a breaking change.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Weekly note on what changed in the React releases and anything breaking.",
+          "Watch a dependency's GitHub releases and flag security fixes."
+        ]
+      }
     },
     {
       "id": "strict-gate",
       "name": "Check before continuing",
       "description": "Review an output against a rubric before the next step.",
-      "file": "loops/strict-gate.yaml",
+      "file": "workflows/strict-gate.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 3,
@@ -742,8 +1417,8 @@
       "budgetUsd": 0.1,
       "needsEnv": [
         "OPENROUTER_API_KEY",
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
         "OPENROUTER_MODEL"
       ],
       "measured": null,
@@ -759,9 +1434,9 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -770,21 +1445,20 @@
         },
         {
           "id": "llm-call-openrouter",
-          "version": "1.0.0"
+          "version": "1.2.0"
         }
       ],
       "permissions": {
         "environment": [
           "OPENROUTER_API_KEY",
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "d6ebf8ae34b6a888f99031f8da586c799f523855af96a60a8849d5ed14abbe0f",
       "value": "Check a draft against an explicit rubric before allowing the next workflow step.",
@@ -792,7 +1466,7 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -805,15 +1479,93 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Shows a machine check that is allowed to end the run: if a JSON rate is not above 42.0, the run stops instead of asking a person.",
+        "howItWorks": [
+          "Reads a JSON document with rates from QCORE_SOURCE_URL.",
+          "An agent gate (a model judge) passes only if json.rates.UAH is above 42.0; on failure the run ends (no escalation).",
+          "On pass, POSTs the rate to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "A JSON endpoint shaped like {rates: {UAH: …}} (e.g. an exchange-rate API)."
+        ],
+        "outputs": [
+          "On pass, one JSON message {rate} to your webhook (or .qf/out/); on fail, a stopped run in the local record."
+        ],
+        "knobs": [
+          {
+            "name": "rubric",
+            "what": "The pass condition, in sg-check."
+          },
+          {
+            "name": "escalateOn",
+            "what": "none = a failed check ends the run; objection would hand it to a person."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.10."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A JSON source URL",
+            "A webhook receiver URL (optional)",
+            "OpenRouter key and model for the agent gate"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment and OPENROUTER_MODEL run the agent gate."
+            },
+            {
+              "id": "cli",
+              "how": "Not applicable: no llm-call step, and the agent gate has no CLI mode. Without an OpenRouter key the gate is handed to a person, which removes the strict behaviour."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the JSON with json.rates.UAH",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "Key for the agent gate",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "Model for the agent gate",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; one short judge call, capped at $0.10 per run.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "The check is an LLM judge, not a deterministic comparison.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Only send the rate alert if it is above the line; otherwise stop silently.",
+          "Show me a machine check that can end a run without asking me."
+        ]
+      }
     },
     {
       "id": "webhook-relay",
       "name": "Pass data to a webhook",
       "description": "Read a JSON endpoint and forward its data without a model call.",
-      "file": "loops/webhook-relay.yaml",
+      "file": "workflows/webhook-relay.yaml",
       "version": "1.1.0",
       "steps": 2,
       "topLevelSteps": 2,
@@ -829,8 +1581,8 @@
       "model": null,
       "budgetUsd": 0.05,
       "needsEnv": [
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/webhook-relay.txt",
@@ -846,21 +1598,20 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "environment": [
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL"
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "fcfef0dedca7d769ebb21124a3ec9658e4576758277235b7a5549a8c15aba4a6",
       "value": "Move source data to a configured receiver without a manual copy-and-paste step.",
@@ -868,7 +1619,7 @@
         "inference": "none",
         "callerReady": true
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -881,15 +1632,68 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "Reads a JSON endpoint and forwards its data to your webhook, with no model call.",
+        "howItWorks": [
+          "Reads JSON from QCORE_SOURCE_URL.",
+          "POSTs {forwarded: <the JSON>, run: <run id>} to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "A JSON source URL."
+        ],
+        "outputs": [
+          "One JSON message to your webhook, or a file in .qf/out/ if no webhook is set."
+        ],
+        "knobs": [
+          {
+            "name": "body",
+            "what": "Shape of the forwarded message, in wr-send."
+          },
+          {
+            "name": "QCORE_SOURCE_URL / QCORE_WEBHOOK_URL",
+            "what": "Source and destination (env vars)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A JSON source URL",
+            "A webhook receiver URL (optional)"
+          ],
+          "providers": [],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the JSON to forward",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            }
+          ]
+        },
+        "price": "No model cost. Source and destination services may charge or need credentials.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "Source or receiver credentials, if needed, are not handled by the manifest.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Copy this JSON endpoint to my webhook on demand without any AI.",
+          "Forward a status JSON from one service to another receiver."
+        ]
+      }
     },
     {
       "id": "wide-fanout",
       "name": "Test fan-out limits",
       "description": "Explore per-item processing with explicit limits and truncation.",
-      "file": "loops/wide-fanout.yaml",
+      "file": "workflows/wide-fanout.yaml",
       "version": "1.1.0",
       "steps": 3,
       "topLevelSteps": 2,
@@ -906,8 +1710,8 @@
       "model": null,
       "budgetUsd": 0.05,
       "needsEnv": [
-        "QLOOP_SOURCE_URL",
-        "QLOOP_WEBHOOK_URL"
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
       ],
       "measured": null,
       "proof": "demos/wide-fanout.txt",
@@ -922,21 +1726,20 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "environment": [
-          "QLOOP_SOURCE_URL",
-          "QLOOP_WEBHOOK_URL"
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL"
         ],
         "execution": "local-only"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485",
       "value": "Verify bounded fan-out behavior before applying a workflow to a large input set.",
@@ -944,7 +1747,7 @@
         "inference": "none",
         "callerReady": true
       },
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "acceptance": {
         "status": "pending",
         "scope": "Registry composition and real user execution; historical output is not acceptance"
@@ -961,45 +1764,99 @@
         },
         {
           "id": "api-request",
-          "version": "1.0.0"
+          "version": "1.1.0"
         }
-      ]
+      ],
+      "brief": {
+        "summary": "A test of fan-out limits: reads up to 60 feed items, sends only the first 12 to a webhook and reports how many were skipped.",
+        "howItWorks": [
+          "Reads up to 60 items from the feed at QCORE_SOURCE_URL.",
+          "Opens one lane per item, capped at 12; the skipped count is recorded.",
+          "Each lane POSTs {i, title} to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "An RSS/Atom feed URL, ideally with more than 12 items."
+        ],
+        "outputs": [
+          "Up to 12 small JSON messages to your webhook (or .qf/out/) and a truncation note in the run record."
+        ],
+        "knobs": [
+          {
+            "name": "maxItems",
+            "what": "Lane cap, 12 in wf-lane (1–50)."
+          },
+          {
+            "name": "limit",
+            "what": "Items read, 60 in wf-fetch."
+          }
+        ],
+        "requires": {
+          "access": [
+            "An RSS feed URL",
+            "A webhook receiver URL (optional)"
+          ],
+          "providers": [],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the RSS/Atom feed to read",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            }
+          ]
+        },
+        "price": "No model cost.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "It demonstrates bounded fan-out; the messages carry only index and title.",
+          "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Check that a 60-item feed is capped at 12 messages and the skip is reported.",
+          "Test fan-out limits before I run a workflow over a big list."
+        ]
+      }
     },
     {
       "id": "digest",
       "name": "Digest",
-      "description": "Turn selected feed material into a useful editorial digest.",
-      "value": "Turn selected feed material into a useful editorial digest.",
-      "file": "loops/digest.yaml",
-      "version": "0.1.0",
+      "description": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
+      "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
+      "file": "workflows/digest.yaml",
+      "version": "0.8.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
-        "repository": "0design/qloops",
-        "path": "registry/loops/digest.yaml",
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/digest.yaml",
         "revision": "candidate"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
-          "id": "llm-call-cli",
-          "version": "0.1.0"
+          "id": "llm-call-openrouter",
+          "version": "1.2.0"
         },
         {
           "id": "parse-web",
-          "version": "0.1.0"
+          "version": "0.2.0"
         },
         {
           "id": "deduplicate",
-          "version": "0.1.0"
+          "version": "0.2.0"
         },
         {
           "id": "verify-sources",
-          "version": "0.1.0"
+          "version": "0.5.0"
         },
         {
           "id": "approval-gate",
@@ -1013,32 +1870,643 @@
         },
         {
           "id": "api-request",
+          "version": "1.1.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "accepted",
+      "acceptance": {
+        "status": "accepted",
+        "evidence": [
+          {
+            "kind": "owner-review",
+            "date": "2026-09-28",
+            "workflowVersion": "0.8.0",
+            "runId": "5b9ffaf1-cb7f-426e-a7e3-eb68d9224452",
+            "provider": "cli",
+            "scope": "The owner approved the text of a real run through the CLI provider; the OpenRouter route of 0.8.0 was not re-run."
+          }
+        ]
+      },
+      "evidence": {
+        "status": "owner-accepted-run"
+      },
+      "executionProfile": {
+        "inference": "openrouter",
+        "callerReady": false
+      },
+      "needsEnv": [
+        "QF_DIGEST_DATE",
+        "QF_DIGEST_SINCE",
+        "QF_DIGEST_UNTIL",
+        "QF_DIGEST_RECEIVER_URL"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "Turns ten public AI news feeds for a date window into one fact-checked Ukrainian digest (themes, cases, links to sources), stops for your exact approval, then delivers it once to an HTTP receiver or a local file.",
+        "howItWorks": [
+          "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
+          "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
+          "Reads the article behind each selected source (static text; falls back to the feed summary).",
+          "A model drafts the Ukrainian nested list; a fact-check step revises or removes unsupported claims with verbatim quotes.",
+          "A reviewer step flags overstatement, scope, attribution, generalisation and entity problems; deterministic checks verify links, quotes, numbers and format.",
+          "You approve the exact text in your terminal; it is delivered once to QF_DIGEST_RECEIVER_URL."
+        ],
+        "inputs": [
+          "Date window (QF_DIGEST_SINCE/UNTIL) and header date (QF_DIGEST_DATE).",
+          "Optionally your own feeds and topic.",
+          "Your approval of the final text."
+        ],
+        "outputs": [
+          "A fact-checked Ukrainian Markdown digest with a fixed header line, per-claim verdicts and a hash, POSTed as {text, artifactHash} to an HTTP receiver or appended to a local .jsonl file."
+        ],
+        "knobs": [
+          {
+            "name": "QF_DIGEST_FEED_1..10",
+            "what": "Replace any of the ten default feeds (env vars)."
+          },
+          {
+            "name": "QF_DIGEST_TOPIC",
+            "what": "Narrows the theme; default is AI products and industry (env var)."
+          },
+          {
+            "name": "settings.model / step model",
+            "what": "Draft and fact-check use anthropic/claude-sonnet-5; clustering openai/gpt-4o-mini; review anthropic/claude-opus-5.5 (manifest)."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.50."
+          },
+          {
+            "name": "requiredPrefix / fixedLinks",
+            "what": "The fixed header line and its channel links, in the draft and checks steps."
+          },
+          {
+            "name": "caseMaxWords / themeMaxWords",
+            "what": "Item length limits (32 / 20 words) in the checks step."
+          }
+        ],
+        "requires": {
+          "access": [
+            "An HTTP receiver URL, or an existing local folder for a file:///…jsonl delivery",
+            "OpenRouter key in the macOS Keychain, only on the OpenRouter route",
+            "Public internet access to the feeds and articles"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "Use the published CLI variant digest-cli (same steps, provider: cli, no OpenRouter key) instead of editing a copy."
+            },
+            {
+              "id": "openrouter",
+              "how": "As published: store the key once with q-core auth set openrouter (macOS Keychain, secretSource keychain); models are fixed in the manifest. This route was not re-run for 0.8.0."
+            }
+          ],
+          "env": [
+            {
+              "name": "QF_DIGEST_DATE",
+              "what": "Date in the header, DD.MM; checked before approval",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_SINCE",
+              "what": "Window start, ISO date-time",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_UNTIL",
+              "what": "Window end, ISO date-time, after SINCE",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_RECEIVER_URL",
+              "what": "http(s) receiver or file:///absolute/path.jsonl; no fallback to .qf/out/",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_10",
+              "what": "Replace a default feed",
+              "required": false
+            },
+            {
+              "name": "QF_DIGEST_TOPIC",
+              "what": "Theme filter for clustering",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: about $0.3 per run, measured on a 0.8.0 candidate run ($0.29; cap $0.5 in the manifest); the released 0.8.0 OpenRouter route was not re-run. CLI route: use digest-cli (no key, no separate model bill); the accepted run used that route.",
+        "limits": [
+          "Version 0.8.0 was accepted by the owner after a real run through the CLI route; the OpenRouter route was not re-verified for 0.8.0.",
+          "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run: later steps read them.",
+          "Checks prove links, quotes, numbers and format; meaning-level accuracy still rests on the model steps and your approval.",
+          "Articles are read as static text only (no JavaScript); paywalled or unreachable pages fall back to the feed summary.",
+          "The header line and its channel links are fixed in the manifest; output is Ukrainian only.",
+          "Keychain storage of the OpenRouter key works on macOS only.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "A weekly fact-checked Ukrainian digest of AI news from ten feeds, delivered to a local .jsonl file.",
+          "A Saturday AI news roundup for 20.09–27.09 with sources, delivered to a local .jsonl file.",
+          "A fact-checked digest of my own 5 design feeds on a narrower topic."
+        ]
+      }
+    },
+    {
+      "id": "digest-cli",
+      "name": "Digest (CLI)",
+      "description": "Digest through your coding agent: the same steps as Digest 0.8.0 (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
+      "value": "Digest through your coding agent: the same steps as Digest 0.8.0 (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
+      "file": "workflows/digest-cli.yaml",
+      "version": "0.8.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/digest-cli.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.2.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.2.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.5.0"
+        },
+        {
+          "id": "approval-gate",
           "version": "1.0.0"
         }
       ],
-      "contentType": "loop-template",
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "api-request",
+          "version": "1.1.0"
+        }
+      ],
+      "contentType": "workflow-template",
       "status": "implementation-candidate",
       "acceptance": {
         "status": "pending",
         "evidence": []
       },
       "evidence": {
-        "status": "candidate-tests",
-        "releaseAcceptance": "pending"
+        "status": "candidate-tests"
       },
       "executionProfile": {
         "inference": "cli",
         "callerReady": true
       },
       "needsEnv": [
-        "QF_DIGEST_OPENAI_URL",
-        "QF_DIGEST_ANTHROPIC_URL",
-        "QF_DIGEST_LINEAR_URL",
-        "QF_DIGEST_FIGMA_URL",
+        "QF_DIGEST_DATE",
+        "QF_DIGEST_SINCE",
+        "QF_DIGEST_UNTIL",
         "QF_DIGEST_RECEIVER_URL"
       ],
       "permissions": {
         "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "The Digest 0.8.0 workflow with every model step answered by your coding agent (Claude or Codex): one fact-checked Ukrainian digest from news feeds, no OpenRouter key.",
+        "howItWorks": [
+          "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
+          "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
+          "Reads the article behind each selected source (static text; falls back to the feed summary).",
+          "A model drafts the Ukrainian nested list; a fact-check step revises or removes unsupported claims with verbatim quotes.",
+          "A reviewer step flags overstatement, scope, attribution, generalisation and entity problems; deterministic checks verify links, quotes, numbers and format.",
+          "You approve the exact text in your terminal; it is delivered once to QF_DIGEST_RECEIVER_URL."
+        ],
+        "inputs": [
+          "Date window (QF_DIGEST_SINCE/UNTIL) and header date (QF_DIGEST_DATE).",
+          "Optionally your own feeds and topic.",
+          "Your approval of the final text."
+        ],
+        "outputs": [
+          "A fact-checked Ukrainian Markdown digest with a fixed header line, per-claim verdicts and a hash, POSTed as {text, artifactHash} to an HTTP receiver or appended to a local .jsonl file."
+        ],
+        "knobs": [
+          {
+            "name": "QF_DIGEST_FEED_1..10",
+            "what": "Replace any of the ten default feeds (env vars)."
+          },
+          {
+            "name": "QF_DIGEST_TOPIC",
+            "what": "Narrows the theme; default is AI products and industry (env var)."
+          },
+          {
+            "name": "settings.model / step model",
+            "what": "Draft and fact-check use anthropic/claude-sonnet-5; clustering openai/gpt-4o-mini; review anthropic/claude-opus-5.5 (manifest)."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.50."
+          },
+          {
+            "name": "requiredPrefix / fixedLinks",
+            "what": "The fixed header line and its channel links, in the draft and checks steps."
+          },
+          {
+            "name": "caseMaxWords / themeMaxWords",
+            "what": "Item length limits (32 / 20 words) in the checks step."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI (it answers the model steps)",
+            "An HTTP receiver URL, or an existing local folder for a file:///…jsonl delivery",
+            "Public internet access to the feeds and articles"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, budgetUsd: null): q-core run --caller-provider provider.json ({\"kind\":\"caller\",\"agent\":\"claude\" or \"codex\",\"model\":\"current-session\",\"payerScope\":\"local-cli\"}), then answer each of the 4 model jobs (cluster, draft, factcheck, review) with q-core reply. Export the same QF_DIGEST_* variables for q-core reply as for q-core run."
+            }
+          ],
+          "env": [
+            {
+              "name": "QF_DIGEST_DATE",
+              "what": "Date in the header, DD.MM; checked before approval",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_SINCE",
+              "what": "Window start, ISO date-time",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_UNTIL",
+              "what": "Window end, ISO date-time, after SINCE",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_RECEIVER_URL",
+              "what": "http(s) receiver or file:///absolute/path.jsonl; no fallback to .qf/out/",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_10",
+              "what": "Replace a default feed",
+              "required": false
+            },
+            {
+              "name": "QF_DIGEST_TOPIC",
+              "what": "Theme filter for clustering",
+              "required": false
+            }
+          ]
+        },
+        "price": "No separate model bill: the four model steps run in your Claude or Codex subscription; cost is recorded as unknown, not free.",
+        "limits": [
+          "The owner accepted a real Digest 0.8.0 run with the same steps and input bindings (run 5b9ffaf1, 28.09); this catalog entry itself is a candidate.",
+          "Each model step receives at most 60000 bytes; the inputs are already bound to one step each.",
+          "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run.",
+          "Articles are read as static text only; unreachable pages fall back to the feed summary.",
+          "The header line and its channel links are fixed; output is Ukrainian only.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "A weekly fact-checked Ukrainian digest of AI news from ten feeds, delivered to a local .jsonl file.",
+          "A Saturday AI news roundup for 20.09–27.09 with sources, delivered to a local .jsonl file.",
+          "A fact-checked digest of my own 5 design feeds on a narrower topic."
+        ]
+      }
+    },
+    {
+      "id": "podcast-summary",
+      "name": "Podcast summary",
+      "description": "Turn one podcast or video transcript into a timestamped Ukrainian summary with no channel header, stopping at your approval. Replaces podcast-digest.",
+      "value": "Turn one podcast or video transcript into a timestamped Ukrainian summary with no channel header, stopping at your approval. Replaces podcast-digest.",
+      "file": "workflows/podcast-summary.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/podcast-summary.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-openrouter",
+          "version": "1.2.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.2.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.2.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.5.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "openrouter",
+        "callerReady": false
+      },
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "Turns one podcast or video transcript (two parts with [mm:ss] markers) into a short timestamped Ukrainian summary and stops at your exact approval; nothing is sent anywhere.",
+        "howItWorks": [
+          "Fetches the two transcript parts from their URLs.",
+          "Extracts readable text and removes exact duplicates.",
+          "A model drafts an intro line linking the episode, then two fixed sections, at most 12 items, each ending with [mm:ss] markers.",
+          "Checks verify that every marker exists in the transcript, the headings and intro link are exact and the text is Ukrainian.",
+          "The run waits for your approval of the exact text."
+        ],
+        "inputs": [
+          "URLs of two transcript parts with [mm:ss] markers.",
+          "Episode title and link.",
+          "Your approval."
+        ],
+        "outputs": [
+          "An approved Ukrainian Markdown summary kept in the local run record (.qf/); it is not delivered or published."
+        ],
+        "knobs": [
+          {
+            "name": "QF_PODCAST_SOURCE_KIND",
+            "what": "What the source is called (default «відео»), env var."
+          },
+          {
+            "name": "settings.model",
+            "what": "anthropic/claude-sonnet-5 on the OpenRouter route (manifest)."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.25."
+          },
+          {
+            "name": "requiredHeadings",
+            "what": "The two fixed section headings, in the checks step."
+          },
+          {
+            "name": "maxChars",
+            "what": "Readable characters kept per part, 10000, in the readable step."
+          }
+        ],
+        "requires": {
+          "access": [
+            "Two reachable transcript URLs you are allowed to process",
+            "OpenRouter key in the macOS Keychain, only on the OpenRouter route"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "Use the published CLI variant podcast-summary-cli (same steps, provider: cli, no OpenRouter key) instead of editing a copy."
+            },
+            {
+              "id": "openrouter",
+              "how": "As published: store the key with q-core auth set openrouter (macOS Keychain); the model is set in the manifest."
+            }
+          ],
+          "env": [
+            {
+              "name": "QF_PODCAST_TRANSCRIPT_PART_1_URL",
+              "what": "URL of transcript part 1",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_TRANSCRIPT_PART_2_URL",
+              "what": "URL of transcript part 2",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_TITLE",
+              "what": "Episode title; also used to spell names",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_VIDEO_URL",
+              "what": "Link to the episode, used once in the intro",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_SOURCE_KIND",
+              "what": "Source word, default «відео»",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; one call, capped at $0.25 per run. CLI route: no separate model bill.",
+        "limits": [
+          "Implementation candidate: no accepted real run recorded.",
+          "Expects exactly two transcript parts; each part is cut to 10000 readable characters.",
+          "Timestamps are checked; whether the summary says what the speaker said is model judgement plus your approval.",
+          "Automatic captions may misspell names; the recording date is unknown.",
+          "Nothing is delivered; you copy the approved text yourself.",
+          "Keychain storage of the OpenRouter key works on macOS only.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Summarise this YouTube talk transcript in Ukrainian with timestamps.",
+          "Key points of a two-part podcast transcript, for me to approve before I post them."
+        ]
+      }
+    },
+    {
+      "id": "podcast-summary-cli",
+      "name": "Podcast summary (CLI)",
+      "description": "Podcast summary through your coding agent: the same steps as podcast-summary 0.1.0, with the draft answered by the agent you are running in — no OpenRouter key.",
+      "value": "Podcast summary through your coding agent: the same steps as podcast-summary 0.1.0, with the draft answered by the agent you are running in — no OpenRouter key.",
+      "file": "workflows/podcast-summary-cli.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/podcast-summary-cli.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.2.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.2.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.5.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "The podcast-summary workflow with the draft answered by your coding agent (Claude or Codex): one timestamped Ukrainian summary of a transcript, no OpenRouter key.",
+        "howItWorks": [
+          "Fetches the two transcript parts from their URLs.",
+          "Extracts readable text and removes exact duplicates.",
+          "A model drafts an intro line linking the episode, then two fixed sections, at most 12 items, each ending with [mm:ss] markers.",
+          "Checks verify that every marker exists in the transcript, the headings and intro link are exact and the text is Ukrainian.",
+          "The run waits for your approval of the exact text."
+        ],
+        "inputs": [
+          "URLs of two transcript parts with [mm:ss] markers.",
+          "Episode title and link.",
+          "Your approval."
+        ],
+        "outputs": [
+          "An approved Ukrainian Markdown summary kept in the local run record (.qf/); it is not delivered or published."
+        ],
+        "knobs": [
+          {
+            "name": "QF_PODCAST_SOURCE_KIND",
+            "what": "What the source is called (default «відео»), env var."
+          },
+          {
+            "name": "settings.model",
+            "what": "anthropic/claude-sonnet-5 on the OpenRouter route (manifest)."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.25."
+          },
+          {
+            "name": "requiredHeadings",
+            "what": "The two fixed section headings, in the checks step."
+          },
+          {
+            "name": "maxChars",
+            "what": "Readable characters kept per part, 10000, in the readable step."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI (it answers the draft step)",
+            "Two reachable transcript URLs you are allowed to process"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, input bound to the unique step, budgetUsd: null): q-core run --caller-provider provider.json, then answer the draft job with q-core reply; export the same QF_PODCAST_* variables for q-core reply."
+            }
+          ],
+          "env": [
+            {
+              "name": "QF_PODCAST_TRANSCRIPT_PART_1_URL",
+              "what": "URL of transcript part 1",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_TRANSCRIPT_PART_2_URL",
+              "what": "URL of transcript part 2",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_TITLE",
+              "what": "Episode title; also used to spell names",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_VIDEO_URL",
+              "what": "Link to the episode, used once in the intro",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_SOURCE_KIND",
+              "what": "Source word, default «відео»",
+              "required": false
+            }
+          ]
+        },
+        "price": "No separate model bill: the draft runs in your Claude or Codex subscription; cost is recorded as unknown, not free.",
+        "limits": [
+          "Candidate: a local run with this adaptation was made on 28.09; no owner acceptance of this entry.",
+          "The draft receives at most 60000 bytes (the unique step's output).",
+          "Nothing is delivered or published; the result stays in the run after your approval.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Summarise this YouTube talk transcript in Ukrainian with timestamps.",
+          "Key points of a two-part podcast transcript, for me to approve before I post them."
+        ]
       }
     },
     {
@@ -1046,19 +2514,19 @@
       "name": "SDD pipeline",
       "description": "Turn an intent into an approved specification and a verified project change.",
       "value": "Turn an intent into an approved specification and a verified project change.",
-      "file": "loops/sdd-pipeline.yaml",
+      "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
-        "repository": "0design/qloops",
-        "path": "registry/loops/sdd-pipeline.yaml",
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/sdd-pipeline.yaml",
         "revision": "candidate"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -1091,15 +2559,14 @@
         }
       ],
       "builtinDependencies": [],
-      "contentType": "loop-template",
+      "contentType": "workflow-template",
       "status": "implementation-candidate",
       "acceptance": {
         "status": "pending",
         "evidence": []
       },
       "evidence": {
-        "status": "candidate-tests",
-        "releaseAcceptance": "pending"
+        "status": "candidate-tests"
       },
       "executionProfile": {
         "inference": "cli",
@@ -1108,6 +2575,69 @@
       "needsEnv": [],
       "permissions": {
         "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "Turns a written intent into an approved specification and a change to allowed project files, checked by your own verifier command with bounded repair.",
+        "howItWorks": [
+          "Reads only the files your workspace policy allows and pins the verifier inputs.",
+          "Your coding agent writes a brief: summary, checkable criteria, plan.",
+          "The specification is saved as a versioned revision.",
+          "You approve the exact specification, scope and verifier in your terminal.",
+          "Your agent proposes full file contents; Q-Core writes only allowed paths.",
+          "Your verifier runs; on failure a limited number of repair attempts follow, then it stops for you."
+        ],
+        "inputs": [
+          "A workspace policy JSON (--workspace-policy): absolute workspace, allowedPaths, intent, verifier command and args, timeoutMs, maxRepairAttempts 0–5.",
+          "Your approval of the specification."
+        ],
+        "outputs": [
+          "Changed files inside allowedPaths, plus local evidence (spec revision, hashes, verifier results) in the run state."
+        ],
+        "knobs": [
+          {
+            "name": "allowedPaths",
+            "what": "Which files may be read and written (workspace policy)."
+          },
+          {
+            "name": "verifier",
+            "what": "The independent command that decides pass/fail (workspace policy)."
+          },
+          {
+            "name": "maxRepairAttempts",
+            "what": "How many repair rounds, 0–5 (workspace policy)."
+          },
+          {
+            "name": "intent",
+            "what": "What should change (workspace policy)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI",
+            "A project folder and a verifier command you trust"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, budgetUsd: null): q-core run --caller-provider provider.json --workspace-policy policy.json, then answer each pending job with q-core reply."
+            }
+          ],
+          "env": []
+        },
+        "price": "No separate model bill: uses your Claude/Codex subscription; usage is recorded as unknown cost, not free.",
+        "limits": [
+          "Implementation candidate: no owner-accepted real run recorded.",
+          "Not an operating-system sandbox; use trusted workspaces and verifiers.",
+          "Quality depends on how well your verifier encodes the criteria.",
+          "An ambiguous intent must be clarified; the agent must not invent product decisions.",
+          "Inference jobs per run are bounded (12 by default), repairs included.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Add input validation to src/form.ts and prove it with npm test.",
+          "Turn my intent into an approved spec and a change limited to docs/ checked by my lint script."
+        ]
       }
     }
   ],
@@ -1155,7 +2685,7 @@
         },
         "status": {
           "type": "string",
-          "notes": "reviewer: human — the run is waiting_human until qloop approve continues it or --reject fails it."
+          "notes": "reviewer: human — the run is waiting_human until q-core approve continues it or --reject fails it."
         }
       },
       "needsEnv": [],
@@ -1173,23 +2703,22 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "ef49eccd8d35165c65bd733f350b9141b7045edec146c9cfb14b519fe7748a57",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -1206,18 +2735,35 @@
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Pauses a run: a human gate waits for a person's terminal approval (optionally bound to the exact subject hash); an agent gate asks a model judge against a rubric.",
+        "requires": [
+          "Human gate: a person at a real terminal running q-core approve with a one-time code",
+          "Agent gate: OpenRouter key and model"
+        ],
+        "limits": [
+          "An agent cannot approve a human gate.",
+          "The agent gate is an LLM judge; a deterministic check mode is reserved and refused.",
+          "Without an OpenRouter key the agent gate hands the decision to a person."
+        ]
+      }
     },
     {
       "id": "llm-call-openrouter",
       "name": "llm-call/openrouter",
       "kind": "step",
-      "description": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+      "description": "OpenRouter inference with an explicit model, a local secret reference from the environment or the macOS Keychain, bounded retries and timeout, an optional per-call money cap, and the provider's own cost in the run record. This is not the current CLI agent.",
       "input": {
         "instructions": {
           "type": "string",
           "required": true,
           "notes": "templated. SPEC-MANIFEST.md §5.2."
+        },
+        "input": {
+          "type": "reference",
+          "required": false,
+          "notes": "One step-output reference, for example {{steps.unique.output}}; the model then sees only that value instead of every prior output (capped at 60 000 characters). A reference that does not resolve fails before anything is sent."
         },
         "format": {
           "type": "string",
@@ -1242,7 +2788,32 @@
         "model": {
           "type": "string",
           "required": false,
-          "notes": "overrides the loop's model."
+          "notes": "overrides the workflow's model."
+        },
+        "secretSource": {
+          "type": "string",
+          "required": false,
+          "notes": "env | keychain. Default env. keychain reads the key from the local macOS Keychain (service com.qfactory.q-core.openrouter, account openrouter:<keyRef>; store it with q-core auth set openrouter); the key never appears in the workflow, environment or run record."
+        },
+        "keyRef": {
+          "type": "string",
+          "required": false,
+          "notes": "Uppercase secret alias, default OPENROUTER_API_KEY. With secretSource env it names the environment variable; with keychain it names the Keychain entry."
+        },
+        "retries": {
+          "type": "number",
+          "required": false,
+          "notes": "0..5, default 2. At most retries + 1 billable attempts; retried only on network, timeout, 429 and 5xx. Out of range fails the step before the key is read."
+        },
+        "timeoutSec": {
+          "type": "number",
+          "required": false,
+          "notes": "1..600 seconds per attempt, default 90."
+        },
+        "maxCallCostUsd": {
+          "type": "number",
+          "required": false,
+          "notes": "Optional per-call money cap in USD, (0, 100]. The worst case of every attempt at the model's listed price must fit, or the call is not made (COST_LIMIT); a model with no listed price is refused (COST_UNKNOWN)."
         }
       },
       "output": {
@@ -1257,6 +2828,10 @@
         "json": {
           "type": "object",
           "notes": "When format: json, the output is the parsed object instead of {text, model}."
+        },
+        "costUsd": {
+          "type": "number | null",
+          "notes": "Run record: costUsd is the provider's reported cost (costSource provider), else the listed price of the model that answered (rate-table), else null (unknown). A finite budgetUsd stops the next paid step while any cost is unknown."
         }
       },
       "needsEnv": [
@@ -1273,7 +2848,7 @@
         "release-watch"
       ],
       "author": "0design",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "license": "MIT",
       "origin": {
         "repository": "0design/QFactory.io",
@@ -1281,17 +2856,16 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "contentType": "component",
       "acceptance": {
@@ -1300,13 +2874,26 @@
       },
       "file": "components/llm-call-openrouter.json",
       "runtimeKind": "llm-call",
-      "value": "OpenRouter inference with an explicit model and local secret reference. This is not the current CLI agent.",
+      "value": "OpenRouter inference with an explicit model, a local secret reference from the environment or the macOS Keychain, bounded retries and timeout, an optional per-call money cap, and the provider's own cost in the run record. This is not the current CLI agent.",
       "implementation": {
         "status": "partial",
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Sends one bounded model request to OpenRouter with an explicit model, retries, timeout, optional per-call cost cap and recorded provider cost.",
+        "requires": [
+          "OpenRouter API key from the environment or the macOS Keychain (q-core auth set openrouter)",
+          "An explicit model (step, workflow or OPENROUTER_MODEL)"
+        ],
+        "limits": [
+          "No acceptance recorded for this component.",
+          "Input capped at 60000 characters; without input it sends all prior outputs.",
+          "Unknown cost stops the next paid step when a budget is set.",
+          "Keychain option is macOS only."
+        ]
+      }
     },
     {
       "id": "telegram-publish",
@@ -1317,7 +2904,7 @@
         "text": {
           "type": "string",
           "required": true,
-          "notes": "Message body. In shipped loops this is a prior step's output, templated into api-request body."
+          "notes": "Message body. In shipped workflows this is a prior step's output, templated into api-request body."
         }
       },
       "output": {
@@ -1350,17 +2937,16 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof",
-        "releaseAcceptance": "pending"
+        "status": "no-live-proof"
       },
       "sha256": "581dc7a3c24e6ef9be97dd5958160ec928cbb775356797b5b3e4225cbb084f82",
       "contentType": "component",
@@ -1374,7 +2960,20 @@
         "source": "src/steps.mjs",
         "limitation": "Existing runtime evidence is separate from Registry component acceptance."
       },
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "A recipe over api-request that posts a text to Telegram sendMessage using a bot token and chat id from environment variables.",
+        "requires": [
+          "TELEGRAM_BOT_TOKEN",
+          "TELEGRAM_CHAT_ID",
+          "A bot that can post to that chat"
+        ],
+        "limits": [
+          "Not its own engine step; runs as api-request.",
+          "If variables are unset, the message goes to .qf/out/ instead of Telegram.",
+          "No acceptance recorded; retries can duplicate messages."
+        ]
+      }
     },
     {
       "id": "llm-call-cli",
@@ -1388,19 +2987,19 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
         "status": "implemented",
         "source": "src/registry-cli-step.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
@@ -1412,34 +3011,54 @@
         ]
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Runs a model step through your current coding agent (Claude or Codex): Q-Core pauses with a bounded job and continues when you answer it with q-core reply.",
+        "requires": [
+          "A logged-in Claude Code or Codex CLI",
+          "A provider.json with kind caller, agent claude|codex, model, payerScope local-cli",
+          "settings.budgetUsd: null"
+        ],
+        "limits": [
+          "Input capped at 60000 bytes; bind one step with input to stay under it.",
+          "Uses your subscription; cost is recorded as unknown, not free.",
+          "Replies are bound to the exact job; no fallback to another provider."
+        ]
+      }
     },
     {
       "id": "parse-web",
       "name": "parse-web",
-      "description": "Extract source-attributed main content from a fetched web page.",
-      "value": "Extract source-attributed main content from a fetched web page.",
+      "description": "Extract source-attributed main content from a fetched web page, or split an RSS/Atom feed into dated items that each keep their own link.",
+      "value": "Extract source-attributed main content from a fetched web page, or split an RSS/Atom feed into dated items that each keep their own link.",
       "kind": "step",
       "contentType": "component",
       "file": "components/parse-web.json",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
         "status": "implemented",
         "source": "src/registry-data-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
+          {
+            "file": "demos/digest-multisource.txt",
+            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "componentVersion": "0.2.0",
+            "coreVersion": "0.2.0-q-core.34",
+            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+          },
           {
             "file": "demos/digest-huyiks.txt",
             "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
@@ -1450,7 +3069,19 @@
         ]
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Extracts readable text from fetched pages, splits RSS/Atom feeds into dated items with their own links, or reads the article behind each selected source.",
+        "requires": [
+          "A prior fetch step (or selected sources for article reading)",
+          "Public http(s) pages for article reading"
+        ],
+        "limits": [
+          "Static text only; no JavaScript runs.",
+          "Private-network addresses are refused; a public name resolving to a private address is not detected.",
+          "Does not judge whether text is true."
+        ]
+      }
     },
     {
       "id": "determined",
@@ -1464,9 +3095,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
         {
@@ -1485,11 +3116,11 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -1497,7 +3128,19 @@
         ]
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Keeps running verify-and-repair on an applied change until the approved criteria pass your independent verifier or the repair limit is hit.",
+        "requires": [
+          "An approved specification",
+          "An applied workspace change",
+          "A verifier command in the workspace policy"
+        ],
+        "limits": [
+          "Limit exhaustion ends as needs-human, never as success.",
+          "Only as good as the verifier; not an OS sandbox."
+        ]
+      }
     },
     {
       "id": "workspace-apply",
@@ -1511,23 +3154,23 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -1535,7 +3178,18 @@
         ]
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Writes proposed file contents only to paths allowed by the workspace policy, and only after the specification was approved.",
+        "requires": [
+          "--workspace-policy with allowedPaths",
+          "A hash-bound human approval earlier in the run"
+        ],
+        "limits": [
+          "Refuses changed source files, verifier changes, symlinks and out-of-scope paths.",
+          "An interrupted write needs manual reconciliation."
+        ]
+      }
     },
     {
       "id": "verify-artifact",
@@ -1549,23 +3203,23 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -1573,34 +3227,52 @@
         ]
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Checks the exact applied files with your independent verifier and reports pass, fail or unknown per criterion; can trigger a bounded repair.",
+        "requires": [
+          "An applied artifact from workspace-apply",
+          "A verifier command in the workspace policy"
+        ],
+        "limits": [
+          "Missing or stale evidence stops the run.",
+          "The verifier is trusted user-selected code, not a sandbox."
+        ]
+      }
     },
     {
       "id": "deduplicate",
       "name": "deduplicate",
-      "description": "Avoid repeating source items across feed collection runs.",
-      "value": "Avoid repeating source items across feed collection runs.",
+      "description": "Remove exact duplicate sources, or check a model's meaning clusters: one meaning keeps every source that reports it, and a source is counted once.",
+      "value": "Remove exact duplicate sources, or check a model's meaning clusters: one meaning keeps every source that reports it, and a source is counted once.",
       "kind": "step",
       "contentType": "component",
       "file": "components/deduplicate.json",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
         "status": "implemented",
         "source": "src/registry-data-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
+          {
+            "file": "demos/digest-multisource.txt",
+            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "componentVersion": "0.2.0",
+            "coreVersion": "0.2.0-q-core.34",
+            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+          },
           {
             "file": "demos/digest-huyiks.txt",
             "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
@@ -1611,7 +3283,18 @@
         ]
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Removes exact duplicate sources, or checks and ranks a model's meaning clusters so each source counts once and clusters are ordered by independent outlets.",
+        "requires": [
+          "A sources list from a prior step",
+          "For clustering: a model step's clusters output"
+        ],
+        "limits": [
+          "Exact duplicates only without clusters; meaning grouping comes from the model.",
+          "Keeps 1–20 clusters (default 8); invalid clusters fail the step."
+        ]
+      }
     },
     {
       "id": "aindf-validator",
@@ -1625,9 +3308,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1640,7 +3323,18 @@
         "evidence": []
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Checks a pinned design-system composition against declared rules and reports findings and coverage gaps.",
+        "requires": [
+          "A pinned design system or composition",
+          "Versioned upstream rules"
+        ],
+        "limits": [
+          "Partial implementation; no acceptance recorded.",
+          "Arbitrary visual compliance is not verified."
+        ]
+      }
     },
     {
       "id": "unslop-canon",
@@ -1654,9 +3348,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
@@ -1669,35 +3363,57 @@
         "evidence": []
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Fetches the current version of the free Unslop canon (rules, version, date, digest) instead of keeping a second copy.",
+        "requires": [
+          "A released canon source and version"
+        ],
+        "limits": [
+          "Partial local adapter; the released Unslop MCP is not established.",
+          "Acceptance blocked until the free release."
+        ]
+      }
     },
     {
       "id": "agentation",
       "name": "Agentation",
       "description": "Read website annotations and report verified resolutions through Agentation MCP.",
       "value": "Turn precise website feedback into traceable changes without copying context manually.",
-      "kind": "step",
       "contentType": "component",
       "file": "components/agentation.json",
       "version": "0.1.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "implementation": {
         "status": "planned",
         "limitation": "Live MCP binding and browser verification remain unimplemented."
       },
+      "status": "planned",
+      "launch": "forbidden",
+      "reason": "No verified raw component contract exists yet.",
       "acceptance": {
         "status": "pending",
         "evidence": []
       },
       "needsEnv": [],
-      "builtinDependencies": []
+      "builtinDependencies": [],
+      "brief": {
+        "summary": "Planned adapter to read website annotations and report verified fixes through the Agentation MCP; it cannot run yet.",
+        "requires": [
+          "unknown (planned; would need the Agentation MCP)"
+        ],
+        "limits": [
+          "Planned only: launch is forbidden and no verified component contract exists.",
+          "Live MCP binding and browser verification are not implemented."
+        ]
+      }
     },
     {
       "id": "workspace-read",
@@ -1711,9 +3427,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "needsEnv": [],
@@ -1721,19 +3437,29 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
           }
+        ]
+      },
+      "brief": {
+        "summary": "Reads only the files your workspace policy allows and pins the verifier inputs for later independent checks.",
+        "requires": [
+          "--workspace-policy JSON with absolute workspace, allowedPaths, intent and verifier"
+        ],
+        "limits": [
+          "The policy cannot come from model output.",
+          "A read that no later step uses is refused."
         ]
       }
     },
@@ -1749,9 +3475,9 @@
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "needsEnv": [],
@@ -1759,37 +3485,48 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-workspace-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "1073d7d01885f6271a0149f65e8c8605a9efda69719027017bd3cdc5fa6c9c23",
+            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
           }
+        ]
+      },
+      "brief": {
+        "summary": "Saves the scoped specification and plan as a versioned revision before it goes to approval.",
+        "requires": [
+          "A brief (summary, criteria, plan) from a prior step",
+          "A workspace-read output"
+        ],
+        "limits": [
+          "A scope change starts a new revision; it is not edited in place.",
+          "Still needs a human approval."
         ]
       }
     },
     {
       "id": "verify-sources",
       "name": "Verify source links",
-      "description": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
-      "value": "Check allowed citation URLs and text bounds; not a factual-accuracy guarantee.",
+      "description": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
+      "value": "Check citation URLs, fixed presentation links and optional literal output-format contracts; not a factual-accuracy guarantee.",
       "kind": "step",
       "contentType": "component",
       "file": "components/verify-sources.json",
-      "version": "0.1.0",
+      "version": "0.5.0",
       "author": "0design",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "needsEnv": [],
@@ -1797,12 +3534,26 @@
       "implementation": {
         "status": "implemented",
         "source": "src/registry-data-steps.mjs",
-        "limitation": "Candidate generic Registry route; final public and user acceptance pending."
+        "limitation": "Candidate generic Registry route evidence; it is not public or user acceptance."
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate; public release and owner acceptance pending.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
         "evidence": [
+          {
+            "file": "demos/digest-multisource.txt",
+            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "componentVersion": "0.5.0",
+            "coreVersion": "0.2.0-q-core.34",
+            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+          },
+          {
+            "file": "demos/digest-format.txt",
+            "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
+            "componentVersion": "0.4.0",
+            "coreVersion": "0.2.0-q-core.32",
+            "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
+          },
           {
             "file": "demos/digest-huyiks.txt",
             "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
@@ -1811,13 +3562,24 @@
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
           }
         ]
+      },
+      "brief": {
+        "summary": "Checks a draft's links, timestamps, quotes, numbers and fixed format against the selected sources before approval; can apply a reviewer's patch first.",
+        "requires": [
+          "A draft (at most 16000 characters)",
+          "The selected sources from prior steps"
+        ],
+        "limits": [
+          "Not a factual-accuracy guarantee: meaning-level errors rest on the model steps and human review.",
+          "language: uk checks Ukrainian markers, not language quality."
+        ]
       }
     }
   ],
   "demos": [
     {
       "id": "content-feed",
-      "loopId": "content-feed",
+      "workflowId": "content-feed",
       "name": "Morning digest",
       "description": "Reads a feed, writes a short digest, sends it. Proof is the recorded run in the repo, not a hosted playback.",
       "proof": "demos/content-feed.txt",
@@ -1839,17 +3601,16 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "504571517a315e475b45b7fdd8ddf1e6bb1cc36ec0d251a2949d399bacd099a1",
       "contentType": "demo",
@@ -1860,7 +3621,7 @@
     },
     {
       "id": "webhook-relay",
-      "loopId": "webhook-relay",
+      "workflowId": "webhook-relay",
       "name": "JSON webhook relay",
       "description": "Read JSON from a source and forward it to a webhook. Inspect the template and historical output, then adapt the source and destination to your task.",
       "proof": "demos/webhook-relay.txt",
@@ -1882,17 +3643,16 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "sha256": "44c66c38b9790cb45b8626a3eed708bb2ea810007f67ec4f64125ed830fd70fd",
       "contentType": "demo",
@@ -1903,9 +3663,9 @@
     },
     {
       "id": "annotation-review",
-      "loopId": "annotation-fix",
+      "workflowId": "annotation-fix",
       "name": "Annotation review queue",
-      "description": "Executable offline queue example; no live MCP, model inference or website modification.",
+      "description": "Offline annotation review remains discoverable, but has no verified raw demo contract or proof.",
       "proof": null,
       "resultUrl": null,
       "live": false,
@@ -1925,17 +3685,16 @@
         "revision": "e453b57"
       },
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
         "execution": "none"
       },
       "evidence": {
-        "status": "historical-unverified",
-        "releaseAcceptance": "pending"
+        "status": "historical-unverified"
       },
       "contentType": "demo",
       "acceptance": {
@@ -1943,12 +3702,14 @@
         "scope": "Registry composition and real user execution; historical output is not acceptance"
       },
       "file": "demos/annotation-review.json",
-      "status": "offline-demo",
+      "status": "planned",
+      "launch": "forbidden",
+      "reason": "No verified raw demo contract or proof exists yet.",
       "value": "Preserve feedback identity and expose ambiguous requests before execution."
     },
     {
       "id": "digest-huyiks",
-      "loopId": "digest",
+      "workflowId": "digest",
       "name": "ХУЇКС: sourced digest",
       "description": "Four source pages to an approved Ukrainian digest with visible source checks. Embedded run evidence and detached public-candidate acceptance are reported separately.",
       "proof": "demos/digest-huyiks.txt",
@@ -1959,9 +3720,9 @@
       "version": "0.1.0",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -1969,7 +3730,6 @@
       },
       "evidence": {
         "status": "local-live-proof",
-        "releaseAcceptance": "pending",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
       },
@@ -1981,7 +3741,7 @@
     },
     {
       "id": "sdd-verified-change",
-      "loopId": "sdd-pipeline",
+      "workflowId": "sdd-pipeline",
       "name": "SDD: verified change",
       "description": "A scoped change reaches an independent verifier, with bounded repair. Embedded run evidence and detached public-candidate acceptance are reported separately.",
       "proof": "demos/sdd-verified-change.txt",
@@ -1992,9 +3752,9 @@
       "version": "0.1.0",
       "license": "MIT",
       "engine": {
-        "package": "qloops",
-        "version": "0.2.0-core.19",
-        "manifest": "qloops.loop/v1"
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
       "permissions": {
@@ -2002,7 +3762,6 @@
       },
       "evidence": {
         "status": "local-live-proof",
-        "releaseAcceptance": "pending",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
       },
@@ -2013,25 +3772,21 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.20-registry.4-candidate",
+  "releaseVersion": "2026.09.28-registry.30-candidate",
   "core": {
-    "package": "qloops",
-    "version": "0.2.0-core.19",
-    "manifest": "qloops.loop/v1",
+    "package": "q-core",
+    "version": "0.2.0-q-core.42",
+    "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 12,
-    "artifact": "vendor/qloops-0.2.0-core.19.tgz",
-    "artifactSha256": "ac312d4c6318dd7972f96f3e92ac9c7d3a1e020791e8a01292a3b51192362152",
-    "integrity": "sha512-UmgS4JPPzvRx1Be+Y005nk4DAR6Q/Ezhtge+fsu1LOIlajeZdPpL41CDlt+ZXH3SUW6pXi4/xP2tZIHBeu4znQ==",
-    "schemaSha256": "1fca0312ff586f4edca2bf7a12d23230cb9851e7daf599e9181ce3609d71dfb3",
-    "requestSchemaSha256": "90d30cb77c9f348cbcb0e8e20d98ba3219c6aa3466fda76d2b7a1178cc566f87",
-    "status": "consumer-integration-candidate",
-    "source": "Core.19 exact package with pinned skill SDK; integration candidate, public product acceptance pending",
-    "pending": [
-      "Public immutable snapshot and consumer acceptance",
-      "Public Registry SDD/Digest and determined acceptance",
-      "Final provider and owner acceptance"
-    ]
+    "contractRevision": 13,
+    "artifact": "vendor/q-core-0.2.0-q-core.42.tgz",
+    "artifactSha256": "90bbafd101f94a76030e3fd7e37bdb5841909189b3fe8e495838c6dc880b7677",
+    "integrity": "sha512-phfQS/giwstv3ph4uMWstI0blFIqCWPLPH46i5TnwvKeXbdJptmpmtX1zWJmTKkjSVsfx2g9vxyCt78LBDwfNA==",
+    "schemaSha256": "831d514639c10b8b07e74713f7a0ca42a5c045c7ac84f8de73c90081f8610de5",
+    "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
+    "status": "immutable-release-artifact",
+    "source": "Core.42 successor of Core.41: README only (the approved «Use QFactory.io» cover at the top and the current availability table); src/, contracts/ and SPEC-MANIFEST are byte-identical to Core.41, so the format validator, YAML parser and request schema are unchanged",
+    "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
   "publicationGates": [

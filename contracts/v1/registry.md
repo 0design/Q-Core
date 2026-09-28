@@ -1,24 +1,32 @@
 # Pinned registry consumption
 
-`qloops install <base> <catalog-sha256> <id> <version> <destination>` downloads,
-checks and installs an exact loop plus a sidecar origin/dependency lock. The base
+`q-core install <base> <catalog-sha256> <id> <version> <destination> [--release <version>]` downloads,
+checks and installs an exact workflow plus a sidecar origin/dependency lock. The base
 is an absolute export directory or static HTTPS directory containing catalog.json
-and loops/components/demos subdirectories. HTTP is allowed only on localhost for
+and workflows/components/demos subdirectories. HTTP is allowed only on localhost for
 controlled development. The Site /api/registry route is a different API layout;
 it is not automatically treated as a static export base.
 
-The catalog must pin the installed qloops version exactly and qloops.loop/v1. A newer
-local engine must not rewrite a downloaded catalog or silently accept the old pin.
-Use the retained engine artifact for an existing release; only the registry owner
-can publish a new accepted pin. Catalog and every resolved asset need SHA256
-verification; the root manifest is parsed and checked before destination writes.
+The release version is pinned separately from the catalog hash. When the base ends in
+`releases/<version>` or `--release <version>` is given, the catalog `releaseVersion` must
+equal it (both must agree when both are present), otherwise `RELEASE_MISMATCH`. A remote
+non-localhost base must name its release in one of these ways (`RELEASE_REQUIRED`), and
+mutable aliases (`current`, `latest`) are refused in both places. A truncated, non-UTF-8 or non-object catalog
+with a matching hash fails with `CATALOG_INVALID`, never a raw parser error. The CLI prints
+`CODE: message` and exits 1.
 
-Candidate core.6 additionally rejects malformed sections/dependencies, mismatched
-entry engine metadata, files outside their declared section/ID, and ambiguous
-same-ID dependencies spanning loops/components. Dependencies are exact IDs/versions;
+The catalog must pin the installed q-core version exactly and q-core.workflow/v1. A newer
+local engine must not rewrite a downloaded catalog or silently accept the old pin.
+Use the engine artifact pinned by the catalog. Catalog and every resolved asset
+need SHA256 verification; the root manifest is parsed and checked before
+destination writes.
+
+The installer rejects malformed sections/dependencies, mismatched entry engine
+metadata, files outside their declared section/ID, and ambiguous same-ID
+dependencies spanning workflows/components. Dependencies are exact IDs/versions;
 missing targets, cycles or checksum mismatch fail before installation. Each section
-has at most 1000 entries, each dependency list at most 100 entries. Loop default
-path is loops/<id>.yaml; component/demo default is <section>/<id>.json.
+has at most 1000 entries, each dependency list at most 100 entries. Workflow default
+path is workflows/<id>.yaml; component/demo default is <section>/<id>.json.
 
 Existing destination or lock is never overwritten. Download failure does not become
 success. Installation writes a manifest and then its lock as separate exclusive
@@ -33,15 +41,8 @@ local editing. Review environment, target URLs and manifest actions before runni
 node scripts/test-registry-package.mjs /absolute/path/to/QFactory.io
 ```
 
-This installs the exact Site-pinned retained engine into a fresh temporary caller,
-serves unmodified export bytes over localhost, downloads webhook-relay, validates
-and executes against a controlled local source/receiver. It separately checks
-current-engine pin refusal and a clearly synthetic candidate catalog containing
-identical manifest bytes with new engine metadata. That synthetic catalog is not a
-canonical release, repin, production registry or Site mutation. Evidence lives in
-`docs/delivery/registry-package.json`.
-
-As checked 2026-09-10, https://qfactory.io/api/registry returns HTTP404 and the
-local export declares publication gates. Static registry provisioning, release
-approval and consumer repin remain external to this local proof. No public
-registry was created or published by Core.
+This installs the exact pinned engine into a fresh temporary caller, serves
+unmodified export bytes over localhost, downloads `webhook-relay`, validates and
+executes it against a controlled local source/receiver. It also checks engine-pin
+refusal and a synthetic catalog with identical manifest bytes and different engine
+metadata.

@@ -2,7 +2,7 @@
 import {readFileSync,mkdirSync,cpSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
-import {qualityCheck,loadAindf,loadUnslop,upstreamDigest,designSystemDigest,hash} from 'qloops';
+import {qualityCheck,loadAindf,loadUnslop,upstreamDigest,designSystemDigest,hash} from 'q-core';
 const config=JSON.parse(readFileSync(process.argv[2]));
 const aPin={root:config.aindfRoot,packageVersion:'0.5.0-rc.1',sha256:upstreamDigest(config.aindfRoot,['cli','schemas','package.json'])};
 const a=await loadAindf(aPin),ds={path:config.dsPath,sha256:designSystemDigest(config.dsPath)};

@@ -11,20 +11,21 @@ import {
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { subprocess, scopedEnvironment } from "../src/subprocess.mjs";
+import { personDecides } from "./human-decision-helper.mjs";
 const caller = async (r) => {
   const p = await subprocess(
     process.execPath,
-    [resolve("bin/qloops.mjs"), "agent", "-"],
+    [resolve("bin/q-core.mjs"), "agent", "-"],
     {
       input: JSON.stringify(r),
-      env: scopedEnvironment({ QLOOPS_TEST_SECRET: "must-not-leak" }),
+      env: scopedEnvironment({ QCORE_TEST_SECRET: "must-not-leak" }),
       timeoutMs: 5000,
     },
   );
   return { ...p, result: JSON.parse(p.stdout) };
 };
 const setup = (t) => {
-  const workspace = mkdtempSync(join(tmpdir(), "qloops-caller-"));
+  const workspace = mkdtempSync(join(tmpdir(), "q-core-caller-"));
   t.after(() => rmSync(workspace, { recursive: true, force: true }));
   writeFileSync(join(workspace, "value.mjs"), "export const add=()=>0;");
   writeFileSync(
@@ -34,7 +35,7 @@ const setup = (t) => {
   return {
     protocolVersion: "qf.agent/v1",
     requestId: "caller",
-    loop: { id: "synthetic-sdd", version: "1.0.0" },
+    workflow: { id: "synthetic-sdd", version: "1.0.0" },
     intent: "Implement add",
     workspace,
     allowedPaths: ["value.mjs"],
@@ -50,16 +51,13 @@ const setup = (t) => {
     verifier: { command: process.execPath, args: ["verify.mjs"] },
   };
 };
-test("real caller -> qloops -> subprocess fixture -> approved change -> verifier -> resume", async (t) => {
+test("real caller -> q-core -> subprocess fixture -> approved change -> verifier -> resume", async (t) => {
   const r = setup(t);
   let p = await caller(r);
   assert.equal(p.code, 2);
-  assert.equal(p.result.nextAction.type, "approve_spec");
-  const next = {
-    ...r,
-    resumeRunId: p.result.runId,
-    approval: { hash: p.result.nextAction.hash, decision: "approve" },
-  };
+  assert.equal(p.result.nextAction.type, "ask_human_to_approve");
+  personDecides("agent", r.workspace, p.result);
+  const next = { ...r, resumeRunId: p.result.runId };
   p = await caller(next);
   assert.equal(p.code, 0);
   assert.equal(p.result.status, "success");
@@ -93,12 +91,9 @@ for (const [mode, code] of [
 test("changed verifier bytes invalidate approved resume", async (t) => {
   const r = setup(t);
   const first = await caller(r);
+  personDecides("agent", r.workspace, first.result);
   writeFileSync(join(r.workspace, "verify.mjs"), "process.exit(0)");
-  const result = await caller({
-    ...r,
-    resumeRunId: first.result.runId,
-    approval: { hash: first.result.nextAction.hash, decision: "approve" },
-  });
+  const result = await caller({ ...r, resumeRunId: first.result.runId });
   assert.equal(result.result.error.code, "WORKSPACE_CHANGED");
 });
 
@@ -112,9 +107,10 @@ test("auth failure gives a local recovery step and resumes the same run without 
   writeFileSync(join(r.workspace, "fixture-mode.txt"), "success");
   const resumed = await caller({...r, resumeRunId: stopped.result.runId});
   assert.equal(resumed.result.runId, stopped.result.runId);
-  assert.equal(resumed.result.nextAction.type, "approve_spec");
+  assert.equal(resumed.result.nextAction.type, "ask_human_to_approve");
   assert.equal(readFileSync(join(r.workspace, "value.mjs"), "utf8"), "export const add=()=>0;");
-  const done = await caller({...r, resumeRunId: stopped.result.runId, approval: {hash: resumed.result.nextAction.hash, decision: "approve"}});
+  personDecides("agent", r.workspace, resumed.result);
+  const done = await caller({...r, resumeRunId: stopped.result.runId});
   assert.equal(done.result.status, "success");
 });
 
@@ -142,7 +138,7 @@ test("Codex local client denial is an actionable stop with no lost run or file c
 
 test("active Claude caller gets a handoff instruction without launching a child or removing guard", async (t) => {
   const r = setup(t);
-  const p = await subprocess(process.execPath, [resolve("bin/qloops.mjs"), "agent", "-"], {
+  const p = await subprocess(process.execPath, [resolve("bin/q-core.mjs"), "agent", "-"], {
     input: JSON.stringify(r), env: scopedEnvironment({CLAUDECODE:"fixture-active-session"}), timeoutMs: 5000,
   });
   const result = JSON.parse(p.stdout);

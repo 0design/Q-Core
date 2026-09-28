@@ -1,13 +1,14 @@
-# Explicit caller inference — candidate revision 7
+# Explicit caller inference — qf.inference/v1
 
-Implementation candidate; existing Codex/Claude/OpenRouter descriptors retain their
-meaning. No automatic switch to caller mode. A changed provider requires a new run
-and new approval. Caller mode never launches a model CLI or external broker.
+Existing Codex/Claude/OpenRouter descriptors retain their meaning. No automatic
+switch to caller mode. A changed provider requires a new run and new approval.
+Caller mode never launches a model CLI or external broker.
 
 Select `provider:{kind:"caller",agent:"codex",model:"current-session",payerScope:"local-cli"}`
 in an SDD or Content request. `agent` is a declared caller identity (`codex` or
-`claude`), not an attestation. Use `current-session` when the actual model is unknown; returned actual model remains null. Claude acceptance remains deferred. Do not supply
-executable/keyRef for this mode. The active parent generates the response using
+`claude`), not an attestation. Use `current-session` when the actual model is
+unknown; returned actual model remains null. Do not supply executable/keyRef for
+this mode. The active parent generates the response using
 its existing session. Model usage/cost are unknown/null; answer-supplied usage or
 verification claims are not accepted. Money-capped requests are unsupported in
 this mode: use the explicit job count, deadline and repair bounds instead.

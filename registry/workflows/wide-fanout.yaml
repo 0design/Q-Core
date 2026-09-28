@@ -1,0 +1,46 @@
+manifest: q-core.workflow/v1
+
+# Verify bounded fan-out behavior before applying a workflow to a large input set.
+# No model inference is required.
+
+id: wide-fanout
+name: "Wide fan-out: truncation that says so"
+version: 1.1.0
+description: >
+  Sixty entries against a cap of twelve. Checks that the lane stops where it was
+  told and reports how many it skipped, instead of quietly processing a slice.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  budgetUsd: 0.05
+
+steps:
+  - id: wf-fetch
+    kind: fetch
+    config:
+      name: "Read feed"
+      url: "{{env.QCORE_SOURCE_URL}}"
+      format: rss
+      limit: "60"
+      timeoutSec: "20"
+
+  - id: wf-lane
+    kind: fan-out
+    config:
+      name: "Per entry"
+      over: "{{steps.Read feed.output.entries}}"
+      maxItems: "12"
+    then:
+      - id: wf-post
+        kind: api-request
+        config:
+          name: "Post entry"
+          method: POST
+          url: "{{env.QCORE_WEBHOOK_URL}}"
+          expect: "2xx"
+          timeoutSec: "20"
+          body: '{"i":"{{index}}","title":"{{item.title}}"}'

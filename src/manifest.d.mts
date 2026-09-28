@@ -3,29 +3,29 @@
  *
  * Hand-written, because this package has no build step on purpose — `npm pack`
  * produces files you can run, not files you have to compile first. The one place
- * that consumes it from TypeScript is `scripts/loop-parity.ts`, and it should be
+ * that consumes it from TypeScript is the product-engine parity test, and it should be
  * type-checked like everything else rather than cast to any at the border.
  */
 
-/** A step exactly as `qf_loop_template.steps` stores it. */
-export interface LoopManifestStep {
+/** A step exactly as the product engine stores it for a workflow. */
+export interface WorkflowManifestStep {
   id: string;
   kind: string;
   /** Always strings — the manifest loader normalises numbers and booleans. */
   config: Record<string, string>;
-  then?: LoopManifestStep[];
-  else?: LoopManifestStep[];
-  cases?: Record<string, LoopManifestStep[]>;
-  default?: LoopManifestStep[];
+  then?: WorkflowManifestStep[];
+  else?: WorkflowManifestStep[];
+  cases?: Record<string, WorkflowManifestStep[]>;
+  default?: WorkflowManifestStep[];
 }
 
-export interface LoopManifestTrigger {
+export interface WorkflowManifestTrigger {
   kind: string;
   cron?: string;
   [key: string]: unknown;
 }
 
-export interface LoopManifestSettings {
+export interface WorkflowManifestSettings {
   model?: string;
   /** null means the ceiling was lifted on purpose; absent means "take the default". */
   budgetUsd?: number | null;
@@ -34,16 +34,16 @@ export interface LoopManifestSettings {
   exit?: { kind?: string; [key: string]: unknown };
 }
 
-export interface LoopManifest {
+export interface WorkflowManifest {
   id: string;
   name: string;
   version: string;
   description: string;
   owner: string;
   enabled: boolean;
-  triggers: LoopManifestTrigger[];
-  settings: LoopManifestSettings;
-  steps: LoopManifestStep[];
+  triggers: WorkflowManifestTrigger[];
+  settings: WorkflowManifestSettings;
+  steps: WorkflowManifestStep[];
   file?: string;
 }
 
@@ -57,6 +57,6 @@ export declare class ManifestError extends Error {
   path: string | null;
 }
 
-export declare function validateManifest(doc: unknown): LoopManifest;
-export declare function loadManifest(file: string): LoopManifest;
+export declare function validateManifest(doc: unknown): WorkflowManifest;
+export declare function loadManifest(file: string): WorkflowManifest;
 export declare function assertCron(expr: string, path?: string): void;

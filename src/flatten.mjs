@@ -24,7 +24,7 @@ export const isExpandingFanOut = (s) => s.kind === "fan-out" && !!String(s.confi
 export const CONTROL_KINDS = new Set(["if", "switch", "loop", "each"]);
 export const isControlFlow = (s) => CONTROL_KINDS.has(s.kind);
 
-export function flattenLoopSteps(steps) {
+export function flattenWorkflowSteps(steps) {
   const out = [];
   const walk = (list, depth, laneOf) => {
     for (const s of list) {

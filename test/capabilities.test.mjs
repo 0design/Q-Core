@@ -16,7 +16,7 @@ test("coreCapabilities exposes static contract and provider metadata", () => {
   assert.deepEqual(capabilities, {
     schema: "qf.capabilities/v1",
     packageVersion: packageJson.version,
-    manifestProtocol: "qloops.loop/v1",
+    manifestProtocol: "q-core.workflow/v1",
     agentProtocol: "qf.agent/v1",
     contentProtocol: "qf.content-request/v1",
     contractRevision: contractMetadata.revision,
@@ -36,7 +36,7 @@ test("coreCapabilities exposes static contract and provider metadata", () => {
 });
 
 test("installed consumer can import capabilities without provider startup", () => {
-  const tempRoot = mkdtempSync(join(tmpdir(), "qloops-capabilities-"));
+  const tempRoot = mkdtempSync(join(tmpdir(), "q-core-capabilities-"));
   const archiveDir = join(tempRoot, "archive");
   const appDir = join(tempRoot, "consumer");
   mkdirSync(archiveDir);
@@ -59,7 +59,7 @@ test("installed consumer can import capabilities without provider startup", () =
   const output = execFileSync(process.execPath, [
     "--input-type=module",
     "-e",
-    "import { coreCapabilities } from 'qloops'; console.log(JSON.stringify(coreCapabilities()))",
+    "import { coreCapabilities } from 'q-core'; console.log(JSON.stringify(coreCapabilities()))",
   ], { cwd: appDir, encoding: "utf8" });
   const installed = JSON.parse(output);
   assert.equal(installed.packageVersion, packageJson.version);

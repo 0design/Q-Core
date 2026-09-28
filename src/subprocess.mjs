@@ -12,8 +12,8 @@ export function scopedEnvironment(extra = {}) {
     "LC_ALL",
     "CLAUDECODE",
     "CLAUDE_CODE_ENTRYPOINT",
-    "QLOOPS_DEPTH",
-    "QLOOPS_RUN_ID",
+    "QCORE_DEPTH",
+    "QCORE_RUN_ID",
   ])
     if (process.env[key] !== undefined) env[key] = process.env[key];
   return { ...env, ...extra };

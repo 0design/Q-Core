@@ -1,6 +1,6 @@
 # Migrate from A2D to `determined`
 
-`determined` is the supported qloops successor for the execute → evidence →
+`determined` is the supported q-core successor for the execute → evidence →
 verify → bounded-repair mechanics previously associated with A2D. It is a
 library export for a trusted host, not a replacement SaaS or a renamed command.
 
@@ -8,15 +8,13 @@ Historical identifiers remain historical:
 
 | Historical surface | Successor surface | Automatic compatibility |
 | --- | --- | --- |
-| npm package `a2done` | package `qloops` | No package alias |
-| binary `a2d` | import `determined` from `qloops` | No `qloops a2d` command |
+| npm package `a2done` | package `q-core` | No package alias |
+| binary `a2d` | import `determined` from `q-core` | No `q-core a2d` command |
 | MCP server/tool ID `a2d` | host callbacks around `determined` | No MCP alias or bridge |
 | `.a2d` saved state | host-owned versioned `history` | No state import or rename |
 | prior approval or completion claim | newly approved plan and fresh evidence | Never transferred |
 
-Do not delete or rewrite the archived donor repository or `.a2d` data to make a
-migration appear complete. Preserve them as read-only history until the owner has
-accepted the replacement and any retention requirement is satisfied.
+Do not delete, rewrite, or import old `.a2d` data as part of migration.
 
 ## Supported migration
 
@@ -32,13 +30,13 @@ accepted the replacement and any retention requirement is satisfied.
    [`contracts/v1/determined.md`](../contracts/v1/determined.md). Keep trusted
    verifiers outside writable scope and hash the real artifact.
 4. **Request a new approval.** Present the migrated criteria, verifier pins,
-   allowed changes, limits, and host behavior to the owner. An A2D approval does
-   not authorize the qloops run.
+   allowed changes, limits, and host behavior to the authorized reviewer. An A2D
+   approval does not authorize the q-core run.
 5. **Run and regenerate evidence.** Accept success only when every criterion
    passes against one current artifact snapshot. Missing, stale, human, or
    exhausted evidence returns `needs_human`.
-6. **Persist the new result under the host's qloops identity.** Store `planHash`
-   and versioned `history`. Do not write qloops results into `.a2d` or infer a
+6. **Persist the new result under the host's q-core identity.** Store `planHash`
+   and versioned `history`. Do not write q-core results into `.a2d` or infer a
    continuation from old donor state.
 
 The installed package ships `examples/determined-caller.mjs`, which demonstrates
@@ -50,16 +48,12 @@ migration utility.
 
 A migrated caller is ready for review only when all of these are true:
 
-- importing `determined` from the exact installed `qloops` package succeeds;
+- importing `determined` from the exact installed `q-core` package succeeds;
 - the approved criteria and verifier descriptors produce the expected `planHash`;
 - passing evidence names the exact artifact hash and revision;
 - stale evidence, missing callbacks, human criteria, and an exhausted repair
   limit end in `needs_human`;
-- `qloops a2d` is rejected and no `a2d` binary or MCP alias is exposed;
+- `q-core a2d` is rejected and no `a2d` binary or MCP alias is exposed;
 - `.a2d` state, old approvals, and old completion evidence are not imported;
-- the donor source and retained history remain accessible to their owner.
 
-The canonical source mapping and product decision are retained in
-[Linear 0D-263](https://linear.app/0dhaus/issue/0D-263) and
-[Linear 0D-106](https://linear.app/0dhaus/issue/0D-106). Those records explain
-provenance; they are not runtime dependencies.
+Migration records belong to the host and are not runtime dependencies.

@@ -3,7 +3,7 @@
  * differently for no reason.
  *
  * THE RULES, all of them:
- *   • CLI ONLY. Nothing here runs during `qloops run`'s work; a loop must never
+ *   • CLI ONLY. Nothing here runs during `q-core run`'s work; a workflow must never
  *     become slower or less reliable because a version check was in the way.
  *   • A plain GET of a STATIC JSON file. No identifiers of any kind — no machine
  *     id, no version query string, no telemetry. The request says nothing about
@@ -16,8 +16,8 @@
  * THE ENDPOINT IS NOT SET, ON PURPOSE. There is no public home for this package
  * yet, so there is no URL to point at, and inventing one would mean shipping a
  * command that quietly calls a host nobody chose. It reads `QF_UPDATE_URL`; with
- * nothing there, the check is a no-op. Where that file will live is the owner's
- * call — see tasks-for-oleg/2026-08-02-qf.md.
+ * nothing there, the check is a no-op. Where that file will live is an owner
+ * decision that has not been made; until then no default URL ships.
  *
  * The notice below has room for a "what's new" line carried in the JSON. It has
  * NO text about accounts, sign-in or licences: none of that has been decided,
@@ -32,7 +32,7 @@ const TIMEOUT_MS = 2000;
 
 function cacheFile() {
   const base = process.env.XDG_CACHE_HOME || join(homedir(), ".cache");
-  return join(base, "qloop", "update.json");
+  return join(base, "q-core", "update.json");
 }
 
 function readCache() {
@@ -103,5 +103,5 @@ export async function checkForUpdate(localVersion) {
 /** The one line the CLI prints, or "" when there is nothing to say. */
 export function updateNotice(update) {
   if (!update) return "";
-  return `\n  qloop ${update.version} is available.${update.notes ? ` ${update.notes}` : ""}\n`;
+  return `\n  q-core ${update.version} is available.${update.notes ? ` ${update.notes}` : ""}\n`;
 }

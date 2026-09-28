@@ -3,19 +3,19 @@ import {
   rmSync,
   readFileSync,
   writeFileSync,
-  mkdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { hash } from "../src/contracts.mjs";
+import { atTerminal, ptyAvailable } from "../test/fixtures/human-terminal.mjs";
 const live = process.argv.includes("--live-codex");
 const modelIndex = process.argv.indexOf("--model");
 const liveModel = modelIndex >= 0 ? process.argv[modelIndex + 1] : null;
 if (live) assert.ok(liveModel && !liveModel.startsWith("--"), "Live checks require --model MODEL");
 const root = resolve("."),
-  tmp = mkdtempSync(join(tmpdir(), "qloops-clean-install-"));
+  tmp = mkdtempSync(join(tmpdir(), "q-core-clean-install-"));
 const bounded = (value, max = 400) =>
   typeof value === "string" ? value.slice(0, max) : null;
 const unexpectedExit = (phase, error) => {
@@ -43,12 +43,12 @@ const exec = (cmd, args, opts = {}) =>
       ...process.env,
       QF_NO_UPDATE_CHECK: "1",
       QFACTORY_REGISTRY: "",
-      QLOOP_CATALOG_URL: "",
+      QCORE_CATALOG_URL: "",
     },
     ...opts,
   });
 try {
-  writeFileSync(join(tmp, "package.json"), JSON.stringify({name:"qloops-proof-caller",private:true,type:"module"}));
+  writeFileSync(join(tmp, "package.json"), JSON.stringify({name:"q-core-proof-caller",private:true,type:"module"}));
   const packed = JSON.parse(
     exec("npm", ["pack", root, "--ignore-scripts", "--json"]),
   )[0];
@@ -62,12 +62,12 @@ try {
     tarball,
   ]);
   const smoke =
-    "import {validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck} from 'qloops'; if(![validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
+    "import {validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck} from 'q-core'; if(![validateManifest,openRouter,codex,runAgent,runContent,determined,qualityCheck].every(x=>typeof x==='function'))process.exit(1); console.log('package exports OK')";
   const imports = exec(process.execPath, ["--input-type=module", "-e", smoke]);
   const manifest =
-    "manifest: qloops.loop/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
+    "manifest: q-core.workflow/v1\nid: clean-install\nversion: 1.0.0\nsteps:\n  - id: approval\n    kind: approval-gate\n    config: { reviewer: human }\n";
   writeFileSync(join(tmp, "clean.yaml"), manifest);
-  const bin = join(tmp, "node_modules/qloops/bin/qloops.mjs");
+  const bin = join(tmp, "node_modules/q-core/bin/q-core.mjs");
   const validation = exec(process.execPath, [bin, "validate", "clean.yaml"]);
   let runCode = 0;
   try {
@@ -127,10 +127,29 @@ try {
       first = JSON.parse(e.stdout);
     }
   }
-  assert.equal(first.nextAction.type, "approve_spec");
+  assert.equal(first.nextAction.type, "ask_human_to_approve");
+  assert.equal(first.nextAction.humanOnly, true);
   delete request.clarification;
   request.resumeRunId = first.runId;
-  request.approval = { hash: first.nextAction.hash, decision: "approve" };
+  // Core 38: the JSON request cannot approve; the installed CLI refuses it.
+  let refusedApproval;
+  try {
+    exec(process.execPath, [bin, "agent", "-"], {
+      input: JSON.stringify({ ...request, approval: { hash: first.nextAction.approvalHash, decision: "approve" } }),
+    });
+  } catch (e) {
+    assert.equal(e.status, 2);
+    refusedApproval = JSON.parse(e.stdout).error.code;
+  }
+  assert.equal(refusedApproval, "HUMAN_APPROVAL_REQUIRED");
+  // A person decides at a terminal; a pseudo-terminal stands in for them here.
+  assert.ok(ptyAvailable, "python3 pty is required for the human approval step");
+  const human = atTerminal(
+    [process.execPath, bin, "agent", "approve", tmp, first.runId, "--approval-hash", first.nextAction.approvalHash],
+    { env: { ...process.env, QF_NO_UPDATE_CHECK: "1" }, cwd: tmp },
+  );
+  assert.equal(human.exit, 0, human.out);
+  assert.match(human.out, /Confirmed: approve/);
   assert.equal(
     JSON.parse(
       exec(process.execPath, [bin, "agent", "-"], {
@@ -139,7 +158,6 @@ try {
     ).status,
     "success",
   );
-  mkdirSync(join(root, "docs/delivery"), { recursive: true });
   const evidence = {
     package: packed.name,
     version: packed.version,
@@ -151,6 +169,8 @@ try {
       validate: !!validation,
       legacyHumanGateExit: runCode,
       installedCodexAgent: "success",
+      jsonApprovalRefused: refusedApproval,
+      humanApproval: "tty-code via pseudo-terminal",
       completedResume: JSON.parse(
         exec(process.execPath, [bin, "agent", "-"], {
           input: JSON.stringify(request),
@@ -162,15 +182,6 @@ try {
       ? "clean-install + live Codex ChatGPT inference + independent verifier + cached resume"
       : "clean-install + real Codex subprocess fixture; not live inference",
   };
-  writeFileSync(
-    join(
-      root,
-      live
-        ? "docs/delivery/codex-package-live.json"
-        : "docs/delivery/package-evidence.json",
-    ),
-    JSON.stringify(evidence, null, 2) + "\n",
-  );
   console.log(JSON.stringify(evidence, null, 2));
 } finally {
   rmSync(tmp, { recursive: true, force: true });

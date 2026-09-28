@@ -1,15 +1,15 @@
 /**
  * Manifest → the shape the engine already runs.
  *
- * This file is the whole reason the package exists. `SPEC-loop-manifest.md`
+ * This file is the whole reason the package exists. `SPEC-MANIFEST.md`
  * (stage 2) described a YAML format; nothing could read it, so a stranger could
  * write a perfectly valid manifest and had no way to run it. What comes out of
- * here is exactly `{ settings, steps }` as stored in `qf_loop_template` — the
- * same tree `flattenLoopSteps` and `driveRun` take. There is no second format
+ * here is exactly `{ settings, steps }` as the product engine stores a workflow — the
+ * same tree `flattenWorkflowSteps` and `driveRun` take. There is no second format
  * and no translation layer: this reads THE format, or it refuses.
  *
- * ONE NORMALISATION MATTERS. `LoopStep.config` is `Record<string, string>` in the
- * database, because the loop builder stores everything as text. YAML gives real
+ * ONE NORMALISATION MATTERS. A stored step `config` is `Record<string, string>` in the
+ * database, because the workflow builder stores everything as text. YAML gives real
  * numbers and booleans. They are stringified HERE, once, so that
  * `timeoutSec: 30` and `timeoutSec: "30"` are the same manifest — and so the
  * runner and the engine coerce from identical input.
@@ -22,13 +22,13 @@ import { readFileSync } from "node:fs";
 import { parseYaml, YamlError } from "./yaml.mjs";
 
 /** The format tag every manifest must carry, verbatim. */
-export const MANIFEST_TAG = "qloops.loop/v1";
+export const MANIFEST_TAG = "q-core.workflow/v1";
 
 /** Step kinds the engine executes. */
 export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"];
 
 /** Trigger kinds — entry points, not steps. `schedule` is one of these, not a runner. */
-export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "loop-input", "event"];
+export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "workflow-input", "event"];
 
 /** Reserved in the format, deliberately NOT implemented (owner decision 2026-08-01). */
 export const RESERVED_KINDS = {
@@ -133,7 +133,7 @@ function validateStep(raw, path, seenIds) {
     step.default = raw.default.map((s, i) => validateStep(s, `${path}.default[${i}]`, seenIds));
   }
 
-  /* Per-kind requirements. Checked at validate time so `qloops validate` is worth
+  /* Per-kind requirements. Checked at validate time so `q-core validate` is worth
      running: a missing url should not be discovered halfway through a paid run. */
   if (kind === "fetch" && !config.url) {
     throw new ManifestError('a fetch step needs "config.url"', `${path}.config`);
@@ -319,7 +319,7 @@ export function validateManifest(doc) {
   }
 
   if (typeof doc.id !== "string" || doc.id.trim() === "") {
-    throw new ManifestError('"id" is required — it names the loop in state and in logs', "id");
+    throw new ManifestError('"id" is required — it names the workflow in state and in logs', "id");
   }
   if (!Array.isArray(doc.steps) || doc.steps.length === 0) {
     throw new ManifestError('"steps" is required and must hold at least one step', "steps");

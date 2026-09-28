@@ -1,0 +1,76 @@
+manifest: q-core.workflow/v1
+
+# Turn source material into a checked draft with an explicit approval step before delivery.
+# OpenRouter example: configure the model explicitly. CLI acceptance uses the caller interface.
+
+id: content-factory
+name: "Content factory: draft, check, approve, publish"
+version: 1.1.0
+description: >
+  Writes a post in your channel's voice, runs it past a machine check for the
+  formal rules, shows it to you, and publishes only after you say yes.
+owner: oleg
+enabled: true
+
+triggers:
+  - kind: schedule
+    cron: "0 9 * * *"
+  - kind: manual
+
+settings:
+  budgetUsd: 0.40
+
+steps:
+  - id: cf-source
+    kind: fetch
+    config:
+      name: "Fetch material"
+      url: "{{env.QCORE_SOURCE_URL}}"
+      format: json
+      timeoutSec: "30"
+
+  - id: cf-write
+    kind: llm-call
+    config:
+      name: "Write the post"
+      role: editor
+      maxTokens: "900"
+      instructions: |
+        Write one channel post from the material above.
+
+        Rules, all of them hard:
+          • under 900 characters;
+          • no emoji, no hashtags, no "in today's fast-moving world";
+          • every claim carries the link it came from;
+          • one idea per post — if the material holds three, pick the best.
+
+        Plain text. No preamble, no sign-off.
+
+  - id: cf-rules
+    kind: approval-gate
+    config:
+      name: "Formal rules"
+      reviewer: agent
+      anchor: "post"
+      rubric: >
+        PASS only if ALL hold: under 900 characters; no emoji; no hashtags;
+        at least one link present; exactly one central idea.
+        FAIL otherwise, naming the first rule broken.
+      escalateOn: objection
+
+  - id: cf-approve
+    kind: approval-gate
+    config:
+      name: "Publish this?"
+      reviewer: human
+      anchor: "post"
+
+  - id: cf-publish
+    kind: api-request
+    config:
+      name: "Publish to Telegram"
+      method: POST
+      url: "https://api.telegram.org/bot{{env.TELEGRAM_BOT_TOKEN}}/sendMessage"
+      expect: "2xx"
+      timeoutSec: "30"
+      body: '{"chat_id":"{{env.TELEGRAM_CHAT_ID}}","text":"{{steps.Write the post.output.text}}","disable_web_page_preview":true}'

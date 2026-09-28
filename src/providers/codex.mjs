@@ -193,7 +193,7 @@ export async function codex(
   { executable, model, messages, runId, signal, timeoutMs = 90000 },
   { launch = subprocess } = {},
 ) {
-  if (process.env.CLAUDECODE || Number(process.env.QLOOPS_DEPTH || 0) > 0)
+  if (process.env.CLAUDECODE || Number(process.env.QCORE_DEPTH || 0) > 0)
     throw new CoreError(
       "UNSUPPORTED_NESTING",
       "Nesting guard active; use a caller-owned broker outside the active CLI session",
@@ -225,7 +225,7 @@ export async function codex(
   const input = JSON.stringify({ messages });
   insist(Buffer.byteLength(input) <= 128000, "Input exceeds 128000 bytes");
   // New standalone session; never resume a caller's session or copy credentials.
-  const env = scopedEnvironment({ QLOOPS_DEPTH: "1", QLOOPS_RUN_ID: runId });
+  const env = scopedEnvironment({ QCORE_DEPTH: "1", QCORE_RUN_ID: runId });
   if (process.env.CODEX_HOME) env.CODEX_HOME = process.env.CODEX_HOME;
   const deadline = Date.now() + timeoutMs;
   const remaining = () => {
@@ -234,7 +234,7 @@ export async function codex(
     return ms;
   };
   // Outside the caller workspace: no project config, documents or file context.
-  const cwd = await mkdtemp(join(tmpdir(), "qloops-codex-"));
+  const cwd = await mkdtemp(join(tmpdir(), "q-core-codex-"));
   try {
     const probe = await launch(executable, ["--version"], {
       cwd,

@@ -4,8 +4,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runContent, reconcilePublication } from "../src/content.mjs";
+import { personDecides } from "./human-decision-helper.mjs";
 const setup = (t) => {
-  const workspace = mkdtempSync(join(tmpdir(), "qloops-content-"));
+  const workspace = mkdtempSync(join(tmpdir(), "q-core-content-"));
   t.after(() => rmSync(workspace, { recursive: true, force: true }));
   return {
     workspace,
@@ -37,10 +38,9 @@ test("content exact approval, receipt and subsequent source dedup", async (t) =>
   const first = await runContent(r, a);
   assert.equal(first.status, "needs_human");
   assert.equal(sends, 0);
-  const result = await runContent(
-    { ...r, approval: { hash: first.nextAction.hash, decision: "approve" } },
-    a,
-  );
+  assert.equal(first.nextAction.type, "ask_human_to_approve");
+  personDecides("content", r.workspace, first);
+  const result = await runContent(r, a);
   assert.equal(result.status, "success");
   assert.equal((await runContent(r, a)).nextAction.type, "no_new_sources");
   assert.equal(sends, 1);
@@ -48,28 +48,12 @@ test("content exact approval, receipt and subsequent source dedup", async (t) =>
 test("changed draft/profile invalidates approval, rejection prevents send", async (t) => {
   const r = setup(t),
     first = await runContent(r, adapters);
+  personDecides("content", r.workspace, first, "reject");
   assert.equal(
-    (
-      await runContent(
-        {
-          ...r,
-          profile: { tone: "other" },
-          approval: { hash: first.nextAction.hash, decision: "approve" },
-        },
-        adapters,
-      )
-    ).status,
+    (await runContent({ ...r, profile: { tone: "other" } }, adapters)).status,
     "needs_human",
   );
-  assert.equal(
-    (
-      await runContent(
-        { ...r, approval: { hash: first.nextAction.hash, decision: "reject" } },
-        adapters,
-      )
-    ).status,
-    "cancelled",
-  );
+  assert.equal((await runContent(r, adapters)).status, "cancelled");
 });
 test("ambiguous publication never retried and missing receipt not delivery", async (t) => {
   const r = setup(t);
@@ -82,10 +66,8 @@ test("ambiguous publication never retried and missing receipt not delivery", asy
     },
   };
   const first = await runContent(r, a),
-    approved = {
-      ...r,
-      approval: { hash: first.nextAction.hash, decision: "approve" },
-    };
+    approved = r;
+  personDecides("content", r.workspace, first);
   assert.equal((await runContent(approved, a)).status, "needs_human");
   assert.equal((await runContent(approved, a)).status, "needs_human");
   assert.equal(sends, 1);
@@ -122,10 +104,8 @@ test("changed sources cannot replay an uncertain overlapping publication", async
       },
     };
   const first = await runContent(r, a);
-  await runContent(
-    { ...r, approval: { hash: first.nextAction.hash, decision: "approve" } },
-    a,
-  );
+  personDecides("content", r.workspace, first);
+  await runContent(r, a);
   const result = await runContent(
     {
       ...r,
@@ -148,10 +128,8 @@ test("receiver reconciliation advances dedup without resending", async (t) => {
       },
     };
   const first = await runContent(r, a);
-  const uncertain = await runContent(
-    { ...r, approval: { hash: first.nextAction.hash, decision: "approve" } },
-    a,
-  );
+  personDecides("content", r.workspace, first);
+  const uncertain = await runContent(r, a);
   const result = await reconcilePublication(
     {
       workspace: r.workspace,
@@ -166,15 +144,17 @@ test("receiver reconciliation advances dedup without resending", async (t) => {
 
 test('stale rejection cannot cancel a new draft',async t=>{
   const r=setup(t),first=await runContent(r,adapters);
-  const changed={...r,profile:{tone:'changed'},approval:{hash:first.nextAction.hash,decision:'reject'}};
+  personDecides('content',r.workspace,first,'reject');
+  const changed={...r,profile:{tone:'changed'}};
   const result=await runContent(changed,adapters);
-  assert.equal(result.status,'needs_human');assert.equal(result.nextAction.type,'approve_publication');
+  assert.equal(result.status,'needs_human');assert.equal(result.nextAction.type,'ask_human_to_approve');
   assert.notEqual(result.nextAction.hash,first.nextAction.hash);
 });
 test('cancellation after checker prevents send and callback mutation cannot rewrite receiver',async t=>{
   const r=setup(t),first=await runContent(r,adapters);let sends=0;
   const ac=new AbortController();ac.abort();
-  const stopped=await runContent({...r,approval:{hash:first.nextAction.hash,decision:'approve'}},{...adapters,signal:ac.signal,publish:async()=>{sends++;}});
+  personDecides('content',r.workspace,first);
+  const stopped=await runContent(r,{...adapters,signal:ac.signal,publish:async()=>{sends++;}});
   assert.equal(stopped.status,'cancelled');assert.equal(sends,0);
   const other={...r,profile:{tone:'another'}};const next=new AbortController();
   const result=await runContent(other,{...adapters,signal:next.signal,

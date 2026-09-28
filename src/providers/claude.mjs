@@ -40,7 +40,7 @@ export async function claude(
   { executable, model, messages, cwd, runId, signal, timeoutMs = 90000 },
   { launch = subprocess } = {},
 ) {
-  if (process.env.CLAUDECODE || Number(process.env.QLOOPS_DEPTH || 0) > 0)
+  if (process.env.CLAUDECODE || Number(process.env.QCORE_DEPTH || 0) > 0)
     throw new CoreError(
       "UNSUPPORTED_NESTING",
       "Nesting guard active; use a caller-owned broker outside the active CLI session",
@@ -61,7 +61,7 @@ export async function claude(
     "Claude requires bounded text messages",
   );
   insist(Buffer.byteLength(JSON.stringify({ messages })) <= 128000, "Input exceeds 128000 bytes");
-  const env = scopedEnvironment({ QLOOPS_DEPTH: "1", QLOOPS_RUN_ID: runId });
+  const env = scopedEnvironment({ QCORE_DEPTH: "1", QCORE_RUN_ID: runId });
   const deadline = Date.now() + timeoutMs;
   const remaining = () => {
     const ms = deadline - Date.now();

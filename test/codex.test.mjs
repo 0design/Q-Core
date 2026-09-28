@@ -11,6 +11,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { codex, parseCodexResponse } from "../src/providers/codex.mjs";
 import { subprocess, scopedEnvironment } from "../src/subprocess.mjs";
+import { personDecides } from "./human-decision-helper.mjs";
 const options = {
   executable: resolve("test/fixtures/codex.mjs"),
   model: "fixture",
@@ -26,7 +27,7 @@ test("Codex isolates cwd, config, credentials environment and permissions", asyn
     const invocation = JSON.parse(r.content);
     assert.equal(invocation.env.OPENAI_API_KEY, undefined);
     assert.equal(invocation.env.CODEX_API_KEY, undefined);
-    assert.equal(invocation.env.QLOOPS_DEPTH, "1");
+    assert.equal(invocation.env.QCORE_DEPTH, "1");
     assert.notEqual(invocation.cwd, process.cwd());
     assert.equal(existsSync(invocation.cwd), false);
     assert.ok(invocation.args.includes("--ignore-user-config"));
@@ -134,7 +135,7 @@ test("incomplete, reordered, extra and rate limited event streams fail closed", 
   );
 });
 test("Codex caller executes approved scope and resumes through installed-style CLI boundary", async (t) => {
-  const workspace = mkdtempSync(join(tmpdir(), "qloops-codex-caller-"));
+  const workspace = mkdtempSync(join(tmpdir(), "q-core-codex-caller-"));
   t.after(() => rmSync(workspace, { recursive: true, force: true }));
   writeFileSync(join(workspace, "value.mjs"), "export const add=()=>0;");
   writeFileSync(
@@ -158,7 +159,7 @@ test("Codex caller executes approved scope and resumes through installed-style C
   const caller = async (request) => {
     const p = await subprocess(
       process.execPath,
-      [resolve("bin/qloops.mjs"), "agent", "-"],
+      [resolve("bin/q-core.mjs"), "agent", "-"],
       {
         input: JSON.stringify(request),
         env: scopedEnvironment(),
@@ -169,13 +170,10 @@ test("Codex caller executes approved scope and resumes through installed-style C
   };
   const first = await caller(r);
   assert.equal(first.code, 2);
-  assert.equal(first.result.nextAction.type, "approve_spec");
+  assert.equal(first.result.nextAction.type, "ask_human_to_approve");
   assert.match(readFileSync(join(workspace, "value.mjs"), "utf8"), /=>0/);
-  const approved = {
-    ...r,
-    resumeRunId: first.result.runId,
-    approval: { hash: first.result.nextAction.hash, decision: "approve" },
-  };
+  personDecides("agent", workspace, first.result);
+  const approved = { ...r, resumeRunId: first.result.runId };
   const result = await caller(approved);
   assert.equal(result.code, 0);
   assert.equal(result.result.provider.kind, "codex");

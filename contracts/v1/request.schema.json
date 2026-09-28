@@ -6,7 +6,7 @@
   "required": [
     "protocolVersion",
     "requestId",
-    "loop",
+    "workflow",
     "intent",
     "workspace",
     "allowedPaths",
@@ -24,7 +24,7 @@
       "type": "string",
       "pattern": "^[\\w-]{1,100}$"
     },
-    "loop": {
+    "workflow": {
       "type": "object",
       "required": [
         "id",

@@ -48,7 +48,7 @@ export function runSpecification(step, ctx) {
   insist(workspace?.policyHash === hash(workspace?.policy), 'Workspace policy identity changed');
   const spec = specification(workspace.policy.specification ?? source, 'INVALID_RESPONSE');
   insist(ctx.runStore, 'Versioned specification requires persistent storage');
-  const record = ctx.runStore.recordSpecification({ loop: ctx.templateId, workspace: workspace.policy.workspace }, { spec, policyHash: workspace.policyHash });
+  const record = ctx.runStore.recordSpecification({ workflow: ctx.templateId, workspace: workspace.policy.workspace }, { spec, policyHash: workspace.policyHash });
   return { output: { ...record, spec, plan: spec.plan, workspace } };
 }
 export function runWorkspaceApply(step, ctx) {

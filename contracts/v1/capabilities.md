@@ -1,7 +1,7 @@
 # Core capabilities introspection
 
 `coreCapabilities()` is a synchronous, read-only API for consumers of the
-installed `qloops` package. It reads the installed `package.json`, the shipped
+installed `q-core` package. It reads the installed `package.json`, the shipped
 contract metadata in `contracts/v1/version.json`, and the provider/secret-store
 exports. It does not use the network, launch a model or CLI, resolve a secret,
 or return authentication values.

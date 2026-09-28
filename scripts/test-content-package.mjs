@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { createServer } from 'node:http';
 import { subprocess } from '../src/subprocess.mjs';
 import { hash } from '../src/contracts.mjs';
+import { atTerminal, ptyAvailable } from '../test/fixtures/human-terminal.mjs';
 
 const root=resolve('.'), sandbox=mkdtempSync(join(tmpdir(),'qf-content-contract-'));
 const exec=(exe,args)=>subprocess(exe,args,{cwd:sandbox,timeoutMs:30000});
@@ -21,9 +22,9 @@ try {
   const pack=await exec('npm',['pack',root,'--ignore-scripts','--json']);assert.equal(pack.code,0,pack.stderr);
   const packed=JSON.parse(pack.stdout)[0],tarball=join(sandbox,packed.filename);
   assert.equal((await exec('npm',['install','--ignore-scripts','--no-audit','--no-fund',tarball])).code,0);
-  const installed=join(sandbox,'node_modules/qloops');
+  const installed=join(sandbox,'node_modules/q-core');
   const contract=readFileSync(join(installed,'contracts/v1/content.md'),'utf8');
-  assert.ok(contract.includes('qf.content-request/v1')&&contract.includes('approve_publication')&&contract.includes('Idempotency-Key'));
+  assert.ok(contract.includes('qf.content-request/v1')&&contract.includes('ask_human_to_approve')&&contract.includes('Idempotency-Key'));
   const example=JSON.parse(readFileSync(join(installed,'examples/content-request.json'),'utf8'));
   assert.ok(example.profile.instructions.includes('SYNTHETIC TEST ONLY'));
   assert.equal(example.approval,undefined);
@@ -40,34 +41,44 @@ try {
     sources:example.sources.map(s=>({...s,url:origin+'/source/1'}))};
   async function call(request) {
     const file=join(sandbox,'request.json');writeFileSync(file,JSON.stringify(request),{mode:0o600});
-    const p=await exec(process.execPath,[join(installed,'bin/qloops.mjs'),'content',file]);
+    const p=await exec(process.execPath,[join(installed,'bin/q-core.mjs'),'content',file]);
     assert.ok(p.stdout.trim(),p.stderr);const result=JSON.parse(p.stdout);
     assert.equal(result.protocolVersion,'qf.content/v1');assert.equal(p.code,{success:0,failed:1,needs_human:2,cancelled:130}[result.status]);
     outputs.push({exit:p.code,result});return result;
   }
   const noKey=await call({...base,receiver:{...base.receiver,keyRef:'QF_CONTENT_CONTRACT_ABSENT_TEST_KEY'}});
   assert.equal(noKey.nextAction.type,'configure_access');assert.equal(received.length,0);
-  const draft=await call(base);assert.equal(draft.nextAction.type,'approve_publication');assert.equal(received.length,0);
-  const approval={hash:draft.nextAction.hash,decision:'approve'};
-  const done=await call({...base,approval});assert.equal(done.status,'success');assert.equal(received.length,1);
+  // Core 38: only a person decides, at a terminal; a pseudo-terminal stands in for them here.
+  assert.ok(ptyAvailable,'python3 pty is required for the human approval step');
+  const bin=join(installed,'bin/q-core.mjs');
+  const person=(result,...flags)=>{const r=atTerminal([process.execPath,bin,'content','approve',workspace,result.runId,'--approval-hash',result.nextAction.approvalHash,...flags],{env:{...process.env,QF_NO_UPDATE_CHECK:'1'},cwd:sandbox});
+    assert.equal(r.exit,0,r.out);assert.match(r.out,/Confirmed: (approve|reject)/);return r;};
+  const draft=await call(base);assert.equal(draft.nextAction.type,'ask_human_to_approve');assert.equal(draft.nextAction.humanOnly,true);assert.equal(received.length,0);
+  const refused=await call({...base,approval:{hash:draft.nextAction.approvalHash,decision:'approve'}});
+  assert.equal(refused.error.code,'HUMAN_APPROVAL_REQUIRED');assert.equal(received.length,0);
+  assert.equal((await call(base)).nextAction.type,'ask_human_to_approve');assert.equal(received.length,0);
+  person(draft);
+  const done=await call(base);assert.equal(done.status,'success');assert.equal(received.length,1);
   assert.equal(received[0].text,draft.nextAction.text);assert.match(received[0].key,/^[a-f0-9]{64}$/);
   assert.equal(done.evidence.at(-1).receipt.delivered,true);
   assert.equal((await call(base)).nextAction.type,'no_new_sources');assert.equal(received.length,1);
   const second={...base,sources:[{id:'synthetic-source-2',url:origin+'/source/2'}]};
-  const next=await call({...second,approval});assert.equal(next.nextAction.type,'approve_publication');assert.notEqual(next.nextAction.hash,approval.hash);
-  const stale=await call({...second,approval:{...approval,decision:'reject'}});assert.equal(stale.nextAction.type,'approve_publication');
-  assert.equal((await call({...second,approval:{hash:next.nextAction.hash,decision:'reject'}})).status,'cancelled');
+  const next=await call(second);assert.equal(next.nextAction.type,'ask_human_to_approve');assert.notEqual(next.nextAction.approvalHash,draft.nextAction.approvalHash);
+  const stale=await exec(process.execPath,[bin,'content','approve',workspace,next.runId,'--approval-hash',draft.nextAction.approvalHash,'--reject']);
+  assert.equal(stale.code,1);assert.match(stale.stderr,/STALE_APPROVAL/);assert.equal((await call(second)).nextAction.type,'ask_human_to_approve');
+  person(next,'--reject');
+  assert.equal((await call(second)).status,'cancelled');
   assert.equal(received.length,1);
   const third={...base,sources:[{id:'synthetic-source-3',url:origin+'/source/3'}]};
   const thirdDraft=await call(third);fail=true;
-  const uncertain=await call({...third,approval:{hash:thirdDraft.nextAction.hash,decision:'approve'}});
+  person(thirdDraft);
+  const uncertain=await call(third);
   assert.equal(uncertain.nextAction.type,'reconcile_receipt');assert.equal(received.length,2);
   assert.equal((await call(third)).nextAction.type,'reconcile_receipt');assert.equal(received.length,2);
-  const evidence={date:new Date().toISOString(),package:packed.version,artifactSha256:hash(readFileSync(tarball)),
+  const evidence={package:packed.version,artifactSha256:hash(readFileSync(tarball)),
     evidenceKind:'clean-installed shipped Content request example; Codex subprocess fixture; real localhost HTTP only; not live inference or owner acceptance',
     contractSha256:hash(contract),exampleSha256:hash(readFileSync(join(installed,'examples/content-request.json'))),
-    checks:{exactText:true,approvalRequired:true,receipt:true,dedup:true,staleApprovalRejected:true,rejection:true,missingKey:true,uncertainReplayNoResend:true},outputs};
-  writeFileSync(join(root,'docs/delivery/content-contract-package.json'),JSON.stringify(evidence,null,2)+'\n');
+    checks:{exactText:true,approvalRequired:true,jsonApprovalRefused:true,humanTtyApproval:true,receipt:true,dedup:true,staleApprovalRejected:true,rejection:true,missingKey:true,uncertainReplayNoResend:true},outputs};
   console.log(JSON.stringify({package:packed.version,artifactSha256:evidence.artifactSha256,checks:evidence.checks}));
 } finally {
   if(server.listening) await new Promise(r=>server.close(r));

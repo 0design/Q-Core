@@ -1,6 +1,6 @@
 # Local provider secrets
 
-QLoops supports an optional protected source for the OpenRouter credential on
+Q-Core supports an optional protected source for the OpenRouter credential on
 macOS. The source is selected per provider request with `secretSource`:
 
 - `env` reads the named `keyRef` from the process environment. It is the
@@ -12,7 +12,7 @@ macOS. The source is selected per provider request with `secretSource`:
 Select `secretSource: "keychain"` explicitly for protected local storage;
 omitting `secretSource` keeps the environment-backed behavior.
 
-The logical alias is an uppercase `keyRef` of at most 128 bytes. QLoops maps it
+The logical alias is an uppercase `keyRef` of at most 128 bytes. Q-Core maps it
 to a fixed service namespace and provider-scoped account; it does not accept a
 credential value in an argument, piped input, chat message, log, or global
 `process.env` assignment.
@@ -22,9 +22,9 @@ credential value in an argument, piped input, chat message, log, or global
 Run these commands from a local interactive macOS terminal:
 
 ```sh
-qloops auth set openrouter [KEY_REF]
-qloops auth status openrouter [KEY_REF]
-qloops auth remove openrouter [KEY_REF]
+q-core auth set openrouter [KEY_REF]
+q-core auth status openrouter [KEY_REF]
+q-core auth remove openrouter [KEY_REF]
 ```
 
 `auth set` invokes the native protected prompt and stores the entry in the
