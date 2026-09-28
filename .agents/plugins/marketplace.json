@@ -1,0 +1,20 @@
+{
+  "name": "qfactory",
+  "interface": {
+    "displayName": "Qfactory"
+  },
+  "plugins": [
+    {
+      "name": "qfactory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/qfactory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
