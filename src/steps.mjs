@@ -15,7 +15,7 @@
  * word where they are observable, because the parity test compares them.
  */
 import { requireStr, num, oneOf, str } from "./config.mjs";
-import { resolveTemplate, resolveTemplateDeep, resolveTemplateValue, missingEnvRefs } from "./template.mjs";
+import { resolveTemplate, resolveTemplateDeep, resolveTemplateValue, resolveUrlTemplate, resolveJsonTemplate, missingEnvRefs } from "./template.mjs";
 import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
@@ -147,9 +147,18 @@ export function parseFeed(xml) {
   });
 }
 
+/* A url field: data from steps and items is percent-encoded and cannot change the scheme or host. */
+function urlOf(raw, t, label) {
+  try {
+    return resolveUrlTemplate(raw, t);
+  } catch (e) {
+    throw new Error(`"${label}": ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
 export async function runFetch(step, ctx) {
   const label = stepLabel(step);
-  const url = resolveTemplate(requireStr(step.config, "url", label), tctx(ctx));
+  const url = urlOf(requireStr(step.config, "url", label), tctx(ctx), label);
   if (!/^https?:\/\//i.test(url)) {
     throw new Error(`"${label}": url must start with http(s):// — got "${url}".`);
   }
@@ -261,7 +270,9 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     ctx.item !== undefined ? { item: ctx.item, index: ctx.itemIndex, steps: ctx.priorOutputs } : ctx.priorOutputs;
   if (step.config.input != null) {
     payload = resolveTemplateValue(step.config.input, tctx(ctx));
-    if (payload === undefined || typeof payload === "string" && /\{\{[^{}]*\}\}/.test(payload))
+    /* Only an unresolved REFERENCE is an error. The referenced value is data: an
+       article or a model answer may legitimately contain `{{…}}`. */
+    if (payload === undefined)
       throw new CoreError("INVALID_REQUEST", `"${label}": input must reference one prior step output, for example "{{steps.unique.output}}".`);
   }
   const user = JSON.stringify(payload, null, 2).slice(0, 60_000);
@@ -444,7 +455,6 @@ export async function runApiRequest(step, ctx) {
   const t = tctx(ctx);
 
   const rawUrl = requireStr(step.config, "url", label);
-  const url = resolveTemplate(rawUrl, t);
 
   /* ── THE ONE DELIBERATE DIVERGENCE FROM THE ENGINE ─────────────────────────
      A URL that still references an UNSET environment variable is not sent. The
@@ -476,6 +486,9 @@ export async function runApiRequest(step, ctx) {
       },
     };
   }
+  /* Resolved only after the file-sink check: a URL with an unset env reference is never
+     sent, whatever data it would also carry. */
+  const url = urlOf(rawUrl, t, label);
 
   /* A local file destination: file:///absolute/path.jsonl appends one JSON value per line. Same receipt and
      duplicate rules as HTTP; the folder must exist and must not be reached through a symlink. */
@@ -503,10 +516,15 @@ export async function runApiRequest(step, ctx) {
   const headers = { "Content-Type": "application/json" };
   const rawHeaders = str(step.config, "headers");
   if (rawHeaders) {
+    /* Parsed BEFORE substitution: header names come from the manifest only, and a
+       value from data stays inside its own header value. */
     let parsed;
     try {
-      parsed = JSON.parse(resolveTemplate(rawHeaders, t));
+      parsed = resolveJsonTemplate(rawHeaders, t);
     } catch {
+      parsed = null;
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error(`"${label}": the "headers" field must be a JSON object. Got: ${rawHeaders.slice(0, 120)}`);
     }
     for (const [k, v] of Object.entries(parsed)) if (typeof v === "string") headers[k] = v;

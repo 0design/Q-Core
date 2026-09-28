@@ -1,17 +1,30 @@
 import { hash, insist } from './contracts.mjs';
-import { resolveTemplate, resolveTemplateValue } from './template.mjs';
+import { resolveTemplate, resolveTemplateValue, resolveTemplateReport, resolveJsonTemplate } from './template.mjs';
 import { parseFeed } from './steps.mjs';
 import { fetchWithRetry } from './http.mjs';
 
 const context = ctx => ({ priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, item: ctx.item, index: ctx.itemIndex });
 const value = (step, field, ctx) => resolveTemplateValue(step.config[field], context(ctx));
 const textValue = (step, field, ctx) => resolveTemplate(step.config[field], context(ctx));
-const stringList = (step, field, ctx) => {
+/* The placeholders of a manifest field that stayed unresolved; data substituted into it is not searched. */
+const reportValue = (step, field, ctx, unresolved) => {
+  const out = resolveTemplateReport(step.config[field], context(ctx));
+  unresolved?.push(...out.unresolved);
+  return out.text;
+};
+/* A JSON list of strings. The manifest text is parsed FIRST and only its string elements are
+   resolved, so substituted data can never close a string or add an element. A field that is exactly one
+   placeholder names the whole list (a step output array, or JSON text from data or the environment). */
+const stringList = (step, field, ctx, unresolved) => {
   if (!(field in step.config)) return [];
-  const raw = textValue(step, field, ctx);
+  const raw = step.config[field];
   let list;
-  try { list = JSON.parse(raw); }
-  catch { throw new Error(`${field} must be a JSON array of nonempty strings`); }
+  try { list = resolveJsonTemplate(raw, context(ctx), { unresolved }); }
+  catch {
+    if (!/^\s*\{\{[^{}]*\}\}\s*$/.test(String(raw))) throw new Error(`${field} must be a JSON array of nonempty strings`);
+    try { list = JSON.parse(reportValue(step, field, ctx, unresolved)); }
+    catch { throw new Error(`${field} must be a JSON array of nonempty strings`); }
+  }
   insist(Array.isArray(list) && list.every(item => typeof item === 'string' && item.length > 0), `${field} must be a JSON array of nonempty strings`);
   return list;
 };
@@ -451,8 +464,9 @@ const intIn = (step, field, min, max, fallback) => {
 };
 const timeBound = (step, field, ctx) => {
   if (step.config[field] == null) return null;
-  const raw = textValue(step, field, ctx);
-  insist(!/\{\{[^{}]*\}\}/.test(raw), `parse-web ${field} has an unresolved template placeholder`);
+  const unresolved = [];
+  const raw = reportValue(step, field, ctx, unresolved);
+  insist(unresolved.length === 0, `parse-web ${field} has an unresolved template placeholder`);
   const at = Date.parse(raw);
   insist(/^\d{4}-\d{2}-\d{2}/.test(raw) && Number.isFinite(at), `parse-web ${field} must be an ISO date or date-time`);
   return at;
@@ -737,13 +751,15 @@ function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
   insist(typeof text === 'string' && text.trim() && text.length <= 16000, 'A bounded nonempty draft is required');
   insist(Array.isArray(sources) && sources.length > 0, 'Pinned source list required');
   const urls = new Set(sources.map(s => s.url));
-  const fixedLinks = stringList(step, 'fixedLinks', ctx);
+  // Placeholders of the format contract itself that stayed unresolved (data inside it may contain braces).
+  const unresolvedContract = [];
+  const fixedLinks = stringList(step, 'fixedLinks', ctx, unresolvedContract);
   insist(fixedLinks.every(url => /^https?:\/\//.test(url)), 'fixedLinks must be a JSON array of HTTP(S) URLs');
-  const requiredHeadings = stringList(step, 'requiredHeadings', ctx);
+  const requiredHeadings = stringList(step, 'requiredHeadings', ctx, unresolvedContract);
   insist(step.config.nestedList == null || requiredHeadings.length === 0, 'nestedList replaces requiredHeadings, introLinks and the section shape checks');
   // introLinks: URLs allowed only once each, as an inline Markdown link inside the introduction sentence
   // (between requiredPrefix and the first required section), never as a standalone link line.
-  const introLinks = stringList(step, 'introLinks', ctx);
+  const introLinks = stringList(step, 'introLinks', ctx, unresolvedContract);
   insist(introLinks.every(url => /^https?:\/\//.test(url)), 'introLinks must be a JSON array of HTTP(S) URLs');
   // requiredEnvPatterns: {"NAME": "regex"} — each variable must be set and match fully (e.g. a DD.MM date).
   if (step.config.requiredEnvPatterns != null) {
@@ -755,11 +771,11 @@ function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
       insist(typeof value === 'string' && new RegExp(`^(?:${re})$`).test(value), `Environment variable ${name} must match ${re}`);
     }
   }
-  const requiredPrefix = step.config.requiredPrefix == null ? null : textValue(step, 'requiredPrefix', ctx);
+  const requiredPrefix = step.config.requiredPrefix == null ? null : reportValue(step, 'requiredPrefix', ctx, unresolvedContract);
   insist(requiredPrefix === null || typeof requiredPrefix === 'string' && requiredPrefix.length > 0, 'requiredPrefix must be a nonempty string');
   // An unset {{env.NAME}} stays in place by design; a contract that still carries
   // a placeholder would silently require the literal braces, so refuse it.
-  insist(![requiredPrefix ?? '', ...fixedLinks, ...requiredHeadings, ...introLinks].some(item => /\{\{[^{}]*\}\}/.test(item)), 'Format contract has an unresolved template placeholder');
+  insist(unresolvedContract.length === 0, 'Format contract has an unresolved template placeholder');
   // Core39 (live run f8ee3f9f): with factCheck + nestedList the fixed header is not the model's to copy (the
   // fact-check call once changed its emoji). Everything before the first list line is replaced by requiredPrefix;
   // the list itself is checked as the model wrote it.
