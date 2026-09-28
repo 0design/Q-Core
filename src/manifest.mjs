@@ -311,7 +311,7 @@ export function validateManifest(doc) {
   if (tag !== MANIFEST_TAG) {
     const [family, ver] = String(tag).split("/");
     throw new ManifestError(
-      family === "qloops.loop"
+      family === MANIFEST_TAG.split("/")[0]
         ? `this runner reads ${MANIFEST_TAG}; the manifest declares ${tag}. Version "${ver}" is either older or newer than this build`
         : `unknown manifest family "${tag}" — expected ${MANIFEST_TAG}`,
       "manifest",

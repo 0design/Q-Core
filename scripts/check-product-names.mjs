@@ -14,12 +14,12 @@ export function verifyPackageSurface(pkg, binFiles) {
 }
 
 export function verifyPackagedReadmeAliasBoundary(root) {
-  const source = readFileSync(join(root, "README.md"), "utf8");
-  assert.match(source, /Q-Core installs `q-core` and `q-core-host`\. No other CLI alias is provided\./, "README must name the installed Q-Core executables");
+  const source = readFileSync(join(root, "docs", "reference.md"), "utf8");
+  assert.match(source, /Q-Core installs `q-core` and `q-core-host`\. No other CLI alias is provided\./, "docs/reference.md must name the installed Q-Core executables");
   assert.equal(
     /Both `q-core` and legacy `q-core` are installed\./.test(source),
     false,
-    "README must not describe Q-Core as its own legacy alias",
+    "docs/reference.md must not describe Q-Core as its own legacy alias",
   );
 }
 
@@ -65,14 +65,7 @@ function filesBelow(root, relative) {
 
 export function assertNoRetiredProductNames(files) {
   for (const { path, source } of files) {
-    // The manifest deliberately rejects the retired namespace. It is not an
-    // accepted alias, and keeping the exact rejected token makes that boundary
-    // explicit for callers and tests.
-    // bin/q-workflow.mjs names the retired namespace only to explain the rename
-    // when that rejection reaches the CLI; it adds no alias.
-    const inspectable = path === "src/manifest.mjs" || path === "bin/q-workflow.mjs"
-      ? source.replaceAll("qloops.loop", "")
-      : source;
+    const inspectable = source;
     assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);
     assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
     assert.equal(/\bloop-id\b/i.test(inspectable), false, `${path} retains the retired loop-id contract`);
@@ -188,7 +181,6 @@ export function verifyProductNames(root = resolve(".")) {
 
   const manifest = readFileSync(join(root, "src", "manifest.mjs"), "utf8");
   assert.match(manifest, /MANIFEST_TAG = "q-core\.workflow\/v1"/);
-  assert.match(manifest, /family === "qloops\.loop"/, "the only retired manifest reference must fail closed");
 
   const activeSources = [...scannedRoots.flatMap((relative) => filesBelow(root, relative)), ...scannedFiles]
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));

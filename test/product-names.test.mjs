@@ -16,12 +16,13 @@ test("old qloops package name is rejected by the negative naming guard", () => {
   );
 });
 
-test("packaged README rejects a duplicate Q-Core legacy-alias claim", () => {
+test("packaged reference rejects a duplicate Q-Core legacy-alias claim", () => {
   const root = mkdtempSync(join(tmpdir(), "q-core-readme-name-guard-"));
+  mkdirSync(join(root, "docs"));
   try {
-    writeFileSync(join(root, "README.md"), "Both `q-core` and legacy `q-core` are installed.\n");
+    writeFileSync(join(root, "docs", "reference.md"), "Both `q-core` and legacy `q-core` are installed.\n");
     assert.throws(() => verifyPackagedReadmeAliasBoundary(root), /installed Q-Core executables/);
-    writeFileSync(join(root, "README.md"), "Q-Core installs `q-core` and `q-core-host`. No other CLI alias is provided.\n");
+    writeFileSync(join(root, "docs", "reference.md"), "Q-Core installs `q-core` and `q-core-host`. No other CLI alias is provided.\n");
     assert.doesNotThrow(() => verifyPackagedReadmeAliasBoundary(root));
   } finally {
     rmSync(root, { recursive: true, force: true });

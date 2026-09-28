@@ -71,7 +71,7 @@ name its release (`RELEASE_REQUIRED`). A truncated or corrupt catalog fails with
 The catalog must pin this engine version. Installer verifies catalog bytes,
 manifest identity, checksums and exact dependencies, and writes `workflow.yaml.lock.json`.
 It never overwrites files. HTTPS registries are supported; HTTP is localhost-only.
-No implicit mutable remote catalog is used. Legacy remote discovery requires both
+No implicit mutable remote catalog is used. Remote catalog discovery through environment variables requires both
 `QCORE_CATALOG_URL` and `QCORE_CATALOG_SHA256`. `QFACTORY_REGISTRY` is an explicitly
 trusted local development overlay, not a verified release install.
 
@@ -99,16 +99,7 @@ run, in their own terminal, `q-core agent approve <workspace> <runId> --approval
 Changed scope/intent/provider/verifier invalidates the recorded decision. Core is not
 an identity service. There is no implicit approval or “resume last chat”.
 
-**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
-(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
-(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
-carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
-sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
-(the `command` in `nextAction`) in their own terminal, then the caller resends the same
-request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
-request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
-
-Claude 2.1.156 is the initially reviewed CLI. Existing authentication is used;
+Claude Code CLI 2.1.156 is the reviewed version. Existing authentication is used;
 no credential copying, nesting guard removal or permissions bypass. Claude inference
 has no tools, hooks are disabled, MCP is explicitly empty, and no session is
 persisted. It proposes text. Core applies only exact approved files, then runs a
@@ -126,7 +117,6 @@ is deterministic, model output is not. Deadline/output/token/repair bounds are
 explicit. Optional `maxCostUsd` requires a caller-supplied conservative
 `maxCallCostUsd`: it gates subsequent calls and stops on unknown/exceeded usage.
 It is not a billing guarantee; provider estimates can differ from invoices.
-Site-funded reservation/settlement remains the site's responsibility.
 
 ## Use your existing Codex login
 
@@ -147,7 +137,7 @@ The path above was verified on this Mac. A standalone installation of the exact
 reviewed CLI works too; q-core does not install or replace it. Run that executable's
 `login status` first. ChatGPT authentication is required; saved API-key auth is
 rejected, API-key environment variables are not forwarded, and API/provider/model
-fallback is disabled. A legacy CLI is rejected with `UNSUPPORTED_CLI`.
+fallback is disabled. An older CLI version is rejected with `UNSUPPORTED_CLI`.
 
 Codex uses an isolated temporary working directory, read-only sandbox, no approval
 escalation, ignored user config, disabled hooks/plugins/apps/shell/browser tools,
@@ -181,10 +171,10 @@ const result = await openRouter({
 
 Set the named key in the environment; never put values in manifests. Results
 include content, actual model, request ID and nullable usage/cost. Errors are
-typed, provider/model fallback is never implicit. `site-funded` labels payer scope
-but does not implement the site's $10 quota. The site must reserve before calling.
+typed, provider/model fallback is never implicit. `site-funded` only labels who pays;
+it does not enforce a quota. The caller must reserve funds before calling.
 `chatOnce` remains a compatible wrapper over this adapter; `llm-call` is supported.
-Legacy token/cost estimates are not equivalent to provider-billed usage.
+Estimated tokens and cost are not the same as provider-billed usage.
 `maxCallCostUsd` is an optional per-call cap: the worst case of every attempt at the
 model's listed price must fit, and an unlisted model is refused (`COST_UNKNOWN`).
 In a workflow, a model step records the provider's reported cost, else the listed
@@ -195,7 +185,7 @@ HTTP transport retries network/timeout/429/5xx failures with bounded backoff;
 ordinary 4xx fail fast. Caller cancellation stops request/backoff without retry.
 Response body parsing errors are not retried. Internal policy allows 0–10 retries,
 positive timeouts and nonnegative delays; invalid policy fails before requests.
-Outgoing legacy API retries can duplicate writes: use receipt-aware content APIs
+Retries of outgoing requests can duplicate writes: use receipt-aware content APIs
 for publication. Retry is never exactly-once delivery.
 
 ## Content and quality capabilities
@@ -214,10 +204,8 @@ durable receipt and ambiguous-send reconciliation are implemented. Receiver JSON
 must be `{ "id": "unique-receipt", "delivered": true }`. A file sink is not a
 Telegram receipt. Configure and approve the receiver for each delivery.
 
-`determined` exports A2D-style plan-bound execute/verify/repair. Existing
-`a2done`, `a2d`, or `.a2d` users must follow the [public migration guide](a2d-migration.md):
-q-core deliberately provides no `a2d` binary/MCP alias and does not import old
-state, approvals, or completion evidence automatically. `qualityCheck`
+`determined` exports a plan-bound execute → verify → repair reducer (see
+[its contract](../contracts/v1/determined.md)). `qualityCheck`
 exports aindf-check (ds-readiness/UI composition) and unslop with hard/soft split,
 versioned findings, explicit coverage and optional recipe transport. `loadAindf`
 and `loadUnslop` load checksum-pinned upstream installations. Missing DS, stale
@@ -242,7 +230,7 @@ An agent never runs this command. Without a terminal, inside an agent session
 the subject, ask the user to run the command and wait. Details and limits:
 SPEC-MANIFEST.md, `reviewer: human`.
 
-From Core 37 a workflow you create must have a human gate before any step that
+A workflow you create must have a human gate before any step that
 writes files (`workspace-apply`) or sends data (any `api-request` except a plain `GET` to a literal http(s) URL);
 `q-core validate` and `q-core run` refuse it otherwise (`GATE_REQUIRED`). A
 `workspace-read` that no later step uses is refused too (`UNUSED_WORKSPACE_READ`).
@@ -250,16 +238,16 @@ Reviewed Registry workflows installed unchanged with `q-core install` keep their
 published shape. A rejected, dismissed or unanswered question is not approval, and
 an agent never replaces a Q-Core step with its own script.
 
-## Legacy YAML commands
+## YAML workflow commands
 
 `q-core validate`, `run [--dry-run]`, `status`, `approve [--reject]`, `catalog`,
 `init` and `doctor` remain available for `q-core.workflow/v1`. Step kinds and fields are in
-[SPEC-MANIFEST.md](../SPEC-MANIFEST.md). Legacy JSON is not the new agent envelope.
+[SPEC-MANIFEST.md](../SPEC-MANIFEST.md). The JSON agent protocol above is a separate interface.
 `run` performs one pass; scheduling belongs to the caller/launchd. State is local
-in `.qf/`; no server/database is required. Legacy YAML agent-call and check mode
-remain reserved; the new APIs must not be presented as implemented YAML kinds.
+in `.qf/`; no server/database is required. The step kind `agent-call` and the
+agent-gate mode `check` are reserved and not implemented.
 
-Additions since Core31 that SPEC-MANIFEST.md does not list yet:
+Also supported, not yet described in SPEC-MANIFEST.md:
 
 - `{{env.NAME:-default}}` uses `default` when `NAME` is unset or empty. Before the
   first step a run names every required variable that is unset or empty
@@ -284,13 +272,11 @@ references, including files excluded from the npm package. `docs/delivery/` is
 generated local receipt storage and has a separate invariant: only its `.gitkeep`
 may be tracked.
 
-MIT.
 
 ### determined consumer
 
-The installed package exports the A2D-based execute/verify/repair reducer. See
-[its callback contract](../contracts/v1/determined.md) and the
-[step-by-step A2D migration guide](a2d-migration.md). Run the
+The installed package exports the execute → verify → repair reducer. See
+[its callback contract](../contracts/v1/determined.md). Run the
 synthetic file-and-test example with `node examples/determined-caller.mjs` from
 the source checkout, or copy that shipped example into your installed caller.
 It demonstrates real failing/passing subprocess checks with a scripted executor.

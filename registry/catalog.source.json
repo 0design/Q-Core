@@ -3782,7 +3782,7 @@
     "artifact": "vendor/q-core-0.2.0-q-core.42.tgz",
     "artifactSha256": "90bbafd101f94a76030e3fd7e37bdb5841909189b3fe8e495838c6dc880b7677",
     "integrity": "sha512-phfQS/giwstv3ph4uMWstI0blFIqCWPLPH46i5TnwvKeXbdJptmpmtX1zWJmTKkjSVsfx2g9vxyCt78LBDwfNA==",
-    "schemaSha256": "831d514639c10b8b07e74713f7a0ca42a5c045c7ac84f8de73c90081f8610de5",
+    "schemaSha256": "ea3d1c25cf20e360801766bd7cf50e5fb956771d2455dd9f2b627b5e082d18a5",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
     "source": "Core.42 successor of Core.41: README only (the approved «Use QFactory.io» cover at the top and the current availability table); src/, contracts/ and SPEC-MANIFEST are byte-identical to Core.41, so the format validator, YAML parser and request schema are unchanged",

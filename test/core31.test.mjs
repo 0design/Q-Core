@@ -169,18 +169,15 @@ test('CLI help: OpenRouter key only for OpenRouter steps, and the exit codes', (
   assert.match(help, /Exit codes[\s\S]*\b2\s+waiting: the run is paused on a human decision \(approve\) or on a caller/);
 });
 
-test('CLI explains the renamed manifest format instead of "older or newer"', () => {
+test('CLI refuses an old manifest family as unknown, not as "older or newer"', () => {
   const dir = mkdtempSync(join(tmpdir(), 'q-core31-renamed-'));
   try {
     const file = join(dir, 'old.yaml');
     writeFileSync(file, ['manifest: qloops', 'loop/v1'].join('.') + '\nid: old\nsteps:\n  - id: a\n    kind: fetch\n    config:\n      url: https://example.org\n');
     const r = spawnSync(process.execPath, [BIN, 'validate', file], { encoding: 'utf8', env: { ...process.env, QF_NO_UPDATE_CHECK: '1' } });
     assert.equal(r.status, 1);
-    assert.match(r.stderr, /The manifest format was renamed: .* is now q-core\.workflow\/v1/);
-    assert.match(r.stderr, /no\s+silent compatibility/);
-    const other = join(dir, 'other.yaml');
-    writeFileSync(other, 'manifest: something/v9\nid: x\nsteps:\n  - id: a\n    kind: fetch\n    config:\n      url: https://example.org\n');
-    assert.doesNotMatch(spawnSync(process.execPath, [BIN, 'validate', other], { encoding: 'utf8' }).stderr, /was renamed/);
+    assert.match(r.stderr, /unknown manifest family .* expected q-core\.workflow\/v1/);
+    assert.doesNotMatch(r.stderr, /older or newer/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -306,13 +303,13 @@ steps:
   } finally { rmSync(w.dir, { recursive: true, force: true }); }
 });
 
-test('review fixes: the renamed-format message replaces "older or newer"', () => {
+test('review fixes: an old manifest family is reported as unknown', () => {
   const dir = mkdtempSync(join(tmpdir(), 'q-core31-renamed2-'));
   try {
     const file = join(dir, 'old.yaml');
     writeFileSync(file, ['manifest: qloops', 'loop/v2'].join('.') + '\nid: old\nsteps:\n  - id: a\n    kind: fetch\n    config:\n      url: https://example.org\n');
     const r = spawnSync(process.execPath, [BIN, 'validate', file], { encoding: 'utf8', env: { ...process.env, QF_NO_UPDATE_CHECK: '1' } });
-    assert.match(r.stderr, /^✗ The manifest format was renamed/);
+    assert.match(r.stderr, /^✗ manifest: unknown manifest family/);
     assert.doesNotMatch(r.stderr, /older or newer/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

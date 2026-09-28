@@ -2,7 +2,7 @@
   "name": "q-core",
   "version": "0.2.0-q-core.42",
   "license": "MIT",
-  "description": "Run a QFactory workflow from a YAML manifest. No database, no server, no build step.",
+  "description": "Run agent workflows end-to-end, without skipping instructions. The local engine behind QFactory: runs workflow YAML files on your machine, no database or server.",
   "type": "module",
   "bin": {
     "q-core": "bin/q-core.mjs",
@@ -35,7 +35,6 @@
     "docs/codex.md",
     "docs/secrets.md",
     "docs/cli-registry.md",
-    "docs/a2d-migration.md",
     "docs/reference.md"
   ],
   "dependencies": {},
