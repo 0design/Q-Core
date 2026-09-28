@@ -1,8 +1,8 @@
+[![Use QFactory.io — just ask your ChatGPT, Claude or Cursor](https://raw.githubusercontent.com/0design/Q-Core/main/docs/assets/use-qfactory-cover.webp)](https://qfactory.io)
+
 # Q-Core
 
 **Workflows that make your coding agent show a checked result, not just say "done".**
-
-![QFactory: copy one prompt on qfactory.io and hand it to your coding agent](https://raw.githubusercontent.com/0design/Q-Core/main/docs/assets/quickstart.gif)
 
 Q-Core is the local engine behind [QFactory](https://qfactory.io). A workflow is a
 versioned YAML manifest: its steps, checks, human gates, allowed repairs and stop
@@ -55,8 +55,8 @@ the machine.
 
 | Surface | State |
 | --- | --- |
-| This Core `0.2.0-q-core.41` | Pinned by Registry `2026.09.27-registry.28` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
-| Registry workflows | `digest` 0.8.0 (a second reviewer call after the fact check looks only for overstatement, scope, attribution, generalisation and entity problems and returns a small patch that the checks apply and then verify; the fact check reads the article behind each cited source: static text, public http(s) only, an unreachable page falls back to the feed summary; ten public AI feeds by default, meaning clusters across sources ranked by independent outlets, a nested list of themes, cases and comments without section labels, compact links (a theme is a short conclusion without links, its cases carry them) and short items (one sentence, at most 32 words per case and 20 per theme, by the owner's review of 27.09), a fact-check step that checks each claim against its linked source's feed title and summary and revises or removes unsupported claims, with a verbatim quote and the source's numbers checked per item and a verdict per claim, a fixed header checked before approval of the fact-checked text, HTTP or local-file delivery), `podcast-summary` 0.1.0 (one transcript, no channel header; replaces `podcast-digest`) and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows |
+| This Core `0.2.0-q-core.42` | Pinned by Registry `2026.09.28-registry.30` and downloadable from that release with its SHA-256; not on npm. [`current.json`](https://registry.qfactory.io/current.json) names the release to use now |
+| Registry workflows | `digest` 0.8.0 is accepted by the owner (a real run through the CLI provider): many news feeds, meaning clusters ranked by independent outlets, a fact check against the linked articles and a second review for overstatement and attribution, one approval, then HTTP or local-file delivery. `digest-cli` 0.8.0 and `podcast-summary-cli` 0.1.0 run every model step through your coding agent (no OpenRouter key); they, `podcast-summary` 0.1.0 and `sdd-pipeline` 0.1.0 are implementation candidates; the other 11 are reference workflows. Every catalog entry carries a `brief` (how it works, inputs, outputs, requirements, price, limits) |
 | Hosted MCP `https://qfactory.io/api/mcp` | Read-only tools over the pinned Registry release: `catalog`, `search`, `get`, `schema`, `validate`, `instructions`; it validates but never runs workflows |
 | This repository's `main` | Source of the newest Core; it can be ahead of `current` |
 

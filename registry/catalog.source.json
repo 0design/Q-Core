@@ -42,7 +42,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -221,7 +221,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -380,7 +380,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -571,7 +571,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -754,7 +754,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -926,7 +926,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1092,7 +1092,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1263,7 +1263,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1435,7 +1435,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1599,7 +1599,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1727,7 +1727,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1838,7 +1838,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1957,7 +1957,7 @@
           "providers": [
             {
               "id": "cli",
-              "how": "Route of the accepted run: edited copy with provider: cli in cluster, draft, factcheck, review (inputs already bound: unique, clusters.clusters, articles.clusters x2), no secretSource/keyRef, budgetUsd: null; q-core run --caller-provider provider.json, then q-core reply."
+              "how": "Use the published CLI variant digest-cli (same steps, provider: cli, no OpenRouter key) instead of editing a copy."
             },
             {
               "id": "openrouter",
@@ -1997,7 +1997,7 @@
             }
           ]
         },
-        "price": "OpenRouter: an estimate of about $0.3 per run, not measured for 0.8.0 (cap $0.5 in the manifest). CLI route: no separate model bill, it uses your Claude or Codex subscription; this is the route of the accepted run.",
+        "price": "OpenRouter: about $0.3 per run, measured on a 0.8.0 candidate run ($0.29; cap $0.5 in the manifest); the released 0.8.0 OpenRouter route was not re-run. CLI route: use digest-cli (no key, no separate model bill); the accepted run used that route.",
         "limits": [
           "Version 0.8.0 was accepted by the owner after a real run through the CLI route; the OpenRouter route was not re-verified for 0.8.0.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run: later steps read them.",
@@ -2006,6 +2006,184 @@
           "The header line and its channel links are fixed in the manifest; output is Ukrainian only.",
           "Keychain storage of the OpenRouter key works on macOS only.",
           "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "A weekly fact-checked Ukrainian digest of AI news from ten feeds, delivered to a local .jsonl file.",
+          "A Saturday AI news roundup for 20.09–27.09 with sources, delivered to a local .jsonl file.",
+          "A fact-checked digest of my own 5 design feeds on a narrower topic."
+        ]
+      }
+    },
+    {
+      "id": "digest-cli",
+      "name": "Digest (CLI)",
+      "description": "Digest through your coding agent: the same steps as Digest 0.8.0 (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
+      "value": "Digest through your coding agent: the same steps as Digest 0.8.0 (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
+      "file": "workflows/digest-cli.yaml",
+      "version": "0.8.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/digest-cli.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.2.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.2.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.5.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "api-request",
+          "version": "1.1.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [
+        "QF_DIGEST_DATE",
+        "QF_DIGEST_SINCE",
+        "QF_DIGEST_UNTIL",
+        "QF_DIGEST_RECEIVER_URL"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "The Digest 0.8.0 workflow with every model step answered by your coding agent (Claude or Codex): one fact-checked Ukrainian digest from news feeds, no OpenRouter key.",
+        "howItWorks": [
+          "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
+          "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
+          "Reads the article behind each selected source (static text; falls back to the feed summary).",
+          "A model drafts the Ukrainian nested list; a fact-check step revises or removes unsupported claims with verbatim quotes.",
+          "A reviewer step flags overstatement, scope, attribution, generalisation and entity problems; deterministic checks verify links, quotes, numbers and format.",
+          "You approve the exact text in your terminal; it is delivered once to QF_DIGEST_RECEIVER_URL."
+        ],
+        "inputs": [
+          "Date window (QF_DIGEST_SINCE/UNTIL) and header date (QF_DIGEST_DATE).",
+          "Optionally your own feeds and topic.",
+          "Your approval of the final text."
+        ],
+        "outputs": [
+          "A fact-checked Ukrainian Markdown digest with a fixed header line, per-claim verdicts and a hash, POSTed as {text, artifactHash} to an HTTP receiver or appended to a local .jsonl file."
+        ],
+        "knobs": [
+          {
+            "name": "QF_DIGEST_FEED_1..10",
+            "what": "Replace any of the ten default feeds (env vars)."
+          },
+          {
+            "name": "QF_DIGEST_TOPIC",
+            "what": "Narrows the theme; default is AI products and industry (env var)."
+          },
+          {
+            "name": "settings.model / step model",
+            "what": "Draft and fact-check use anthropic/claude-sonnet-5; clustering openai/gpt-4o-mini; review anthropic/claude-opus-5.5 (manifest)."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.50."
+          },
+          {
+            "name": "requiredPrefix / fixedLinks",
+            "what": "The fixed header line and its channel links, in the draft and checks steps."
+          },
+          {
+            "name": "caseMaxWords / themeMaxWords",
+            "what": "Item length limits (32 / 20 words) in the checks step."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI (it answers the model steps)",
+            "An HTTP receiver URL, or an existing local folder for a file:///…jsonl delivery",
+            "Public internet access to the feeds and articles"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, budgetUsd: null): q-core run --caller-provider provider.json ({\"kind\":\"caller\",\"agent\":\"claude\" or \"codex\",\"model\":\"current-session\",\"payerScope\":\"local-cli\"}), then answer each of the 4 model jobs (cluster, draft, factcheck, review) with q-core reply. Export the same QF_DIGEST_* variables for q-core reply as for q-core run."
+            }
+          ],
+          "env": [
+            {
+              "name": "QF_DIGEST_DATE",
+              "what": "Date in the header, DD.MM; checked before approval",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_SINCE",
+              "what": "Window start, ISO date-time",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_UNTIL",
+              "what": "Window end, ISO date-time, after SINCE",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_RECEIVER_URL",
+              "what": "http(s) receiver or file:///absolute/path.jsonl; no fallback to .qf/out/",
+              "required": true
+            },
+            {
+              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_10",
+              "what": "Replace a default feed",
+              "required": false
+            },
+            {
+              "name": "QF_DIGEST_TOPIC",
+              "what": "Theme filter for clustering",
+              "required": false
+            }
+          ]
+        },
+        "price": "No separate model bill: the four model steps run in your Claude or Codex subscription; cost is recorded as unknown, not free.",
+        "limits": [
+          "The owner accepted a real Digest 0.8.0 run with the same steps and input bindings (run 5b9ffaf1, 28.09); this catalog entry itself is a candidate.",
+          "Each model step receives at most 60000 bytes; the inputs are already bound to one step each.",
+          "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run.",
+          "Articles are read as static text only; unreachable pages fall back to the feed summary.",
+          "The header line and its channel links are fixed; output is Ukrainian only.",
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
         ],
         "exampleRequests": [
@@ -2031,7 +2209,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2125,7 +2303,7 @@
           "providers": [
             {
               "id": "cli",
-              "how": "Edited copy: in draft set provider: cli, add input: \"{{steps.unique.output}}\", drop secretSource/keyRef, budgetUsd: null; q-core run --caller-provider provider.json, then q-core reply. The approval gate stays."
+              "how": "Use the published CLI variant podcast-summary-cli (same steps, provider: cli, no OpenRouter key) instead of editing a copy."
             },
             {
               "id": "openrouter",
@@ -2178,6 +2356,160 @@
       }
     },
     {
+      "id": "podcast-summary-cli",
+      "name": "Podcast summary (CLI)",
+      "description": "Podcast summary through your coding agent: the same steps as podcast-summary 0.1.0, with the draft answered by the agent you are running in — no OpenRouter key.",
+      "value": "Podcast summary through your coding agent: the same steps as podcast-summary 0.1.0, with the draft answered by the agent you are running in — no OpenRouter key.",
+      "file": "workflows/podcast-summary-cli.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/podcast-summary-cli.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.42",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.2.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.2.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.5.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "The podcast-summary workflow with the draft answered by your coding agent (Claude or Codex): one timestamped Ukrainian summary of a transcript, no OpenRouter key.",
+        "howItWorks": [
+          "Fetches the two transcript parts from their URLs.",
+          "Extracts readable text and removes exact duplicates.",
+          "A model drafts an intro line linking the episode, then two fixed sections, at most 12 items, each ending with [mm:ss] markers.",
+          "Checks verify that every marker exists in the transcript, the headings and intro link are exact and the text is Ukrainian.",
+          "The run waits for your approval of the exact text."
+        ],
+        "inputs": [
+          "URLs of two transcript parts with [mm:ss] markers.",
+          "Episode title and link.",
+          "Your approval."
+        ],
+        "outputs": [
+          "An approved Ukrainian Markdown summary kept in the local run record (.qf/); it is not delivered or published."
+        ],
+        "knobs": [
+          {
+            "name": "QF_PODCAST_SOURCE_KIND",
+            "what": "What the source is called (default «відео»), env var."
+          },
+          {
+            "name": "settings.model",
+            "what": "anthropic/claude-sonnet-5 on the OpenRouter route (manifest)."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run cap, $0.25."
+          },
+          {
+            "name": "requiredHeadings",
+            "what": "The two fixed section headings, in the checks step."
+          },
+          {
+            "name": "maxChars",
+            "what": "Readable characters kept per part, 10000, in the readable step."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI (it answers the draft step)",
+            "Two reachable transcript URLs you are allowed to process"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, input bound to the unique step, budgetUsd: null): q-core run --caller-provider provider.json, then answer the draft job with q-core reply; export the same QF_PODCAST_* variables for q-core reply."
+            }
+          ],
+          "env": [
+            {
+              "name": "QF_PODCAST_TRANSCRIPT_PART_1_URL",
+              "what": "URL of transcript part 1",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_TRANSCRIPT_PART_2_URL",
+              "what": "URL of transcript part 2",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_TITLE",
+              "what": "Episode title; also used to spell names",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_VIDEO_URL",
+              "what": "Link to the episode, used once in the intro",
+              "required": true
+            },
+            {
+              "name": "QF_PODCAST_SOURCE_KIND",
+              "what": "Source word, default «відео»",
+              "required": false
+            }
+          ]
+        },
+        "price": "No separate model bill: the draft runs in your Claude or Codex subscription; cost is recorded as unknown, not free.",
+        "limits": [
+          "Candidate: a local run with this adaptation was made on 28.09; no owner acceptance of this entry.",
+          "The draft receives at most 60000 bytes (the unique step's output).",
+          "Nothing is delivered or published; the result stays in the run after your approval.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Summarise this YouTube talk transcript in Ukrainian with timestamps.",
+          "Key points of a two-part podcast transcript, for me to approve before I post them."
+        ]
+      }
+    },
+    {
       "id": "sdd-pipeline",
       "name": "SDD pipeline",
       "description": "Turn an intent into an approved specification and a verified project change.",
@@ -2193,7 +2525,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2372,7 +2704,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2525,7 +2857,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2606,7 +2938,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2656,7 +2988,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2707,7 +3039,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2764,7 +3096,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2823,7 +3155,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2872,7 +3204,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2921,7 +3253,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2977,7 +3309,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3017,7 +3349,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3055,7 +3387,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3096,7 +3428,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3144,7 +3476,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3193,7 +3525,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3270,7 +3602,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3312,7 +3644,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3354,7 +3686,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3389,7 +3721,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3421,7 +3753,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.41",
+        "version": "0.2.0-q-core.42",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3440,20 +3772,20 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.28-registry.29-candidate",
+  "releaseVersion": "2026.09.28-registry.30-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.41",
+    "version": "0.2.0-q-core.42",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.41.tgz",
-    "artifactSha256": "5b378c03e478e16e884b18460c5c99551eb9bda1a4e478667c17c804886ef837",
-    "integrity": "sha512-qTgQiI2rly1qsA7VYI3NgsFyH1usKMqhE1fvujOxH5XzWbjlfrDnVM9aW3ri0Iq+6q4HFXX3JP5lpwP9JHTcpQ==",
+    "artifact": "vendor/q-core-0.2.0-q-core.42.tgz",
+    "artifactSha256": "90bbafd101f94a76030e3fd7e37bdb5841909189b3fe8e495838c6dc880b7677",
+    "integrity": "sha512-phfQS/giwstv3ph4uMWstI0blFIqCWPLPH46i5TnwvKeXbdJptmpmtX1zWJmTKkjSVsfx2g9vxyCt78LBDwfNA==",
     "schemaSha256": "831d514639c10b8b07e74713f7a0ca42a5c045c7ac84f8de73c90081f8610de5",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.41 successor of Core.40: verify-sources takes an optional review patch (keep, revise or remove per list item, with verbatim quotes) from a second model step and applies it deterministically before every check, which then runs on the edited text; Digest 0.8.0 adds a reviewer call that looks only for overstatement, scope, attribution, generalisation and entity problems. The format validator, YAML parser and request schema are byte-identical to Core.40",
+    "source": "Core.42 successor of Core.41: README only (the approved «Use QFactory.io» cover at the top and the current availability table); src/, contracts/ and SPEC-MANIFEST are byte-identical to Core.41, so the format validator, YAML parser and request schema are unchanged",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
