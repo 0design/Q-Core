@@ -1,6 +1,6 @@
 {
   "name": "q-core",
-  "version": "0.2.0-q-core.44",
+  "version": "0.2.0-q-core.45",
   "license": "MIT",
   "description": "Run agent workflows end-to-end, without skipping instructions. The local engine behind QFactory: runs workflow YAML files on your machine, no database or server.",
   "type": "module",
