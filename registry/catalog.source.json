@@ -3773,7 +3773,7 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.28-registry.33-candidate",
+  "releaseVersion": "2026.09.29-registry.34-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.45",

@@ -3854,7 +3854,7 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.28-registry.33-candidate",
+  "releaseVersion": "2026.09.29-registry.34-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.45",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "6303981a980eb3d9052fd042df244e139fbeab89554013f3d78151b03c4b79a9"
+  "releaseSha256": "228947b89fd627dc860c0888e4a8e879b2997edb8d0d2971d27ae5032dd9f8a5"
 }
