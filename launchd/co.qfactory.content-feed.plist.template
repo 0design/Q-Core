@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Daily 09:30 local time, via launchd (owner decision, 2026-08-02).
+  Daily 09:30 local time, via launchd.
 
-  `qf run` performs ONE pass. This file is the thing that decides when that pass
+  `q-core run` performs ONE pass. This file is the thing that decides when that pass
   happens — the runner does not schedule itself and does not pretend to. That is
   not a missing feature: a scheduler you can see in `launchctl list` and stop
   with one command is better than one hiding inside a CLI.

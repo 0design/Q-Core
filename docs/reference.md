@@ -9,8 +9,8 @@ started, see the [README](../README.md).
   with your model keys or your existing Claude/Codex CLI login.
 - Model output is not deterministic. The order of steps, checks, approvals and
   stop conditions is.
-- An immutable Registry release does not claim its own acceptance. The owner's
-  decision is a separate write-once record at `acceptance/<release>.json`.
+- An immutable Registry release does not claim its own acceptance. Acceptance is
+  a separate write-once record at `acceptance/<release>.json`.
 - Q-Core is not an OS sandbox. Run it in workspaces and with verifiers you trust.
 
 ## Hosted MCP
@@ -133,7 +133,7 @@ Set this provider in an agent or content request (choose your real absolute CLI 
 }
 ```
 
-The path above was verified on this Mac. A standalone installation of the exact
+This is the path inside the ChatGPT desktop app on macOS. A standalone installation of the exact
 reviewed CLI works too; q-core does not install or replace it. Run that executable's
 `login status` first. ChatGPT authentication is required; saved API-key auth is
 rejected, API-key environment variables are not forwarded, and API/provider/model
@@ -153,8 +153,6 @@ available. The CLI does not report resolved model identity, so `requestedModel`
 is explicit while `model` remains `null`. Dollar-capped runs stop after unknown
 cost; use deadlines and repair limits for subscription workflows.
 
-The value beyond scheduling is the reusable workflow: versioned scope, explicit
-approval, independent verification, bounded repair and resumable evidence.
 A scheduler can launch q-core; for a simple recurring prompt, a built-in scheduled
 task may already be enough. See [Codex integration details](codex.md).
 

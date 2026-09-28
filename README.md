@@ -9,7 +9,7 @@ This repository holds Q-Core, the engine that runs [QFactory](https://qfactory.i
 ### With your agent
 
 1. Open your project folder in Claude Code, Codex or Cursor.
-2. Write `Use qfactory.io`, or copy the start prompt of the workflow you need from the table below.
+2. Write `Use qfactory.io`, or open a workflow from the table below and copy its start prompt.
 3. The agent connects QFactory, explains what the workflow does and what it needs, and waits for your "ok" before installing anything.
 
 If you paste the prompt into a regular chat that can't reach your files, the agent will tell you where to continue.
@@ -35,7 +35,7 @@ $Q install "$BASE/releases/$REL" "$SHA" sdd-pipeline 0.1.0 ./workflow.yaml
 $Q run ./workflow.yaml --dry-run
 ```
 
-To try another workflow, put its id from the table instead of `sdd-pipeline` and its version from `catalog.json`. A real run needs the inputs listed on the workflow's page; `q-core doctor` checks your machine. All commands and options are in the [reference](docs/reference.md).
+At the end you should see `SUCCESS: Planned 7/7 steps — dry run, nothing was executed.` To try another workflow, put its id from the table instead of `sdd-pipeline` and its version from `catalog.json`. A real run needs the inputs listed on the workflow's page; `$Q doctor` checks your machine. All commands and options are in the [reference](docs/reference.md).
 
 ## Workflows
 
@@ -54,11 +54,11 @@ To try another workflow, put its id from the table instead of `sdd-pipeline` and
 | Every source gets a closer look | Writes one sentence about each of the first five feed items and sends each one separately. | OpenRouter key (up to $0.15 a run), or $0 via your agent after a small edit | [qfactory.io/workflows/feed-fanout](https://qfactory.io/workflows/feed-fanout) |
 | A digest your tools can use | Summarises a feed as strict JSON that other tools can read. | OpenRouter key (up to $0.10 a run), or $0 via your agent after a small edit | [qfactory.io/workflows/json-digest](https://qfactory.io/workflows/json-digest) |
 | Keep up with GitHub releases | Writes a short note about new releases of a GitHub repo and flags breaking changes. | OpenRouter key (up to $0.10 a run), or $0 via your agent after a small edit | [qfactory.io/workflows/release-watch](https://qfactory.io/workflows/release-watch) |
-| Your sources. A publishable draft. | Writes a post from your material, checks it, waits for your approval and publishes it to Telegram. | OpenRouter key (up to $0.40 a run), a Telegram bot | [qfactory.io/workflows/content-factory](https://qfactory.io/workflows/content-factory) |
+| Your sources. A publishable draft. | Writes a post from your material, checks it, waits for your approval and publishes it to Telegram. | OpenRouter key (up to $0.40 a run), a JSON source, a Telegram bot | [qfactory.io/workflows/content-factory](https://qfactory.io/workflows/content-factory) |
 | Spot the price change worth checking | Watches the USD/UAH rate and, after your approval, sends an alert when it goes above 42. | OpenRouter key, up to $0.10 a run | [qfactory.io/workflows/price-watch](https://qfactory.io/workflows/price-watch) |
 | Check the result before moving on | Lets a check stop the run when the result doesn't meet your condition. | OpenRouter key, up to $0.10 a run | [qfactory.io/workflows/strict-gate](https://qfactory.io/workflows/strict-gate) |
 
-The first five are ready to try. Digest has passed a real run through an agent; the others at the top haven't been accepted on a real run yet. The last eleven are short examples of how a workflow is built; nobody has checked them on a real run yet.
+The first five are ready to try. Digest was accepted after a real run through an agent, the same way Digest (CLI) works; its OpenRouter route hasn't been rerun since. SDD pipeline and the podcast summaries haven't been accepted on a real run yet. The last eleven are short examples of how a workflow is built; none of them has been accepted on a real run.
 
 ## Contribute
 
