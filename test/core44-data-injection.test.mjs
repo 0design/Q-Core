@@ -79,10 +79,13 @@ test("url: data cannot change the scheme, credentials or host; the request is re
       "whole host from data": ["http://{{steps.src.output.p}}/hook", `127.0.0.1:${evil.port}`],
       "host prefix from data": ["http://{{steps.src.output.p}}127.0.0.1/hook", `x@127.0.0.1:${evil.port}/`],
       "dot segment": [`${good.base}/api/{{steps.src.output.p}}/delete`, ".."],
+      "percent-escape completion": [`${good.base}/api/%{{steps.src.output.p}}evil`, "2F"],
+      "percent-escape half": [`${good.base}/api/%2{{steps.src.output.p}}`, "F"],
+      "empty host in the manifest": ["http:///{{steps.src.output.p}}", `127.0.0.1:${evil.port}`],
     };
     for (const [name, [url, p]] of Object.entries(cases)) {
-      await assert.rejects(runApiRequest(api({ url }), { priorOutputs: { src: { p } } }), /scheme and host must come from the manifest|cannot be used inside a URL/, name);
-      await assert.rejects(runFetch({ id: "f", kind: "fetch", config: { url } }, { priorOutputs: { src: { p } } }), /scheme and host must come from the manifest|cannot be used inside a URL/, `fetch: ${name}`);
+      await assert.rejects(runApiRequest(api({ url }), { priorOutputs: { src: { p } } }), /scheme and host must come from the manifest|cannot be used as a URL path segment|cannot follow a % in a URL/, name);
+      await assert.rejects(runFetch({ id: "f", kind: "fetch", config: { url } }, { priorOutputs: { src: { p } } }), /scheme and host must come from the manifest|cannot be used as a URL path segment|cannot follow a % in a URL/, `fetch: ${name}`);
     }
     assert.equal(evil.seen.length, 0);
     assert.equal(good.seen.length, 0);
@@ -100,6 +103,9 @@ test("url: the environment still sets the whole URL; an empty data value is harm
     assert.equal(resolveUrlTemplate("https://api.example/bot{{env.QF_CORE44_HOOK}}/send", { priorOutputs: {} }), "https://api.example/bothttps://hooks.example/abc?x=1/send");
     assert.equal(resolveUrlTemplate("https://h.example/{{item.x}}", { priorOutputs: {}, item: { x: "" } }), "https://h.example/");
     assert.equal(resolveUrlTemplate("https://h.example/{{index}}", { priorOutputs: {}, index: 3 }), "https://h.example/3");
+    // "." and ".." are ordinary values outside the path; a lone surrogate is refused with a clear message.
+    assert.equal(resolveUrlTemplate("https://h.example/p?q={{item.x}}#{{item.x}}", { priorOutputs: {}, item: { x: ".." } }), "https://h.example/p?q=..#..");
+    assert.throws(() => resolveUrlTemplate("https://h.example/{{item.x}}", { priorOutputs: {}, item: { x: "\uD800" } }), /not valid text for a URL/);
     // An unresolved data placeholder stays visible, as before.
     assert.equal(resolveUrlTemplate("https://h.example/{{steps.none.output}}", { priorOutputs: {} }), "https://h.example/{{steps.none.output}}");
   } finally {
@@ -190,4 +196,15 @@ test("catalogue needsEnv lists variables a workflow cannot run without; {{env.X:
     { config: { z: "{{env.QF_BOTH:-x}} {{env.QF_BOTH}}" } },
   ] };
   assert.deepEqual(envRefsOf(m), ["QF_A", "QF_B", "QF_C", "QF_BOTH"]);
+});
+
+test("url: an unset env reference still goes to the file sink even when the URL also carries data (SPEC §9)", async () => {
+  delete process.env.QF_CORE44_UNSET_HOOK;
+  const written = [];
+  for (const url of ["{{env.QF_CORE44_UNSET_HOOK}}?id={{item.id}}", "{{env.QF_CORE44_UNSET_HOOK}}/{{run.id}}"]) {
+    const out = await runApiRequest(api({ url }), { priorOutputs: {}, item: { id: "7" }, run: { id: "r" }, fileSink: (text) => { written.push(text); return "/tmp/sink.txt"; } });
+    assert.equal(out.output.dispatched, false);
+    assert.deepEqual(out.output.missingEnv, ["QF_CORE44_UNSET_HOOK"]);
+  }
+  assert.equal(written.length, 2);
 });

@@ -152,14 +152,13 @@ export function resolveTemplateReport(text, ctx) {
 }
 
 /* A value from data inside a URL: percent-encoded as ONE component, so it can
-   never add a query parameter, a fragment, a path segment or a user/host part.
-   A whole segment of "." or ".." would still be normalised away by the URL
-   parser (it treats %2E the same way), so such a value is refused. */
+   never add a query parameter, a fragment, a path segment or a user/host part. */
 function urlComponent(value) {
-  if (value === "." || value === "..") {
-    throw new Error(`a substituted value "${value}" cannot be used inside a URL`);
+  try {
+    return encodeURIComponent(value);
+  } catch {
+    throw new Error("a substituted value is not valid text for a URL");
   }
-  return encodeURIComponent(value);
 }
 
 const authority = (href) => {
@@ -181,19 +180,40 @@ const authority = (href) => {
  * URL is the operator's own configuration.
  */
 export function resolveUrlTemplate(text, ctx) {
-  let usedData = false;
-  const url = substitute(text, ctx, {
+  /* Data first lands as an opaque marker, so the text right before it is known:
+     after a manifest `%` or `%X` an encoded value would complete a percent-escape
+     (`%` + "2F" = "/"), so data may not follow one. */
+  const token = `\u0000${Math.random().toString(36).slice(2)}\u0000`;
+  const values = [];
+  const marked = substitute(text, ctx, {
     data: (v) => {
-      usedData = true;
-      return urlComponent(v);
+      values.push(urlComponent(v));
+      return `${token}${values.length - 1}${token}`;
     },
   });
-  if (!usedData) return url;
+  if (values.length === 0) return marked;
+  const parts = marked.split(token);
+  let url = "";
+  for (let i = 0; i < parts.length; i += 1) {
+    if (i % 2 === 0) { url += parts[i]; continue; }
+    if (/%[0-9A-Fa-f]?$/.test(url)) {
+      throw new Error("a substituted value cannot follow a % in a URL");
+    }
+    const value = values[Number(parts[i])];
+    /* In the path a whole segment of "." or ".." would still be normalised away by
+       the URL parser (it treats %2E the same way), so such a value is refused there. */
+    if ((value === "." || value === "..") && !/[?#]/.test(url)) {
+      throw new Error(`a substituted value "${value}" cannot be used as a URL path segment`);
+    }
+    url += value;
+  }
   /* The same template with every data value empty: whatever authority it names is
-     the one the manifest and environment chose. Data must not move it. */
+     the one the manifest and environment chose. Data must not move it, and the
+     manifest must name one (an empty host would let the parser take the path). */
   const skeleton = substitute(text, ctx, { data: () => "" });
   const chosen = authority(skeleton);
-  if (chosen === null || chosen !== authority(url)) {
+  const named = /^file:/i.test(skeleton) || /^[a-z][a-z0-9+.-]*:\/\/[^/?#\\]+/i.test(skeleton);
+  if (chosen === null || !named || chosen !== authority(url)) {
     throw new Error("the URL scheme and host must come from the manifest or the environment, not from step data");
   }
   return url;

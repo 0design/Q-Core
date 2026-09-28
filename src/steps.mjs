@@ -455,7 +455,6 @@ export async function runApiRequest(step, ctx) {
   const t = tctx(ctx);
 
   const rawUrl = requireStr(step.config, "url", label);
-  const url = urlOf(rawUrl, t, label);
 
   /* ── THE ONE DELIBERATE DIVERGENCE FROM THE ENGINE ─────────────────────────
      A URL that still references an UNSET environment variable is not sent. The
@@ -487,6 +486,9 @@ export async function runApiRequest(step, ctx) {
       },
     };
   }
+  /* Resolved only after the file-sink check: a URL with an unset env reference is never
+     sent, whatever data it would also carry. */
+  const url = urlOf(rawUrl, t, label);
 
   /* A local file destination: file:///absolute/path.jsonl appends one JSON value per line. Same receipt and
      duplicate rules as HTTP; the folder must exist and must not be reached through a symlink. */
