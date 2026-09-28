@@ -2,8 +2,6 @@
 
 Open a pull request with an independently runnable workflow, a supported component,
 or version-bound demo evidence. The public Registry source is `registry/`.
-The root `workflows/` and `catalog.json` are legacy bundled examples; adding there
-alone does not publish a Registry entry.
 
 ## Files and metadata
 
@@ -62,8 +60,8 @@ The publisher creates an immutable snapshot only through the repository's review
 and distribution process, verifies checksums and consumer compatibility, and then
 updates a public pointer when authorized. A merged file does not automatically
 update every installed runtime: clients resolve the versioned catalog and
-explicitly install a compatible pinned entry. `q-core init` is a legacy
-convenience, not a universal compatibility promise.
+explicitly install a compatible pinned entry. `q-core init` copies a
+workflow for editing; it does not promise compatibility with every Core version.
 
 Contributions ship under MIT. Include only material you may distribute under
 that license; third-party services and their access terms remain separate.

@@ -4,7 +4,7 @@ const validArtifact = (artifact) =>
   artifact && /^[a-f0-9]{64}$/.test(artifact.sha256) &&
   Number.isSafeInteger(artifact.revision) && artifact.revision >= 0;
 
-/** A2D plan-time verifier mechanics: AND completion on one immutable artifact.
+/** Plan-time verifier mechanics: AND completion on one immutable artifact.
  * Host callbacks own authorized execution/persistence; this reducer never
  * evaluates code. */
 export async function determined(

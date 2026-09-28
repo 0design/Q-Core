@@ -240,9 +240,9 @@ One kind, two modes; they differ only in *who* decides.
 **`reviewer: human`** parks the run as `waiting_human`. `q-core approve` continues it,
 `--reject` fails it. A human gate is optional for a workflow with no side effect,
 and for a reviewed Registry workflow installed unchanged. **A workflow you create
-needs one before any side effect (Core 37)** — see "Created workflows" below.
+needs one before any side effect** — see "Created workflows" below.
 
-**Only a person decides a human gate (Core 35).** `q-core approve` (and `--reject`)
+**Only a person decides a human gate.** `q-core approve` (and `--reject`)
 asks on the controlling terminal: it prints the subject and a fresh one-time code to
 `/dev/tty` (never to stdout or stderr) and continues only when the same code is typed
 back there. It refuses, exits 2 and leaves the run waiting when
@@ -270,8 +270,7 @@ the unsigned run state under `.qf/`). Instructions to
 agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
 Windows consoles are refused.
 
-**The `q-core agent` / `q-core content` JSON protocols: human-only approval (Core 38,
-owner decision 27.09.2026).** The JSON channel cannot decide. A request that carries
+**The `q-core agent` / `q-core content` JSON protocols: human-only approval.** The JSON channel cannot decide. A request that carries
 `approval` (approve or reject) is refused with `HUMAN_APPROVAL_REQUIRED`
 (needs_human, exit 2), with or without agent markers; the run stays at its approval
 phase and nothing is applied, verified, fetched or sent. At the approval point the
@@ -292,16 +291,7 @@ agent session, like `resumeRun`. The same limits apply as for `q-core approve`.
 The `approval` property stays in `contracts/v1/request.schema.json` (the hosted
 validator is shared across Cores); the runtime refuses it.
 
-**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
-(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
-(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
-carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
-sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
-(the `command` in `nextAction`) in their own terminal, then the caller resends the same
-request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
-request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
-
-**Created workflows: a human gate before any side effect (Core 37).** A policy
+**Created workflows: a human gate before any side effect.** A policy
 on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
 stays byte-identical so one hosted validator serves several Cores): `q-core
 validate`, `q-core run`, `q-core approve` and the host refuse a
@@ -313,7 +303,7 @@ templated URL, which can fall back to the local file sink) has no human
 inside an `if` or `switch` branch guards only that branch; a gate before a
 branching step or a `fan-out` guards everything in it; an agent gate does not
 count. Reviewed Registry workflows keep their published shape: a manifest whose
-`<file>.lock.json` (written by `q-core install` and, from Core 37, `q-core init`)
+`<file>.lock.json` (written by `q-core install` and `q-core init`)
 names the SHA-256 of these exact bytes is exempt; the Registry build and catalogue
 read the format only. An adapted copy is a
 created workflow. Every workflow is also refused when a `workspace-read` output
@@ -406,6 +396,14 @@ Resolved inside `url`, `body`, `headers`, `instructions` and `over`.
 | `{{item}}` · `{{item.title}}` | the current item, inside a fan-out lane |
 | `{{index}}` | 0-based lane position |
 | `{{env.NAME}}` | an environment variable; `UPPER_SNAKE` only |
+| `{{env.NAME:-default}}` | the same, with `default` used when `NAME` is unset or empty (surrounding spaces trimmed) |
+| `{{run.id}}` · `{{run.workflowId}}` | this run's id and the workflow id |
+| `{{run.costUsd}}` | what the run has spent so far (every earlier step), six decimals; `unknown` when any earlier step's cost is unknown |
+
+**One pass.** The text of the manifest is resolved once, left to right. A value
+that was substituted (a fetched page, a model answer, an item, an environment
+value) is never scanned again: `{{env.TOKEN}}` inside fetched data arrives as that
+literal text, not as the secret it names.
 
 **An unresolved placeholder is left in place, verbatim.** Literal `{{…}}`
 arriving at a receiver is a visible failure; an empty string is a silent one.
@@ -492,7 +490,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   use `{{env.NAME}}`) keep a publication window and drop undated items;
   `maxItemsPerSource` 1..50 (default 10), `itemChars` 100..2000 (default 400), at
   most 100 items. A page that is not a feed, or an empty window, fails.
-  (Core 40) `articles: "true"` with `source` referencing selected sources (`{sources}` or a
+  `articles: "true"` with `source` referencing selected sources (`{sources}` or a
   `deduplicate clusters` output) reads the article behind each source URL: at most 20 distinct URLs,
   in parallel, one GET each (each attempt 20 s, 1 retry on a network error, 429 or 5xx, at most 3
   redirects, 1.5 MB per page, and one 30 s budget per URL for all attempts, hops and the body),
@@ -533,7 +531,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   item to one cluster and each cluster to one item. Links inside inline code or HTML
   comments do not count as citations. `introLinks`
   no longer need `requiredPrefix` (the introduction then starts the draft).
-- (Core 36) `verify-sources` `nestedList: "N"` (N = 1..6) replaces the section contract
+- `verify-sources` `nestedList: "N"` (N = 1..6) replaces the section contract
   (`requiredHeadings`, `introLinks` and the section shape checks may not be set with it):
   after `requiredPrefix` the draft is only a nested bullet list (`-`, `*` or `+`), one
   line per item, indented by a consistent 2-4 spaces per level, never skipping a level,
@@ -544,7 +542,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   goes back up (rank 1 = most independent outlets). Item text may not open another list, a quote
   or a code fence (it would render deeper than its indentation). `forbiddenLabels` (JSON
   array) refuses an item that opens with a section label (bold or plain, before `:`, `—`,
-  `(` or the end), even with a link. From Core 37 the comparison ignores markup around
+  `(` or the end), even with a link. The comparison ignores markup around
   the label: HTML and escaped HTML tags (`&lt;b&gt;`), Markdown emphasis, quotes
   (`«Кейси»`) and leading emoji or bullets (`📌`). `outletLinkText: "true"` requires every
   selected-source link in an item to name its outlet: the link text contains one of the
@@ -553,7 +551,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   country top-level domains (`blog.google` → Google, `bbc.co.uk` → BBC). A one- or
   two-letter name (`t.me`, `x.com`) must be a whole word of the link text or a known
   outlet name (Telegram, Twitter).
-- (Core 38) `verify-sources` `factCheck` (with `nestedList` and `citation: links`) references a
+- `verify-sources` `factCheck` (with `nestedList` and `citation: links`) references a
   fact-check model step's output `{claims:[...], text}`; `draft` must resolve to the same `text`
   (the checked, approved and delivered text is the fact-checked one, otherwise *The checked draft
   must be the fact-checked text*). Each list item of the text, at any level, has exactly one kept
@@ -561,13 +559,13 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   1-based position; *List item N has no claim record* / *has more than one claim record*). Any other
   verdict (`unsupported`, `overstated`) is refused: such a claim is revised or removed. `sources` are
   selected sources the item links; each quote (3+ words, at most 600 characters) occurs verbatim —
-  case, spaces, quote marks and dashes normalised — or, from Core 39, as 2–4 pieces of 2+ words separated by
+  case, spaces, quote marks and dashes normalised — or as 2–4 pieces of 2+ words separated by
   an ellipsis («…» or «...») that each occur verbatim, in order, within one passage (span at most twice
   the quote plus 120 characters), a left-out part carrying no negation (not, no, never, without, не,
   ні, без…); every match is on word boundaries and never cuts a number («up to 4» is not in «up to 49», «49» is
   not in «49.5») (a word left out silently, added or
   reordered is refused), in the `title` or `text` of one of them as the
-  Core holds it (*the quote is not in the text of its linked sources*). From Core 40 a claim stands on
+  Core holds it (*the quote is not in the text of its linked sources*). A claim stands on
   its verbatim quotes (at least one of 3+ words); an extra quote that is not verbatim is set aside and
   listed as `unmatchedQuotes` for the person who approves, and its numbers do not count; a theme item needs quotes too
   (*has no quote from its linked sources*). Every number in the item's own words is among the numbers
@@ -584,8 +582,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   checks output) binds the text and the verdicts. For feed items the grounding is the feed-item
   title and summary (`parse-web items: feed` `itemChars`); the linked articles are not read, and
   whether a verbatim quote supports the wording remains the model's verdict for the human to review.
-  What this deterministic layer catches of the five errors an independent fact-check found in Digest
-  0.5.0 run 65ef7d49: (4) a wrong number or meaning («у третині випадків» for «a third as often») is
+  What this deterministic layer catches of five typical errors an independent fact-check finds in a
+  digest: (4) a wrong number or meaning («у третині випадків» for «a third as often») is
   refused whatever the model records; (5) the listed wrong phrases («не зважаючи», «кодувальних
   агентів») are refused by `forbiddenPhrases`, other language errors are left to the prompt; (1) a
   theme that generalises beyond its sources, (2) an overstated scope («training, testing and
@@ -594,7 +592,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   in the source, removed wording left). When the model records such wording as `supported` with a
   genuine quote (The Verge: «pause training of its most powerful models»), it passes: errors 1-3
   rest on the fact-check model's verdict and the human gate.
-  (Core 40) With sources from `parse-web articles`, quotes and numbers may also come from each linked
+  With sources from `parse-web articles`, quotes and numbers may also come from each linked
   source's `articleText` (when `articleStatus` is `ok`), and an approximation or bound stays: a number
   the item states bare is refused when every place that states it — the linked articles when they state
   it, else the quotes, else the title and summary — has an approximation or bound right before it
@@ -608,7 +606,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   found in its source (`unmatchedQuotes`). Still model judgement: scope and attribution in words (links that
   «weren't publicly listed» vs «у відкритому доступі», vendor-reported results, what exactly was paused),
   and a number the article states both with and without «about».
-  (Core 41) `review` (with `factCheck` and `nestedList`) references a second model step's patch
+  `review` (with `factCheck` and `nestedList`) references a second model step's patch
   `{edits:[{item, before, action: "keep"|"revise"|"remove", text, quote:[...], sources?, problem, reason}]}` for
   the fact-checked text. The patch is applied edit by edit: each edit (a theme removal together with the
   removals of all its cases, and a case removal together with a revision of its theme) is tried on top of the edits accepted so far and every check runs on the
@@ -636,7 +634,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   judgement; the checks prove only that its accepted edits are well formed and grounded.
   `forbiddenPhrases` (JSON object, wrong → right) refuses known wrong spellings or calques as whole
   words, case-insensitively (*The text uses «не зважаючи»; write «незважаючи»*).
-- (Core 38) `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
+- `verify-sources` `compactLinks: "true"` (with `nestedList`): an item with sub-items (a
   theme) carries no links at all (*A list item with sub-items carries no links under compactLinks; its
   cases link the sources*); every item without sub-items still links a selected source under
   `citation: links`. A link-less parent is ranked by `nestedOrder` through its sub-items' clusters, and
@@ -646,9 +644,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   stand-alone top-level item) is a case (*A case has N words; at most M*). `itemMaxSentences` (1..500)
   caps sentences per item; a sentence ends at `.` `!` `?` `…` before a space and an uppercase letter or
   an opening quote, not inside a decimal or after an abbreviation such as «млн.» or «U.S.». Digest 0.6
-  sets compact links, 1 sentence, 32 words per case and 20 per theme by the owner's review of 27.09;
-  Digest 0.4.1–0.5 had no case length.
-- `llm-call` (OpenRouter) may set `reasoning: off | low | medium | high` (Core 39). It is sent as the
+  and later set compact links, 1 sentence, 32 words per case and 20 per theme.
+- `llm-call` (OpenRouter) may set `reasoning: off | low | medium | high`. It is sent as the
   OpenRouter `reasoning` parameter (`off` disables reasoning, the others bound its effort); without it
   nothing is sent. A completion that spends `maxTokens` before any content fails as `OUTPUT_LIMIT`.
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to
@@ -657,7 +654,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
 - A human `approval-gate` with `bind: sha256` requires `q-core approve <manifest>
   <runId> --approval-hash <hash>` (also for rejection). The displayed hash binds
   the exact persisted subject; a mismatched/stale subject cannot be approved.
-  From Core 35 the command takes the decision only from a person at a terminal
+  The command takes the decision only from a person at a terminal
   (one-time code on `/dev/tty`); see `reviewer: human` above.
 - `api-request` may declare `receiptKey` resolving to a SHA-256 source identity.
   Persistent receipt is claimed before sending; delivered repeats return the
@@ -683,7 +680,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   or changed checker stops. Limit exhaustion is `needs_human`, never success.
   Repair evidence and revisions are retained. Interrupted applies require manual
   reconciliation; they are never blindly repeated.
-  With `factCheck`, `requiredPrefix` and `nestedList` (Core 39) the one header line before the first list
+  With `factCheck`, `requiredPrefix` and `nestedList` the one header line before the first list
   line of the fact-checked text is replaced by `requiredPrefix` (the fixed header is never the model's to
   copy) when it is a bold `**…**` line with every `fixedLinks` URL; any other text before the list is refused.
 

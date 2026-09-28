@@ -30,7 +30,7 @@
   "rules": [
     {
       "class": "generic-term",
-      "path": "^README\\.md$",
+      "path": "^(README|docs/reference)\\.md$",
       "token": "^loopback$",
       "reason": "authenticated loopback webhook trigger"
     },
@@ -79,13 +79,6 @@
       "line": "family === \"qloops\\.loop\"",
       "reason": "manifest rejects the retired namespace fail-closed",
       "token": "^qloops\\.loop$"
-    },
-    {
-      "class": "negative-guard",
-      "path": "^bin/q-workflow\\.mjs$",
-      "line": "renamedFormatHint|declares qloops|The manifest format was renamed|qloops\\.loop/\\* is now",
-      "reason": "CLI explains the retired manifest namespace when the fail-closed rejection reaches it; no alias",
-      "token": "^(qloops|qloops\\.loop/|\\.loop)$"
     },
     {
       "class": "negative-guard",

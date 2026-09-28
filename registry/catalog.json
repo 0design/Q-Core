@@ -41,7 +41,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -219,7 +219,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -377,7 +377,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -567,7 +567,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -749,7 +749,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -920,7 +920,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1085,7 +1085,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1255,7 +1255,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1426,7 +1426,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1590,7 +1590,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1718,7 +1718,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1819,7 +1819,7 @@
       "description": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
       "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
       "file": "workflows/digest.yaml",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -1829,7 +1829,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1875,7 +1875,7 @@
             "workflowVersion": "0.8.0",
             "runId": "5b9ffaf1-cb7f-426e-a7e3-eb68d9224452",
             "provider": "cli",
-            "scope": "The owner approved the text of a real run through the CLI provider; the OpenRouter route of 0.8.0 was not re-run."
+            "scope": "The owner approved the text of a real run through the CLI provider; the OpenRouter route of 0.8.0 was not re-run. 0.8.1 changes only YAML comments: its parsed steps are identical to 0.8.0."
           }
         ]
       },
@@ -1990,7 +1990,7 @@
         },
         "price": "OpenRouter: about $0.3 per run, measured on a 0.8.0 candidate run ($0.29; cap $0.5 in the manifest); the released 0.8.0 OpenRouter route was not re-run. CLI route: use digest-cli (no key, no separate model bill); the accepted run used that route.",
         "limits": [
-          "Version 0.8.0 was accepted by the owner after a real run through the CLI route; the OpenRouter route was not re-verified for 0.8.0.",
+          "Accepted after a real run of 0.8.0 through the CLI route (0.8.1 changes only comments); the OpenRouter route was not re-verified.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run: later steps read them.",
           "Checks prove links, quotes, numbers and format; meaning-level accuracy still rests on the model steps and your approval.",
           "Articles are read as static text only (no JavaScript); paywalled or unreachable pages fall back to the feed summary.",
@@ -2005,7 +2005,7 @@
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "75413644340fced91e2ee87bfbb1ae2ea8cfc015157d52a96027c1a20c14010b",
+      "sha256": "b6eb3bcaceb50de9aefe09fbff3ae96cd17844e5d871e0e222757091c33324a2",
       "steps": 21,
       "kinds": [
         "fetch",
@@ -2022,10 +2022,10 @@
     {
       "id": "digest-cli",
       "name": "Digest (CLI)",
-      "description": "Digest through your coding agent: the same steps as Digest 0.8.0 (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
-      "value": "Digest through your coding agent: the same steps as Digest 0.8.0 (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
+      "description": "Digest through your coding agent: the same steps as Digest (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
+      "value": "Digest through your coding agent: the same steps as Digest (many feeds, meaning clusters, fact-check against the articles, overstatement review, approval), with every model step answered by the agent you are running in — no OpenRouter key and no separate model bill.",
       "file": "workflows/digest-cli.yaml",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -2035,7 +2035,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2093,7 +2093,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "The Digest 0.8.0 workflow with every model step answered by your coding agent (Claude or Codex): one fact-checked Ukrainian digest from news feeds, no OpenRouter key.",
+        "summary": "The Digest workflow with every model step answered by your coding agent (Claude or Codex): one fact-checked Ukrainian digest from news feeds, no OpenRouter key.",
         "howItWorks": [
           "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
@@ -2183,7 +2183,7 @@
         },
         "price": "No separate model bill: the four model steps run in your Claude or Codex subscription; cost is recorded as unknown, not free.",
         "limits": [
-          "The owner accepted a real Digest 0.8.0 run with the same steps and input bindings (run 5b9ffaf1, 28.09); this catalog entry itself is a candidate.",
+          "Digest, with the same steps and input bindings, was accepted after a real run; this catalog entry itself is a candidate.",
           "Each model step receives at most 60000 bytes; the inputs are already bound to one step each.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run.",
           "Articles are read as static text only; unreachable pages fall back to the feed summary.",
@@ -2196,7 +2196,7 @@
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "20851d782ca9c1ebf8889b7b1e014dd77dc55be83d6b31eba08dc539f59dd5be",
+      "sha256": "aa4a2c0922a50067dbb55646c69fa76b6a59e7caea387b0b3846d6b32721ac6e",
       "steps": 21,
       "kinds": [
         "fetch",
@@ -2226,7 +2226,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2406,7 +2406,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2578,7 +2578,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2769,7 +2769,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2922,7 +2922,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3004,7 +3004,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3054,7 +3054,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3106,7 +3106,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3164,7 +3164,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -3224,7 +3224,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3274,7 +3274,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3324,7 +3324,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3381,7 +3381,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3422,7 +3422,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3461,7 +3461,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3503,7 +3503,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3552,7 +3552,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3602,7 +3602,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3680,7 +3680,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3722,7 +3722,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3764,7 +3764,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3800,7 +3800,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3833,7 +3833,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3853,20 +3853,20 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.28-registry.30-candidate",
+  "releaseVersion": "2026.09.28-registry.31-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.42",
+    "version": "0.2.0-q-core.43",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.42.tgz",
-    "artifactSha256": "90bbafd101f94a76030e3fd7e37bdb5841909189b3fe8e495838c6dc880b7677",
-    "integrity": "sha512-phfQS/giwstv3ph4uMWstI0blFIqCWPLPH46i5TnwvKeXbdJptmpmtX1zWJmTKkjSVsfx2g9vxyCt78LBDwfNA==",
-    "schemaSha256": "831d514639c10b8b07e74713f7a0ca42a5c045c7ac84f8de73c90081f8610de5",
+    "artifact": "vendor/q-core-0.2.0-q-core.43.tgz",
+    "artifactSha256": "47d34fed87934673087449ae6b78257bac953d5d5c3f5a84c7537832d5337df6",
+    "integrity": "sha512-+Hf/et1Nr2Km7rPDG7kbG2uT1SQn/vefOji2h8rLwoi/cYRtyaGNx2mEXUF4cS4iXCe/2nwO7cGq9lboC5s6SA==",
+    "schemaSha256": "d69e5b0526211117c05f103f3257fee6df18cfe8e4d58d589e1a0d0363cfca4d",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.42 successor of Core.41: README only (the approved «Use QFactory.io» cover at the top and the current availability table); src/, contracts/ and SPEC-MANIFEST are byte-identical to Core.41, so the format validator, YAML parser and request schema are unchanged",
+    "source": "Core.43 successor of Core.42: templates resolve in one pass so substituted data cannot expand {{env.*}} (external PR #13); SPEC-MANIFEST §6 documents the one-pass rule, run.* and :- defaults; plain README, docs and CLI help. The format validator, YAML parser and request schema are byte-identical to Core.42.",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -4001,7 +4001,7 @@
         "name": "Digest",
         "contentType": "workflow-template",
         "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
-        "version": "0.8.0",
+        "version": "0.8.1",
         "status": "implementation-candidate",
         "inference": "openrouter",
         "dependencies": [
@@ -4302,7 +4302,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.42",
+          "version": "0.2.0-q-core.43",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4397,7 +4397,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.42",
+          "version": "0.2.0-q-core.43",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4498,7 +4498,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.42",
+          "version": "0.2.0-q-core.43",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4567,7 +4567,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.42",
+          "version": "0.2.0-q-core.43",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4658,5 +4658,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "39790062f3b699a2aa688a6aaf293520a70b4e38fdb36b89035a9e72ea4122a8"
+  "releaseSha256": "c2635a98f92362a8d6ce424b6e018ef951da68a438f75f007e147fab041b7747"
 }

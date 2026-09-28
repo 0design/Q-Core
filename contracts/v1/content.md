@@ -35,7 +35,7 @@ no_new_sources means nothing was sent; delivery success includes a receipt.
 | provider | Explicit descriptor below; no automatic provider/model fallback |
 | receiver | Explicit descriptor below; only receipt-aware webhook is supported |
 | maxItems | Optional integer 1–50, default10. First eligible sources in supplied order are selected; there is no model-ranked selection |
-| approval | Never send it. From Core 38 a request with `approval` is refused (`HUMAN_APPROVAL_REQUIRED`, exit 2) before any fetch; only a person decides, with `q-core content approve` (below) |
+| approval | Never send it. A request with `approval` is refused (`HUMAN_APPROVAL_REQUIRED`, exit 2) before any fetch; only a person decides, with `q-core content approve` (below) |
 
 Do not include secrets or raw authorization tokens. Do not invent `resumeRunId`,
 `specification`, `verifier`, `allowedPaths`, `workflow`, `source.text` or a scheduling
@@ -76,7 +76,7 @@ receiver adapter versions are internally `1`; do not invent your own version pin
    `nextAction:{type:"ask_human_to_approve",humanOnly:true,subject:"publication",
    runId,hash,approvalHash,text,receiver,command,instruction}`. No send yet.
    Show **that exact text and destination** to the user, including source URLs.
-3. Only a person decides (Core 38). Ask the user to run `command` in their own
+3. Only a person decides. Ask the user to run `command` in their own
    terminal: `q-core content approve <workspace> <runId> --approval-hash <hash>`
    (add `--reject` to refuse). Like `q-core approve`, it refuses in an agent session,
    without a terminal or with piped input, shows the subject and a one-time code on
@@ -85,9 +85,6 @@ receiver adapter versions are internally `1`; do not invent your own version pin
    the same request again **without** `approval`: Core sends only when the recorded
    decision is bound to the current draft hash; a recorded reject cancels. A decision
    for an old hash or a changed draft does not count.
-   Breaking change in 0.2.0-q-core.38: `nextAction` `approve_publication` became
-   `ask_human_to_approve`, and a request with `approval` is refused
-   (`HUMAN_APPROVAL_REQUIRED`); `contractRevision` stays 13 (request schema bytes unchanged).
 4. Confirm success **and** receiver receipt in evidence. Repeat the same request
    without approval to check no_new_sources and no duplicate delivery. If more
    eligible sources remain beyond maxItems, the repeat creates another draft that

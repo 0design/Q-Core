@@ -46,7 +46,7 @@ test('contract facts agents had to invent on 27–28.09 are in the Registry', ()
 
 test('Digest 0.8.0 is accepted; the other workflows keep their status', () => {
   const digest = catalog.workflows.find(w => w.id === 'digest');
-  assert.equal(digest.version, '0.8.0');
+  assert.equal(digest.version, '0.8.1');
   assert.equal(digest.status, 'accepted');
   assert.equal(digest.acceptance.status, 'accepted');
   assert.equal(digest.acceptance.evidence[0].runId, '5b9ffaf1-cb7f-426e-a7e3-eb68d9224452');
@@ -61,4 +61,22 @@ test('every component carries a short brief', () => {
     assert.ok(Array.isArray(c.brief.requires) && Array.isArray(c.brief.limits), c.id);
   }
   assert.match(catalog.components.find(c => c.id === 'agentation').brief.summary, /[Pp]lanned/);
+});
+
+// Digest 0.8.1 and digest-cli 0.8.1 change only YAML comments: without `version`, the parsed manifests equal the
+// 0.8.0 ones the acceptance record refers to. Any change of steps or settings breaks this and needs a new acceptance.
+test('Digest 0.8.1 and digest-cli 0.8.1 parse to exactly the 0.8.0 manifests apart from the version', async () => {
+  const { parseYaml } = await import('../src/yaml.mjs');
+  const { createHash } = await import('node:crypto');
+  const { readFileSync: read } = await import('node:fs');
+  const expected = {
+    digest: '74112f05e265e0c13f146c3abf585d71de03a1ebf8a6a729e6720e93d1c97031',
+    'digest-cli': 'a9f35257a41e50a1daadc85faaf7c48607f16883e5c729a0f82ed8d1d94ee183',
+  };
+  for (const [id, sha] of Object.entries(expected)) {
+    const manifest = parseYaml(read(new URL(`../registry/workflows/${id}.yaml`, import.meta.url), 'utf8'));
+    assert.equal(manifest.version, '0.8.1', id);
+    delete manifest.version;
+    assert.equal(createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), sha, id);
+  }
 });

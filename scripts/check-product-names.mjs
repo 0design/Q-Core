@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 
 export function verifyPackageSurface(pkg, binFiles) {
   assert.equal(pkg.name, "q-core", "package must use the Q-Core name");
-  assert.ok(pkg.version.endsWith("-q-core.42"), "candidate version must identify Q-Core");
+  assert.ok(pkg.version.endsWith("-q-core.43"), "candidate version must identify Q-Core");
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
@@ -14,12 +14,12 @@ export function verifyPackageSurface(pkg, binFiles) {
 }
 
 export function verifyPackagedReadmeAliasBoundary(root) {
-  const source = readFileSync(join(root, "README.md"), "utf8");
-  assert.match(source, /Q-Core installs `q-core` and `q-core-host`\. No other CLI alias is provided\./, "README must name the installed Q-Core executables");
+  const source = readFileSync(join(root, "docs", "reference.md"), "utf8");
+  assert.match(source, /Q-Core installs `q-core` and `q-core-host`\. No other CLI alias is provided\./, "docs/reference.md must name the installed Q-Core executables");
   assert.equal(
     /Both `q-core` and legacy `q-core` are installed\./.test(source),
     false,
-    "README must not describe Q-Core as its own legacy alias",
+    "docs/reference.md must not describe Q-Core as its own legacy alias",
   );
 }
 
@@ -65,14 +65,8 @@ function filesBelow(root, relative) {
 
 export function assertNoRetiredProductNames(files) {
   for (const { path, source } of files) {
-    // The manifest deliberately rejects the retired namespace. It is not an
-    // accepted alias, and keeping the exact rejected token makes that boundary
-    // explicit for callers and tests.
-    // bin/q-workflow.mjs names the retired namespace only to explain the rename
-    // when that rejection reaches the CLI; it adds no alias.
-    const inspectable = path === "src/manifest.mjs" || path === "bin/q-workflow.mjs"
-      ? source.replaceAll("qloops.loop", "")
-      : source;
+    // The manifest validator keeps rejecting the old namespace; it is not an alias.
+    const inspectable = path === "src/manifest.mjs" ? source.replaceAll("qloops.loop", "") : source;
     assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);
     assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
     assert.equal(/\bloop-id\b/i.test(inspectable), false, `${path} retains the retired loop-id contract`);

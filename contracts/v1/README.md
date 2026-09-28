@@ -25,7 +25,7 @@ allowedPaths (exact relative files), allowedTools (verifier executable paths),
 provider {kind: claude|codex|openrouter, model, executable? or keyRef?, payerScope,
 secretSource? (openrouter: env|keychain)},
 deadlineMs (1..300000), maxRepairAttempts (0..5), verifier {command,args},
-resumeRunId. `approval` stays in the schema but is refused at runtime from Core 38
+resumeRunId. `approval` stays in the schema but is refused at runtime
 (`HUMAN_APPROVAL_REQUIRED`, needs_human/2): see "Human approval" below.
 Supported workflows: sdd-pipeline@1.0.0 and synthetic-sdd@1.0.0 (test alias). This
 executable synthetic entry point is the integration reference.
@@ -45,7 +45,7 @@ Completed runs return cached evidence only if artifacts still match. Approval is
 a decision a person records at a terminal (local same-user trust boundary), not
 an authentication service. Caller protects request/state files. No “approve latest”.
 
-Human approval (Core 38). At the approval point the result is needs_human with
+Human approval. At the approval point the result is needs_human with
 `nextAction:{type:"ask_human_to_approve",humanOnly:true,subject:"specification",
 runId,hash,approvalHash,spec,specRevision,command,instruction}`. The person runs
 `command` in their own terminal: `q-core agent approve <workspace> <runId>
@@ -60,14 +60,6 @@ decision is bound to the current approval hash (a stale hash is refused with
 confirmation record and are responsible for having asked a person; inside an agent
 session it accepts no record.
 
-**Breaking change in 0.2.0-q-core.38 (JSON protocols).** `nextAction` `approve_spec`
-(`q-core agent`) and `approve_publication` (`q-core content`) became `ask_human_to_approve`
-(`humanOnly: true`, `subject` `specification` or `publication`), and a JSON request that
-carries `approval` is refused with `HUMAN_APPROVAL_REQUIRED`. Migration: instead of
-sending `approval`, the person runs `q-core agent approve …` or `q-core content approve …`
-(the `command` in `nextAction`) in their own terminal, then the caller resends the same
-request with `resumeRunId` and without `approval`. `contractRevision` stays 13: the
-request schema bytes are unchanged (`approval` remains in the schema; the runtime refuses it).
 Result: protocolVersion, requestId, runId, status, summary, artifacts (revision/hash),
 evidence (verifier outcomes), error {code,message}|null, nextAction|null,
 provider, usage. Unknown verification never means success. Repair cannot edit tests.
