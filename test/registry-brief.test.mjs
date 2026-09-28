@@ -25,14 +25,21 @@ test('every workflow carries a complete brief', () => {
 
 test('contract facts agents had to invent on 27–28.09 are in the Registry', () => {
   const byId = Object.fromEntries(catalog.workflows.map(w => [w.id, w]));
+  // Registry30: the CLI route is published as its own workflow (no edited copy, no OpenRouter key).
   for (const id of ['digest', 'podcast-summary']) {
-    const cli = byId[id].brief.requires.providers.find(p => p.id === 'cli');
-    assert.ok(cli, `${id}: CLI route without OpenRouter`);
-    assert.match(cli.how, /provider: cli/);
-    assert.match(cli.how, /q-core reply/);
+    const variant = byId[`${id}-cli`];
+    assert.ok(variant, `${id}-cli is published`);
+    assert.deepEqual(variant.executionProfile, { inference: 'cli', callerReady: true });
+    assert.ok(!variant.needsEnv.includes('OPENROUTER_API_KEY'), `${id}-cli needs no OpenRouter key`);
+    assert.ok(variant.dependencies.some(d => d.id === 'llm-call-cli') && !variant.dependencies.some(d => d.id === 'llm-call-openrouter'), `${id}-cli depends on llm-call-cli`);
+    assert.deepEqual(variant.brief.requires.providers.map(p => p.id), ['cli']);
+    assert.match(variant.brief.requires.providers[0].how, /q-core reply/);
+    assert.match(byId[id].brief.requires.providers.find(p => p.id === 'cli').how, new RegExp(`${id}-cli`));
+    assert.equal(variant.humanGate, true, `${id}-cli keeps the human approval gate`);
   }
-  assert.match(byId['podcast-summary'].brief.requires.providers.find(p => p.id === 'cli').how, /input: "\{\{steps\.unique\.output\}\}"/);
-  assert.match(byId.digest.brief.limits.join('\n'), /q-core reply must run with the same QF_DIGEST_\* variables/);
+  assert.match(byId['digest-cli'].brief.limits.join('\n'), /q-core reply must run with the same QF_DIGEST_\* variables/);
+  // Negative: the variant is a candidate; only digest 0.8.0 carries the owner's acceptance.
+  assert.equal(byId['digest-cli'].acceptance.status, 'pending');
   const cliComponent = catalog.components.find(c => c.id === 'llm-call-cli');
   assert.match(cliComponent.brief.limits.join('\n'), /60000 bytes/);
 });
