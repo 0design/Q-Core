@@ -43,19 +43,3 @@ Results contain `status`, `planHash`, `history` (attempt, artifact snapshot and
 per-criterion outcomes), and a reason when human attention is needed. Invalid
 plan input throws `INVALID_REQUEST` before execution. Operational callback failures
 return `needs_human`; consumers should handle that outcome.
-
-## A2D successor and historical compatibility
-
-The historical package `a2done`, binary/MCP ID `a2d`, and `.a2d` state have no
-automatic compatibility layer. q-core does not replace their binary, MCP tools,
-hooks or saved state. Do not point old clients at a nonexistent `q-core a2d`
-command or rename state files.
-
-For a new integration, convert plan-time criteria/verifiers to the descriptors
-above, supply an authorized executor plus independent evidence callbacks, and
-persist the resulting versioned history. Reapprove scope and regenerate evidence;
-old completion claims are not transferable approval. Use `determined` for the new
-workflow identity.
-The shipped [A2D migration guide](../../docs/a2d-migration.md) gives the supported
-replacement steps and fail-closed compatibility checks. It does not grant access
-or define an automatic state conversion.

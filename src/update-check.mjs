@@ -1,6 +1,5 @@
 /**
- * Update channel — the same shape as A2D's, so the two tools do not behave
- * differently for no reason.
+ * Update channel.
  *
  * THE RULES, all of them:
  *   • CLI ONLY. Nothing here runs during `q-core run`'s work; a workflow must never

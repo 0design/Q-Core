@@ -147,7 +147,7 @@ test("review round 1 P2: a malformed or failing edit is rejected with its reason
 });
 
 test("Digest 0.8.0: a review call after the fact check; the checks apply its patch; the gate binds the edited text", () => {
-  assert.equal(DIGEST.version, "0.8.0");
+  assert.equal(DIGEST.version, "0.8.1");
   const ids = DIGEST.steps.map((s) => s.id);
   assert.deepEqual(ids.slice(ids.indexOf("factcheck")), ["factcheck", "review", "checks", "approval", "delivery"]);
   const review = DIGEST.steps.find((s) => s.id === "review");

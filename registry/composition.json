@@ -125,7 +125,7 @@
       "name": "Digest",
       "contentType": "workflow-template",
       "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "status": "implementation-candidate",
       "inference": "openrouter",
       "dependencies": [
@@ -426,7 +426,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -521,7 +521,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -622,7 +622,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -691,7 +691,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.42",
+        "version": "0.2.0-q-core.43",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],

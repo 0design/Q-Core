@@ -20,7 +20,7 @@ if (process.argv[2] === "auth") {
     process.exitCode = 1;
   }
 } else if (["agent", "content"].includes(process.argv[2]) && process.argv[3] === "approve") {
-  // Core 38: a person records the decision for a waiting JSON-protocol run.
+  // A person records the decision for a waiting JSON-protocol run.
   const { humanApproveCli } = await import("../src/human-decision.mjs");
   process.exitCode = humanApproveCli(process.argv[2], process.argv.slice(4));
 } else if (process.argv[2] === "content") {

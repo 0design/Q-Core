@@ -72,8 +72,6 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
                                     a person decides a JSON-protocol run (terminal code)
   q-core doctor                      check this machine before blaming the workflow
 
-Installed as q-core. There is no qf alias — that name belongs to @q-factory/bridge.
-
 Options
   --dry-run     resolve and order every step, perform no side effects
   --json        machine-readable output
@@ -633,7 +631,7 @@ async function cmdInit(args, flags) {
   if (existsSync(dest)) fail(`${shortPath(dest)} already exists — not overwriting it.`);
   if (remote) writeFileSync(dest, remote.text, "utf8");
   else copyFileSync(join(WORKFLOWS_DIR, basename(entry.file)), dest);
-  /* Core37: record that these bytes are the reviewed Registry workflow, so the copy runs with its
+  /* Record that these bytes are the reviewed Registry workflow, so the copy runs with its
      published shape. Editing the copy changes its SHA-256 and makes it a created workflow again. */
   {
     const copied = readFileSync(dest), doc = parseYaml(copied.toString("utf8"));
@@ -782,15 +780,6 @@ async function main() {
   return code;
 }
 
-/** renamedFormatHint: the retired manifest namespace was renamed, not versioned; say so instead of "older or newer". */
-function renamedFormatHint(message) {
-  return message.includes("declares qloops.loop/")
-    ? "The manifest format was renamed: qloops.loop/* is now q-core.workflow/v1. Change the first line to\n" +
-        "  `manifest: q-core.workflow/v1` and check the workflow against the current Registry; there is no\n" +
-        "  silent compatibility with the old name.\n"
-    : "";
-}
-
 /** Set exitCode and let Node flush pipe output; process.exit() can truncate JSON. */
 try {
   process.exitCode = await main();
@@ -798,8 +787,7 @@ try {
   if (e instanceof ExitSignal) {
     /* fail() has already reported the error and set the exit code. */
   } else if (e instanceof ManifestError) {
-    const hint = renamedFormatHint(e.message);
-    process.stderr.write(hint ? `✗ ${hint}` : `✗ ${e.message}\n`);
+    process.stderr.write(`✗ ${e.message}\n`);
     process.exitCode = EXIT_FAILED;
   } else {
     process.stderr.write(`✗ ${e instanceof Error ? e.message : String(e)}\n`);
