@@ -247,10 +247,9 @@ agent-gate mode `check` are reserved and not implemented.
 
 Also supported, not yet described in SPEC-MANIFEST.md:
 
-- `{{env.NAME:-default}}` uses `default` when `NAME` is unset or empty. Before the
-  first step a run names every required variable that is unset or empty
-  (`Missing environment variables: …`); an `api-request` without `receiptKey`
-  stays optional and falls back to `.qf/out/`.
+- Before the first step a run names every required environment variable that is
+  unset or empty (`Missing environment variables: …`); an `api-request` without
+  `receiptKey` stays optional and falls back to `.qf/out/`.
 - An `api-request` URL may be `file:///absolute/path.jsonl`: each delivery appends
   one JSON line, with the same `receiptKey` duplicate protection as HTTP. The
   folder must exist; a symlinked file is refused. The destination is checked

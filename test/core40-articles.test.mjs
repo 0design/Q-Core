@@ -162,7 +162,7 @@ test("live run 97688656: «160» where the article says «about 160» is refused
 });
 
 test("Digest 0.7.0: the articles step feeds the fact check and the checks; the prompt says the article decides", () => {
-  assert.ok(["0.7.1", "0.8.0"].includes(DIGEST.version));
+  assert.ok(["0.7.1", "0.8.0", "0.8.1"].includes(DIGEST.version));
   const ids = DIGEST.steps.map((s) => s.id);
   assert.deepEqual(ids.slice(ids.indexOf("clusters")), ["clusters", "articles", "draft", "factcheck", ...(ids.includes("review") ? ["review"] : []), "checks", "approval", "delivery"]);
   const art = DIGEST.steps.find((s) => s.id === "articles");

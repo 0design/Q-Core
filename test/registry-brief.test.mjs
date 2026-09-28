@@ -46,7 +46,7 @@ test('contract facts agents had to invent on 27–28.09 are in the Registry', ()
 
 test('Digest 0.8.0 is accepted; the other workflows keep their status', () => {
   const digest = catalog.workflows.find(w => w.id === 'digest');
-  assert.equal(digest.version, '0.8.0');
+  assert.equal(digest.version, '0.8.1');
   assert.equal(digest.status, 'accepted');
   assert.equal(digest.acceptance.status, 'accepted');
   assert.equal(digest.acceptance.evidence[0].runId, '5b9ffaf1-cb7f-426e-a7e3-eb68d9224452');

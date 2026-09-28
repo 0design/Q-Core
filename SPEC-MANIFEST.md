@@ -396,6 +396,14 @@ Resolved inside `url`, `body`, `headers`, `instructions` and `over`.
 | `{{item}}` · `{{item.title}}` | the current item, inside a fan-out lane |
 | `{{index}}` | 0-based lane position |
 | `{{env.NAME}}` | an environment variable; `UPPER_SNAKE` only |
+| `{{env.NAME:-default}}` | the same, with `default` used when `NAME` is unset or empty (surrounding spaces trimmed) |
+| `{{run.id}}` · `{{run.workflowId}}` | this run's id and the workflow id |
+| `{{run.costUsd}}` | what the run has spent so far (every earlier step), six decimals; `unknown` when any earlier step's cost is unknown |
+
+**One pass.** The text of the manifest is resolved once, left to right. A value
+that was substituted (a fetched page, a model answer, an item, an environment
+value) is never scanned again: `{{env.TOKEN}}` inside fetched data arrives as that
+literal text, not as the secret it names.
 
 **An unresolved placeholder is left in place, verbatim.** Literal `{{…}}`
 arriving at a receiver is a visible failure; an empty string is a silent one.
