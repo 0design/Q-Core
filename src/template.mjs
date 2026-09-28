@@ -91,26 +91,34 @@ function lookupItemVar(name, path, ctx) {
   return getByPath(ctx.item, path);
 }
 
+/* ONE pass over the manifest text. Substituted values are never re-scanned: a
+   fetched feed or a model answer containing `{{env.TELEGRAM_BOT_TOKEN}}` must
+   arrive as that literal text, not as the secret it names. */
+const ANY_RE = new RegExp(
+  [TEMPLATE_RE, ITEM_RE, ENV_RE, RUN_RE].map((re) => `(?:${re.source})`).join("|"),
+  "g",
+);
+
 /** Resolve every placeholder in `text` to a STRING. */
 export function resolveTemplate(text, ctx) {
-  const withSteps = String(text).replace(TEMPLATE_RE, (match, ref, path) => {
-    const resolved = resolveStepRef(ref, ctx);
-    if (!resolved) return match;
-    const v = getByPath(resolved.output, path);
-    return v === undefined ? match : stringify(v);
-  });
-  const withItems = withSteps.replace(ITEM_RE, (match, name, path) => {
-    const v = lookupItemVar(name, path, ctx);
-    return v === undefined ? match : stringify(v);
-  });
-  const withEnv = withItems.replace(ENV_RE, (match, name, fallback) => envValue(name, fallback) ?? match);
-  return withEnv.replace(RUN_RE, (match, field) => {
-    const v = ctx.run?.[field];
+  return String(text).replace(ANY_RE, (match, ref, path, itemName, itemPath, envName, envFallback, runField) => {
+    if (ref !== undefined) {
+      const resolved = resolveStepRef(ref, ctx);
+      if (!resolved) return match;
+      const v = getByPath(resolved.output, path);
+      return v === undefined ? match : stringify(v);
+    }
+    if (itemName !== undefined) {
+      const v = lookupItemVar(itemName, itemPath, ctx);
+      return v === undefined ? match : stringify(v);
+    }
+    if (envName !== undefined) return envValue(envName, envFallback) ?? match;
+    const v = ctx.run?.[runField];
     /* An unknown spend is said out loud, never rendered as $0: a post must not
        carry a cost line that the run could not measure. */
-    if (field === "costUsd" && v === null) return "unknown";
+    if (runField === "costUsd" && v === null) return "unknown";
     if (v === undefined || v === null) return match;
-    return field === "costUsd" ? Number(v).toFixed(6) : String(v);
+    return runField === "costUsd" ? Number(v).toFixed(6) : String(v);
   });
 }
 
