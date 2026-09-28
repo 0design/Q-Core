@@ -405,6 +405,27 @@ that was substituted (a fetched page, a model answer, an item, an environment
 value) is never scanned again: `{{env.TOKEN}}` inside fetched data arrives as that
 literal text, not as the secret it names.
 
+**Data stays data.** Values from `steps`, `item`, `index` and `run` are content
+from outside the manifest, so where they land decides only a value, never the
+shape around it:
+
+- `url` (`fetch`, `api-request`): each such value is percent-encoded as one URL
+  component, so it may change only the path, query or fragment text it sits in.
+  Refused: a template whose scheme, credentials, host or port data would decide
+  (`{{item.link}}` as the whole URL, `https://{{item.host}}/…`), a manifest that
+  names no host, a value right after a `%` or `%X`, and a path value that is
+  exactly `.` or `..`. `{{env.…}}` is the operator's configuration and is inserted
+  as is: it may be the whole URL.
+- `headers` and the JSON lists of `verify-sources` (`fixedLinks`,
+  `requiredHeadings`, `introLinks`, `forbiddenLabels`, `oneClusterPerItem`): the
+  manifest's JSON is parsed first and only its string values are resolved, so a
+  value cannot close a string, add a header or add an element; header names are
+  never templated and `headers` must be a JSON object in the manifest itself. A
+  list field that is exactly one placeholder takes the whole list from that value:
+  the manifest delegates the list, so use it only for a trusted source.
+- A check for an unresolved placeholder looks only at the manifest's own
+  placeholders: `{{…}}` inside substituted data (code in an article) is data.
+
 **An unresolved placeholder is left in place, verbatim.** Literal `{{…}}`
 arriving at a receiver is a visible failure; an empty string is a silent one.
 
