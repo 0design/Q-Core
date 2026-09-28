@@ -64,7 +64,7 @@
         "status": "historical-unverified"
       },
       "sha256": "bbfb2052c86fe95be130fc4d87c6af8ec757ba91f51d21bca681ad22367b3362",
-      "value": "Know what the news says about your brand",
+      "value": "See relevant mentions and their overall tone without reading every feed item.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -243,7 +243,7 @@
         "status": "no-live-proof"
       },
       "sha256": "7a123c7e7a2be4ebf41c75c7f6c0eb99b94a4a245babb0722b0ead3bdc243526",
-      "value": "Check your spending cap before real work",
+      "value": "See the budget stop before you risk a paid run.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -407,7 +407,7 @@
         "status": "historical-unverified"
       },
       "sha256": "318948e4c25539662c6d3a7dbc8550f0ec89a1d22e6c3f1350b8e8d7900f7fa3",
-      "value": "Turn your sources into a post you approve",
+      "value": "Keep the final publishing decision in your hands while your agent prepares the draft.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -594,7 +594,7 @@
         "status": "historical-unverified"
       },
       "sha256": "f9d588e3bbf9041e02e7057aae83d48b3c7e6f2a59b8d521064f8349ce9cb207",
-      "value": "Get the useful news from your feed",
+      "value": "Catch the main points without reading the whole feed.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -776,7 +776,7 @@
         "status": "historical-unverified"
       },
       "sha256": "d771e462d1f40b06672a2b654153df8da3373190b209c3eb6e5f74e15c541864",
-      "value": "See why each feed item matters",
+      "value": "Give each feed item its own summary, within a clear processing limit.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -948,7 +948,7 @@
         "status": "historical-unverified"
       },
       "sha256": "cb730da45f69c57a3f4fbcf2a97df8339907d443b7fb9f4631ed12f308bad449",
-      "value": "Give your tools a structured feed summary",
+      "value": "Check that the model returned usable JSON before sending the item count onward.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -1117,7 +1117,7 @@
         "status": "historical-unverified"
       },
       "sha256": "70e82b724ede0a7da8b3e25bd07bebd7a6198811d8653c271115dd269428d6c7",
-      "value": "Review a currency-rate alert before sending",
+      "value": "Review the model’s rate check before deciding whether to send the alert.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -1285,7 +1285,7 @@
         "status": "historical-unverified"
       },
       "sha256": "053b60d872a176426d35ac9fd55b653a0ed889eb57362cffe17f841e8271361c",
-      "value": "Spot important changes in GitHub releases",
+      "value": "Find release notes worth reviewing without reading the full release feed.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -1461,7 +1461,7 @@
         "status": "historical-unverified"
       },
       "sha256": "d6ebf8ae34b6a888f99031f8da586c799f523855af96a60a8849d5ed14abbe0f",
-      "value": "Stop a rate alert that fails your rule",
+      "value": "Make passing the review rule a condition for continuing the example.",
       "executionProfile": {
         "inference": "openrouter",
         "callerReady": false
@@ -1614,7 +1614,7 @@
         "status": "historical-unverified"
       },
       "sha256": "fcfef0dedca7d769ebb21124a3ec9658e4576758277235b7a5549a8c15aba4a6",
-      "value": "Move JSON between your tools",
+      "value": "Connect a JSON source to a receiver without manual copy-and-paste or a model bill.",
       "executionProfile": {
         "inference": "none",
         "callerReady": true
@@ -1742,7 +1742,7 @@
         "status": "historical-unverified"
       },
       "sha256": "1db3be1ef192f74a89ad23f0b7a8eadfa465d522590fc78311a703a6a7157485",
-      "value": "Check how your workflow handles too many items",
+      "value": "See what gets processed and what gets skipped before scaling up.",
       "executionProfile": {
         "inference": "none",
         "callerReady": true
@@ -1826,7 +1826,7 @@
       "id": "digest",
       "name": "Make sense of the news across your sources",
       "description": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery.",
-      "value": "Make sense of the news across your sources",
+      "value": "See the themes across sources, with links to check before you share.",
       "file": "workflows/digest.yaml",
       "version": "0.8.1",
       "author": "0design",
@@ -2019,7 +2019,7 @@
       "id": "digest-cli",
       "name": "Make sense of the news with your coding agent",
       "description": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key.",
-      "value": "Make sense of the news with your coding agent",
+      "value": "Use your existing coding-agent session for source checks and drafting; approve delivery separately.",
       "file": "workflows/digest-cli.yaml",
       "version": "0.8.1",
       "author": "0design",
@@ -2197,7 +2197,7 @@
       "id": "podcast-summary",
       "name": "Find the key ideas in a podcast transcript",
       "description": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval.",
-      "value": "Find the key ideas in a podcast transcript",
+      "value": "Find the important ideas and return to their timestamps without rereading the transcript.",
       "file": "workflows/podcast-summary.yaml",
       "version": "0.1.0",
       "author": "0design",
@@ -2359,7 +2359,7 @@
       "id": "podcast-summary-cli",
       "name": "Summarize a podcast with your coding agent",
       "description": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key.",
-      "value": "Summarize a podcast with your coding agent",
+      "value": "Get a timestamped summary through your existing coding-agent session.",
       "file": "workflows/podcast-summary-cli.yaml",
       "version": "0.1.0",
       "author": "0design",
@@ -2513,7 +2513,7 @@
       "id": "sdd-pipeline",
       "name": "SDD: agree on the result before changing code",
       "description": "Define the change, scope and acceptance criteria first. Approve the specification, then let your agent implement it and verify the allowed files.",
-      "value": "SDD: agree on the result before changing code",
+      "value": "Make the expected result explicit, then test the approved change against it.",
       "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
       "author": "0design",
