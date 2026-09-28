@@ -411,7 +411,7 @@ steps:
       # The fact-checked text is what is checked, approved and delivered; its claim records are checked with it.
       draft: "{{steps.factcheck.output}}"
       factCheck: "{{steps.factcheck.output}}"
-      # Digest 0.8.0: the reviewer's patch is applied to the fact-checked text first; every check runs on the result.
+      # The reviewer's patch is applied to the fact-checked text first; every check runs on the result.
       review: "{{steps.review.output}}"
       # Compact links and short items, one sentence each.
       compactLinks: "true"

@@ -2005,7 +2005,7 @@
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "e7a9825e1612809904a94ca16c195ed71f899bc68c52e8ef0eaafcc526717898",
+      "sha256": "b6eb3bcaceb50de9aefe09fbff3ae96cd17844e5d871e0e222757091c33324a2",
       "steps": 21,
       "kinds": [
         "fetch",
@@ -2196,7 +2196,7 @@
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "17151bd6e467de2809de358c5b0153c4161e5c9fba2bb6a62dcdedfa31c1d547",
+      "sha256": "aa4a2c0922a50067dbb55646c69fa76b6a59e7caea387b0b3846d6b32721ac6e",
       "steps": 21,
       "kinds": [
         "fetch",
@@ -4658,5 +4658,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "aa9fdfcca570df953ad987706c0d17c5a1ef3002e3428d97e34364d41a236787"
+  "releaseSha256": "c2635a98f92362a8d6ce424b6e018ef951da68a438f75f007e147fab041b7747"
 }
