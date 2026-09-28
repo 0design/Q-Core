@@ -65,7 +65,8 @@ function filesBelow(root, relative) {
 
 export function assertNoRetiredProductNames(files) {
   for (const { path, source } of files) {
-    const inspectable = source;
+    // The manifest validator keeps rejecting the old namespace; it is not an alias.
+    const inspectable = path === "src/manifest.mjs" ? source.replaceAll("qloops.loop", "") : source;
     assert.equal(/\bqloops?\b/i.test(inspectable), false, `${path} retains a qloops compatibility alias`);
     assert.equal(/\bloopId\b/.test(inspectable), false, `${path} retains the retired loopId contract`);
     assert.equal(/\bloop-id\b/i.test(inspectable), false, `${path} retains the retired loop-id contract`);
@@ -181,6 +182,7 @@ export function verifyProductNames(root = resolve(".")) {
 
   const manifest = readFileSync(join(root, "src", "manifest.mjs"), "utf8");
   assert.match(manifest, /MANIFEST_TAG = "q-core\.workflow\/v1"/);
+  assert.match(manifest, /family === "qloops\.loop"/, "the only retired manifest reference must fail closed");
 
   const activeSources = [...scannedRoots.flatMap((relative) => filesBelow(root, relative)), ...scannedFiles]
     .map((path) => ({ path, source: readFileSync(join(root, path), "utf8") }));

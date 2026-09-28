@@ -3861,12 +3861,12 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.43.tgz",
-    "artifactSha256": "9d2d511b25fd0fef01edbba5bca31aa4c01b8141d607c2941d2b771c187a9994",
-    "integrity": "sha512-c8yY/Nm1FdqhU1r0kZlK32K8W92tJLDrskPLrrkw8o9N7yStKd4cHvHRueryFkfP5ubvmE4HP9nUV29lHProAQ==",
+    "artifactSha256": "47d34fed87934673087449ae6b78257bac953d5d5c3f5a84c7537832d5337df6",
+    "integrity": "sha512-+Hf/et1Nr2Km7rPDG7kbG2uT1SQn/vefOji2h8rLwoi/cYRtyaGNx2mEXUF4cS4iXCe/2nwO7cGq9lboC5s6SA==",
     "schemaSha256": "d69e5b0526211117c05f103f3257fee6df18cfe8e4d58d589e1a0d0363cfca4d",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.43 successor of Core.42: templates resolve in one pass so substituted data cannot expand {{env.*}} (external PR #13); SPEC-MANIFEST §6 documents the one-pass rule, run.* and :- defaults; plain README and docs; an old manifest family is refused as unknown. The request schema is unchanged.",
+    "source": "Core.43 successor of Core.42: templates resolve in one pass so substituted data cannot expand {{env.*}} (external PR #13); SPEC-MANIFEST §6 documents the one-pass rule, run.* and :- defaults; plain README, docs and CLI help. The format validator, YAML parser and request schema are byte-identical to Core.42.",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -4658,5 +4658,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "71187544882c7038ad3f1457f8a3f291f40f6c3acd1da44fd3db41282e6ba50e"
+  "releaseSha256": "aa9fdfcca570df953ad987706c0d17c5a1ef3002e3428d97e34364d41a236787"
 }

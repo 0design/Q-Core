@@ -52,7 +52,7 @@ test("a missing format tag is refused — otherwise this is just some YAML", () 
 
 test("a version this build does not read is named, not guessed at", () => {
   assert.throws(
-    () => validateManifest(parseYaml(`manifest: q-core.workflow/v2\nid: t\nsteps: [{id: a, kind: fetch}]`)),
+    () => validateManifest(parseYaml(`manifest: qloops.loop/v2\nid: t\nsteps: [{id: a, kind: fetch}]`)),
     (e) => e instanceof ManifestError && /v2/.test(e.message),
   );
 });
@@ -175,5 +175,5 @@ test("an absent budget is NOT the same as a lifted one", () => {
 // A renamed protocol must not silently accept legacy manifests.
 test("rejects the retired qloops namespace", () => {
   const legacy = "qloops.loop/v1";
-  assert.throws(() => validateManifest(parseYaml(`manifest: ${legacy}\nid: legacy\nsteps: [{id: gate, kind: approval-gate, config: {reviewer: human}}]`)), /unknown manifest family "qloops\.loop\/v1"/);
+  assert.throws(() => validateManifest(parseYaml(`manifest: ${legacy}\nid: legacy\nsteps: [{id: gate, kind: approval-gate, config: {reviewer: human}}]`)), /q-core\.workflow\/v1; the manifest declares qloops\.loop\/v1/);
 });

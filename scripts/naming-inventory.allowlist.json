@@ -75,6 +75,13 @@
     },
     {
       "class": "negative-guard",
+      "path": "^src/manifest\\.mjs$",
+      "line": "family === \"qloops\\.loop\"",
+      "reason": "manifest rejects the retired namespace fail-closed",
+      "token": "^qloops\\.loop$"
+    },
+    {
+      "class": "negative-guard",
       "path": "^scripts/(check-product-names|check-naming-inventory)\\.mjs$",
       "reason": "naming guards"
     },
@@ -91,7 +98,7 @@
     {
       "class": "negative-guard",
       "path": "^test/manifest\\.test\\.mjs$",
-      "line": "^test\\(\"rejects the retired qloops namespace\"|^  const legacy = \"qloops\\.loop/v1\";$|unknown manifest family \"qloops\\\\\\.loop\\\\/v1\"/\\);$",
+      "line": "validateManifest\\(parseYaml\\(`manifest: qloops\\.loop/v2\\\\nid: t|^test\\(\"rejects the retired qloops namespace\"|^  const legacy = \"qloops\\.loop/v1\";$|the manifest declares qloops\\\\\\.loop\\\\/v1/\\);$",
       "reason": "retired manifest namespace rejection test",
       "token": "^(qloops|qloops\\.loop/v[12]|\\.loop)$"
     },
