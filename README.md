@@ -10,24 +10,24 @@ This repository holds Q-Core, the engine that runs [QFactory](https://qfactory.i
 
 Open the template's page, copy its start prompt and paste it into your agent.
 
-| Template | What it does | Needs | Start prompt |
-| --- | --- | --- | --- |
-| SDD pipeline | Makes a change to your project after you approve the spec, then tests it | $0 via your agent | [sdd-pipeline](https://qfactory.io/workflows/sdd-pipeline) |
-| Digest (CLI) | Fact-checked AI news digest in Ukrainian | $0 via your agent | [digest-cli](https://qfactory.io/workflows/digest-cli) |
-| Podcast summary (CLI) | Short podcast summary in Ukrainian with timestamps | $0 via your agent | [podcast-summary-cli](https://qfactory.io/workflows/podcast-summary-cli) |
-| Digest | The same digest through OpenRouter | OpenRouter key, ~$0.30 | [digest](https://qfactory.io/workflows/digest) |
-| Podcast summary | The same summary through OpenRouter | OpenRouter key, ≤$0.25 | [podcast-summary](https://qfactory.io/workflows/podcast-summary) |
-| Get data where it needs to go · example | Forwards JSON to your webhook | $0 | [webhook-relay](https://qfactory.io/workflows/webhook-relay) |
-| Explore more sources within limits · example | Shows how item limits work | $0 | [wide-fanout](https://qfactory.io/workflows/wide-fanout) |
-| Keep model spending within bounds · example | Shows the budget stop before a paid call | $0 | [budget-guard](https://qfactory.io/workflows/budget-guard) |
-| Hear what matters about your brand · example | Brand mentions from a news feed | OpenRouter key or your agent | [brand-mentions](https://qfactory.io/workflows/brand-mentions) |
-| An AI digest from your feed · example | Morning digest of a feed to Telegram | Telegram bot; OpenRouter key or your agent | [content-feed](https://qfactory.io/workflows/content-feed) |
-| Every source gets a closer look · example | One line per feed item | OpenRouter key or your agent | [feed-fanout](https://qfactory.io/workflows/feed-fanout) |
-| A digest your tools can use · example | Feed summary as JSON | OpenRouter key or your agent | [json-digest](https://qfactory.io/workflows/json-digest) |
-| Keep up with GitHub releases · example | Short note on new releases | OpenRouter key or your agent | [release-watch](https://qfactory.io/workflows/release-watch) |
-| Your sources. A publishable draft. · example | Post you approve, then Telegram | OpenRouter key, Telegram bot | [content-factory](https://qfactory.io/workflows/content-factory) |
-| Spot the price change worth checking · example | USD/UAH alert after your approval | OpenRouter key | [price-watch](https://qfactory.io/workflows/price-watch) |
-| Check the result before moving on · example | A check that can stop the run | OpenRouter key | [strict-gate](https://qfactory.io/workflows/strict-gate) |
+| Template | What it does | Needs |
+| --- | --- | --- |
+| [SDD pipeline](https://qfactory.io/workflows/sdd-pipeline) | Makes a change to your project after you approve the spec, then tests it | $0 via your agent |
+| [Digest (CLI)](https://qfactory.io/workflows/digest-cli) | Fact-checked AI news digest in Ukrainian | $0 via your agent |
+| [Podcast summary (CLI)](https://qfactory.io/workflows/podcast-summary-cli) | Short podcast summary in Ukrainian with timestamps | $0 via your agent |
+| [Digest](https://qfactory.io/workflows/digest) | The same digest through OpenRouter | OpenRouter key, ~$0.30 |
+| [Podcast summary](https://qfactory.io/workflows/podcast-summary) | The same summary through OpenRouter | OpenRouter key, ≤$0.25 |
+| [Get data where it needs to go](https://qfactory.io/workflows/webhook-relay) · example | Forwards JSON to your webhook | $0 |
+| [Explore more sources within limits](https://qfactory.io/workflows/wide-fanout) · example | Shows how item limits work | $0 |
+| [Keep model spending within bounds](https://qfactory.io/workflows/budget-guard) · example | Shows the budget stop before a paid call | $0 |
+| [Hear what matters about your brand](https://qfactory.io/workflows/brand-mentions) · example | Brand mentions from a news feed | OpenRouter key or your agent |
+| [An AI digest from your feed](https://qfactory.io/workflows/content-feed) · example | Morning digest of a feed to Telegram | Telegram bot; OpenRouter key or your agent |
+| [Every source gets a closer look](https://qfactory.io/workflows/feed-fanout) · example | One line per feed item | OpenRouter key or your agent |
+| [A digest your tools can use](https://qfactory.io/workflows/json-digest) · example | Feed summary as JSON | OpenRouter key or your agent |
+| [Keep up with GitHub releases](https://qfactory.io/workflows/release-watch) · example | Short note on new releases | OpenRouter key or your agent |
+| [Your sources. A publishable draft.](https://qfactory.io/workflows/content-factory) · example | Post you approve, then Telegram | OpenRouter key, Telegram bot |
+| [Spot the price change worth checking](https://qfactory.io/workflows/price-watch) · example | USD/UAH alert after your approval | OpenRouter key |
+| [Check the result before moving on](https://qfactory.io/workflows/strict-gate) · example | A check that can stop the run | OpenRouter key |
 
 ## Contribute
 

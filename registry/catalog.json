@@ -3861,12 +3861,12 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
     "artifact": "vendor/q-core-0.2.0-q-core.44.tgz",
-    "artifactSha256": "f27ccfcfbd0101ddacef286e594f8588ab1339c61e4dcb9ad5eed7d7a2ec801f",
-    "integrity": "sha512-y/swFOjDHLy9J++57Vr2gV99RbcqaLTbFMhNLdUihxtN6qSzvNF+jaTvm5BvHhExtBbLFpUYTZRkaYB/8NllDg==",
+    "artifactSha256": "321e5a63743f1d7e8294642376a0f7e5abc79679c3cff69e992c330eca2f8f7f",
+    "integrity": "sha512-A9S13t6ZJrfCt1C/IbGWIqTKH0zqdQ3RgqMWISffCM0j++cxkeEqMRIPy8d1CqMigxGXMbiDqUREWkAAgqA+dQ==",
     "schemaSha256": "20b130d6ec1fc9412a3bfd0fb0e72843f9adaedea9860d223f0f5a819a5c487f",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.44 successor of Core.43: step data stays data — values from steps, items and run are percent-encoded in url and cannot change its scheme or host; headers and verify-sources JSON lists are parsed before substitution; the steps placeholder never crosses a brace; {{…}} inside data no longer trips unresolved-placeholder checks; SPEC-MANIFEST §6 documents these rules. The format validator, YAML parser and request schema are byte-identical to Core.43.",
+    "source": "Core.44 successor of Core.43: step data stays data — values from steps, items and run are percent-encoded in url and cannot change its scheme or host; headers and verify-sources JSON lists are parsed before substitution; the steps placeholder never crosses a brace; {{…}} inside data no longer trips unresolved-placeholder checks; SPEC-MANIFEST §6 documents these rules. README: the template table links each workflow name to its page (no separate start-prompt column). The format validator, YAML parser and request schema are byte-identical to Core.43.",
     "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -4658,5 +4658,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "cbe9bfe015551354c6a495a3533685350463f4a9e6177cddc188090027890376"
+  "releaseSha256": "12837e3e81fb1a64fa84b3bdeada92905498d33637073a1279dede3232cb13e1"
 }
