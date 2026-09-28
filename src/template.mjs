@@ -10,7 +10,9 @@
  * and the literal placeholder travelled into the outgoing request body.
  */
 
-const TEMPLATE_RE = /\{\{\s*steps\.(.+?)\.output(?:\.([^}\s]+))?\s*\}\}/g;
+/* The reference never crosses a brace: `{{steps.X}} … {{steps.Y.output}}` must not read as one
+   placeholder whose step name is "X}} … {{steps.Y". */
+const TEMPLATE_RE = /\{\{\s*steps\.([^{}]+?)\.output(?:\.([^}\s]+))?\s*\}\}/g;
 const ITEM_RE = /\{\{\s*(item|index)(?:\.([^}\s]+))?\s*\}\}/g;
 
 /**
@@ -99,27 +101,123 @@ const ANY_RE = new RegExp(
   "g",
 );
 
-/** Resolve every placeholder in `text` to a STRING. */
-export function resolveTemplate(text, ctx) {
+/**
+ * The one substitution pass. `data` values (steps, item, index, run) pass through
+ * `opts.data` when given, env values never do: the environment is the operator's
+ * configuration, step outputs and items are content from outside. `opts.unresolved`
+ * collects the placeholders of the TEMPLATE that were left in place, so a caller can
+ * refuse them without mistaking `{{…}}` inside substituted data for its own.
+ */
+function substitute(text, ctx, opts = {}) {
+  const data = opts.data ?? ((v) => v);
+  const keep = (match) => {
+    opts.unresolved?.push(match);
+    return match;
+  };
   return String(text).replace(ANY_RE, (match, ref, path, itemName, itemPath, envName, envFallback, runField) => {
     if (ref !== undefined) {
       const resolved = resolveStepRef(ref, ctx);
-      if (!resolved) return match;
+      if (!resolved) return keep(match);
       const v = getByPath(resolved.output, path);
-      return v === undefined ? match : stringify(v);
+      return v === undefined ? keep(match) : data(stringify(v));
     }
     if (itemName !== undefined) {
       const v = lookupItemVar(itemName, itemPath, ctx);
-      return v === undefined ? match : stringify(v);
+      return v === undefined ? keep(match) : data(stringify(v));
     }
-    if (envName !== undefined) return envValue(envName, envFallback) ?? match;
+    if (envName !== undefined) return envValue(envName, envFallback) ?? keep(match);
     const v = ctx.run?.[runField];
     /* An unknown spend is said out loud, never rendered as $0: a post must not
        carry a cost line that the run could not measure. */
-    if (runField === "costUsd" && v === null) return "unknown";
-    if (v === undefined || v === null) return match;
-    return runField === "costUsd" ? Number(v).toFixed(6) : String(v);
+    if (runField === "costUsd" && v === null) return data("unknown");
+    if (v === undefined || v === null) return keep(match);
+    return data(runField === "costUsd" ? Number(v).toFixed(6) : String(v));
   });
+}
+
+/** Resolve every placeholder in `text` to a STRING. */
+export function resolveTemplate(text, ctx) {
+  return substitute(text, ctx);
+}
+
+/**
+ * Resolve, and report which placeholders of the template itself stayed unresolved.
+ * A check such as "no unresolved placeholder in a format contract" must look at
+ * this list, not search the result for `{{`: legitimate data (code in an article,
+ * a template quoted in a post) may contain braces and is not a manifest error.
+ */
+export function resolveTemplateReport(text, ctx) {
+  const unresolved = [];
+  return { text: substitute(text, ctx, { unresolved }), unresolved };
+}
+
+/* A value from data inside a URL: percent-encoded as ONE component, so it can
+   never add a query parameter, a fragment, a path segment or a user/host part.
+   A whole segment of "." or ".." would still be normalised away by the URL
+   parser (it treats %2E the same way), so such a value is refused. */
+function urlComponent(value) {
+  if (value === "." || value === "..") {
+    throw new Error(`a substituted value "${value}" cannot be used inside a URL`);
+  }
+  return encodeURIComponent(value);
+}
+
+const authority = (href) => {
+  try {
+    const u = new URL(href);
+    return `${u.protocol}//${u.username}:${u.password}@${u.host}`;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Resolve a `url` field. Scheme, credentials, host and port come from the manifest
+ * and the environment only. Values from data (steps, item, index, run) are
+ * percent-encoded as a single component and may therefore change only the path,
+ * query or fragment text they are placed in; a template that lets data decide the
+ * host (`https://{{item.host}}/…`) is refused rather than sent.
+ * The environment is inserted verbatim: `{{env.QCORE_WEBHOOK_URL}}` as the whole
+ * URL is the operator's own configuration.
+ */
+export function resolveUrlTemplate(text, ctx) {
+  let usedData = false;
+  const url = substitute(text, ctx, {
+    data: (v) => {
+      usedData = true;
+      return urlComponent(v);
+    },
+  });
+  if (!usedData) return url;
+  /* The same template with every data value empty: whatever authority it names is
+     the one the manifest and environment chose. Data must not move it. */
+  const skeleton = substitute(text, ctx, { data: () => "" });
+  const chosen = authority(skeleton);
+  if (chosen === null || chosen !== authority(url)) {
+    throw new Error("the URL scheme and host must come from the manifest or the environment, not from step data");
+  }
+  return url;
+}
+
+/**
+ * A JSON field (headers, a list of strings) whose STRING values may carry
+ * placeholders. The manifest text is parsed first and only then are its string
+ * values resolved, so a substituted value can never close a string, add a key
+ * or add an element. Object keys are never resolved.
+ * Throws SyntaxError when the manifest text itself is not JSON.
+ */
+export function resolveJsonTemplate(raw, ctx, opts = {}) {
+  const walk = (value) => {
+    if (typeof value === "string") return substitute(value, ctx, opts);
+    if (Array.isArray(value)) return value.map(walk);
+    if (value && typeof value === "object") {
+      const out = {};
+      for (const [k, v] of Object.entries(value)) out[k] = walk(v);
+      return out;
+    }
+    return value;
+  };
+  return walk(JSON.parse(String(raw)));
 }
 
 /** The `{{env.X}}` names that are NOT set. Empty means every reference resolved. */
@@ -139,7 +237,7 @@ export function missingEnvRefs(text) {
  */
 export function resolveTemplateValue(text, ctx) {
   const one = String(text).trim();
-  const step = one.match(/^\{\{\s*steps\.(.+?)\.output(?:\.([^}\s]+))?\s*\}\}$/);
+  const step = one.match(/^\{\{\s*steps\.([^{}]+?)\.output(?:\.([^}\s]+))?\s*\}\}$/);
   if (step) {
     const resolved = resolveStepRef(step[1], ctx);
     if (!resolved) return undefined;

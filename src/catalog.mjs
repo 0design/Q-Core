@@ -29,7 +29,11 @@ import { flattenWorkflowSteps } from "./flatten.mjs";
 import { resolveKnobs } from "./run.mjs";
 import { loadRegistry, enrichComponent, enrichDemo } from "./registry.mjs";
 
-/** Every `{{env.NAME}}` a manifest depends on, in first-seen order. */
+/**
+ * Every `{{env.NAME}}` a manifest depends on, in first-seen order. This is the catalogue's
+ * `needsEnv`: what a reader must set before the workflow runs at all. `{{env.NAME:-default}}`
+ * is deliberately not listed — it runs without NAME — unless NAME is also used without a default.
+ */
 export function envRefsOf(manifest) {
   const found = [];
   const walk = (steps) => {
