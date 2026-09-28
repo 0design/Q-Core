@@ -6,9 +6,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 
-// The README install block is executable documentation: it must refuse to call npm install
+// The reference install block (docs/reference.md) is executable documentation: it must refuse to call npm install
 // unless the archive matches the expected SHA-256, on shasum, sha256sum and Node.js-only hosts.
-const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+const readme = readFileSync(new URL("../docs/reference.md", import.meta.url), "utf8");
 const block = /<!-- verify-install:start -->\n```sh\n([\s\S]*?)```\n<!-- verify-install:end -->/.exec(readme)?.[1];
 
 function which(name) {
@@ -34,8 +34,8 @@ function run(t, { archiveBytes, expected, tools }) {
   return { code: result.status, stderr: result.stderr, npmCalled: existsSync(join(dir, "npm-called")) };
 }
 
-test("README install block verifies SHA-256 before npm install on every hashing path", (t) => {
-  assert.ok(block, "README must keep the verify-install block");
+test("Reference install block verifies SHA-256 before npm install on every hashing path", (t) => {
+  assert.ok(block, "docs/reference.md must keep the verify-install block");
   assert.ok(block.indexOf("npm install") > block.indexOf('[ "$ACTUAL" = "$EXPECTED" ]'), "hash check precedes npm install");
   const good = Buffer.from("synthetic q-core archive");
   const sha = createHash("sha256").update(good).digest("hex");

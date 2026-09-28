@@ -30,7 +30,7 @@
   "rules": [
     {
       "class": "generic-term",
-      "path": "^README\\.md$",
+      "path": "^(README|docs/reference)\\.md$",
       "token": "^loopback$",
       "reason": "authenticated loopback webhook trigger"
     },

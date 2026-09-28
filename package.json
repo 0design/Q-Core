@@ -35,7 +35,8 @@
     "docs/codex.md",
     "docs/secrets.md",
     "docs/cli-registry.md",
-    "docs/a2d-migration.md"
+    "docs/a2d-migration.md",
+    "docs/reference.md"
   ],
   "dependencies": {},
   "author": "Oleg Kukharuk",
