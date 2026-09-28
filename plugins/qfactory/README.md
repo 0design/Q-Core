@@ -36,7 +36,8 @@ Open `/plugins`, select the added marketplace and install QFactory. Start a new 
 - Claude plugin and marketplace validation: PASS (marketplace description warning only).
 - Clean local Codex marketplace registration and install, using an empty isolated config directory: PASS.
 - Clean local Claude marketplace registration, install and component inventory: PASS (one `start` skill, one `qfactory` MCP).
-- These local checks do not prove anonymous remote Git installation, full live execution or curated publication.
+- Public HTTPS Git marketplace add and plugin install at exact source `f30eeb29090103d8f3dd5aa523aaed688785da6e`: PASS in an empty isolated Codex config, with global/system Git config disabled and terminal credential prompts disabled. Downloaded checkout HEAD matched that SHA; all seven payload checksums passed.
+- These checks do not prove full live workflow execution or curated publication.
 
 ## Endpoint and evidence boundary
 
