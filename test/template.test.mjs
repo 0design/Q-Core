@@ -27,3 +27,23 @@ test("placeholders inside substituted values are not expanded again", () => {
     delete process.env.QF_TEMPLATE_TEST_SECRET;
   }
 });
+
+test("single pass keeps {{env.NAME:-default}} and run fields aligned with their groups", () => {
+  delete process.env.QF_TEMPLATE_TEST_UNSET;
+  process.env.QF_TEMPLATE_TEST_EMPTY = "";
+  try {
+    const ctx = {
+      priorOutputs: { f: { t: "{{env.QF_TEMPLATE_TEST_UNSET:-leak}}" } },
+      priorStepNames: {},
+      run: { id: "RUN", workflowId: "WF", costUsd: 0.0000125 },
+    };
+    assert.equal(
+      resolveTemplate("{{env.QF_TEMPLATE_TEST_UNSET:- dflt }}|{{env.QF_TEMPLATE_TEST_EMPTY:-e}}|{{run.id}}|{{run.workflowId}}|{{run.costUsd}}", ctx),
+      "dflt|e|RUN|WF|0.000013",
+    );
+    assert.equal(resolveTemplate("{{run.costUsd}}", { ...ctx, run: { costUsd: null } }), "unknown");
+    assert.equal(resolveTemplate("{{steps.f.output.t}}", ctx), "{{env.QF_TEMPLATE_TEST_UNSET:-leak}}");
+  } finally {
+    delete process.env.QF_TEMPLATE_TEST_EMPTY;
+  }
+});
