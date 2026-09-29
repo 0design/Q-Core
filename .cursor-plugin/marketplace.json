@@ -1,0 +1,13 @@
+{
+  "name": "qfactory",
+  "owner": {
+    "name": "Oleg.Design"
+  },
+  "plugins": [
+    {
+      "name": "qfactory",
+      "source": "plugins/qfactory",
+      "description": "Find a workflow for your task through the read-only QFactory MCP."
+    }
+  ]
+}

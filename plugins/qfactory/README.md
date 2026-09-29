@@ -58,3 +58,9 @@ sha256sum -c plugins/qfactory/bundle.sha256
 On macOS, use `shasum -a 256 -c plugins/qfactory/bundle.sha256`. The checksum manifest excludes itself and this README; it covers both marketplace catalogs, manifests, MCP wiring and startup skill. No credentials are bundled.
 
 Official installation references: [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins), [Claude marketplace creation and installation](https://code.claude.com/docs/en/plugin-marketplaces).
+
+## Cursor distribution candidate
+
+This repository includes `.cursor-plugin/marketplace.json` and the per-plugin Cursor manifest. They expose the same startup skill and production MCP as the Claude and Codex packages. No secret or model API key is bundled. The public candidate branch is `codex/r1-outcome-copy`; do not assume it is present on the default branch.
+
+Cursor marketplace submission is pending: the publisher page requires the owner to sign in, and listing requires Cursor manual review. Local package structure is checked; a live Cursor installation and invocation are not yet verified. See [Cursor plugin reference](https://cursor.com/docs/reference/plugins).

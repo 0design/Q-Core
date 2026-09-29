@@ -1,0 +1,11 @@
+{
+  "name": "qfactory",
+  "version": "0.1.0",
+  "description": "Find relevant workflows and follow current QFactory MCP instructions.",
+  "author": {
+    "name": "Oleg.Design"
+  },
+  "homepage": "https://qfactory.io",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
