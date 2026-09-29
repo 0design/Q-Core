@@ -12,7 +12,7 @@ Open the template's page, copy its start prompt and paste it into your agent.
 
 | Template | What it does | Needs |
 | --- | --- | --- |
-| [Keep a code change within the scope you approve](https://qfactory.io/workflows/sdd-pipeline) | Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result. | Your Claude/Codex subscription; no separate model bill |
+| [SDD: from requirements to verified code](https://qfactory.io/workflows/sdd-pipeline) | Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria. | Your Claude/Codex subscription; no separate model bill |
 | [Build a source-linked digest with your coding agent](https://qfactory.io/workflows/digest-cli) | Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key. | Your Claude/Codex subscription; no separate model bill |
 | [Summarize a transcript with your coding agent](https://qfactory.io/workflows/podcast-summary-cli) | Use Claude or Codex to produce the same Ukrainian transcript summary with checked timestamps, without an OpenRouter key. | Your Claude/Codex subscription; no separate model bill |
 | [Turn scattered news into one source-linked digest](https://qfactory.io/workflows/digest) | Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery. | OpenRouter key, ~$0.30 |

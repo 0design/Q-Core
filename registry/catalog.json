@@ -2564,8 +2564,8 @@
     },
     {
       "id": "sdd-pipeline",
-      "name": "Keep a code change within the scope you approve",
-      "description": "Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result.",
+      "name": "SDD: from requirements to verified code",
+      "description": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
       "value": "Make the expected result explicit, then test the approved change against it.",
       "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
@@ -2630,7 +2630,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result.",
+        "summary": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
         "howItWorks": [
           "Reads only the files your workspace policy allows and pins the verifier inputs.",
           "Your coding agent writes a brief: summary, checkable criteria, plan.",
@@ -2693,7 +2693,7 @@
           "Turn my intent into an approved spec and a change limited to docs/ checked by my lint script."
         ]
       },
-      "sha256": "5b5b4e9e22097f8af2f1751f5382709e8f0952097c637e94f33e1338b6c8a34a",
+      "sha256": "fb86702b0df84fec64000d3a398256d2413c862ccd322de9f52312d66a1fc5b5",
       "steps": 7,
       "kinds": [
         "workspace-read",
@@ -3854,7 +3854,7 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.29-registry.34-candidate",
+  "releaseVersion": "2026.09.29-registry.35-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.45",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "228947b89fd627dc860c0888e4a8e879b2997edb8d0d2971d27ae5032dd9f8a5"
+  "releaseSha256": "14746b50fbf957105178828b154bfc8ad174ed8ba9146756e5f0b73d32a05f2e"
 }

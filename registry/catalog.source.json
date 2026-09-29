@@ -2511,8 +2511,8 @@
     },
     {
       "id": "sdd-pipeline",
-      "name": "Keep a code change within the scope you approve",
-      "description": "Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result.",
+      "name": "SDD: from requirements to verified code",
+      "description": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
       "value": "Make the expected result explicit, then test the approved change against it.",
       "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
@@ -2577,7 +2577,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Agree allowed files and acceptance criteria before edits. Approve the specification in your terminal, then let your agent implement the change, run your check and report the result.",
+        "summary": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
         "howItWorks": [
           "Reads only the files your workspace policy allows and pins the verifier inputs.",
           "Your coding agent writes a brief: summary, checkable criteria, plan.",
@@ -3773,7 +3773,7 @@
       }
     }
   ],
-  "releaseVersion": "2026.09.29-registry.34-candidate",
+  "releaseVersion": "2026.09.29-registry.35-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.45",
