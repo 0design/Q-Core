@@ -1,8 +1,8 @@
 manifest: q-core.workflow/v1
 id: sdd-pipeline
-name: "SDD: approved specification to verified change"
+name: "SDD: from requirements to verified code"
 version: 0.1.0
-description: "Use your current agent with scoped files, a versioned approved spec and an independent pinned verifier."
+description: "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria."
 owner: oleg
 enabled: true
 triggers:

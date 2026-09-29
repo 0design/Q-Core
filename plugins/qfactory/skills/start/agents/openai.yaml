@@ -1,0 +1,4 @@
+interface:
+  display_name: "QFactory"
+  short_description: "Find a workflow for your task"
+  default_prompt: "Use QFactory’s current MCP startup instructions for my task."

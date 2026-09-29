@@ -1,0 +1,13 @@
+{
+  "name": "qfactory",
+  "owner": {
+    "name": "Oleg.Design"
+  },
+  "plugins": [
+    {
+      "name": "qfactory",
+      "source": "./plugins/qfactory",
+      "description": "Find relevant QFactory workflows and follow their current MCP instructions."
+    }
+  ]
+}

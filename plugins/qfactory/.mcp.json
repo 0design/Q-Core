@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "qfactory": {
+      "type": "http",
+      "url": "https://qfactory.io/api/mcp"
+    }
+  }
+}

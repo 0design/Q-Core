@@ -1,0 +1,20 @@
+{
+  "name": "qfactory",
+  "version": "0.1.0",
+  "description": "Find relevant QFactory workflows and follow their current MCP instructions.",
+  "author": {
+    "name": "Oleg.Design",
+    "url": "https://oleg.design"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "QFactory",
+    "shortDescription": "Turn your task into a checked workflow result.",
+    "longDescription": "Find a relevant workflow from the current catalog. Explain the result before setup, then run the accepted plan locally through Q-Core.",
+    "developerName": "Oleg.Design",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Get and follow the startup instructions from the QFactory MCP server."
+  },
+  "mcpServers": "./.mcp.json"
+}
