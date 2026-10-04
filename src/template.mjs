@@ -51,6 +51,7 @@ const envValue = (name, fallback) => {
  * rendered with six decimals, and as "unknown" when any earlier step's cost is.
  */
 const RUN_RE = /\{\{\s*run\.(id|workflowId|costUsd)\s*\}\}/g;
+const INPUT_RE = /\{\{\s*inputs(?:\.([^}\s]+))?\s*\}\}/g;
 
 
 function getByPath(value, path) {
@@ -58,6 +59,7 @@ function getByPath(value, path) {
   let cur = value;
   for (const seg of path.split(".")) {
     if (cur == null || typeof cur !== "object") return undefined;
+    if (!Object.hasOwn(cur, seg)) return undefined;
     cur = cur[seg];
   }
   return cur;
@@ -97,7 +99,7 @@ function lookupItemVar(name, path, ctx) {
    fetched feed or a model answer containing `{{env.TELEGRAM_BOT_TOKEN}}` must
    arrive as that literal text, not as the secret it names. */
 const ANY_RE = new RegExp(
-  [TEMPLATE_RE, ITEM_RE, ENV_RE, RUN_RE].map((re) => `(?:${re.source})`).join("|"),
+  [TEMPLATE_RE, ITEM_RE, ENV_RE, RUN_RE, INPUT_RE].map((re) => `(?:${re.source})`).join("|"),
   "g",
 );
 
@@ -114,7 +116,11 @@ function substitute(text, ctx, opts = {}) {
     opts.unresolved?.push(match);
     return match;
   };
-  return String(text).replace(ANY_RE, (match, ref, path, itemName, itemPath, envName, envFallback, runField) => {
+  return String(text).replace(ANY_RE, (match, ref, path, itemName, itemPath, envName, envFallback, runField, inputPath) => {
+    if (/^\{\{\s*inputs(?:\.|\s*\}\})/.test(match)) {
+      const value = getByPath(ctx.inputs, inputPath);
+      return value === undefined ? keep(match) : data(stringify(value));
+    }
     if (ref !== undefined) {
       const resolved = resolveStepRef(ref, ctx);
       if (!resolved) return keep(match);
@@ -257,6 +263,8 @@ export function missingEnvRefs(text) {
  */
 export function resolveTemplateValue(text, ctx) {
   const one = String(text).trim();
+  const input = one.match(/^\{\{\s*inputs(?:\.([^}\s]+))?\s*\}\}$/);
+  if (input) return getByPath(ctx.inputs, input[1]);
   const step = one.match(/^\{\{\s*steps\.([^{}]+?)\.output(?:\.([^}\s]+))?\s*\}\}$/);
   if (step) {
     const resolved = resolveStepRef(step[1], ctx);

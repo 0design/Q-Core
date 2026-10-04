@@ -717,3 +717,13 @@ environment before relying on a Registry composition.
   steps. An interrupted active side effect cannot use this shortcut.
 - `fetch.maxBodyBytes` optionally raises the bounded response capture from 64000
   to at most 2000000 bytes for static source pages; text output discloses truncation.
+
+## Nested materials (contract revision 14)
+
+`workflow-call` invokes an exact local dependency declared under `dependencies`.
+Both workflows and executable `q-core.component/v1` components have typed inputs
+and output bindings. Pins, complete export, invocation isolation, ancestor budget
+accounting and persisted human-gate/caller-inference lifecycle are specified in
+[Nested materials](contracts/v1/nested-materials.md). Existing Registry JSON
+component descriptors remain nonexecutable metadata. Run the self-contained
+local example with `q-core run examples/nested/parent.yaml --json`.

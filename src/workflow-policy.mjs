@@ -15,6 +15,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { loadManifest, ManifestError } from "./manifest.mjs";
+import { loadManifestGraph } from './material-graph.mjs';
 
 /**
  * Steps that change something outside the run: local files or another system. An api-request is a
@@ -43,8 +44,8 @@ const isHumanGate = (step) => step.kind === "approval-gate" && (step.config?.rev
  * Reviewed Registry workflows (installed with a matching lock, or built into the
  * Registry release) keep their published shape and are not re-judged here.
  */
-export function assertHumanGateBeforeSideEffects(steps) {
-  const walk = (list, gated, path) => {
+export function assertHumanGateBeforeSideEffects(steps, { graph, key } = {}) {
+  const walk = (list, gated, path, materialKey) => {
     let covered = gated;
     list.forEach((step, i) => {
       const at = `${path}[${i}]`;
@@ -58,12 +59,17 @@ export function assertHumanGateBeforeSideEffects(steps) {
           at,
         );
       }
-      for (const key of ["then", "else", "default"]) if (step[key]) walk(step[key], covered, `${at}.${key}`);
-      for (const [name, branch] of Object.entries(step.cases ?? {})) walk(branch, covered, `${at}.cases.${name}`);
+      if (step.kind === 'workflow-call') {
+        const childKey = graph?.[materialKey]?.resolved[step.config.ref];
+        if (!childKey) throw new ManifestError('UNRESOLVED_DEPENDENCY: load and verify the complete graph before applying execution policy', at);
+        walk(graph[childKey].manifest.steps, covered, `${at}.call(${step.config.ref})`, childKey);
+      }
+      for (const key of ["then", "else", "default"]) if (step[key]) walk(step[key], covered, `${at}.${key}`, materialKey);
+      for (const [name, branch] of Object.entries(step.cases ?? {})) walk(branch, covered, `${at}.cases.${name}`, materialKey);
       if (isHumanGate(step)) covered = true;
     });
   };
-  walk(steps, false, "steps");
+  walk(steps, false, "steps", key);
 }
 
 /**
@@ -71,7 +77,7 @@ export function assertHumanGateBeforeSideEffects(steps) {
  * with it: the manifest would look like a workflow while the work happens outside
  * Q-Core (E2E run 9, 27.09). Refused in every workflow.
  */
-export function assertWorkspaceReadIsUsed(steps) {
+export function assertWorkspaceReadIsUsed(steps, outputs = {}) {
   const all = [];
   const collect = (list, path) => list.forEach((step, i) => {
     const at = `${path}[${i}]`;
@@ -86,7 +92,7 @@ export function assertWorkspaceReadIsUsed(steps) {
     const ref = new RegExp("\\{\\{\\s*steps\\." + escaped + "\\.output(?![\\w-])");
     // Used: a later step references it, or a later llm-call without `input` (it receives every prior output).
     const after = all.slice(all.findIndex((x) => x.step === step) + 1);
-    const used = after.some(({ step: other }) => (other.kind === "llm-call" && other.config?.input == null) || Object.values(other.config ?? {}).some((v) => ref.test(String(v))));
+    const used = Object.values(outputs).some(port => ref.test(JSON.stringify(port.value))) || after.some(({ step: other }) => (other.kind === "llm-call" && other.config?.input == null) || Object.values(other.config ?? {}).some((v) => ref.test(String(v))));
     if (!used) {
       throw new ManifestError(
         `UNUSED_WORKSPACE_READ: no step uses the output of workspace-read "${step.id}". Q-Core would read the ` +
@@ -115,8 +121,9 @@ export function isReviewedInstall(file, bytes, doc) {
 
 /** The Core37 policy for a validated manifest. `reviewed: true` only for bytes of a reviewed Registry workflow. */
 export function assertWorkflowPolicy(manifest, { reviewed = false } = {}) {
-  assertWorkspaceReadIsUsed(manifest.steps);
-  if (!reviewed) assertHumanGateBeforeSideEffects(manifest.steps);
+  assertWorkspaceReadIsUsed(manifest.steps, manifest.outputs);
+  for (const node of Object.values(manifest.materialGraph ?? {})) assertWorkspaceReadIsUsed(node.manifest.steps, node.manifest.outputs);
+  if (!reviewed) assertHumanGateBeforeSideEffects(manifest.steps, { graph: manifest.materialGraph, key: manifest.materialKey });
   return manifest;
 }
 
@@ -125,7 +132,7 @@ export function assertWorkflowPolicy(manifest, { reviewed = false } = {}) {
  * q-core init) names the SHA-256 of these exact bytes, or when the caller says so.
  */
 export function loadWorkflow(file, { reviewed } = {}) {
-  const manifest = loadManifest(file);
+  const manifest = loadManifestGraph(file);
   let isReviewed = reviewed;
   if (isReviewed == null) {
     let bytes = null;

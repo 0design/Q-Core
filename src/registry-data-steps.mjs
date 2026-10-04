@@ -3,7 +3,7 @@ import { resolveTemplate, resolveTemplateValue, resolveTemplateReport, resolveJs
 import { parseFeed } from './steps.mjs';
 import { fetchWithRetry } from './http.mjs';
 
-const context = ctx => ({ priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, item: ctx.item, index: ctx.itemIndex });
+const context = ctx => ({ priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, inputs: ctx.inputs, item: ctx.item, index: ctx.itemIndex });
 const value = (step, field, ctx) => resolveTemplateValue(step.config[field], context(ctx));
 const textValue = (step, field, ctx) => resolveTemplate(step.config[field], context(ctx));
 /* The placeholders of a manifest field that stayed unresolved; data substituted into it is not searched. */

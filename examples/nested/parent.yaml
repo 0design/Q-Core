@@ -1,0 +1,26 @@
+manifest: q-core.workflow/v1
+id: nested-dedup-example
+version: "1.0.0"
+name: Nested local deduplication example
+description: A controlled local example; no provider or external delivery.
+inputs:
+  sources:
+    type: array
+    items: {type: object}
+    default: [{url: "https://example.test/article", text: "Example source"}, {url: "https://example.test/article", text: "Example source"}]
+dependencies:
+  cleaner:
+    kind: component
+    id: clean
+    version: "1.0.0"
+    path: ./clean.yaml
+    sha256: c644e142bfef116d9d3e024f0dcd8d4147d0bb3462584953a3ac1dcecfbd3aa5
+outputs:
+  sources: {type: array, value: "{{steps.clean.output.sources}}"}
+  removed: {type: integer, value: "{{steps.clean.output.removed}}"}
+steps:
+  - id: clean
+    kind: workflow-call
+    config:
+      ref: cleaner
+      inputs: '{"sources":"{{inputs.sources}}"}'

@@ -37,6 +37,8 @@ import { flattenWorkflowSteps } from "../src/flatten.mjs";
 import { checkForUpdate, updateNotice } from "../src/update-check.mjs";
 import { buildCatalog, fetchRemoteCatalog, fetchRemoteManifest, REMOTE_CATALOG_BASE, resolveCatalogRoots } from "../src/catalog.mjs";
 import { parseYaml } from "../src/yaml.mjs";
+import { exportMaterialBundle } from '../src/material-graph.mjs';
+import { loadComponentDescriptor } from '../src/component-descriptor.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(join(HERE, "..", "package.json"), "utf8"));
@@ -57,7 +59,9 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
   q-core catalog --section <name>    one section: workflows | components | demos
   q-core init <id> [dir]             copy one workflow here, ready to edit
   q-core validate <manifest>         check the manifest and print the plan
+  q-core export <manifest> <dir>     export exact bytes and all pinned local dependencies
   q-core run <manifest> [--dry-run]  execute one pass
+                                    --inputs <inputs.json> binds typed root inputs
   q-core run <manifest> --caller-provider <provider.json> --json
                                     start explicit CLI caller inference
   q-core reply <manifest> <runId> <reply.json> --json
@@ -128,7 +132,7 @@ function fail(message, code = EXIT_FAILED) {
 /** Control-flow signal: the exit code has already been set. */
 class ExitSignal extends Error {}
 
-const VALUED_FLAGS = new Set(["section", "caller-provider", "approval-hash", "workspace-policy"]);
+const VALUED_FLAGS = new Set(["section", "caller-provider", "approval-hash", "workspace-policy", "inputs"]);
 
 function parseArgs(argv) {
   const flags = new Set();
@@ -201,12 +205,17 @@ function describePlan(manifest) {
 async function cmdValidate(args, flags) {
   const file = args[0];
   if (!file) fail("q-core validate <manifest>", EXIT_USAGE);
+  if (file.endsWith('.json')) {
+    const component = loadComponentDescriptor(file);
+    process.stdout.write(flags.has('json') ? JSON.stringify({ kind: 'component', format: 'descriptor', executable: false, component }, null, 2) + '\n' : `✓ ${shortPath(file)} is a valid component descriptor; metadata only, not executable\n`);
+    return EXIT_OK;
+  }
   const manifest = loadManifest(file);
   if (flags.has("json")) {
     process.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
     return EXIT_OK;
   }
-  process.stdout.write(`✓ ${shortPath(file)} is a valid q-core.workflow/v1 manifest\n\n`);
+  process.stdout.write(`✓ ${shortPath(file)} is a valid ${manifest.manifest} manifest (${Object.keys(manifest.materialGraph).length} pinned material(s))\n\n`);
   process.stdout.write(`${describePlan(manifest)}\n`);
   if (manifest.settings.sensitivity) {
     process.stdout.write(
@@ -252,7 +261,7 @@ async function cmdRun(args, flags, opts) {
   }
 
   const store = new RunStore(file);
-  const run = createRun(manifest, { trigger: dryRun ? "dry-run" : "manual" });
+  const run = createRun(manifest, { trigger: dryRun ? "dry-run" : "manual", inputs: opts.inputs ? readBoundedJson(opts.inputs) : {} });
   const abort = new AbortController();
   const cancel = () => abort.abort();
   process.on("SIGINT", cancel);
@@ -745,6 +754,13 @@ const commands = {
   catalog: cmdCatalog,
   init: cmdInit,
   validate: cmdValidate,
+  export: async (args, flags) => {
+    if (args.length !== 2) fail('q-core export <manifest> <new-directory>', EXIT_USAGE);
+    if (!args[0].endsWith('.json')) loadManifest(args[0]); // identical human policy and graph checks as validate/run
+    const bundle = exportMaterialBundle(args[0], args[1]);
+    process.stdout.write(flags.has('json') ? JSON.stringify(bundle, null, 2) + '\n' : `Exported ${bundle.files.length} pinned material(s); entry ${bundle.entry}\n`);
+    return EXIT_OK;
+  },
   run: cmdRun,
   reply: cmdReply,
   clarify: cmdClarify,
