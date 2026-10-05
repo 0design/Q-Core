@@ -39,7 +39,11 @@ export function validateComponentDescriptor(doc) {
 }
 
 export function loadComponentDescriptor(file) {
-  const bytes = readFileSync(file);
-  if (bytes.length > 1_048_576) throw new ManifestError('component descriptor exceeds 1 MiB');
-  return validateComponentDescriptor(JSON.parse(bytes.toString('utf8')));
+  let bytes;
+  try { bytes = readFileSync(file); }
+  catch (error) { throw Object.assign(new ManifestError('cannot read component descriptor'), { code: error.code, materialPath: null }); }
+  try {
+    if (bytes.length > 1_048_576) throw new ManifestError('component descriptor exceeds 1 MiB');
+    return validateComponentDescriptor(JSON.parse(bytes.toString('utf8')));
+  } catch (error) { throw Object.assign(error, { materialPath: String(file).split(/[\\/]/).at(-1) }); }
 }

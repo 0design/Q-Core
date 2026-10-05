@@ -68,6 +68,16 @@ workspace policy or budget ceiling.
 - `validateManifest(doc)` validates the workflow/executable-component shape and
   dependency declarations. It does not read dependencies or prove execution.
 - `loadManifestGraph(file)` verifies and snapshots the complete pinned closure.
+- Load diagnostics carry `materialPath`, a portable path relative to the bundle
+  entry directory. Syntax and field errors name the actual failing material and
+  preserve the original error class/name, `path`, `line` and `code` when present.
+  Binding and execution-policy paths are relative to that material, including
+  errors in nested control flow. A missing, mismatched or cyclic dependency points
+  to the referencing material's `dependencies.<alias>.<field>` when known.
+  `materialPath: null` (or an absent field on a direct validator) means unknown:
+  consumers must not highlight a same-named field in the root by assumption.
+  Resolution diagnostics omit absolute filesystem paths. This is diagnostic
+  provenance only; it does not change validation or human-approval policy.
 - `loadWorkflow(file)` additionally applies human-side-effect policy through
   child calls. A gate on the parent path covers the child; a gate inside a
   conditional branch does not cover another branch.

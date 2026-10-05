@@ -13,18 +13,28 @@ export const MAX_MANIFEST_BYTES = 1_048_576;
 export const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 function within(root, file) { const rel = relative(root, file); return !rel.startsWith(`..${sep}`) && rel !== '..' && !rel.startsWith(sep); }
-function calls(steps) {
-  return steps.flatMap(step => [ ...(step.kind === 'workflow-call' ? [step] : []), ...[step.then, step.else, step.default, ...Object.values(step.cases ?? {})].filter(Boolean).flatMap(calls) ]);
+function calls(steps, path = 'steps') {
+  return steps.flatMap((step, index) => {
+    const at = `${path}[${index}]`;
+    return [ ...(step.kind === 'workflow-call' ? [{ step, path: at }] : []),
+      ...['then', 'else', 'default'].flatMap(branch => step[branch] ? calls(step[branch], `${at}.${branch}`) : []),
+      ...Object.entries(step.cases ?? {}).flatMap(([name, branch]) => calls(branch, `${at}.cases.${name}`)) ];
+  });
 }
+const located = (error, materialPath) => Object.assign(error, { materialPath: materialPath ?? null });
+const referenceError = (message, reference, field = 'path') => located(new ManifestError(message, reference ? `${reference.path}.${field}` : undefined), reference?.materialPath);
 
 export function loadManifestGraph(file) {
-  const root = realpathSync(dirname(resolve(file)));
+  let root;
+  try { root = realpathSync(dirname(resolve(file))); }
+  catch { throw referenceError('cannot resolve material directory'); }
+  const portable = target => within(root, resolve(target)) ? relative(root, resolve(target)).split(sep).join('/') : null;
   const materialGraph = {};
   const paths = new Map();
   const identities = new Map();
-  function visit(target, ancestors, expected, depth) {
+  function visit(target, ancestors, expected, depth, reference) {
     if (depth === 0) target = join(root, basename(target));
-    if (depth > MAX_CALL_DEPTH) throw new ManifestError(`dependency depth exceeds ${MAX_CALL_DEPTH}`);
+    if (depth > MAX_CALL_DEPTH) throw referenceError(`dependency depth exceeds ${MAX_CALL_DEPTH}`, reference);
     let actual, bytes;
     try {
       let check = root;
@@ -34,39 +44,48 @@ export function loadManifestGraph(file) {
       if (!statSync(actual).isFile() || statSync(actual).size > MAX_MANIFEST_BYTES) throw new Error('dependency must be a bounded regular file');
       bytes = readFileSync(actual);
       if (bytes.length > MAX_MANIFEST_BYTES) throw new Error('dependency must be a bounded regular file');
-    } catch (error) { throw new ManifestError(`cannot resolve dependency ${target}: ${error.message}`); }
-    if (ancestors.includes(actual)) throw new ManifestError(`dependency cycle: ${[...ancestors, actual].map(name => relative(root, name)).join(' -> ')}`);
+    } catch (error) {
+      // Node filesystem errors include absolute host paths. Keep the portable reference and a bounded reason.
+      const reason = error.code === 'ENOENT' ? 'file not found' : error.code ? `filesystem error (${error.code})` : error.message;
+      throw referenceError(`cannot resolve dependency ${portable(target) ?? '<outside root>'}: ${reason}`, reference);
+    }
+    if (ancestors.includes(actual)) throw referenceError(`dependency cycle: ${[...ancestors, actual].map(portable).join(' -> ')}`, reference);
     const sha256 = digest(bytes);
-    if (expected && expected.sha256 !== sha256) throw new ManifestError(`dependency checksum mismatch: ${expected.id}@${expected.version}`);
-    const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    const manifest = validateManifest(parseYaml(source));
-    if (expected && (expected.id !== manifest.id || expected.version !== manifest.version || manifest.manifest !== `q-core.${expected.kind}/v1`)) throw new ManifestError(`dependency identity/version/kind mismatch: ${expected.id}@${expected.version}`);
+    if (expected && expected.sha256 !== sha256) throw referenceError(`dependency checksum mismatch: ${expected.id}@${expected.version}`, reference, 'sha256');
+    const key = portable(actual);
+    let source, manifest;
+    try { source = new TextDecoder('utf-8', { fatal: true }).decode(bytes); manifest = validateManifest(parseYaml(source)); }
+    catch (error) { throw located(error, key); } // Preserve the original class, name, code, semantic path and YAML line.
+    if (expected && (expected.id !== manifest.id || expected.version !== manifest.version || manifest.manifest !== `q-core.${expected.kind}/v1`)) {
+      const field = expected.id !== manifest.id ? 'id' : expected.version !== manifest.version ? 'version' : 'kind';
+      throw referenceError(`dependency identity/version/kind mismatch: ${expected.id}@${expected.version}`, reference, field);
+    }
     const identity = `${manifest.manifest}:${manifest.id}@${manifest.version}`;
-    if (identities.has(identity) && identities.get(identity) !== sha256) throw new ManifestError(`conflicting exact bytes for ${identity}`);
+    if (identities.has(identity) && identities.get(identity) !== sha256) throw referenceError(`conflicting exact bytes for ${identity}`, reference, 'sha256');
     identities.set(identity, sha256);
     if (paths.has(actual)) return paths.get(actual);
-    if (Object.keys(materialGraph).length >= MAX_MATERIALS) throw new ManifestError(`dependency count exceeds ${MAX_MATERIALS}`);
-    const key = relative(root, actual).split(sep).join('/');
+    if (Object.keys(materialGraph).length >= MAX_MATERIALS) throw referenceError(`dependency count exceeds ${MAX_MATERIALS}`, reference);
     paths.set(actual, key);
     const { file: ignored, ...snapshot } = manifest;
     const node = materialGraph[key] = { manifest: snapshot, sha256, source, resolved: {} };
-    for (const [alias, ref] of Object.entries(manifest.dependencies)) node.resolved[alias] = visit(resolve(dirname(actual), ref.path), [...ancestors, actual], ref, depth + 1);
+    for (const [alias, ref] of Object.entries(manifest.dependencies)) node.resolved[alias] = visit(resolve(dirname(actual), ref.path), [...ancestors, actual], ref, depth + 1, { materialPath: key, path: `dependencies.${alias}` });
     // Literal arguments can be refused before a paid or outbound step. Dynamic
     // arguments receive the identical check at the invocation boundary.
-    for (const call of calls(manifest.steps)) {
+    for (const { step: call, path } of calls(manifest.steps)) {
+      const invalidCall = message => located(new ManifestError(`call ${call.id}: ${message}`, `${path}.config.inputs`), key);
       const child = materialGraph[node.resolved[call.config.ref]].manifest;
       const values = JSON.parse(call.config.inputs ?? '{}');
-      for (const name of Object.keys(values)) if (!Object.hasOwn(child.inputs, name)) throw new ManifestError(`call ${call.id}: undeclared child input ${name}`);
-      for (const [name, port] of Object.entries(child.inputs)) if (!Object.hasOwn(values, name) && port.required !== false && !Object.hasOwn(port, 'default')) throw new ManifestError(`call ${call.id}: missing required child input ${name}`);
+      for (const name of Object.keys(values)) if (!Object.hasOwn(child.inputs, name)) throw invalidCall(`undeclared child input ${name}`);
+      for (const [name, port] of Object.entries(child.inputs)) if (!Object.hasOwn(values, name) && port.required !== false && !Object.hasOwn(port, 'default')) throw invalidCall(`missing required child input ${name}`);
       for (const [name, value] of Object.entries(values)) {
         const inputRef = typeof value === 'string' && value.match(/^\{\{\s*inputs\.([a-zA-Z_][a-zA-Z0-9_-]*)\s*\}\}$/);
         if (inputRef) {
           const input = manifest.inputs[inputRef[1]];
-          if (!input) throw new ManifestError(`call ${call.id}: unknown parent input ${inputRef[1]}`);
-          if (input.type !== child.inputs[name].type && !(input.type === 'integer' && child.inputs[name].type === 'number')) throw new ManifestError(`call ${call.id}: input ${name} expects ${child.inputs[name].type}, parent input is ${input.type}`);
-        } else if (!JSON.stringify(value).includes('{{')) try { assertType(value, child.inputs[name], `inputs.${name}`); } catch (error) { throw new ManifestError(`call ${call.id}: ${error.message}`); }
+          if (!input) throw invalidCall(`unknown parent input ${inputRef[1]}`);
+          if (input.type !== child.inputs[name].type && !(input.type === 'integer' && child.inputs[name].type === 'number')) throw invalidCall(`input ${name} expects ${child.inputs[name].type}, parent input is ${input.type}`);
+        } else if (!JSON.stringify(value).includes('{{')) try { assertType(value, child.inputs[name], `inputs.${name}`); } catch (error) { throw invalidCall(error.message); }
       }
-      if (!JSON.stringify(values).includes('{{')) try { bindInputs(child.inputs, values); } catch (error) { throw new ManifestError(`call ${call.id}: ${error.message}`); }
+      if (!JSON.stringify(values).includes('{{')) try { bindInputs(child.inputs, values); } catch (error) { throw invalidCall(error.message); }
     }
     return key;
   }
@@ -75,12 +94,12 @@ export function loadManifestGraph(file) {
   // the first shallow path through which they were loaded.
   const heights = new Map();
   const height = (key, chain = []) => {
-    if (chain.includes(key)) throw new ManifestError('dependency cycle in resolved graph');
+    if (chain.includes(key)) throw referenceError('dependency cycle in resolved graph');
     if (heights.has(key)) return heights.get(key);
     const result = Math.max(0, ...Object.values(materialGraph[key].resolved).map(child => 1 + height(child, [...chain, key])));
     heights.set(key, result); return result;
   };
-  if (height(materialKey) > MAX_CALL_DEPTH) throw new ManifestError(`dependency depth exceeds ${MAX_CALL_DEPTH}`);
+  if (height(materialKey) > MAX_CALL_DEPTH) throw referenceError(`dependency depth exceeds ${MAX_CALL_DEPTH}`);
   return { ...materialGraph[materialKey].manifest, file: resolve(file), materialKey, materialGraph };
 }
 

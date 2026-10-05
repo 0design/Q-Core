@@ -71,6 +71,8 @@ export declare const RESERVED_KINDS: Record<string, string>;
 export declare class ManifestError extends Error {
   constructor(message: string, path?: string);
   path: string | null;
+  /** Portable bundle-relative source when loaded through the graph/policy API; null/absent means unknown. */
+  materialPath?: string | null;
 }
 
 export declare function validateManifest(doc: unknown): WorkflowManifest;

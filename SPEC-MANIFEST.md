@@ -718,7 +718,7 @@ environment before relying on a Registry composition.
 - `fetch.maxBodyBytes` optionally raises the bounded response capture from 64000
   to at most 2000000 bytes for static source pages; text output discloses truncation.
 
-## Nested materials (contract revision 14)
+## Nested materials (contract revisions 14–15)
 
 `workflow-call` invokes an exact local dependency declared under `dependencies`.
 Both workflows and executable `q-core.component/v1` components have typed inputs
@@ -727,3 +727,10 @@ accounting and persisted human-gate/caller-inference lifecycle are specified in
 [Nested materials](contracts/v1/nested-materials.md). Existing Registry JSON
 component descriptors remain nonexecutable metadata. Run the self-contained
 local example with `q-core run examples/nested/parent.yaml --json`.
+
+Graph and policy diagnostics identify the actual source with portable
+`materialPath`, retaining semantic `path` and YAML `line` when present. Dependency
+resolution errors locate the referencing pin where known; null or absent source
+provenance must never be interpreted as the root file. See the nested-material
+contract for the diagnostic boundary. Validation and human confirmation rules
+are unchanged.

@@ -51,18 +51,18 @@ export function assertHumanGateBeforeSideEffects(steps, { graph, key } = {}) {
       const at = `${path}[${i}]`;
       const effect = sideEffectOf(step);
       if (effect && !covered) {
-        throw new ManifestError(
+        throw Object.assign(new ManifestError(
           `GATE_REQUIRED: step "${step.id}" (${step.kind}) ${effect}, and no human approval-gate comes before it. ` +
             "A workflow you create may not write files or send data before a person approves the run: add an " +
             "approval-gate step with reviewer: human (bind: sha256) before it, or install the reviewed Registry " +
             "workflow unchanged with q-core install. Do not move the work into your own script instead",
           at,
-        );
+        ), { materialPath: materialKey ?? null });
       }
       if (step.kind === 'workflow-call') {
         const childKey = graph?.[materialKey]?.resolved[step.config.ref];
-        if (!childKey) throw new ManifestError('UNRESOLVED_DEPENDENCY: load and verify the complete graph before applying execution policy', at);
-        walk(graph[childKey].manifest.steps, covered, `${at}.call(${step.config.ref})`, childKey);
+        if (!childKey) throw Object.assign(new ManifestError('UNRESOLVED_DEPENDENCY: load and verify the complete graph before applying execution policy', at), { materialPath: materialKey ?? null });
+        walk(graph[childKey].manifest.steps, covered, 'steps', childKey);
       }
       for (const key of ["then", "else", "default"]) if (step[key]) walk(step[key], covered, `${at}.${key}`, materialKey);
       for (const [name, branch] of Object.entries(step.cases ?? {})) walk(branch, covered, `${at}.cases.${name}`, materialKey);
@@ -121,8 +121,12 @@ export function isReviewedInstall(file, bytes, doc) {
 
 /** The Core37 policy for a validated manifest. `reviewed: true` only for bytes of a reviewed Registry workflow. */
 export function assertWorkflowPolicy(manifest, { reviewed = false } = {}) {
-  assertWorkspaceReadIsUsed(manifest.steps, manifest.outputs);
-  for (const node of Object.values(manifest.materialGraph ?? {})) assertWorkspaceReadIsUsed(node.manifest.steps, node.manifest.outputs);
+  const checkReads = (doc, key) => {
+    try { assertWorkspaceReadIsUsed(doc.steps, doc.outputs); }
+    catch (error) { throw Object.assign(error, { materialPath: key ?? null }); }
+  };
+  checkReads(manifest, manifest.materialKey);
+  for (const [key, node] of Object.entries(manifest.materialGraph ?? {})) checkReads(node.manifest, key);
   if (!reviewed) assertHumanGateBeforeSideEffects(manifest.steps, { graph: manifest.materialGraph, key: manifest.materialKey });
   return manifest;
 }
