@@ -1,48 +1,34 @@
-<!-- Say which kind this PR is. One kind per PR when you can. -->
+<!-- Follow docs/contributing/guide.md and CONTRIBUTING.md. State the exact scope and evidence. -->
 
-## Kind
+## Change and evidence
 
-- [ ] Workflow
-- [ ] Component
-- [ ] Demo
+- Kind: documentation / runtime fix / Registry workflow / component / demo
+- Problem and resulting behavior:
+- Exact versions, checks performed, and observed result:
+- Remaining unverified behavior:
 
-Do not hand-edit `catalog.json`. After you add files, run `npm run catalog` and commit the generated result.
+Keep fixtures, controlled local runs, and external results distinct. Do not include
+secrets, private drafts, unmeasured cost claims, or live external actions as part
+of ordinary PR checks.
 
----
+## Registry contribution (when applicable)
 
-## Workflow
+Edit source files and `registry/catalog.source.json`; never hand-edit the generated
+`registry/catalog.json`. Follow the [contribution guide](../docs/contributing/guide.md)
+for packing the exact Core archive, regeneration, and checksum verification.
 
-One manifest, one pull request. A `.yaml` file in `workflows/`.
+- [ ] Workflow: `registry/workflows/<id>.yaml` with author, origin, MIT license,
+      version and exact compatible engine/dependency pins in catalog source
+- [ ] Component: `registry/components/<id>.json` for supported block metadata;
+      executable components use `registry/components/<id>.yaml` and
+      `q-core.component/v1` under `contracts/v1/nested-materials.md`
+- [ ] Demo: `registry/demos/<id>.txt` and version-bound catalog source metadata;
+      `live` only when its public result is actually reachable
+- [ ] Existing attribution and license preserved; planned adapters remain unavailable
+- [ ] Workflow validated with `node bin/q-core.mjs validate registry/workflows/<id>.yaml`
+- [ ] Exact archive supplied to `node scripts/build-registry.mjs --check --core-artifact <archive>`
+- [ ] Changed Registry assets regenerated with `--export registry --core-artifact <archive>`
+- [ ] `npm test` and relevant positive/negative/recovery checks passed
 
-- [ ] `q-core validate workflows/your-workflow.yaml` passes
-- [ ] It runs as shipped, against a real key-free endpoint where you can
-- [ ] No secrets in the file — `{{env.YOUR_VAR}}` only
-- [ ] Comments say WHY, not what
-- [ ] The irreversible step is last, and behind a gate if it publishes, charges, sends or deletes
-- [ ] `settings.budgetUsd` is set explicitly
-- [ ] An agent-gate rubric is a condition, not a wish
-- [ ] Optional proof: `examples/<id>.run.json` and `examples/<id>.txt` via `node scripts/record-proof.mjs <workflow-id>`
-
----
-
-## Component
-
-A contract in `registry/components/<id>.json`. Not a new engine kind unless SPEC-MANIFEST.md already has one.
-
-- [ ] `id`, `name`, `kind` (`step` | `trigger` | `composite`), `description`
-- [ ] `input` / `output` field maps with `type` and `notes` (input also has `required`)
-- [ ] `needsEnv` is a string array
-- [ ] Description quotes SPEC-MANIFEST.md — no invented runner behaviour
-- [ ] A composite names `builtFrom` and is a recipe, not a new step kind
-- [ ] Ran `npm run catalog`
-
----
-
-## Demo
-
-A named run in `registry/demos/<id>.json` against a workflow that already exists.
-
-- [ ] `workflowId` matches a file in `workflows/`
-- [ ] `proof` points at a recorded file in `examples/` (or says there is none)
-- [ ] `live` is true only when `resultUrl` is a public URL that actually works
-- [ ] Ran `npm run catalog`
+Packaged Core changes need a new reviewed Core/Registry pair. Report pin mismatches;
+do not weaken checksum checks or claim publication from a passing local check.
