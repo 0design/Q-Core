@@ -68,6 +68,8 @@ workspace policy or budget ceiling.
 - `validateManifest(doc)` validates the workflow/executable-component shape and
   dependency declarations. It does not read dependencies or prove execution.
 - `loadManifestGraph(file)` verifies and snapshots the complete pinned closure.
+  Each node source preserves the exact UTF-8 file bytes, including a leading BOM;
+  its SHA256 matches those bytes. Malformed UTF-8 is refused before export writes.
 - Load diagnostics carry `materialPath`, a portable path relative to the bundle
   entry directory. Syntax and field errors name the actual failing material and
   preserve the original error class/name, `path`, `line` and `code` when present.

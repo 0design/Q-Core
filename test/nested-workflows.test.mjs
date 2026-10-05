@@ -206,3 +206,40 @@ test('Registry builder includes exact transitive dependency assets, not only lis
   writeFileSync(join(dir, ref.path), 'tampered');
   assert.throws(() => buildRegistry(dir), /checksum/);
 });
+
+test('BOM-bearing parent and child retain exact pinned bytes through export, relocation, validate and local run', async t => {
+  const dir = directory(t), original = join(dir, 'original'); mkdirSync(join(original, 'deps'), {recursive:true});
+  const child = '\ufeff' + yaml(leaf()), ref = {kind:'component',id:'clean',version:'1.0.0',path:'deps/clean.yaml',sha256:digest(Buffer.from(child))};
+  const source = '\ufeff' + yaml(parent(ref));
+  writeFileSync(join(original,'deps/clean.yaml'),child); writeFileSync(join(original,'parent.yaml'),source);
+  const graph = loadManifestGraph(join(original,'parent.yaml'));
+  assert.equal(graph.materialGraph[graph.materialKey].source,source);
+  assert.equal(graph.materialGraph['deps/clean.yaml'].source,child);
+  for(const node of Object.values(graph.materialGraph)) assert.equal(digest(Buffer.from(node.source)),node.sha256);
+  const destination=join(dir,'export'), bundle=exportMaterialBundle(join(original,'parent.yaml'),destination);
+  for(const file of bundle.files) {
+    assert.deepEqual(readFileSync(join(destination,file.path)),readFileSync(join(original,file.path)));
+    assert.equal(digest(readFileSync(join(destination,file.path))),file.sha256);
+  }
+  const relocated=join(dir,'relocated'); cpSync(destination,relocated,{recursive:true}); rmSync(original,{recursive:true}); rmSync(destination,{recursive:true});
+  const manifest=loadWorkflow(join(relocated,bundle.entry)), done=await driveRun(createRun(manifest));
+  assert.equal(done.status,'success',done.summary); assert.deepEqual(done.output,{removed:1});
+  const bin=resolve('bin/q-core.mjs'), env={...process.env,QF_NO_UPDATE_CHECK:'1'};
+  const validated=spawnSync(process.execPath,[bin,'validate',join(relocated,bundle.entry),'--json'],{cwd:relocated,env,encoding:'utf8'});
+  assert.equal(validated.status,0,validated.stderr);
+  const ran=spawnSync(process.execPath,[bin,'run',join(relocated,bundle.entry),'--json'],{cwd:relocated,env,encoding:'utf8'});
+  assert.equal(ran.status,0,ran.stderr); assert.deepEqual(JSON.parse(ran.stdout).output,{removed:1});
+});
+
+test('malformed UTF-8 in a pinned root or child fails before export writes', t => {
+  for(const target of ['parent','child']) {
+    const dir=directory(t), child=Buffer.concat([Buffer.from(yaml(leaf())),...(target==='child'?[Buffer.from([0xff])]:[])]);
+    mkdirSync(join(dir,'deps')); writeFileSync(join(dir,'deps/clean.yaml'),child);
+    const ref={kind:'component',id:'clean',version:'1.0.0',path:'deps/clean.yaml',sha256:digest(child)};
+    const source=Buffer.concat([Buffer.from(yaml(parent(ref))),...(target==='parent'?[Buffer.from([0xff])]:[])]);
+    writeFileSync(join(dir,'parent.yaml'),source);
+    assert.throws(()=>loadManifestGraph(join(dir,'parent.yaml')),error=>error.code==='ERR_ENCODING_INVALID_ENCODED_DATA');
+    assert.throws(()=>exportMaterialBundle(join(dir,'parent.yaml'),join(dir,'never-created')));
+    assert.equal(readdirSync(dir).includes('never-created'),false);
+  }
+});

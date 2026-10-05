@@ -54,7 +54,7 @@ export function loadManifestGraph(file) {
     if (expected && expected.sha256 !== sha256) throw referenceError(`dependency checksum mismatch: ${expected.id}@${expected.version}`, reference, 'sha256');
     const key = portable(actual);
     let source, manifest;
-    try { source = new TextDecoder('utf-8', { fatal: true }).decode(bytes); manifest = validateManifest(parseYaml(source)); }
+    try { source = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); manifest = validateManifest(parseYaml(source)); }
     catch (error) { throw located(error, key); } // Preserve the original class, name, code, semantic path and YAML line.
     if (expected && (expected.id !== manifest.id || expected.version !== manifest.version || manifest.manifest !== `q-core.${expected.kind}/v1`)) {
       const field = expected.id !== manifest.id ? 'id' : expected.version !== manifest.version ? 'version' : 'kind';
