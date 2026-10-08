@@ -30,7 +30,7 @@ export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate"
 /** Trigger kinds — entry points, not steps. `schedule` is one of these, not a runner. */
 export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "workflow-input", "event"];
 
-/** Reserved in the format, deliberately NOT implemented (owner decision 2026-08-01). */
+/** Reserved in the format, deliberately not implemented. */
 export const RESERVED_KINDS = {
   "agent-call": "a call to an agent WITH its own context — reserved in the format, not implemented in v1",
 };

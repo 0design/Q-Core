@@ -1,7 +1,7 @@
-/* Core38: the Digest checks each claim against its linked source before the human gate. A fact-check model step
+/* The Digest checks each claim against its linked source before the human gate. A fact-check model step
    returns claim records and the revised text; verify-sources checks the records deterministically (verbatim quotes
    in the source text the Core holds, numbers, one record per list item, removed claims absent) and the gate binds
-   the checked text. Examples: the five errors an independent fact-check found in live run 65ef7d49 (Digest 0.5.0).
+   the checked text. Examples: five errors an independent fact-check found in a Digest 0.5.0 run.
    The deterministic layer refuses error 4 (numbers) and the listed phrases of error 5 whatever the model says;
    errors 1-3 are refused only when the fact-check record admits them (a verdict, a missing or invented quote,
    removed wording left in the text). Recorded as «supported» with a genuine quote they pass: see the limit test. Offline: the fixture holds the run's selected sources (feed-item title and summary) and draft. */
@@ -26,7 +26,7 @@ const HEADER = "**Штучно-інтелектуальний дайджест �
 const DIGEST = loadManifest(resolve("registry/workflows/digest.yaml"));
 const CHECKS = DIGEST.steps.find((s) => s.id === "checks").config;
 
-// The live draft corrected the way the independent fact-check asked, in the Digest 0.6 form (owner review 27.09):
+// The draft corrected the way the independent fact-check asked, in the Digest 0.6 form:
 // compact links (a theme with cases carries none, its cases link the sources) and short items (one sentence each).
 const ITEMS = [
   `- OpenAI призупинила найпотужніші моделі після інцидентів з агентами, а Muse від Meta відкрила користувачам свою файлову систему`,
@@ -88,7 +88,7 @@ test("the revised live draft passes: every item has a claim record, verbatim quo
   assert.match(out.limitation, /model.s verdict, so the human review still decides/);
 });
 
-test("the five errors of live run 65ef7d49: the records and texts the deterministic layer refuses", () => {
+test("the five fact-check errors: the records and texts the deterministic layer refuses", () => {
   const live = RUN.draft.split("\n").filter((l) => /^\s*- /.test(l));
   assert.equal(live.length, 10);
   const cases = {
@@ -190,7 +190,7 @@ test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate
   assert.ok(DIGEST.settings.budgetUsd >= 0.5);
 });
 
-test("live run 461a3df0: a number the linked source title states passes; a half is not a third", () => {
+test("a number the linked source title states passes; a half is not a third", () => {
   const n = ITEMS.findIndex((l) => l.includes(D_NVIDIA)) + 1;
   assert.ok(n > 0);
   const quote = { quote: [RUN.sources.find((s) => s.url === D_NVIDIA).text.split(/[.!?]/)[0].trim()] };

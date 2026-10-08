@@ -1,5 +1,5 @@
 /**
- * Core37 policy for workflows a user or an agent creates (E2E run 9, 27.09.2026).
+ * Policy for workflows a user or an agent creates.
  *
  * Kept OUT of manifest.mjs on purpose: the hosted MCP serves several exact Cores with one bundled
  * validator and requires manifest.mjs, yaml.mjs and the request schema to be byte-identical across
@@ -36,7 +36,7 @@ export function sideEffectOf(step) {
 const isHumanGate = (step) => step.kind === "approval-gate" && (step.config?.reviewer ?? "human") === "human";
 
 /**
- * Core37 (gate required): a workflow created outside the reviewed Registry may not write
+ * Gate required: a workflow created outside the reviewed Registry may not write
  * files or send data anywhere before a person has approved the run. A human
  * approval-gate must come EARLIER on the same path as every side-effect step. A gate
  * inside an if/switch branch guards only that branch. Agent gates do not count.
@@ -69,7 +69,7 @@ export function assertHumanGateBeforeSideEffects(steps) {
 /**
  * A workspace-read whose output no later step uses reads the project and does nothing
  * with it: the manifest would look like a workflow while the work happens outside
- * Q-Core (E2E run 9, 27.09). Refused in every workflow.
+ * Q-Core. Refused in every workflow.
  */
 export function assertWorkspaceReadIsUsed(steps) {
   const all = [];
@@ -113,7 +113,7 @@ export function isReviewedInstall(file, bytes, doc) {
   return Array.isArray(lock.resolved) && lock.resolved.some((r) => r?.key === `workflows/${lock.id}@${lock.version}` && r.sha256 === sha);
 }
 
-/** The Core37 policy for a validated manifest. `reviewed: true` only for bytes of a reviewed Registry workflow. */
+/** The policy for a validated manifest. `reviewed: true` only for bytes of a reviewed Registry workflow. */
 export function assertWorkflowPolicy(manifest, { reviewed = false } = {}) {
   assertWorkspaceReadIsUsed(manifest.steps);
   if (!reviewed) assertHumanGateBeforeSideEffects(manifest.steps);
@@ -121,7 +121,7 @@ export function assertWorkflowPolicy(manifest, { reviewed = false } = {}) {
 }
 
 /**
- * loadManifest + the Core37 policy. A file is reviewed when its `<file>.lock.json` (q-core install,
+ * loadManifest + the policy. A file is reviewed when its `<file>.lock.json` (q-core install,
  * q-core init) names the SHA-256 of these exact bytes, or when the caller says so.
  */
 export function loadWorkflow(file, { reviewed } = {}) {

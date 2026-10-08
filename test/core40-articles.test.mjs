@@ -1,7 +1,7 @@
-/* Core40: the Digest fact check grounds on the article behind each selected source, not only on its feed summary
-   (owner decision 27.09, «автозвірка в R1»). parse-web articles reads each page once (public http(s) only, bounded,
+/* The Digest fact check grounds on the article behind each selected source, not only on its feed summary
+   parse-web articles reads each page once (public http(s) only, bounded,
    static text); verify-sources factCheck accepts quotes and numbers from the article and keeps an article's
-   approximation («about 160»). Negative examples from live run 97688656 (Digest 0.6.1, Registry25), whose checks
+   approximation («about 160»). Negative examples from a Digest 0.6.1 run, whose checks
    passed while an independent fact-check against the articles found 8 defects. Offline: fetch is stubbed; one test
    uses a local server to show that no request reaches a private address. Article excerpts are short, with their URL. */
 import assert from "node:assert/strict";
@@ -144,7 +144,7 @@ test("factCheck grounds on the article: a quote only the article has passes; wit
   assert.throws(() => check(summaryOnly, IT_ITEM("Лише близько восьми ІТ-керівників мають результати AI, вартi того, щоб перервати відпустку CEO"), claim), /the quote is not in the text of its linked sources/);
 });
 
-test("live run 97688656: «160» where the article says «about 160» is refused, although the feed summary said «160»", async () => {
+test("«160» where the article says «about 160» is refused, although the feed summary said «160»", async () => {
   const read = await withArticles();
   const quote = ["Two-thirds raised their hands"];
   assert.throws(() => check(read, IT_ITEM("Дві третини з 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "supported", sources: [IT], quote }),
@@ -175,7 +175,7 @@ test("Digest 0.7.0: the articles step feeds the fact check and the checks; the p
   for (const rule of ["Check each claim against the full article text", "the article, not the feed summary, decides", "vendor-reported benchmarks are not independent results", "«about 160» is «близько 160»", "weren't publicly listed"]) assert.match(fc.instructions, words(rule), rule);
 });
 
-test("live run 3f16062b: an extra quote that is not verbatim is set aside as unmatched when another verbatim quote supports the claim; a claim with no verbatim quote is still refused", async () => {
+test("an extra quote that is not verbatim is set aside as unmatched when another verbatim quote supports the claim; a claim with no verbatim quote is still refused", async () => {
   const { runVerifySources } = await import("../src/registry-data-steps.mjs");
   const URL_ = "https://www.marktechpost.com/julia";
   const TEXT = "Supersonic Labs releases Julia 1, a 144.3M-parameter open decision model that runs on a CPU and ships under Apache 2.0.";
@@ -191,7 +191,6 @@ test("live run 3f16062b: an extra quote that is not verbatim is set aside as unm
   assert.throws(() => run(["144.3M-parameter decision model that runs on a CPU", "Julia 1"]), /the quote is not in the text of its linked sources/, "a short verbatim quote alone does not carry the claim");
 });
 
-// Review of PR #32 (Core40, round 1).
 const stream = (parts, { fail, endless } = {}) => {
   let pulled = 0, cancelled = false, i = 0;
   const body = new ReadableStream({
@@ -206,7 +205,7 @@ const stream = (parts, { fail, endless } = {}) => {
   return { body, stats: () => ({ pulled, cancelled }) };
 };
 
-test("review P1: a page that breaks mid-body or redirects to an invalid Location is unavailable, not a failed step", async () => {
+test("a page that breaks mid-body or redirects to an invalid Location is unavailable, not a failed step", async () => {
   const reset = stream(["<article>Half a"], { fail: Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }) });
   const slow = stream(["<article>Half b"], { fail: Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" }) });
   await withFetch((url) => (url === TC ? new Response(reset.body, { status: 200, headers: { "content-type": "text/html" } })
@@ -222,7 +221,7 @@ test("review P1: a page that breaks mid-body or redirects to an invalid Location
   });
 });
 
-test("review P2: reading stops at 1.5 MB on an endless page", async () => {
+test("reading stops at 1.5 MB on an endless page", async () => {
   const endless = stream([], { endless: true });
   await withFetch(() => new Response(endless.body, { status: 200, headers: { "content-type": "text/html" } }), async () => {
     const out = (await articles({ sources: [{ url: IT, text: "t" }] })).output;
@@ -233,7 +232,7 @@ test("review P2: reading stops at 1.5 MB on an endless page", async () => {
   });
 });
 
-test("review P2: extraction is linear; a pathological 1 MB page with unclosed tags returns quickly", () => {
+test("extraction is linear; a pathological 1 MB page with unclosed tags returns quickly", () => {
   const nasty = [
     `<article>${"<aside x".repeat(120_000)}`,
     `<main>${"<div ".repeat(200_000)}`,
@@ -251,7 +250,7 @@ test("review P2: extraction is linear; a pathological 1 MB page with unclosed ta
   assert.equal(articleTextOf("<article>A <script>x()</script>B<!-- c -->D &amp; E &#8217;</article>"), "A B D & E ’");
 });
 
-test("review P1: the approximation and bound forms of Ukrainian are kept, each accepted", async () => {
+test("the approximation and bound forms of Ukrainian are kept, each accepted", async () => {
   const sol = (article) => ({ sources: [{ url: "https://the-decoder.com/it/", title: "IT leaders", text: "Summary.", articleStatus: "ok", articleText: article, cluster: 1 }] });
   const item = (w) => `- ${w} ІТ-керівників відповіли на питання ([The Decoder](https://the-decoder.com/it/))`;
   const claim = { verdict: "supported", sources: ["https://the-decoder.com/it/"], quote: ["IT vice presidents answered"] };
@@ -262,7 +261,7 @@ test("review P1: the approximation and bound forms of Ukrainian are kept, each a
   assert.throws(() => check(sol("more than 160 IT vice presidents answered the question."), item("160"), claim), /states «160» exactly; its source says «more than 160»/);
 });
 
-test("review P2: more private ranges, only HTML or text pages, decoded charsets, extraction recorded", async () => {
+test("more private ranges, only HTML or text pages, decoded charsets, extraction recorded", async () => {
   for (const host of ["::7f00:1", "::a00:1", "64:ff9b::a00:1", "0.1.2.3", "0.0.0.0", "fec0::1", "fe80::1"]) assert.ok(isLocalHost(host), host);
   assert.ok(isLocalHost(new URL("http://[::127.0.0.1]/").hostname), "IPv4-compatible address");
   const cp1251 = Buffer.from([0x3c, 0x61, 0x72, 0x74, 0x69, 0x63, 0x6c, 0x65, 0x3e, 0xcf, 0xf0, 0xe8, 0xe2, 0xb3, 0xf2, 0x3c, 0x2f, 0x61, 0x72, 0x74, 0x69, 0x63, 0x6c, 0x65, 0x3e]); // <article>Привіт</article>
@@ -281,7 +280,7 @@ test("review P2: more private ranges, only HTML or text pages, decoded charsets,
   });
 });
 
-test("review P2: the approval preview shows the fact-check summary; the limitation says whether articles were read", async () => {
+test("the approval preview shows the fact-check summary; the limitation says whether articles were read", async () => {
   const read = await withArticles();
   const quote = ["Two-thirds raised their hands", "invented words that are nowhere"];
   const out = check(read, IT_ITEM("Дві третини з близько 160 ІТ-керівників повідомили про вимірні результати AI"), { verdict: "revised", reason: "about", sources: [IT], quote }).output;
@@ -295,7 +294,7 @@ test("review P2: the approval preview shows the fact-check summary; the limitati
   assert.match(plain.factCheckSummary, /articles not read \(feed summaries only\); every quote found in its source/);
 });
 
-test("Digest 0.7.1 fact-check prompt carries the precision rules from the 27.09 independent fact-checks", () => {
+test("Digest 0.7.1 fact-check prompt carries the precision rules", () => {
   const fc = DIGEST.steps.find((s) => s.id === "factcheck").config.instructions.replace(/\s+/g, " ");
   for (const rule of ["narrower statement in the article body", "«за даними дослідників»", "never «скорочує … до N%»", "An experimental condition stays a condition", "a way around a rule is «лазівка», not «вада»", "gender, number and case agreement", "«у тестах, які провела сама компанія»"]) assert.ok(fc.includes(rule), rule);
 });
