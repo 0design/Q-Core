@@ -16,7 +16,7 @@
   "profile": {
     "language": "Ukrainian",
     "tone": "factual",
-    "instructions": "SYNTHETIC TEST ONLY. Write one short paragraph using the supplied source. Label it as a synthetic test and include its source URL verbatim. This is not an owner-approved editorial profile."
+    "instructions": "SYNTHETIC TEST ONLY. Write one short paragraph using the supplied source. Label it as a synthetic test and include its source URL verbatim. This is not an approved editorial profile."
   },
   "provider": {
     "kind": "caller",
