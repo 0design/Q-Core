@@ -92,25 +92,25 @@
   },
   "acceptance": {
     "status": "accepted",
-    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
     "evidence": [
       {
         "file": "demos/digest-multisource.txt",
-        "sha256": "872bd285bbef887477a4de347621ff8e25477a7ac3ac316e0100828c575c6977",
+        "sha256": "624d7425227f48a4ab3d9c10112cb7c91738f811e7631439224fd57dd9ef8d85",
         "componentVersion": "0.5.0",
         "coreVersion": "0.2.0-q-core.34",
         "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
       },
       {
         "file": "demos/digest-format.txt",
-        "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
+        "sha256": "a3aba9f24781c6bb8a35a9014c3fac19987121f40cb3c538ae4ee854c9da290c",
         "componentVersion": "0.4.0",
         "coreVersion": "0.2.0-q-core.32",
         "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
       },
       {
         "file": "demos/digest-huyiks.txt",
-        "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+        "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
         "componentVersion": "0.1.0",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"

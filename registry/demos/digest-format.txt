@@ -1,6 +1,6 @@
 Digest 0.3.0 contract — controlled local run on an installed Core candidate
 
-Scope: controlled local installed Registry candidate run. It is not public-release or owner acceptance.
+Scope: controlled local installed Registry candidate run. It is not public-release acceptance.
 Core: q-core 0.2.0-q-core.32, archive SHA-256 e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e
 Template: digest 0.3.0, manifest SHA-256 338dee7f7f9412e57033936045bdd0a224009b1bb9d1acca5880c49270cdb9e9
 Components under test: verify-sources 0.4.0 (fixedLinks, requiredPrefix, requiredHeadings, requiredEnvPatterns) and api-request 1.1.0 (file:/// delivery with receipts)
