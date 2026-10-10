@@ -3055,10 +3055,10 @@
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "872bd285bbef887477a4de347621ff8e25477a7ac3ac316e0100828c575c6977",
             "componentVersion": "0.2.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-huyiks.txt",
@@ -3269,10 +3269,10 @@
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "872bd285bbef887477a4de347621ff8e25477a7ac3ac316e0100828c575c6977",
             "componentVersion": "0.2.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-huyiks.txt",
@@ -3543,10 +3543,10 @@
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "872bd285bbef887477a4de347621ff8e25477a7ac3ac316e0100828c575c6977",
             "componentVersion": "0.5.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-format.txt",

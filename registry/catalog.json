@@ -3122,10 +3122,10 @@
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "872bd285bbef887477a4de347621ff8e25477a7ac3ac316e0100828c575c6977",
             "componentVersion": "0.2.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-huyiks.txt",
@@ -3150,7 +3150,7 @@
           "Does not judge whether text is true."
         ]
       },
-      "sha256": "079cd64852d22c97bcc5ff180505f7b523db303c169722fec80a22bb13b68df9"
+      "sha256": "cd919fde59af09dc75a64d620bd5927cec62a21aa96db5b3599430c24a688d06"
     },
     {
       "id": "determined",
@@ -3340,10 +3340,10 @@
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "872bd285bbef887477a4de347621ff8e25477a7ac3ac316e0100828c575c6977",
             "componentVersion": "0.2.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-huyiks.txt",
@@ -3367,7 +3367,7 @@
           "Keeps 1–20 clusters (default 8); invalid clusters fail the step."
         ]
       },
-      "sha256": "8b8d82b811fa0ce020433c2161cdb59dbf2fa88bc6ef5f01017b7e5a2247d9b8"
+      "sha256": "428b8528c695305567529dad4d812f76754d5bd89dcb501347e8347b0151e461"
     },
     {
       "id": "aindf-validator",
@@ -3620,10 +3620,10 @@
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "872bd285bbef887477a4de347621ff8e25477a7ac3ac316e0100828c575c6977",
             "componentVersion": "0.5.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-format.txt",
@@ -3652,7 +3652,7 @@
           "language: uk checks Ukrainian markers, not language quality."
         ]
       },
-      "sha256": "442cb4f443844b82d0744a2e820b77422fe1c6461c398fafee0520b4c283bef7"
+      "sha256": "a4bdd915e6971a2935a6a280680e3a4610ee69e3c248957a326bfbd062dda322"
     }
   ],
   "demos": [
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "e55cea0866578b3a569cb4a2ac55ef75899f456fa7f0f1af72793d6cf78dc352"
+  "releaseSha256": "f3f957b62b958b4d403d8bde67bd66d8b41f81cf58f9df6e32c264bdc9c63933"
 }
