@@ -10,7 +10,7 @@ import { loadManifest, validateManifest } from '../src/manifest.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
 import { runParseWeb, runDeduplicate, runVerifySources } from '../src/registry-data-steps.mjs';
 import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
-// These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it (Core35).
+// These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it.
 for (const name of AGENT_SESSION_ENV) delete process.env[name];
 
 const HEADER = date => `**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋${date}**`;
@@ -126,9 +126,9 @@ const DIGEST_FORMAT = {
 const OVERVIEW = `Лабораторії гальмують найпотужніші моделі через агентів ([Media](${A}), [Blog](${B})). Паралельно споживчі агенти на кшталт Muse викликають питання приватності, і це вже 2.5-й такий сигнал ([Media](${C})).`;
 const CASES = `- **Пауза OpenAI** — тренування призупинено ([Media](${A}), [Blog](${B})).\n- **Muse** — файлова система виявилась відкритою ([Media](${C})).\n`;
 const DIGEST = `${HEADER('26.09')}\n\n## Загальна картина\n\n${OVERVIEW}\n\n## Кейси\n\n${CASES}`;
-// Digest 0.5 (Core36): a nested list after the header instead of two labelled sections.
+// Digest 0.5: a nested list after the header instead of two labelled sections.
 const NESTED = `${HEADER('26.09')}\n\n- Лабораторії гальмують найпотужніші моделі через агентів ([Media](${A}), [Blog](${B})).\n  - Muse: файлова система виявилась відкритою ([Media](${C})).\n`;
-// Digest 0.6 (Core38): compact links — the theme is a plain conclusion, its cases carry the links; one short sentence each.
+// Digest 0.6: compact links — the theme is a plain conclusion, its cases carry the links; one short sentence each.
 const NESTED06 = `${HEADER('26.09')}\n\n- Лабораторії гальмують найпотужніші моделі через агентів\n  - OpenAI призупинила тренування найпотужніших моделей ([Media](${A}), [Blog](${B})).\n  - Muse: файлова система виявилась відкритою ([Media](${C})).\n`;
 const verify = (text, config = DIGEST_FORMAT, sources = SELECTED) => runVerifySources({ config: { draft: '{{steps.draft.output}}', sources: '{{steps.clusters.output}}', language: 'uk', ...config } }, { priorOutputs: { clusters: sources, draft: { text } }, priorStepNames: {} });
 
@@ -176,7 +176,7 @@ test('verify-sources itemMaxWords, oneClusterPerItem and one-line theses refuse 
   };
   for (const [name, [text, error]] of Object.entries(cases)) assert.throws(() => verify(text, format, clustered), error, name);
   assert.throws(() => verify(DIGEST, format, SELECTED), /requires sources from deduplicate clusters/);
-  // Review round 1: a ### thesis with no link, two items from one cluster, a bare URL of another cluster, a link in code,
+  // A ### thesis with no link, two items from one cluster, a bare URL of another cluster, a link in code,
   // a nested item.
   const more = {
     'a ### thesis in the cases': [DIGEST.replace('## Кейси\n\n', '## Кейси\n\n### Вигадана теза без джерела\n\n'), /sub-headings are not allowed/],
@@ -273,7 +273,7 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
     const step = id => run.steps.find(s => s.stepId === id);
     assert.equal(step('items').output.sources.length, 3);
     const clusterInput = JSON.parse(calls.find(c => c.url.startsWith('https://openrouter.ai')).body.messages[1].content);
-    // Core39: only the fact-check call bounds reasoning (live run 6d9d6559 spent all its tokens reasoning).
+    // Only the fact-check call bounds reasoning (a live run spent all its tokens reasoning).
     const modelCalls = calls.filter(c => c.url.startsWith('https://openrouter.ai'));
     if (manifest.steps.some(s => s.id === 'factcheck')) {
       assert.deepEqual(modelCalls.at(-1).body.reasoning, { effort: 'low' });

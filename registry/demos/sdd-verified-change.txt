@@ -17,14 +17,14 @@
     "tokensIn": null,
     "tokensOut": null
   },
-  "approval": "Agent exercised the approved controlled-test flow; not owner acceptance.",
+  "approval": "Agent exercised the approved controlled-test flow; not an acceptance of the release.",
   "methodology": "Actual Registry manifests and exact dependency bytes were installed with the clean packed CLI. Source/receiver and verifier ran for real. Codex supplied bounded replies. Timings include local orchestration pauses and reused prepared drafts/specs; they are not fresh-chat time-to-first-result benchmarks.",
   "redactions": [
     "2026-09-25: the recording machine's absolute workspace path was replaced by <workspace>/ before publication (4 occurrences). File hashes and all other recorded values are unchanged."
   ],
   "limitations": [
     "Public immutable-release rerun remains required.",
-    "This is not independent owner acceptance or Claude/OpenRouter verification.",
+    "This is not independent acceptance or Claude/OpenRouter verification.",
     "Scheduling was not installed or tested."
   ],
   "loopId": "sdd-pipeline",

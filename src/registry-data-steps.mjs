@@ -31,7 +31,7 @@ const stringList = (step, field, ctx, unresolved) => {
 const strip = html => html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<(script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&(?:nbsp|amp|quot|lt|gt);/g, s => ({'&nbsp;':' ', '&amp;':'&', '&quot;':'"', '&lt;':'<', '&gt;':'>'})[s]).replace(/\s+/g, ' ').trim();
 
 /** A deliberately small readable-text extractor, not a browser or a facts verifier. */
-/* Section-label matching (Core37): an item's opening words compared without markup a model may add around a
+/* Section-label matching: an item's opening words compared without markup a model may add around a
    label — HTML tags or escaped tags (&lt;b&gt;), Markdown emphasis, quotes («Кейси»), and leading emoji or bullets (📌). */
 const HTML_ENTITIES = { lt: '<', gt: '>', amp: '&', quot: '"', apos: "'", nbsp: ' ', laquo: '«', raquo: '»' };
 function labelHead(text) {
@@ -39,7 +39,7 @@ function labelHead(text) {
   for (let i = 0; i < 2; i++) t = t.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : (HTML_ENTITIES[e.toLowerCase()] ?? m));
   return t.replace(/<\/?[a-z][^>]*>/gi, '').replace(/[*_~`«»“”„‟"'‘’‹›]/g, '').replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('uk');
 }
-/* Outlet names a link text may use for a host (Core37): every host label except generic prefixes (www, m, blog,
+/* Outlet names a link text may use for a host: every host label except generic prefixes (www, m, blog,
    news…), generic second levels before a country code (co, com, org… as in bbc.co.uk) and generic or country
    top-level domains. So blog.google → google, bbc.co.uk → bbc, electrek.co → electrek, theverge.com → theverge. */
 const GENERIC_PREFIX = new Set(['www', 'm', 'mobile', 'amp', 'blog', 'blogs', 'news', 'feeds', 'feed', 'rss', 'en', 'uk', 'us', 'edition', 'go']);
@@ -56,7 +56,7 @@ function outletNames(host) {
   const names = parts.slice(0, end).filter((p, i, all) => !(GENERIC_PREFIX.has(p) && i < all.length - 1));
   return names.length ? names : [parts[Math.max(0, end - 1)]];
 }
-/* Fact check (Core38): the numbers a claim states, as comparable tokens. Digits (11,6 · 11.6 · 3,000 · 3 000) with a
+/* Fact check: the numbers a claim states, as comparable tokens. Digits (11,6 · 11.6 · 3,000 · 3 000) with a
    scale word or suffix (млрд, billion, $3.36B…) become values; a few words that carry a number become typed tokens:
    a ratio (втричі, «three times less», «a third as often», «nearly in half»), a share of a whole (третина, «a third
    of», половина) and a count (двічі, twice). A claim's tokens must all be among its quote's tokens, so «в третині
@@ -67,7 +67,7 @@ const B = '(?<![\\p{L}\\p{N}])', E = '(?![\\p{L}\\p{N}])';
 const COMPARATIVE = '(?:less|fewer|more|lower|higher|smaller|larger|bigger|faster|slower|cheaper|as)';
 const NUMBER_PHRASES = [
   // Ratios first, so «a third as often» is not also read as a share.
-  // «у 1,5 раза», «в 2 рази», «до 3,13 раза» / «разу» (live run f8ee3f9f): «раза» is the multiplier form of a fraction, so it is a ratio without «у/в» too.
+  // «у 1,5 раза», «в 2 рази», «до 3,13 раза» / «разу»: «раза» is the multiplier form of a fraction, so it is a ratio without «у/в» too.
   [new RegExp(`${B}[ву]\\s+(\\d+(?:[.,]\\d+)?)\\s+раз(?:и|а|у|ів)?${E}|${B}(\\d+[.,]\\d+)\\s+раз[ау]${E}`, 'giu'), m => `ratio:${Number((m[1] ?? m[2]).replace(',', '.'))}`],
   [new RegExp(`${B}[ву]\\s+(два|дві|три|чотири|п['’ʼ]?ять|десять)\\s+раз(?:и|ів)${E}`, 'giu'), m => `ratio:${{ 'два': 2, 'дві': 2, 'три': 3, 'чотири': 4, 'десять': 10 }[m[1].toLowerCase()] ?? 5}`],
   [new RegExp(`${B}(?:[ву]дві[чк]і|[ву]двоє|наполовину|подвоїл\\p{L}*|подвоєн\\p{L}*)${E}`, 'giu'), () => 'ratio:2'],
@@ -88,7 +88,7 @@ const NUMBER_PHRASES = [
   // Counts of times.
   [new RegExp(`${B}(?:двічі|twice)${E}`, 'giu'), () => 'count:2'],
   [new RegExp(`${B}(?:тричі|thrice)${E}`, 'giu'), () => 'count:3'],
-  // Collective numerals count people or things («восьмеро» = 8; Core40, live run 97688656: «лише восьмеро»).
+  // Collective numerals count people or things («восьмеро» = 8, as in «лише восьмеро»).
   [new RegExp(`${B}(двоє|троє|четверо|п['’ʼ]?ятеро|шестеро|семеро|восьмеро|дев['’ʼ]?ятеро|десятеро)${E}`, 'giu'), m => `n:${{ 'двоє': 2, 'троє': 3, 'четверо': 4, 'шестеро': 6, 'семеро': 7, 'восьмеро': 8, 'десятеро': 10 }[m[1].toLowerCase()] ?? (/^п/i.test(m[1]) ? 5 : 9)}`],
 ];
 const SCALES = [[/^\s*(?:трлн|трильйон\p{L}*|trillion)(?![\p{L}\p{N}])/iu, 1e12], [/^\s*(?:млрд|мільярд\p{L}*|billion|bn)(?![\p{L}\p{N}])/iu, 1e9], [/^B(?![\p{L}\p{N}])/u, 1e9], [/^\s*(?:млн|мільйон\p{L}*|million|mln)(?![\p{L}\p{N}])/iu, 1e6], [/^M(?![\p{L}\p{N}])/u, 1e6], [/^\s*(?:тис\.|тисяч\p{L}*|thousand)(?![\p{L}\p{N}])/iu, 1e3], [/^[Kk](?![\p{L}\p{N}])/u, 1e3]];
@@ -174,7 +174,7 @@ function wordIndexOf(ground, piece, from = 0) {
   return -1;
 }
 const NEGATION = /(?<![\p{L}\p{N}])(?:not|no|never|without|none|nor|n't|не|ні|без|ніколи|жодн\p{L}*)(?![\p{L}\p{N}])/iu;
-/* A quote is grounded when it occurs verbatim, or (Core39, live run 58c169c9) when it marks every omission with
+/* A quote is grounded when it occurs verbatim, or when it marks every omission with
    an ellipsis («…» or «...») and each piece between them (2–4 pieces of 2+ words) occurs verbatim in the source, in
    the same order, within one passage (span ≤ twice the quote + 120 characters). A word left out silently (a dropped scope such as «tool-based») is never accepted. */
 function quoteInOrder(quote, ground) {
@@ -225,26 +225,26 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     for (const url of urls) insist(byUrl.has(url) && cited.has(url), `${label} (item ${item}) was checked against ${url}, which the item does not link as a selected source${nestedItems[item - 1].parent ? ' (a theme without links stands on the links of its sub-items)' : ''}`);
     const quotes = (Array.isArray(claim.quote) ? claim.quote : claim.quote == null ? [] : [claim.quote]).filter(q => typeof q === 'string' && q.trim());
     insist(quotes.length > 0, `List item ${item} has no quote from its linked sources; every claim, a theme's generalisation included, needs a verbatim quote that supports it: ${itemText.slice(0, 60)}`);
-    // Grounds: the feed-item title and summary and, when parse-web articles read it, the article text (Core40).
+    // Grounds: the feed-item title and summary and, when parse-web articles read it, the article text.
     const groundsOf = url => { const s = byUrl.get(url); return [s.title, s.text, s.articleStatus === 'ok' ? s.articleText : null].filter(t => typeof t === 'string'); };
     const grounds = urls.flatMap(groundsOf).map(normQuote);
-    // A claim stands on its verbatim quotes: at least one of 3+ words (a short one may name a product, live run
-    // f8ee3f9f). Core40 (live run 3f16062b): an extra quote that is not verbatim is set aside and listed as unmatched
+    // A claim stands on its verbatim quotes: at least one of 3+ words (a short one may name a product).
+    // An extra quote that is not verbatim is set aside and listed as unmatched
     // for the person who approves, instead of failing a claim another verbatim quote supports; its numbers do not count.
     for (const quote of quotes) insist(trimQuote(quote).length <= 600, `List item ${item}: a quote must be at most 600 characters: «${quote.slice(0, 60)}»`);
     const grounded = quote => { const q = trimQuote(quote); return (q.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 1 && grounds.some(g => wordIndexOf(g, q) >= 0 || quoteInOrder(q, g)); };
     const matchedQuotes = quotes.filter(grounded), unmatchedQuotes = quotes.filter(quote => !grounded(quote));
     insist(matchedQuotes.length > 0, `List item ${item}: the quote is not in the text of its linked sources: «${(unmatchedQuotes[0] ?? "").slice(0, 80)}»`);
     insist(matchedQuotes.some(quote => (trimQuote(quote).match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3), matchedQuotes.length < quotes.length ? `List item ${item}: the quote is not in the text of its linked sources: «${(unmatchedQuotes[0] ?? "").slice(0, 80)}»` : `List item ${item}: at least one quote must be 3 or more words: «${quotes[0].slice(0, 60)}»`);
-    // Numbers are checked against the item's quotes and the full title + text of its linked sources (live run
-    // 461a3df0, 27.09: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote).
+    // Numbers are checked against the item's quotes and the full title + text of its linked sources.
+    // Example: «майже на половину» is in the source title «…nearly in half…», not in the chosen quote.
     const sourceTexts = urls.flatMap(groundsOf);
     // «in half» / «удвічі» (ratio 2) and «половина» (share 1/2) state the same halving; thirds stay apart (65ef7d49).
     const canon = token => token === 'share:1/2' ? 'ratio:2' : token;
     const quoteTokens = new Set([...matchedQuotes, ...sourceTexts].flatMap(q => numberTokens(unifyQuotes(q)).map(t => canon(t.token))));
     const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)));
     insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
-    // An approximation or bound stays (Core40, live run 97688656: «160 ІТ-керівників» for «about 160 IT vice presidents»,
+    // An approximation or bound stays («160 ІТ-керівників» for «about 160 IT vice presidents»,
     // while the feed summary said «160»): a number the item states bare is refused when every place that states it has
     // «about», «nearly», «up to»… right before it. The article decides when it states the number; else the quotes;
     // else the title and summary.
@@ -262,7 +262,7 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
   insist(unmapped < 0, `List item ${unmapped + 1} has no claim record; every item of the final text is fact-checked: ${nestedItems[unmapped]?.text.slice(0, 60)}`);
   // Removed wording is still present when an item contains it, or a contiguous run of at least 60% of its words
   // (4 or more). Shared words alone do not count: a model may record a whole original item as removed and keep a
-  // correct rewrite that reuses most of its words in another order (review of PR #29: 84% on the Nscale item).
+  // correct rewrite that reuses most of its words in another order.
   for (const claim of removed) {
     const plain = normQuote(plainClaim(claim.text)), words = tokensOf(claim.text);
     const present = nestedItems.find(({ text: t }) => {
@@ -292,7 +292,7 @@ export function runParseWeb(step, ctx) {
   return { output: { sources } };
 }
 
-/* articles: "true" (Core40) — the article behind each selected source, fetched once and read as static text, so a
+/* articles: "true" — the article behind each selected source, fetched once and read as static text, so a
    fact check can ground on the article and not only on the feed summary. Bounded: at most 20 distinct URLs, one
    GET each (20 s, 1 retry on a network error, 429 or 5xx), at most 3 redirects, 1.5 MB per page, http(s) only and
    never a local or private-network address (checked on every redirect hop; a host name that resolves to a private
@@ -314,7 +314,7 @@ const publicHttpUrl = raw => {
   try { url = new URL(raw); } catch { return null; }
   return /^https?:$/.test(url.protocol) && !url.username && !url.password && url.hostname && !isLocalHost(url.hostname) ? url : null;
 };
-/* Linear-time article extraction (Core40 review): no backtracking regex over the page, so unclosed tags cost one
+/* Linear-time article extraction: no backtracking regex over the page, so unclosed tags cost one
    pass, not a pass per tag. blocksOf finds <tag …>…</tag> by indexOf and continues after each block. */
 function blocksOf(lower, tag) {
   const out = [], open = `<${tag}`, close = `</${tag}`;
@@ -573,10 +573,10 @@ function clusterSources(step, ctx, sources) {
   const selected = kept.flatMap(cluster => cluster.sources.map(source => ({ ...source, cluster: cluster.rank })));
   return { output: { clusters: kept, sources: selected, removed: sources.length - selected.length, droppedClusters: checked.length - kept.length, unclustered: sources.length - claimed.size, sourceHash: hash(selected.map(s => ({ url: s.url, title: s.title ?? null, text: s.text }))) } };
 }
-/* review (Core41, owner decision 27.09): a second model call looks only for overstatement, scope, attribution,
+/* review: a second model call looks only for overstatement, scope, attribution,
    generalisation, entity and wording problems and returns a small patch {edits:[{item, before, action, text, quote,
-   sources, problem, reason}]} for the fact-checked text. verify-sources applies it deterministically, EDIT BY EDIT
-   (review round 1 of PR #34): each edit is tried on top of the edits accepted so far and the full checks run; an edit
+   sources, problem, reason}]} for the fact-checked text. verify-sources applies it deterministically, EDIT BY EDIT.
+   Each edit is tried on top of the edits accepted so far and the full checks run; an edit
    that fails any check (or is malformed) is rejected with its reason and the item keeps its fact-checked line, which
    already passed. A theme removal and the removals of all its cases are tried as one unit; rejected edits are retried
    once more after the others (a case removal may need a theme revision listed later). Only a review output without an
@@ -681,7 +681,7 @@ function reviewEditsOf(step, ctx, review, verify) {
   insist(review.edits.length <= 100, 'review has more than 100 edits');
   verify([]); // the fact-checked text itself must pass; otherwise the run fails as before
   // Units: a removal of an item with sub-items goes together with the removals of all its sub-items, and a case
-  // removal goes together with a revision of its theme (review round 2 of PR #34), so each is tried as one.
+  // removal goes together with a revision of its theme so each is tried as one.
   const list = review.edits.map((edit, index) => ({ edit, index }));
   const itemOf = e => Number(e?.item);
   const probe = verify.itemLines();
@@ -726,7 +726,7 @@ export function runVerifySources(step, ctx) {
   const out = result.output;
   out.review = { ...out.review, rejected };
   out.factCheckSummary = out.factCheckSummary.replace(/review: (\d+) revised, (\d+) removed/, `review: $1 revised, $2 removed, ${rejected.length} rejected`);
-  // reviewSummary (owner decision 27.09): which items the reviewer changed or had rejected, and why, one line each,
+  // reviewSummary: which items the reviewer changed or had rejected, and why, one line each,
   // right after factCheckSummary so the approval preview (its first 40 lines) shows it above the rest of the output.
   const cut = (value, n) => { const t = String(value ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
   const lines = [
@@ -776,7 +776,7 @@ function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
   // An unset {{env.NAME}} stays in place by design; a contract that still carries
   // a placeholder would silently require the literal braces, so refuse it.
   insist(unresolvedContract.length === 0, 'Format contract has an unresolved template placeholder');
-  // Core39 (live run f8ee3f9f): with factCheck + nestedList the fixed header is not the model's to copy (the
+  // With factCheck + nestedList the fixed header is not the model's to copy (the
   // fact-check call once changed its emoji). Everything before the first list line is replaced by requiredPrefix;
   // the list itself is checked as the model wrote it.
   if (requiredPrefix !== null && step.config.factCheck != null && step.config.nestedList != null) {
@@ -789,7 +789,7 @@ function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
     insist(before.length === 0 || (before.length === 1 && /^\*\*.+\*\*$/.test(before[0].trim()) && fixed.every(url => before[0].includes(url))), 'The draft after the header must be a nested bullet list only (no section labels, headings or paragraphs): text before the list');
     text = requiredPrefix + text.slice(list);
   }
-  // review (Core41): the reviewer's patch is applied to the fact-checked text and its claim records first; every
+  // review: the reviewer's patch is applied to the fact-checked text and its claim records first; every
   // check below runs on the edited text.
   let factRecord = step.config.factCheck != null ? value(step, 'factCheck', ctx) : null, review = null;
   if (step.config.review != null) {
@@ -1054,7 +1054,7 @@ function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
     const count = blocks.flatMap(sentencesOf).length;
     insist(count >= min && count <= max, `${heading} must have ${min}..${max} sentences; found ${count}`);
   }
-  // compactLinks: "true" (Core38) — an item with sub-items carries no links: its cases link the sources, and the
+  // compactLinks: "true" — an item with sub-items carries no links: its cases link the sources, and the
   // parent (a theme) is a plain conclusion. A top-level item without sub-items keeps its links like any case.
   const compact = step.config.compactLinks === 'true' || step.config.compactLinks === true;
   if (step.config.compactLinks != null) insist((compact || String(step.config.compactLinks) === 'false') && nestedItems, 'compactLinks must be "true" or "false" and requires nestedList');
@@ -1066,7 +1066,7 @@ function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
     if (!(compact && item.parent)) return citedUrls(item.text);
     return [...new Set(nestedItems.slice(index + 1, item.end + 1).flatMap(sub => citedUrls(sub.text)))];
   };
-  // caseMaxWords / themeMaxWords / itemMaxSentences (Core38): short items. A theme is a top-level item with sub-items;
+  // caseMaxWords / themeMaxWords / itemMaxSentences: short items. A theme is a top-level item with sub-items;
   // every other item (a case, a comment, a stand-alone top-level item) is a case. Words are counted without the link
   // parentheses and link markup; a sentence ends at . ! ? … before a space and an uppercase letter or an opening quote,
   // not after an abbreviation (млн., U.S.) or inside a decimal.
@@ -1114,7 +1114,7 @@ function verifyOnce(step, ctx, reviewEdits, itemLinesOnly = false) {
       last = best;
     }
   }
-  // factCheck (Core38): claim records of a fact-check model step for this exact text; see checkFactCheck.
+  // factCheck: claim records of a fact-check model step for this exact text; see checkFactCheck.
   let factCheck = null;
   if (step.config.factCheck != null) {
     insist(nestedItems && linkCitations, 'factCheck requires nestedList and citation: links');

@@ -1,5 +1,5 @@
-/* Core39: bounded reasoning for OpenRouter calls (live Digest run 6d9d6559, 27.09: the fact-check call spent all
-   14000 max_tokens on reasoning and returned an empty completion). */
+/* Bounded reasoning for OpenRouter calls: the fact-check call spent all
+   14000 max_tokens on reasoning and returned an empty completion. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolve } from "node:path";
@@ -35,7 +35,7 @@ test("Digest 0.6.x bounds the fact-check call's reasoning", () => {
   assert.equal(m.steps.find((s) => s.id === "factcheck").config.reasoning, "low");
 });
 
-test("live run 58c169c9: a quote may mark omissions with an ellipsis; a word left out silently, added or reordered is refused", async () => {
+test("a quote may mark omissions with an ellipsis; a word left out silently, added or reordered is refused", async () => {
   const { runVerifySources } = await import("../src/registry-data-steps.mjs");
   const URL_ = "https://the-decoder.com/sol-pi";
   const TEXT = "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance by optimizing the control layer between the model and its environment.";
@@ -55,7 +55,7 @@ test("live run 58c169c9: a quote may mark omissions with an ellipsis; a word lef
   ]) assert.throws(() => run(bad), /the quote is not in the text of its linked sources/, why);
 });
 
-test("live run f8ee3f9f: with factCheck the fixed header comes from requiredPrefix, not from the model's copy", async () => {
+test("with factCheck the fixed header comes from requiredPrefix, not from the model's copy", async () => {
   const { runVerifySources } = await import("../src/registry-data-steps.mjs");
   const URL_ = "https://the-decoder.com/sol-pi";
   const TEXT = "SoL-Pi cuts coding agents' token usage by up to 49 percent with little change in performance.";
@@ -75,7 +75,7 @@ test("live run f8ee3f9f: with factCheck the fixed header comes from requiredPref
   assert.throws(() => run(HEADER + "Просто абзац.", { ...base, factCheck: "{{steps.factcheck.output}}" }), /no list after the header|nested bullet list only/);
 });
 
-test("live run f8ee3f9f: «до 3,13 разу» is a ratio; a two-word product name may be an extra quote, not the only one", async () => {
+test("«до 3,13 разу» is a ratio; a two-word product name may be an extra quote, not the only one", async () => {
   const { numberTokens, runVerifySources } = await import("../src/registry-data-steps.mjs");
   assert.deepEqual(numberTokens("до 3,13 разу").map((t) => t.token), ["ratio:3.13"]);
   assert.deepEqual(numberTokens("up to 3.13x faster").map((t) => t.token), ["ratio:3.13"]);

@@ -1,7 +1,6 @@
-/* Core41: a second, narrow reviewer (edits applied one by one after review round 1 of PR #34) after the fact check (owner decision 27.09, option c). A model call looks only for
+/* A second, narrow reviewer (edits applied one by one) after the fact check. A model call looks only for
    overstatement, scope, attribution, generalisation and entity problems and returns a small patch; verify-sources
-   applies it deterministically before every other check, which then runs on the edited text. The fixture is live run
-   05a7f579 (Digest 0.7.0): its checks passed, and an independent fact-check against the full articles found 5 wording
+   applies it deterministically before every other check, which then runs on the edited text. The fixture is a Digest 0.7.0 run: its checks passed, and an independent fact-check against the full articles found 5 wording
    defects. The hand-made patch below fixes them and must pass every check; offline, no model is called. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -67,7 +66,7 @@ test("an empty patch keeps the fact-checked text: the defects pass the determini
   assert.deepEqual([out.review.revised, out.review.removed, out.review.rejected.length], [0, 0, 0]);
 });
 
-test("review round 1 P1: removing one case keeps its theme; the theme's record keeps only the sources its cases still link", () => {
+test("removing one case keeps its theme; the theme's record keeps only the sources its cases still link", () => {
   const three = check(patched([remove(3, "unlisted links, not public")])).output;
   assert.doesNotMatch(three.text, /53 зображення/);
   assert.deepEqual(three.factCheck.claims.find((c) => c.item === 1).sources, [VERGE], "item 3's URL left theme 1's record");
@@ -106,7 +105,7 @@ test("remove: a theme goes only with all its cases; a review never removes every
   assert.match(orphan.text, /Supersonic Labs|SoL-Pi|Agent Ultra/);
 });
 
-test("review round 1 P2: a malformed or failing edit is rejected with its reason; the other edits still apply", () => {
+test("a malformed or failing edit is rejected with its reason; the other edits still apply", () => {
   const good = PATCH.edits[3];
   const cases = {
     "an item that does not exist": [{ item: 11, before: "x".repeat(30), action: "remove", problem: "scope", reason: "x" }, /names list item 11, which is not an item of the fact-checked text \(1\.\.10\); a review adds no items/],
@@ -154,7 +153,7 @@ test("Digest 0.8.0: a review call after the fact check; the checks apply its pat
   const fc = DIGEST.steps.find((s) => s.id === "factcheck").config;
   assert.equal(review.kind, "llm-call");
   assert.deepEqual([review.config.provider, review.config.format, review.config.reasoning, review.config.input, review.config.model], ["openrouter", "json", "low", "{{steps.articles.output.clusters}}", "anthropic/claude-opus-5.5"]);
-  assert.notEqual(review.config.model, fc.model, "owner decision 27.09: a stronger model for the review step only");
+  assert.notEqual(review.config.model, fc.model, "a stronger model for the review step only");
   assert.ok(Number(review.config.maxTokens) <= 4000, "a small patch, not the digest again");
   assert.match(review.config.instructions, /\{\{steps\.factcheck\.output\.text\}\}/);
   const words = (s) => new RegExp(s.split(" ").join("\\s+"), "i");
@@ -165,7 +164,7 @@ test("Digest 0.8.0: a review call after the fact check; the checks apply its pat
   assert.ok(DIGEST.settings.budgetUsd >= 0.5);
 });
 
-test("owner decision 27.09: the approval preview names each item the reviewer changed or had rejected, and why", () => {
+test("the approval preview names each item the reviewer changed or had rejected, and why", () => {
   const bad = edit(6, { quote: ["researchers cut tokens on every benchmark"] });
   const out = check(patched([PATCH.edits[0], remove(9, "The article does not say the glasses keep users constantly connected.", "overstatement"), bad])).output;
   assert.deepEqual(Object.keys(out).slice(0, 3), ["text", "factCheckSummary", "reviewSummary"]);

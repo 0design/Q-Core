@@ -1,4 +1,4 @@
-/* Core36: Digest as a nested list (owner review, 27.09): no section labels, up to three levels, every item linked. */
+/* Digest as a nested list: no section labels, up to three levels, every item linked. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolve } from "node:path";
@@ -75,7 +75,7 @@ test("Digest 0.5.0+ asks for the nested list and checks it; no section labels, n
   assert.match(draft.instructions, /Order themes by weight/);
   assert.match(draft.instructions, /outlet name as the link text/);
   assert.doesNotMatch(draft.instructions, /## Загальна картина|## Кейси/);
-  // No case length until 0.5; Digest 0.6 caps words and sentences by the owner's review of 27.09.
+  // No case length until 0.5; Digest 0.6 caps words and sentences.
   if (manifest.version === "0.5.0") assert.doesNotMatch(draft.instructions, /\d+\s+words/);
   assert.ok(Number(draft.maxTokens) >= 6000);
 });
@@ -91,7 +91,7 @@ test("nestedOrder cluster: top-level items go from the best cluster rank down; a
   assert.throws(() => verify(GOOD, { ...FORMAT, nestedOrder: "cluster" }), /requires sources from deduplicate clusters/);
 });
 
-test("review round 1: a label item with a link, text that nests deeper, code fences, outlet link text", () => {
+test("a label item with a link, text that nests deeper, code fences, outlet link text", () => {
   const LABELS = '["Загальна картина","Кейси","Кейс","Тренд","Тренди","Висновки","Підсумок","Коментар"]';
   const strict = { ...FORMAT, forbiddenLabels: LABELS, outletLinkText: "true" };
   const refused = {

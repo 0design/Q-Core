@@ -117,7 +117,7 @@ export async function runAgent(
     stateWritable = false;
   try {
     r = validateRequest(r);
-    // Core 38: only a person decides, with `q-core agent approve` at a terminal.
+    // Only a person decides, with `q-core agent approve` at a terminal.
     // The JSON channel cannot approve or reject, with or without agent markers.
     if (r.approval !== undefined) throw approvalFieldRefused(waitingAction(r));
     if ((process.env.CLAUDECODE && r.provider.kind !== "caller") || Number(process.env.QCORE_DEPTH || 0) > 0)

@@ -1,4 +1,4 @@
-// Registry29 (owner decision 28.09): every workflow and component carries a structured brief, so an agent
+// Every workflow and component carries a structured brief, so an agent
 // briefs the user from Registry data instead of inventing steps, settings or prices.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -23,7 +23,7 @@ test('every workflow carries a complete brief', () => {
   }
 });
 
-test('contract facts agents had to invent on 27–28.09 are in the Registry', () => {
+test('contract facts are in the Registry', () => {
   const byId = Object.fromEntries(catalog.workflows.map(w => [w.id, w]));
   // Registry30: the CLI route is published as its own workflow (no edited copy, no OpenRouter key).
   for (const id of ['digest', 'podcast-summary']) {
@@ -38,7 +38,7 @@ test('contract facts agents had to invent on 27–28.09 are in the Registry', ()
     assert.equal(variant.humanGate, true, `${id}-cli keeps the human approval gate`);
   }
   assert.match(byId['digest-cli'].brief.limits.join('\n'), /q-core reply must run with the same QF_DIGEST_\* variables/);
-  // Negative: the variant is a candidate; only digest 0.8.0 carries the owner's acceptance.
+  // Negative: the variant is a candidate; only digest 0.8.0 has an accepted-run status.
   assert.equal(byId['digest-cli'].acceptance.status, 'pending');
   const cliComponent = catalog.components.find(c => c.id === 'llm-call-cli');
   assert.match(cliComponent.brief.limits.join('\n'), /60000 bytes/);

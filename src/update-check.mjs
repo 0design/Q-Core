@@ -15,8 +15,7 @@
  * THE ENDPOINT IS NOT SET, ON PURPOSE. There is no public home for this package
  * yet, so there is no URL to point at, and inventing one would mean shipping a
  * command that quietly calls a host nobody chose. It reads `QF_UPDATE_URL`; with
- * nothing there, the check is a no-op. Where that file will live is an owner
- * decision that has not been made; until then no default URL ships.
+ * nothing there, the check is a no-op. No default URL ships until one exists.
  *
  * The notice below has room for a "what's new" line carried in the JSON. It has
  * NO text about accounts, sign-in or licences: none of that has been decided,

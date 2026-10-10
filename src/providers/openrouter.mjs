@@ -138,8 +138,8 @@ export async function openRouter(
           messages,
           temperature,
           max_tokens: maxTokens,
-          // Core39: a model that reasons can spend the whole max_tokens before any content (live Digest run
-          // 6d9d6559: 14000 tokens, empty completion). "off" disables reasoning; low/medium/high bound it.
+          // A model that reasons can spend the whole max_tokens before any content
+          // (observed: 14000 tokens, empty completion). "off" disables reasoning; low/medium/high bound it.
           ...(reasoning === undefined ? {} : { reasoning: reasoning === "off" ? { enabled: false } : { effort: reasoning } }),
         }),
       },

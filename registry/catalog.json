@@ -3,8 +3,8 @@
   "workflows": [
     {
       "id": "brand-mentions",
-      "name": "Know what the news says about your brand",
-      "description": "Filter a brand-search feed into linked mentions and an overall tone report, ready for your webhook.",
+      "name": "Find your brand in a news feed",
+      "description": "Filter a supplied brand-search feed into linked mentions and an overall tone summary, then send the report to your webhook.",
       "file": "workflows/brand-mentions.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -41,7 +41,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -89,7 +89,7 @@
         }
       ],
       "brief": {
-        "summary": "Filter a brand-search feed into linked mentions and an overall tone report, ready for your webhook.",
+        "summary": "Filter a supplied brand-search feed into linked mentions and an overall tone summary, then send the report to your webhook.",
         "howItWorks": [
           "Reads up to 10 items from the feed at QCORE_SOURCE_URL.",
           "A model keeps only items that really discuss the brand: publication, one sentence, link.",
@@ -181,8 +181,8 @@
     },
     {
       "id": "budget-guard",
-      "name": "Check your spending cap before real work",
-      "description": "A budget-stop example: a zero-dollar cap should halt the run before a paid model call or outgoing message.",
+      "name": "Test a budget stop before paid calls",
+      "description": "Try a zero-dollar cap: the run should stop before a paid model call or outgoing message, with the reason recorded locally.",
       "file": "workflows/budget-guard.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -219,7 +219,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -263,7 +263,7 @@
         }
       ],
       "brief": {
-        "summary": "A budget-stop example: a zero-dollar cap should halt the run before a paid model call or outgoing message.",
+        "summary": "Try a zero-dollar cap: the run should stop before a paid model call or outgoing message, with the reason recorded locally.",
         "howItWorks": [
           "Reads 3 items from the feed at QCORE_SOURCE_URL.",
           "Reaches the model step, where the $0 budget stops the run before any paid call.",
@@ -338,8 +338,8 @@
     },
     {
       "id": "content-factory",
-      "name": "Turn your sources into a post you approve",
-      "description": "Draft a Telegram post from source material, check its rules, and review the exact text before publishing.",
+      "name": "Turn source material into a Telegram post you approve",
+      "description": "Draft one Telegram post with links for its claims. Check the writing rules, review the exact text, and approve it before publishing.",
       "file": "workflows/content-factory.yaml",
       "version": "1.1.0",
       "steps": 5,
@@ -377,7 +377,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -430,7 +430,7 @@
         }
       ],
       "brief": {
-        "summary": "Draft a Telegram post from source material, check its rules, and review the exact text before publishing.",
+        "summary": "Draft one Telegram post with links for its claims. Check the writing rules, review the exact text, and approve it before publishing.",
         "howItWorks": [
           "Fetches JSON material from QCORE_SOURCE_URL.",
           "A model writes one post: under 900 characters, no emoji or hashtags, a link for every claim, one idea.",
@@ -529,8 +529,8 @@
     },
     {
       "id": "content-feed",
-      "name": "Get the useful news from your feed",
-      "description": "Turn an RSS feed into a short digest of worthwhile items and send it to Telegram.",
+      "name": "Send the useful items from your RSS feed to Telegram",
+      "description": "Get a short digest of worthwhile feed items with links and a skipped-item count, delivered as one Telegram message.",
       "file": "workflows/content-feed.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -567,7 +567,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -616,7 +616,7 @@
         }
       ],
       "brief": {
-        "summary": "Turn an RSS feed into a short digest of worthwhile items and send it to Telegram.",
+        "summary": "Get a short digest of worthwhile feed items with links and a skipped-item count, delivered as one Telegram message.",
         "howItWorks": [
           "Reads up to 8 items from the feed at QCORE_SOURCE_URL.",
           "A model writes a digest: an opening count line, then '— title · link' per item worth reading, and how many were skipped.",
@@ -711,8 +711,8 @@
     },
     {
       "id": "feed-fanout",
-      "name": "See why each feed item matters",
-      "description": "Summarize up to five feed items individually and send each as a separate webhook message.",
+      "name": "Get a separate summary for each feed item",
+      "description": "Summarize up to the first five feed items individually and send each title, link and one-sentence summary to your webhook.",
       "file": "workflows/feed-fanout.yaml",
       "version": "1.1.0",
       "steps": 4,
@@ -749,7 +749,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -797,7 +797,7 @@
         }
       ],
       "brief": {
-        "summary": "Summarize up to five feed items individually and send each as a separate webhook message.",
+        "summary": "Summarize up to the first five feed items individually and send each title, link and one-sentence summary to your webhook.",
         "howItWorks": [
           "Reads up to 20 items from the feed at QCORE_SOURCE_URL.",
           "Opens a separate lane for each of the first 5 items; how many were skipped is reported.",
@@ -883,8 +883,8 @@
     },
     {
       "id": "json-digest",
-      "name": "Give your tools a structured feed summary",
-      "description": "Create a JSON feed summary, reject invalid JSON, and send its item count to your webhook.",
+      "name": "Turn RSS headlines into structured JSON",
+      "description": "Produce a JSON count and title list from your feed. Reject invalid JSON and send the count, run ID and cost to your webhook.",
       "file": "workflows/json-digest.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -920,7 +920,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -964,7 +964,7 @@
         }
       ],
       "brief": {
-        "summary": "Create a JSON feed summary, reject invalid JSON, and send its item count to your webhook.",
+        "summary": "Produce a JSON count and title list from your feed. Reject invalid JSON and send the count, run ID and cost to your webhook.",
         "howItWorks": [
           "Reads up to 5 items from the feed at QCORE_SOURCE_URL.",
           "A model must return exactly {\"count\": n, \"titles\": [...]}; prose fails the step.",
@@ -1049,8 +1049,8 @@
     },
     {
       "id": "price-watch",
-      "name": "Review a currency-rate alert before sending",
-      "description": "Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook.",
+      "name": "Review a currency-rate alert before it is sent",
+      "description": "Check USD/UAH against a threshold, review the proposed alert, and approve it before it reaches your webhook.",
       "file": "workflows/price-watch.yaml",
       "version": "1.1.0",
       "steps": 4,
@@ -1085,7 +1085,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1136,7 +1136,7 @@
         }
       ],
       "brief": {
-        "summary": "Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook.",
+        "summary": "Check USD/UAH against a threshold, review the proposed alert, and approve it before it reaches your webhook.",
         "howItWorks": [
           "Reads the public rate feed open.er-api.com/v6/latest/USD (fixed in the manifest).",
           "An agent gate (a model judge) passes only if USD/UAH is above 42.0; otherwise the decision is handed to you.",
@@ -1217,8 +1217,8 @@
     },
     {
       "id": "release-watch",
-      "name": "Spot important changes in GitHub releases",
-      "description": "Summarize a repository's releases and flag reported breaking changes, deprecations and security fixes.",
+      "name": "See the important changes in repository releases",
+      "description": "Read a repository’s release notes in one brief, with reported breaking changes, deprecations and security fixes called out.",
       "file": "workflows/release-watch.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1255,7 +1255,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1303,7 +1303,7 @@
         }
       ],
       "brief": {
-        "summary": "Summarize a repository's releases and flag reported breaking changes, deprecations and security fixes.",
+        "summary": "Read a repository’s release notes in one brief, with reported breaking changes, deprecations and security fixes called out.",
         "howItWorks": [
           "Reads the 5 latest entries from the releases feed at QCORE_SOURCE_URL (e.g. github.com/<owner>/<repo>/releases.atom).",
           "A model writes '<version> · what changed' per release and a WATCH line, or says in one line that nothing needs action.",
@@ -1389,8 +1389,8 @@
     },
     {
       "id": "strict-gate",
-      "name": "Stop a rate alert that fails your rule",
-      "description": "A model-review example: continue when the currency rate passes its rubric, or stop the run on failure.",
+      "name": "Stop a rate alert when its rule fails",
+      "description": "Use a model-review gate to allow a rate alert only when the supplied value passes its rubric; a failed check stops the run.",
       "file": "workflows/strict-gate.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1426,7 +1426,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1474,7 +1474,7 @@
         }
       ],
       "brief": {
-        "summary": "A model-review example: continue when the currency rate passes its rubric, or stop the run on failure.",
+        "summary": "Use a model-review gate to allow a rate alert only when the supplied value passes its rubric; a failed check stops the run.",
         "howItWorks": [
           "Reads a JSON document with rates from QCORE_SOURCE_URL.",
           "An agent gate (a model judge) passes only if json.rates.UAH is above 42.0; on failure the run ends (no escalation).",
@@ -1554,8 +1554,8 @@
     },
     {
       "id": "webhook-relay",
-      "name": "Move JSON between your tools",
-      "description": "Read a JSON endpoint and forward its payload to a webhook, with no AI model call.",
+      "name": "Forward endpoint data to your webhook without AI",
+      "description": "Read a JSON endpoint and send its data inside a webhook payload with the run ID. No model call is required.",
       "file": "workflows/webhook-relay.yaml",
       "version": "1.1.0",
       "steps": 2,
@@ -1590,7 +1590,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1627,7 +1627,7 @@
         }
       ],
       "brief": {
-        "summary": "Read a JSON endpoint and forward its payload to a webhook, with no AI model call.",
+        "summary": "Read a JSON endpoint and send its data inside a webhook payload with the run ID. No model call is required.",
         "howItWorks": [
           "Reads JSON from QCORE_SOURCE_URL.",
           "POSTs {forwarded: <the JSON>, run: <run id>} to QCORE_WEBHOOK_URL."
@@ -1682,8 +1682,8 @@
     },
     {
       "id": "wide-fanout",
-      "name": "Check how your workflow handles too many items",
-      "description": "A fan-out example: read up to 60 feed items, forward the first 12 and report how many were skipped.",
+      "name": "Limit a large feed to twelve items",
+      "description": "Read up to sixty feed items, forward up to the first twelve to your webhook, and record how many were skipped.",
       "file": "workflows/wide-fanout.yaml",
       "version": "1.1.0",
       "steps": 3,
@@ -1718,7 +1718,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1759,7 +1759,7 @@
         }
       ],
       "brief": {
-        "summary": "A fan-out example: read up to 60 feed items, forward the first 12 and report how many were skipped.",
+        "summary": "Read up to sixty feed items, forward up to the first twelve to your webhook, and record how many were skipped.",
         "howItWorks": [
           "Reads up to 60 items from the feed at QCORE_SOURCE_URL.",
           "Opens one lane per item, capped at 12; the skipped count is recorded.",
@@ -1815,8 +1815,8 @@
     },
     {
       "id": "digest",
-      "name": "Make sense of the news across your sources",
-      "description": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery.",
+      "name": "Turn scattered news into one source-linked digest",
+      "description": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
       "value": "See the themes across sources, with links to check before you share.",
       "file": "workflows/digest.yaml",
       "version": "0.8.1",
@@ -1829,7 +1829,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1875,7 +1875,7 @@
             "workflowVersion": "0.8.0",
             "runId": "5b9ffaf1-cb7f-426e-a7e3-eb68d9224452",
             "provider": "cli",
-            "scope": "The owner approved the text of a real run through the CLI provider; the OpenRouter route of 0.8.0 was not re-run. 0.8.1 changes only YAML comments: its parsed steps are identical to 0.8.0."
+            "scope": "The text of a real run through the CLI provider was reviewed; the OpenRouter route of 0.8.0 was not re-run. 0.8.1 changes only YAML comments: its parsed steps are identical to 0.8.0."
           }
         ]
       },
@@ -1896,7 +1896,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, then approve the text before delivery.",
+        "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
         "howItWorks": [
           "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
@@ -2021,8 +2021,8 @@
     },
     {
       "id": "digest-cli",
-      "name": "Make sense of the news with your coding agent",
-      "description": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key.",
+      "name": "Build a source-linked digest with your coding agent",
+      "description": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
       "value": "Use your existing coding-agent session for source checks and drafting; approve delivery separately.",
       "file": "workflows/digest-cli.yaml",
       "version": "0.8.1",
@@ -2035,7 +2035,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2093,7 +2093,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Build the same source-linked Ukrainian digest through Claude or Codex, review its claims and approve delivery; no OpenRouter key.",
+        "summary": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
         "howItWorks": [
           "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
@@ -2212,8 +2212,8 @@
     },
     {
       "id": "podcast-summary",
-      "name": "Find the key ideas in a podcast transcript",
-      "description": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval.",
+      "name": "Find the key moments in a podcast transcript",
+      "description": "Turn two transcript parts into a concise Ukrainian summary with checked timestamps. Review the exact text before approval.",
       "value": "Find the important ideas and return to their timestamps without rereading the transcript.",
       "file": "workflows/podcast-summary.yaml",
       "version": "0.1.0",
@@ -2226,7 +2226,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2274,7 +2274,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Turn two transcript parts into a Ukrainian summary with checked timestamps, kept locally for your approval.",
+        "summary": "Turn two transcript parts into a concise Ukrainian summary with checked timestamps. Review the exact text before approval.",
         "howItWorks": [
           "Fetches the two transcript parts from their URLs.",
           "Extracts readable text and removes exact duplicates.",
@@ -2392,8 +2392,8 @@
     },
     {
       "id": "podcast-summary-cli",
-      "name": "Summarize a podcast with your coding agent",
-      "description": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key.",
+      "name": "Summarize a transcript with your coding agent",
+      "description": "Use Claude or Codex to produce the same Ukrainian transcript summary with checked timestamps, without an OpenRouter key.",
       "value": "Get a timestamped summary through your existing coding-agent session.",
       "file": "workflows/podcast-summary-cli.yaml",
       "version": "0.1.0",
@@ -2406,7 +2406,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2454,7 +2454,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Use Claude or Codex to turn two transcript parts into a Ukrainian summary with checked timestamps; no OpenRouter key.",
+        "summary": "Use Claude or Codex to produce the same Ukrainian transcript summary with checked timestamps, without an OpenRouter key.",
         "howItWorks": [
           "Fetches the two transcript parts from their URLs.",
           "Extracts readable text and removes exact duplicates.",
@@ -2533,7 +2533,7 @@
         },
         "price": "No separate model bill: the draft runs in your Claude or Codex subscription; cost is recorded as unknown, not free.",
         "limits": [
-          "Candidate: a local run with this adaptation was made on 28.09; no owner acceptance of this entry.",
+          "Candidate: a local run with this adaptation was made on 28.09; no acceptance of this entry.",
           "The draft receives at most 60000 bytes (the unique step's output).",
           "Nothing is delivered or published; the result stays in the run after your approval.",
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
@@ -2564,8 +2564,8 @@
     },
     {
       "id": "sdd-pipeline",
-      "name": "SDD: agree on the result before changing code",
-      "description": "Define the change, scope and acceptance criteria first. Approve the specification, then let your agent implement it and verify the allowed files.",
+      "name": "SDD: from requirements to verified code",
+      "description": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
       "value": "Make the expected result explicit, then test the approved change against it.",
       "file": "workflows/sdd-pipeline.yaml",
       "version": "0.1.0",
@@ -2578,7 +2578,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2630,7 +2630,7 @@
         "execution": "explicit-local-scope"
       },
       "brief": {
-        "summary": "Use specification-driven development for a scoped project change: agree on the intended result, constraints and acceptance criteria before implementation. Approve that exact specification in your terminal; your agent changes only allowed files, an independent verifier checks the result, and failed checks trigger a bounded repair cycle with local evidence.",
+        "summary": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
         "howItWorks": [
           "Reads only the files your workspace policy allows and pins the verifier inputs.",
           "Your coding agent writes a brief: summary, checkable criteria, plan.",
@@ -2693,7 +2693,7 @@
           "Turn my intent into an approved spec and a change limited to docs/ checked by my lint script."
         ]
       },
-      "sha256": "5b5b4e9e22097f8af2f1751f5382709e8f0952097c637e94f33e1338b6c8a34a",
+      "sha256": "fb86702b0df84fec64000d3a398256d2413c862ccd322de9f52312d66a1fc5b5",
       "steps": 7,
       "kinds": [
         "workspace-read",
@@ -2770,7 +2770,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2780,15 +2780,15 @@
       "evidence": {
         "status": "no-live-proof"
       },
-      "sha256": "ac05b05522d4724ac617e3dbef21e26e5da70fe4f442af19a405ff28bfd97875",
+      "sha256": "c9b13755fe606abc4f339d5d2f34fd80c41caeb274ac161e799f36c68b13c344",
       "contentType": "component",
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
-            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
             "componentVersion": "1.0.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -2923,7 +2923,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3005,7 +3005,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3055,7 +3055,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3066,11 +3066,11 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/digest-huyiks.txt",
-            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3092,7 +3092,7 @@
           "Replies are bound to the exact job; no fallback to another provider."
         ]
       },
-      "sha256": "344dda207a339c685a1b4232f8b2f8e6b81081e63350fbad2678a08ed24dc00e"
+      "sha256": "507f97a2c179a3cdc1d8093a44771e1a5526d1af2b3f01c11adb7c65a2a7937d"
     },
     {
       "id": "parse-web",
@@ -3107,7 +3107,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3118,18 +3118,18 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "624d7425227f48a4ab3d9c10112cb7c91738f811e7631439224fd57dd9ef8d85",
             "componentVersion": "0.2.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-huyiks.txt",
-            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3150,7 +3150,7 @@
           "Does not judge whether text is true."
         ]
       },
-      "sha256": "079cd64852d22c97bcc5ff180505f7b523db303c169722fec80a22bb13b68df9"
+      "sha256": "dc137d9bafda89c84354825534f78b9ef9b87fdc1c29c08782369de5d9915ef6"
     },
     {
       "id": "determined",
@@ -3165,7 +3165,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -3185,11 +3185,11 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
+            "sha256": "848e7c6a02e23a898d0a51d0e16a4501fc64fb708e5fee29826b713510a3eb96",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3210,7 +3210,7 @@
           "Only as good as the verifier; not an OS sandbox."
         ]
       },
-      "sha256": "7cf996d8d0aa052c08e87bb068eb7cd325951bdb455c5042352f2a9e7819ab0d"
+      "sha256": "6a850fda4e3cd8d7f4d62ca89a25357679d12453690bfa7cd26937251e741708"
     },
     {
       "id": "workspace-apply",
@@ -3225,7 +3225,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3236,11 +3236,11 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
+            "sha256": "848e7c6a02e23a898d0a51d0e16a4501fc64fb708e5fee29826b713510a3eb96",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3260,7 +3260,7 @@
           "An interrupted write needs manual reconciliation."
         ]
       },
-      "sha256": "395590ebbccbf259069db16e98a203f51dda462c3d32d9ae8b1e64cdfcf133ee"
+      "sha256": "9f278bb10204498b3a22586efdc7485f6e898d40449adc5117680e9e38b4fac0"
     },
     {
       "id": "verify-artifact",
@@ -3275,7 +3275,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3286,11 +3286,11 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
+            "sha256": "848e7c6a02e23a898d0a51d0e16a4501fc64fb708e5fee29826b713510a3eb96",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3310,7 +3310,7 @@
           "The verifier is trusted user-selected code, not a sandbox."
         ]
       },
-      "sha256": "7fbd825bb37e776ddb5782dca3b8eeb2f1d136ebfb5e113851fb713f28e8d182"
+      "sha256": "2595ae9fb78ba1d524e22e9f75f6e638707240385a41eaa6fc352e1eb7faf6f4"
     },
     {
       "id": "deduplicate",
@@ -3325,7 +3325,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3336,18 +3336,18 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "624d7425227f48a4ab3d9c10112cb7c91738f811e7631439224fd57dd9ef8d85",
             "componentVersion": "0.2.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-huyiks.txt",
-            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3367,7 +3367,7 @@
           "Keeps 1–20 clusters (default 8); invalid clusters fail the step."
         ]
       },
-      "sha256": "8b8d82b811fa0ce020433c2161cdb59dbf2fa88bc6ef5f01017b7e5a2247d9b8"
+      "sha256": "fb1649002aa05e17e8ad668ba06fd1f60b6b613ab5e3957044b7dd6fd57f9730"
     },
     {
       "id": "aindf-validator",
@@ -3382,7 +3382,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3423,7 +3423,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3462,7 +3462,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3504,7 +3504,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3517,11 +3517,11 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
+            "sha256": "848e7c6a02e23a898d0a51d0e16a4501fc64fb708e5fee29826b713510a3eb96",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3538,7 +3538,7 @@
           "A read that no later step uses is refused."
         ]
       },
-      "sha256": "483784b7efd768a08aa08246297514c181ab808d06270e30946e3ca7c37b939b"
+      "sha256": "1d1af710009bdf448e46013d1c7386e57030bcabd03cf283fad9a170ba69626d"
     },
     {
       "id": "specification",
@@ -3553,7 +3553,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3566,11 +3566,11 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/sdd-verified-change.txt",
-            "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
+            "sha256": "848e7c6a02e23a898d0a51d0e16a4501fc64fb708e5fee29826b713510a3eb96",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3588,7 +3588,7 @@
           "Still needs a human approval."
         ]
       },
-      "sha256": "431cc78dfa9fcb258019024b2b866a9a0dfbdf31596da71b3d3bbd90d7c609bf"
+      "sha256": "fb872479832d9413c238b7df721332fad4327e08680f52b622d597448f30c18c"
     },
     {
       "id": "verify-sources",
@@ -3603,7 +3603,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3616,25 +3616,25 @@
       },
       "acceptance": {
         "status": "accepted",
-        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
         "evidence": [
           {
             "file": "demos/digest-multisource.txt",
-            "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+            "sha256": "624d7425227f48a4ab3d9c10112cb7c91738f811e7631439224fd57dd9ef8d85",
             "componentVersion": "0.5.0",
             "coreVersion": "0.2.0-q-core.34",
-            "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+            "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
           },
           {
             "file": "demos/digest-format.txt",
-            "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
+            "sha256": "a3aba9f24781c6bb8a35a9014c3fac19987121f40cb3c538ae4ee854c9da290c",
             "componentVersion": "0.4.0",
             "coreVersion": "0.2.0-q-core.32",
             "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
           },
           {
             "file": "demos/digest-huyiks.txt",
-            "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+            "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
             "componentVersion": "0.1.0",
             "coreVersion": "0.2.0-core.16",
             "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -3652,7 +3652,7 @@
           "language: uk checks Ukrainian markers, not language quality."
         ]
       },
-      "sha256": "442cb4f443844b82d0744a2e820b77422fe1c6461c398fafee0520b4c283bef7"
+      "sha256": "11b8d914219062290c666022f712c1be9afe21ae6f4a0e50311174f919fa4feb"
     }
   ],
   "demos": [
@@ -3681,7 +3681,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3723,7 +3723,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3765,7 +3765,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3801,7 +3801,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3834,7 +3834,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.45",
+        "version": "0.2.0-q-core.46",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3854,21 +3854,21 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.09.28-registry.33-candidate",
+  "releaseVersion": "2026.10.10-registry.36-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.45",
+    "version": "0.2.0-q-core.46",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.45.tgz",
-    "artifactSha256": "d87c1ede71094e2c121f43ff1696f5600bafd900b300a288393b1ce0acc3268f",
-    "integrity": "sha512-eNfidx53j/jbPrasP/xwLTurCyQEX3pxWhPI4d7+Kur3pgZM16SqGaC9z/P5h7IVNTivh6a+775+bzk4i1WqfQ==",
+    "artifact": "vendor/q-core-0.2.0-q-core.46.tgz",
+    "artifactSha256": "829262f0d04ce9d84ed3aa74b61af4027f7e18041844288fc890c70cfd2235aa",
+    "integrity": "sha512-onuIbFvY4hx23lZ8FijZWDjzZaE+bRyT6a34JHZrrGxdJycDkwN1Pv+SwZwHjmCdbjLOjwS/Mlak+3xn365ydQ==",
     "schemaSha256": "20b130d6ec1fc9412a3bfd0fb0e72843f9adaedea9860d223f0f5a819a5c487f",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.45 metadata successor of Core.44: names and descriptions for all 16 workflows, accurate scoped SDD value, and matching README. Runtime, manifests, validators and schemas are unchanged.",
-    "acceptanceRecord": "Owner acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
+    "source": "Core.46 successor of Core.45: comments, test names and the wording of synthetic request examples only. Runtime, manifests, validators, schemas and workflows are unchanged.",
+    "acceptanceRecord": "Acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
   "publicationGates": [
@@ -4303,7 +4303,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.45",
+          "version": "0.2.0-q-core.46",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4321,14 +4321,14 @@
           "evidence": [
             {
               "file": "demos/digest-format.txt",
-              "sha256": "ea787817441b056cd7993d732c3c074edbc3e458e9f27bbe1f7cd9b5319e9ae6",
+              "sha256": "a3aba9f24781c6bb8a35a9014c3fac19987121f40cb3c538ae4ee854c9da290c",
               "componentVersion": "1.1.0",
               "coreVersion": "0.2.0-q-core.32",
               "coreSha256": "e93576b50dca94182a96845fb11949dd6d1c660ab1ab64656380a492cb68133e"
             },
             {
               "file": "demos/digest-huyiks.txt",
-              "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+              "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
               "componentVersion": "1.0.0",
               "coreVersion": "0.2.0-core.16",
               "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -4398,7 +4398,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.45",
+          "version": "0.2.0-q-core.46",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4499,7 +4499,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.45",
+          "version": "0.2.0-q-core.46",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4517,7 +4517,7 @@
           "evidence": [
             {
               "file": "demos/digest-huyiks.txt",
-              "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+              "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
               "componentVersion": "1.0.0",
               "coreVersion": "0.2.0-core.16",
               "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
@@ -4568,7 +4568,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.45",
+          "version": "0.2.0-q-core.46",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "6303981a980eb3d9052fd042df244e139fbeab89554013f3d78151b03c4b79a9"
+  "releaseSha256": "7b5d076db9c89508924bb1579b605b048b800a07e0bc0da15e0b71baddd21ad5"
 }

@@ -44,18 +44,18 @@
   },
   "acceptance": {
     "status": "accepted",
-    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
     "evidence": [
       {
         "file": "demos/digest-multisource.txt",
-        "sha256": "786ea60fb2065aba2776cfb5da575734927a2adbd4dfbdb5d79354eea0a7ec30",
+        "sha256": "624d7425227f48a4ab3d9c10112cb7c91738f811e7631439224fd57dd9ef8d85",
         "componentVersion": "0.2.0",
         "coreVersion": "0.2.0-q-core.34",
-        "coreSource": "Q-Core candidate source checkout (claude/core34-registry20) before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
+        "coreSource": "Q-Core candidate source checkout before packing; live OpenRouter run 66c87653-651c-4503-ba3b-e0f3f6e319f1"
       },
       {
         "file": "demos/digest-huyiks.txt",
-        "sha256": "5e274edf71e9558910b5b1ef01e785f3894c445e0c738c88b3d8cdd39dd5750f",
+        "sha256": "52245381f0bea4996183faa6fa6b28a043781ba50c75a293db98e63c52030859",
         "componentVersion": "0.1.0",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"
