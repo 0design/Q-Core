@@ -42,7 +42,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -221,7 +221,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -380,7 +380,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -571,7 +571,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -754,7 +754,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -926,7 +926,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1092,7 +1092,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1263,7 +1263,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1435,7 +1435,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1599,7 +1599,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1727,7 +1727,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1828,7 +1828,7 @@
       "description": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
       "value": "See the themes across sources, with links to check before you share.",
       "file": "workflows/digest.yaml",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -1838,7 +1838,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1874,9 +1874,9 @@
         }
       ],
       "contentType": "workflow-template",
-      "status": "accepted",
+      "status": "implementation-candidate",
       "acceptance": {
-        "status": "accepted",
+        "status": "pending",
         "evidence": [
           {
             "kind": "owner-review",
@@ -1884,7 +1884,7 @@
             "workflowVersion": "0.8.0",
             "runId": "5b9ffaf1-cb7f-426e-a7e3-eb68d9224452",
             "provider": "cli",
-            "scope": "The text of a real run through the CLI provider was reviewed; the OpenRouter route of 0.8.0 was not re-run. 0.8.1 changes only YAML comments: its parsed steps are identical to 0.8.0."
+            "scope": "The text of a real run through the CLI provider was reviewed; the OpenRouter route of 0.8.0 was not re-run. This record is for 0.8.0. 0.9.0 adds two fetch steps (Y Combinator blog and YouTube, QF_DIGEST_FEED_11..12); apart from them its parsed steps equal 0.8.0, and 0.9.0 is pending a new accepted run."
           }
         ]
       },
@@ -1907,7 +1907,7 @@
       "brief": {
         "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
         "howItWorks": [
-          "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
+          "Reads 12 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI, Y Combinator blog, Y Combinator YouTube) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
           "Reads the article behind each selected source (static text; falls back to the feed summary).",
           "A model drafts the Ukrainian nested list; a fact-check step revises or removes unsupported claims with verbatim quotes.",
@@ -1924,8 +1924,8 @@
         ],
         "knobs": [
           {
-            "name": "QF_DIGEST_FEED_1..10",
-            "what": "Replace any of the ten default feeds (env vars)."
+            "name": "QF_DIGEST_FEED_1..12",
+            "what": "Replace any of the twelve default feeds (env vars)."
           },
           {
             "name": "QF_DIGEST_TOPIC",
@@ -1986,7 +1986,7 @@
               "required": true
             },
             {
-              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_10",
+              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_12",
               "what": "Replace a default feed",
               "required": false
             },
@@ -1999,7 +1999,7 @@
         },
         "price": "OpenRouter: about $0.3 per run, measured on a 0.8.0 candidate run ($0.29; cap $0.5 in the manifest); the released 0.8.0 OpenRouter route was not re-run. CLI route: use digest-cli (no key, no separate model bill); the accepted run used that route.",
         "limits": [
-          "Accepted after a real run of 0.8.0 through the CLI route (0.8.1 changes only comments); the OpenRouter route was not re-verified.",
+          "0.8.0 was accepted after a real run through the CLI route; 0.9.0 adds two default feeds and awaits its own accepted run; the OpenRouter route was not re-verified.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run: later steps read them.",
           "Checks prove links, quotes, numbers and format; meaning-level accuracy still rests on the model steps and your approval.",
           "Articles are read as static text only (no JavaScript); paywalled or unreachable pages fall back to the feed summary.",
@@ -2009,7 +2009,7 @@
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
         ],
         "exampleRequests": [
-          "A weekly fact-checked Ukrainian digest of AI news from ten feeds, delivered to a local .jsonl file.",
+          "A weekly fact-checked Ukrainian digest of AI news from twelve feeds, delivered to a local .jsonl file.",
           "A Saturday AI news roundup for 20.09–27.09 with sources, delivered to a local .jsonl file.",
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
@@ -2021,7 +2021,7 @@
       "description": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
       "value": "Use your existing coding-agent session for source checks and drafting; approve delivery separately.",
       "file": "workflows/digest-cli.yaml",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -2031,7 +2031,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2091,7 +2091,7 @@
       "brief": {
         "summary": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
         "howItWorks": [
-          "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
+          "Reads 12 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI, Y Combinator blog, Y Combinator YouTube) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
           "Reads the article behind each selected source (static text; falls back to the feed summary).",
           "A model drafts the Ukrainian nested list; a fact-check step revises or removes unsupported claims with verbatim quotes.",
@@ -2108,8 +2108,8 @@
         ],
         "knobs": [
           {
-            "name": "QF_DIGEST_FEED_1..10",
-            "what": "Replace any of the ten default feeds (env vars)."
+            "name": "QF_DIGEST_FEED_1..12",
+            "what": "Replace any of the twelve default feeds (env vars)."
           },
           {
             "name": "QF_DIGEST_TOPIC",
@@ -2166,7 +2166,7 @@
               "required": true
             },
             {
-              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_10",
+              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_12",
               "what": "Replace a default feed",
               "required": false
             },
@@ -2187,7 +2187,7 @@
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
         ],
         "exampleRequests": [
-          "A weekly fact-checked Ukrainian digest of AI news from ten feeds, delivered to a local .jsonl file.",
+          "A weekly fact-checked Ukrainian digest of AI news from twelve feeds, delivered to a local .jsonl file.",
           "A Saturday AI news roundup for 20.09–27.09 with sources, delivered to a local .jsonl file.",
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
@@ -2209,7 +2209,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2371,7 +2371,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2525,7 +2525,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2705,7 +2705,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2858,7 +2858,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2939,7 +2939,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2989,7 +2989,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3040,7 +3040,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3097,7 +3097,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -3156,7 +3156,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3205,7 +3205,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3254,7 +3254,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3310,7 +3310,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3350,7 +3350,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3388,7 +3388,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3429,7 +3429,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3477,7 +3477,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3526,7 +3526,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3603,7 +3603,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3645,7 +3645,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3687,7 +3687,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3722,7 +3722,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3754,7 +3754,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.46",
+        "version": "0.2.0-q-core.47",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3773,20 +3773,20 @@
       }
     }
   ],
-  "releaseVersion": "2026.10.10-registry.36-candidate",
+  "releaseVersion": "2026.10.12-registry.37-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.46",
+    "version": "0.2.0-q-core.47",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 13,
-    "artifact": "vendor/q-core-0.2.0-q-core.46.tgz",
-    "artifactSha256": "829262f0d04ce9d84ed3aa74b61af4027f7e18041844288fc890c70cfd2235aa",
-    "integrity": "sha512-onuIbFvY4hx23lZ8FijZWDjzZaE+bRyT6a34JHZrrGxdJycDkwN1Pv+SwZwHjmCdbjLOjwS/Mlak+3xn365ydQ==",
+    "artifact": "vendor/q-core-0.2.0-q-core.47.tgz",
+    "artifactSha256": "822c04095b494214a2af78845d54648831ba6b174bf2c52cafab1cabe0096226",
+    "integrity": "sha512-C/D9IcbcykC93sKg8cdy0qhwgOdNTVej+4ArxovAXj38SeestQwaoSs7mejb/5AiHMU384yHh4KWlA57mG1I7g==",
     "schemaSha256": "20b130d6ec1fc9412a3bfd0fb0e72843f9adaedea9860d223f0f5a819a5c487f",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.46 successor of Core.45: comments, test names and the wording of synthetic request examples only. Runtime, manifests, validators, schemas and workflows are unchanged.",
+    "source": "Core.47 successor of Core.46: the feed parser reads media:description as the last summary fallback, so YouTube channel entries keep their video text. Manifests, validators, schemas and workflows are unchanged.",
     "acceptanceRecord": "Acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",

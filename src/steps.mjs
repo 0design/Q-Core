@@ -141,7 +141,8 @@ export function parseFeed(xml) {
     return {
       title: tag(b, "title"),
       link: hrefAttr || tag(b, "link"),
-      summary: tag(b, "description") || tag(b, "summary") || tag(b, "content"),
+      // YouTube channel feeds keep the video text in <media:group><media:description>.
+      summary: tag(b, "description") || tag(b, "summary") || tag(b, "content") || tag(b, "media:description"),
       published: tag(b, "pubDate") || tag(b, "published") || tag(b, "updated"),
     };
   });

@@ -44,15 +44,17 @@ test('contract facts are in the Registry', () => {
   assert.match(cliComponent.brief.limits.join('\n'), /60000 bytes/);
 });
 
-test('Digest 0.8.0 is accepted; the other workflows keep their status', () => {
+test('Digest 0.9.0 awaits its own acceptance; the 0.8.0 record stays scoped; no other workflow is accepted', () => {
   const digest = catalog.workflows.find(w => w.id === 'digest');
-  assert.equal(digest.version, '0.8.1');
-  assert.equal(digest.status, 'accepted');
-  assert.equal(digest.acceptance.status, 'accepted');
+  assert.equal(digest.version, '0.9.0');
+  // Negative: a step change (two new feeds) does not inherit the 0.8.0 acceptance.
+  assert.equal(digest.status, 'implementation-candidate');
+  assert.equal(digest.acceptance.status, 'pending');
+  assert.equal(digest.acceptance.evidence[0].workflowVersion, '0.8.0');
   assert.equal(digest.acceptance.evidence[0].runId, '5b9ffaf1-cb7f-426e-a7e3-eb68d9224452');
-  // Negative: the acceptance is scoped; the OpenRouter route is not claimed.
   assert.match(digest.acceptance.evidence[0].scope, /OpenRouter route of 0\.8\.0 was not re-run/);
-  for (const w of catalog.workflows.filter(w => w.id !== 'digest')) assert.notEqual(w.status, 'accepted', w.id);
+  assert.match(digest.acceptance.evidence[0].scope, /0\.9\.0 is pending a new accepted run/);
+  for (const w of catalog.workflows) assert.notEqual(w.status, 'accepted', w.id);
 });
 
 test('every component carries a short brief', () => {
@@ -63,9 +65,9 @@ test('every component carries a short brief', () => {
   assert.match(catalog.components.find(c => c.id === 'agentation').brief.summary, /[Pp]lanned/);
 });
 
-// Digest 0.8.1 and digest-cli 0.8.1 change only YAML comments: without `version`, the parsed manifests equal the
-// 0.8.0 ones the acceptance record refers to. Any change of steps or settings breaks this and needs a new acceptance.
-test('Digest 0.8.1 and digest-cli 0.8.1 parse to exactly the 0.8.0 manifests apart from the version', async () => {
+// Digest 0.9.0 and digest-cli 0.9.0 add only the two Y Combinator fetch steps: without them and without `version`,
+// the parsed manifests equal the 0.8.0 ones the acceptance record refers to. Any other change of steps or settings breaks this.
+test('Digest 0.9.0 and digest-cli 0.9.0 equal the 0.8.0 manifests apart from the version and the two YC feeds', async () => {
   const { parseYaml } = await import('../src/yaml.mjs');
   const { createHash } = await import('node:crypto');
   const { readFileSync: read } = await import('node:fs');
@@ -73,10 +75,25 @@ test('Digest 0.8.1 and digest-cli 0.8.1 parse to exactly the 0.8.0 manifests apa
     digest: '74112f05e265e0c13f146c3abf585d71de03a1ebf8a6a729e6720e93d1c97031',
     'digest-cli': 'a9f35257a41e50a1daadc85faaf7c48607f16883e5c729a0f82ed8d1d94ee183',
   };
+  const added = [
+    ['yc-blog', '{{env.QF_DIGEST_FEED_11:-https://www.ycombinator.com/blog/rss}}'],
+    ['yc-youtube', '{{env.QF_DIGEST_FEED_12:-https://www.youtube.com/feeds/videos.xml?channel_id=UCcefcZRL2oaA_uBNeo5UOWg}}'],
+  ];
   for (const [id, sha] of Object.entries(expected)) {
     const manifest = parseYaml(read(new URL(`../registry/workflows/${id}.yaml`, import.meta.url), 'utf8'));
-    assert.equal(manifest.version, '0.8.1', id);
+    assert.equal(manifest.version, '0.9.0', id);
     delete manifest.version;
+    for (const [stepId, url] of added) {
+      const i = manifest.steps.findIndex(s => s.id === stepId);
+      assert.ok(i > 0, `${id}: ${stepId}`);
+      assert.equal(manifest.steps[i].kind, 'fetch');
+      assert.equal(manifest.steps[i].config.url, url);
+      manifest.steps.splice(i, 1);
+    }
+    // The description names the two new feeds; the 0.8.0 text is restored for the comparison.
+    manifest.description = manifest.description
+      .replace('twelve public AI news feeds (media, blogs, official, the Y Combinator blog and YouTube channel)', 'ten public AI news feeds (media, blogs, official)')
+      .replace('QF_DIGEST_FEED_1..12', 'QF_DIGEST_FEED_1..10');
     assert.equal(createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), sha, id);
   }
 });
