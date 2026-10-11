@@ -181,10 +181,11 @@ test('CLI refuses an old manifest family without a rename hint', () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('Digest 0.4 defaults to ten public AI feeds (media, blogs, official) and keeps the window, receiver and dated header required', () => withEnv(Object.fromEntries([...Array.from({ length: 10 }, (_, i) => [`QF_DIGEST_FEED_${i + 1}`, undefined]), ['QF_DIGEST_RECEIVER_URL', undefined], ['QF_DIGEST_DATE', undefined], ['QF_DIGEST_SINCE', undefined], ['QF_DIGEST_UNTIL', undefined]]), () => {
+test('Digest defaults to twelve public AI feeds (media, blogs, official, Y Combinator) and keeps the window, receiver and dated header required', () => withEnv(Object.fromEntries([...Array.from({ length: 12 }, (_, i) => [`QF_DIGEST_FEED_${i + 1}`, undefined]), ['QF_DIGEST_RECEIVER_URL', undefined], ['QF_DIGEST_DATE', undefined], ['QF_DIGEST_SINCE', undefined], ['QF_DIGEST_UNTIL', undefined]]), () => {
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
   const urls = manifest.steps.filter(s => s.kind === 'fetch').map(s => resolveTemplate(s.config.url, {}));
-  assert.equal(urls.length, 10);
+  assert.equal(urls.length, 12);
+  assert.ok(urls.includes('https://www.ycombinator.com/blog/rss') && urls.includes('https://www.youtube.com/feeds/videos.xml?channel_id=UCcefcZRL2oaA_uBNeo5UOWg'));
   assert.ok(urls.every(url => /^https:\/\//.test(url)));
   assert.ok(urls.includes('https://openai.com/news/rss.xml') && urls.includes('https://techcrunch.com/category/artificial-intelligence/feed/') && urls.includes('https://simonwillison.net/atom/everything/'));
   assert.deepEqual(requiredEnvMissing(createRun(manifest).steps).sort(), ['QF_DIGEST_DATE', 'QF_DIGEST_RECEIVER_URL', 'QF_DIGEST_SINCE', 'QF_DIGEST_UNTIL']);
