@@ -1819,7 +1819,7 @@
       "description": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
       "value": "See the themes across sources, with links to check before you share.",
       "file": "workflows/digest.yaml",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -1865,9 +1865,9 @@
         }
       ],
       "contentType": "workflow-template",
-      "status": "accepted",
+      "status": "implementation-candidate",
       "acceptance": {
-        "status": "accepted",
+        "status": "pending",
         "evidence": [
           {
             "kind": "owner-review",
@@ -1875,7 +1875,7 @@
             "workflowVersion": "0.8.0",
             "runId": "5b9ffaf1-cb7f-426e-a7e3-eb68d9224452",
             "provider": "cli",
-            "scope": "The text of a real run through the CLI provider was reviewed; the OpenRouter route of 0.8.0 was not re-run. 0.8.1 changes only YAML comments: its parsed steps are identical to 0.8.0."
+            "scope": "The text of a real run through the CLI provider was reviewed; the OpenRouter route of 0.8.0 was not re-run. This record is for 0.8.0. 0.9.0 adds two fetch steps (Y Combinator blog and YouTube, QF_DIGEST_FEED_11..12); apart from them its parsed steps equal 0.8.0, and 0.9.0 is pending a new accepted run."
           }
         ]
       },
@@ -1898,7 +1898,7 @@
       "brief": {
         "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
         "howItWorks": [
-          "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
+          "Reads 12 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI, Y Combinator blog, Y Combinator YouTube) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
           "Reads the article behind each selected source (static text; falls back to the feed summary).",
           "A model drafts the Ukrainian nested list; a fact-check step revises or removes unsupported claims with verbatim quotes.",
@@ -1915,8 +1915,8 @@
         ],
         "knobs": [
           {
-            "name": "QF_DIGEST_FEED_1..10",
-            "what": "Replace any of the ten default feeds (env vars)."
+            "name": "QF_DIGEST_FEED_1..12",
+            "what": "Replace any of the twelve default feeds (env vars)."
           },
           {
             "name": "QF_DIGEST_TOPIC",
@@ -1977,7 +1977,7 @@
               "required": true
             },
             {
-              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_10",
+              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_12",
               "what": "Replace a default feed",
               "required": false
             },
@@ -1990,7 +1990,7 @@
         },
         "price": "OpenRouter: about $0.3 per run, measured on a 0.8.0 candidate run ($0.29; cap $0.5 in the manifest); the released 0.8.0 OpenRouter route was not re-run. CLI route: use digest-cli (no key, no separate model bill); the accepted run used that route.",
         "limits": [
-          "Accepted after a real run of 0.8.0 through the CLI route (0.8.1 changes only comments); the OpenRouter route was not re-verified.",
+          "0.8.0 was accepted after a real run through the CLI route; 0.9.0 adds two default feeds and awaits its own accepted run; the OpenRouter route was not re-verified.",
           "q-core reply must run with the same QF_DIGEST_* variables exported as q-core run: later steps read them.",
           "Checks prove links, quotes, numbers and format; meaning-level accuracy still rests on the model steps and your approval.",
           "Articles are read as static text only (no JavaScript); paywalled or unreachable pages fall back to the feed summary.",
@@ -2000,13 +2000,13 @@
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
         ],
         "exampleRequests": [
-          "A weekly fact-checked Ukrainian digest of AI news from ten feeds, delivered to a local .jsonl file.",
+          "A weekly fact-checked Ukrainian digest of AI news from twelve feeds, delivered to a local .jsonl file.",
           "A Saturday AI news roundup for 20.09–27.09 with sources, delivered to a local .jsonl file.",
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "b6eb3bcaceb50de9aefe09fbff3ae96cd17844e5d871e0e222757091c33324a2",
-      "steps": 21,
+      "sha256": "8ad1464d56b589c644373857123f9cb22c83b88d96fc1665f1a4426360e0146b",
+      "steps": 23,
       "kinds": [
         "fetch",
         "parse-web",
@@ -2025,7 +2025,7 @@
       "description": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
       "value": "Use your existing coding-agent session for source checks and drafting; approve delivery separately.",
       "file": "workflows/digest-cli.yaml",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -2095,7 +2095,7 @@
       "brief": {
         "summary": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
         "howItWorks": [
-          "Reads 10 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI) and keeps items in your date window.",
+          "Reads 12 feeds (TechCrunch, The Verge, Wired, The Decoder, Ars Technica, MIT TR, MarkTechPost, Simon Willison, Latent Space, OpenAI, Y Combinator blog, Y Combinator YouTube) and keeps items in your date window.",
           "Removes exact duplicates; a model groups items reporting the same thing into ranked meaning clusters (up to 8 kept).",
           "Reads the article behind each selected source (static text; falls back to the feed summary).",
           "A model drafts the Ukrainian nested list; a fact-check step revises or removes unsupported claims with verbatim quotes.",
@@ -2112,8 +2112,8 @@
         ],
         "knobs": [
           {
-            "name": "QF_DIGEST_FEED_1..10",
-            "what": "Replace any of the ten default feeds (env vars)."
+            "name": "QF_DIGEST_FEED_1..12",
+            "what": "Replace any of the twelve default feeds (env vars)."
           },
           {
             "name": "QF_DIGEST_TOPIC",
@@ -2170,7 +2170,7 @@
               "required": true
             },
             {
-              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_10",
+              "name": "QF_DIGEST_FEED_1..QF_DIGEST_FEED_12",
               "what": "Replace a default feed",
               "required": false
             },
@@ -2191,13 +2191,13 @@
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
         ],
         "exampleRequests": [
-          "A weekly fact-checked Ukrainian digest of AI news from ten feeds, delivered to a local .jsonl file.",
+          "A weekly fact-checked Ukrainian digest of AI news from twelve feeds, delivered to a local .jsonl file.",
           "A Saturday AI news roundup for 20.09–27.09 with sources, delivered to a local .jsonl file.",
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "aa4a2c0922a50067dbb55646c69fa76b6a59e7caea387b0b3846d6b32721ac6e",
-      "steps": 21,
+      "sha256": "6ade2e1c6fae044a1b22e3a954a968c428452765fc51e4bb5f1ddfdbc400c63c",
+      "steps": 23,
       "kinds": [
         "fetch",
         "parse-web",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "91fb02eb077cb4c309b8d90bf494a47a18a6a8f02346c854d47658e3471cf700"
+  "releaseSha256": "83a2a49abaa6b927be2662ca604cd22f96e8abe2ca4b0043dbbf9b10f0e1b759"
 }
