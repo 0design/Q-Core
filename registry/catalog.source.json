@@ -2640,6 +2640,147 @@
           "Turn my intent into an approved spec and a change limited to docs/ checked by my lint script."
         ]
       }
+    },
+    {
+      "id": "content-distribution",
+      "name": "Turn one source post into checked drafts for X, LinkedIn and Telegram",
+      "description": "Use Claude or Codex to draft a channel-specific version of one source post, check it against the source, and approve each channel before anything is delivered.",
+      "value": "Write once, get a draft per channel that sticks to the source, and release each one only after you approve its exact text.",
+      "file": "workflows/content-distribution.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/content-distribution.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.46",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "parse-web",
+          "version": "0.2.0"
+        },
+        {
+          "id": "deduplicate",
+          "version": "0.2.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.5.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "api-request",
+          "version": "1.1.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [
+        "QF_DIST_SOURCE_URL",
+        "QF_DIST_RECEIVER_URL"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "Use Claude or Codex to draft an X thread, a LinkedIn post and a Telegram post from one source post you may process, check each against the source, and approve each channel separately before it is delivered to a receiver you control.",
+        "howItWorks": [
+          "Reads one source post from QF_DIST_SOURCE_URL as static text and fingerprints it.",
+          "Your coding agent drafts one version per channel (X thread of 3-7 tweets, LinkedIn post, Telegram post) using only facts in the source.",
+          "A separate review step per channel compares the draft with the source claim by claim and returns a corrected text with its issues.",
+          "Deterministic checks verify that only the source link is used, the required section and its shape are present, and X tweets stay within 40 words.",
+          "For each channel in turn you approve the exact checked text in your terminal; it is then delivered once to QF_DIST_RECEIVER_URL as one JSON line. Nothing is posted to X, LinkedIn or Telegram by this workflow.",
+          "A rerun on the same source text does not deliver a channel again; a changed source is delivered again."
+        ],
+        "inputs": [
+          "A source post at an http(s) URL that you may process.",
+          "A receiver: http(s) URL or file:///absolute/path.jsonl in an existing folder.",
+          "Your approval of each channel's exact text."
+        ],
+        "outputs": [
+          "Per approved channel, one JSON line {channel, text, artifactHash, sourceHash} at the receiver. Texts are Markdown starting with the channel heading."
+        ],
+        "knobs": [
+          {
+            "name": "Step instructions",
+            "what": "Channel rules (tweet count, sentence ranges, language, tone) are plain text in the three draft steps (manifest)."
+          },
+          {
+            "name": "sectionItems / itemMaxWords / sectionSentences",
+            "what": "The shape limits in each checks step (manifest)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI (it answers the model steps)",
+            "An existing local folder for a file:///...jsonl delivery, or an HTTP receiver you control",
+            "A source URL reachable from your machine"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, budgetUsd: null): q-core run --caller-provider provider.json ({\"kind\":\"caller\",\"agent\":\"claude\" or \"codex\",\"model\":\"current-session\",\"payerScope\":\"local-cli\"}), then answer each of the 6 model jobs (3 drafts, 3 reviews) with q-core reply. Export the same QF_DIST_* variables for q-core reply as for q-core run."
+            }
+          ],
+          "env": [
+            {
+              "name": "QF_DIST_SOURCE_URL",
+              "what": "http(s) URL of the source post",
+              "required": true
+            },
+            {
+              "name": "QF_DIST_RECEIVER_URL",
+              "what": "http(s) receiver or file:///absolute/path.jsonl; no fallback to .qf/out/",
+              "required": true
+            }
+          ]
+        },
+        "price": "No separate model bill: the six model steps run in your Claude or Codex subscription; cost is recorded as unknown, not free.",
+        "limits": [
+          "Candidate: a first local run reached the first human approval; the approvals, delivery and the same-source rerun were not completed, and the catalog entry has no acceptance.",
+          "The review step is a model step; the drafting and the review are answered by the same agent session unless you answer them elsewhere, so it is not an independent check.",
+          "The X limit of 280 characters is not checked deterministically: the check counts words (at most 40 per tweet) and the characters are reviewed by the model step and by you.",
+          "The checks verify links and shape, not factual accuracy; you decide on the exact text.",
+          "The workflow only writes to the configured receiver. It does not post to X, LinkedIn or Telegram.",
+          "Per-channel dedup is keyed on the source text and channel and lives in the .qf folder beside the manifest.",
+          "Each model step receives at most 60000 bytes; the source is capped at 8000 readable characters.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Draft X, LinkedIn and Telegram versions of my release announcement and let me approve each.",
+          "Prepare channel posts from this blog post and write them to a local .jsonl file."
+        ]
+      }
     }
   ],
   "components": [

@@ -1,0 +1,220 @@
+manifest: q-core.workflow/v1
+id: content-distribution
+name: "Content distribution: one approved source to checked drafts for X, LinkedIn and Telegram"
+version: 0.1.0
+description: "Read one source post you may process, draft a channel-specific version for X (a thread), LinkedIn and Telegram through your current coding agent (provider: cli, no OpenRouter key), revise each draft against the source, check links, shape and length limits, and stop at an exact human approval for each channel before anything is delivered. Delivery is one JSON line per channel to an HTTP receiver or a local file (file:///absolute/path.jsonl); a rerun on the same source text is not delivered again. Set QF_DIST_SOURCE_URL and QF_DIST_RECEIVER_URL."
+owner: oleg
+enabled: true
+triggers:
+  - kind: manual
+settings:
+  # CLI variant: every llm-call answers through the caller (q-core reply), no OpenRouter key and no separate model bill.
+  budgetUsd: null
+steps:
+  - id: source
+    kind: fetch
+    config:
+      url: "{{env.QF_DIST_SOURCE_URL}}"
+      format: text
+      maxBodyBytes: 200000
+  - id: readable
+    kind: parse-web
+    config:
+      maxChars: 8000
+  - id: unique
+    kind: deduplicate
+    config:
+      source: "{{steps.readable.output}}"
+  - id: draft-x
+    kind: llm-call
+    config:
+      provider: cli
+      input: "{{steps.unique.output}}"
+      retries: 1
+      timeoutSec: 180
+      format: text
+      maxTokens: 2000
+      temperature: 0.3
+      instructions: |
+        You receive one source post as JSON: sources[0] has the url and the text.
+        Write an X thread that announces what the source says, in the language of the source.
+        Use only facts that are in the source text. Add no number, name, date or
+        promise that the source does not contain.
+        Output exactly this Markdown and nothing else:
+        a first line "## X", then a blank line, then 3 to 7 list items, one tweet each.
+        Rules, all hard: each tweet is at most 270 characters including spaces and
+        at most 40 words; no hashtags; the last tweet contains the source link
+        as a Markdown link [text](url) with the exact url from sources[0]; no other link;
+        no preamble and no sign-off.
+  - id: draft-linkedin
+    kind: llm-call
+    config:
+      provider: cli
+      input: "{{steps.unique.output}}"
+      retries: 1
+      timeoutSec: 180
+      format: text
+      maxTokens: 2000
+      temperature: 0.3
+      instructions: |
+        You receive one source post as JSON: sources[0] has the url and the text.
+        Write a LinkedIn post that presents what the source says, in the language of the source.
+        Use only facts that are in the source text. Add no number, name, date or
+        promise that the source does not contain.
+        Output exactly this Markdown and nothing else:
+        a first line "## LinkedIn", then a blank line, then 2 to 4 short paragraphs of
+        plain prose (no list, no quote, no extra heading) with 5 to 12 sentences in total.
+        Rules, all hard: no hashtags; the last paragraph links the source once as a
+        Markdown link [text](url) with the exact url from sources[0]; no other link.
+  - id: draft-telegram
+    kind: llm-call
+    config:
+      provider: cli
+      input: "{{steps.unique.output}}"
+      retries: 1
+      timeoutSec: 180
+      format: text
+      maxTokens: 2000
+      temperature: 0.3
+      instructions: |
+        You receive one source post as JSON: sources[0] has the url and the text.
+        Write one Telegram channel post that tells what the source says, in the language of the source.
+        Use only facts that are in the source text. Add no number, name, date or
+        promise that the source does not contain.
+        Output exactly this Markdown and nothing else:
+        a first line "## Telegram", then a blank line, then one block of plain prose
+        (no list, no quote, no extra heading) with 3 to 8 sentences and at most 900 characters.
+        Rules, all hard: no hashtags; the source is linked once as a Markdown link
+        [text](url) with the exact url from sources[0]; no other link.
+  - id: review-x
+    kind: llm-call
+    config:
+      provider: cli
+      input: "{{steps.unique.output}}"
+      retries: 1
+      timeoutSec: 180
+      format: json
+      maxTokens: 2500
+      temperature: 0
+      instructions: |
+        You are the reviewer. Compare this X thread draft with the source (the input) claim by claim.
+        Draft:
+        {{steps.draft-x.output.text}}
+        Fix what is wrong and keep the rest unchanged: remove or correct any claim, number,
+        name or promise that the source does not support; keep each tweet within 270
+        characters and 40 words; keep the first line "## X", the list shape, the one source
+        link in the last tweet and the language. Do not add facts.
+        Return one compact JSON object, nothing else:
+        {"pass":true or false,"issues":["each problem found, empty when none"],"text":"the full corrected draft in the same Markdown shape"}
+        "pass" is true only when the draft needed no change.
+  - id: review-linkedin
+    kind: llm-call
+    config:
+      provider: cli
+      input: "{{steps.unique.output}}"
+      retries: 1
+      timeoutSec: 180
+      format: json
+      maxTokens: 2500
+      temperature: 0
+      instructions: |
+        You are the reviewer. Compare this LinkedIn post draft with the source (the input) claim by claim.
+        Draft:
+        {{steps.draft-linkedin.output.text}}
+        Fix what is wrong and keep the rest unchanged: remove or correct any claim, number,
+        name or promise that the source does not support; keep the first line "## LinkedIn",
+        the plain prose shape, the one source link and the language. Do not add facts.
+        Return one compact JSON object, nothing else:
+        {"pass":true or false,"issues":["each problem found, empty when none"],"text":"the full corrected draft in the same Markdown shape"}
+        "pass" is true only when the draft needed no change.
+  - id: review-telegram
+    kind: llm-call
+    config:
+      provider: cli
+      input: "{{steps.unique.output}}"
+      retries: 1
+      timeoutSec: 180
+      format: json
+      maxTokens: 2500
+      temperature: 0
+      instructions: |
+        You are the reviewer. Compare this Telegram post draft with the source (the input) claim by claim.
+        Draft:
+        {{steps.draft-telegram.output.text}}
+        Fix what is wrong and keep the rest unchanged: remove or correct any claim, number,
+        name or promise that the source does not support; keep the first line "## Telegram",
+        the plain prose shape, at most 900 characters, the one source link and the language.
+        Do not add facts.
+        Return one compact JSON object, nothing else:
+        {"pass":true or false,"issues":["each problem found, empty when none"],"text":"the full corrected draft in the same Markdown shape"}
+        "pass" is true only when the draft needed no change.
+  # Channel X. The gate decides about the output of the step right before it, so each channel is checked,
+  # approved and delivered in turn.
+  - id: checks-x
+    kind: verify-sources
+    config:
+      draft: "{{steps.review-x.output.text}}"
+      sources: "{{steps.unique.output}}"
+      requiredHeadings: '["## X"]'
+      sectionItems: '{"## X":"3..7"}'
+      # A word cap is the deterministic stand-in for the 280-character limit; the characters are reviewed by the model step and the person.
+      itemMaxWords: '{"## X":40}'
+  - id: approve-x
+    kind: approval-gate
+    config:
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact checked X thread and its source link. Approval delivers it once to the configured receiver and does not post it to X."
+  - id: deliver-x
+    kind: api-request
+    config:
+      url: "{{env.QF_DIST_RECEIVER_URL}}"
+      method: POST
+      expect: 2xx
+      # The source text decides the delivery key, not the model's wording: a rerun on the same source is not delivered again for this channel.
+      receiptKey: "{{steps.unique.output.sourceHash}}:x"
+      body: '{"channel":"x","text":"{{steps.checks-x.output.text}}","artifactHash":"{{steps.checks-x.output.artifactHash}}","sourceHash":"{{steps.unique.output.sourceHash}}"}'
+  # Channel LinkedIn.
+  - id: checks-linkedin
+    kind: verify-sources
+    config:
+      draft: "{{steps.review-linkedin.output.text}}"
+      sources: "{{steps.unique.output}}"
+      requiredHeadings: '["## LinkedIn"]'
+      sectionSentences: '{"## LinkedIn":"5..12"}'
+  - id: approve-linkedin
+    kind: approval-gate
+    config:
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact checked LinkedIn post and its source link. Approval delivers it once to the configured receiver and does not post it to LinkedIn."
+  - id: deliver-linkedin
+    kind: api-request
+    config:
+      url: "{{env.QF_DIST_RECEIVER_URL}}"
+      method: POST
+      expect: 2xx
+      receiptKey: "{{steps.unique.output.sourceHash}}:linkedin"
+      body: '{"channel":"linkedin","text":"{{steps.checks-linkedin.output.text}}","artifactHash":"{{steps.checks-linkedin.output.artifactHash}}","sourceHash":"{{steps.unique.output.sourceHash}}"}'
+  # Channel Telegram.
+  - id: checks-telegram
+    kind: verify-sources
+    config:
+      draft: "{{steps.review-telegram.output.text}}"
+      sources: "{{steps.unique.output}}"
+      requiredHeadings: '["## Telegram"]'
+      sectionSentences: '{"## Telegram":"3..8"}'
+  - id: approve-telegram
+    kind: approval-gate
+    config:
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact checked Telegram post and its source link. Approval delivers it once to the configured receiver and does not send it to Telegram."
+  - id: deliver-telegram
+    kind: api-request
+    config:
+      url: "{{env.QF_DIST_RECEIVER_URL}}"
+      method: POST
+      expect: 2xx
+      receiptKey: "{{steps.unique.output.sourceHash}}:telegram"
+      body: '{"channel":"telegram","text":"{{steps.checks-telegram.output.text}}","artifactHash":"{{steps.checks-telegram.output.artifactHash}}","sourceHash":"{{steps.unique.output.sourceHash}}"}'
