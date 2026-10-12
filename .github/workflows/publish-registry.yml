@@ -55,10 +55,13 @@ jobs:
         if: env.ACTION == 'publish'
         run: |
           npm test
-          node scripts/build-registry.mjs --check
           mkdir -p /tmp/core-package
-          npm pack --pack-destination /tmp/core-package --json > /tmp/core-package/pack.json
+          # prepack guards run explicitly; their stdout must not mix with the pack JSON.
+          npm run check:public-surface && npm run check:product-names
+          npm pack --ignore-scripts --pack-destination /tmp/core-package --json > /tmp/core-package/pack.json
           CORE_ARCHIVE=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/core-package/pack.json'))[0].filename")
+          # Committed catalog and SHA256SUMS must equal a fresh build with the reproducible Core archive.
+          node scripts/build-registry.mjs --check --core-artifact "/tmp/core-package/$CORE_ARCHIVE"
           node scripts/build-registry.mjs --export /tmp/registry --core-artifact "/tmp/core-package/$CORE_ARCHIVE"
           node scripts/test-registry-export.mjs /tmp/registry
       - name: Publish or repin verified release
