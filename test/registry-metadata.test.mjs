@@ -11,10 +11,14 @@ test('new Registry workflows have truthful manifest-derived consumer metadata', 
   assert.equal(digest.needsEnv.includes('OPENROUTER_API_KEY'), false);
   assert.ok(digest.needsEnv.includes('QF_DIGEST_RECEIVER_URL'));
   const sdd = catalog.workflows.find(workflow => workflow.id === 'sdd-pipeline');
-  assert.equal(sdd.steps, 7);
+  assert.equal(sdd.steps, 10, 'sdd-pipeline 0.2.0: four own steps and the six steps of the pinned sdd-brief');
   assert.equal(sdd.humanGate, true);
   assert.ok(sdd.kinds.includes('determined'));
   assert.deepEqual(sdd.needsEnv, []);
+  const brief = catalog.workflows.find(workflow => workflow.id === 'sdd-brief');
+  assert.equal(brief.steps, 6);
+  assert.equal(brief.humanGate, true);
+  assert.equal(brief.kinds.includes('workspace-apply'), false, 'the brief writes no files');
 });
 test('metadata includes alternative branches and provider-specific access', () => {
   const metadata = workflowMetadata({ steps: [{

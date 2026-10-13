@@ -86,7 +86,8 @@ export function buildRegistry(sourceRoot = root) {
       }
       if (section === 'workflows') {
         if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Workflow value is required');
-        const manifest = loadManifest(resolve(sourceRoot, file));
+        // The verified graph, so metadata counts the steps, gates and env of pinned child workflows too.
+        const manifest = loadManifestGraph(resolve(sourceRoot, file));
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
         Object.assign(entry, workflowMetadata(manifest));
       }

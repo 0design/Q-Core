@@ -46,7 +46,16 @@ export function runWorkspaceRead(step, ctx) {
 export function runSpecification(step, ctx) {
   const source = value(step, 'source', ctx), workspace = value(step, 'workspace', ctx);
   insist(workspace?.policyHash === hash(workspace?.policy), 'Workspace policy identity changed');
-  const spec = specification(workspace.policy.specification ?? source, 'INVALID_RESPONSE');
+  // Optional `plan`: a separate step's {plan, tasks?} replaces the source plan, so a reviewed
+  // draft is combined with its plan exactly, without a model copying the draft again.
+  let combined = source;
+  if (step.config.plan != null) {
+    const planned = value(step, 'plan', ctx);
+    insist(planned && typeof planned === 'object' && !Array.isArray(planned) && Object.keys(planned).every(k => ['plan', 'tasks'].includes(k)), 'specification plan must be an object with plan and optional tasks', 'INVALID_RESPONSE');
+    insist(source && typeof source === 'object' && !Array.isArray(source), 'Specification must be an object', 'INVALID_RESPONSE');
+    combined = { ...source, plan: planned.plan, ...(planned.tasks === undefined ? {} : { tasks: planned.tasks }) };
+  }
+  const spec = specification(workspace.policy.specification ?? combined, 'INVALID_RESPONSE');
   insist(ctx.runStore, 'Versioned specification requires persistent storage');
   const record = ctx.runStore.recordSpecification({ workflow: ctx.templateId, workspace: workspace.policy.workspace }, { spec, policyHash: workspace.policyHash });
   return { output: { ...record, spec, plan: spec.plan, workspace } };

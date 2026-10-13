@@ -41,7 +41,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -219,7 +219,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -377,7 +377,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -567,7 +567,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -749,7 +749,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -920,7 +920,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1085,7 +1085,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1255,7 +1255,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1426,7 +1426,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -1590,7 +1590,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1718,7 +1718,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -1829,7 +1829,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2035,7 +2035,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2226,7 +2226,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2406,7 +2406,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2563,12 +2563,142 @@
       ]
     },
     {
+      "id": "sdd-brief",
+      "name": "SDD brief: from requirements to an approved specification",
+      "description": "Turn your requirements into an approved specification, plan and task list before any code is written.",
+      "value": "Agree on what will be built and how it will be checked before any code changes.",
+      "file": "workflows/sdd-brief.yaml",
+      "version": "0.1.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/sdd-brief.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.50",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "workspace-read",
+          "version": "0.1.0"
+        },
+        {
+          "id": "specification",
+          "version": "0.1.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "Turn your requirements into an approved specification, plan and task list before any code is written.",
+        "howItWorks": [
+          "Reads only the files your workspace policy allows and pins the verifier inputs.",
+          "Your coding agent drafts what will be built: user stories, requirements, constraints, what must not change, edge cases and Given/When/Then acceptance criteria. When the intent is ambiguous it asks you questions instead of guessing.",
+          "You review the draft in your terminal.",
+          "Your agent plans the change and splits it into small tasks, each tied to a criterion.",
+          "The specification is saved as a versioned revision and you approve it, with its scope and verifier.",
+          "No file is changed: the result is the approved specification, ready for sdd-pipeline or your own implementation."
+        ],
+        "inputs": [
+          "A workspace policy JSON (--workspace-policy): absolute workspace, allowedPaths, intent, verifier command and args, timeoutMs, maxRepairAttempts 0–5.",
+          "Your answers to clarification questions, if any; your review of the draft and your approval of the specification."
+        ],
+        "outputs": [
+          "The approved specification (summary, stories, requirements, constraints, out of scope, edge cases, criteria, plan, tasks) with its approval, plus the versioned revision in the run state."
+        ],
+        "knobs": [
+          {
+            "name": "allowedPaths",
+            "what": "Which files may be read and written (workspace policy)."
+          },
+          {
+            "name": "verifier",
+            "what": "The independent command that decides pass/fail (workspace policy)."
+          },
+          {
+            "name": "maxRepairAttempts",
+            "what": "How many repair rounds, 0–5 (workspace policy)."
+          },
+          {
+            "name": "intent",
+            "what": "What should change (workspace policy)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI",
+            "A project folder and a verifier command you trust"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, budgetUsd: null): q-core run --caller-provider provider.json --workspace-policy policy.json, then answer each pending job with q-core reply."
+            }
+          ],
+          "env": []
+        },
+        "price": "No separate model bill: uses your Claude/Codex subscription; usage is recorded as unknown cost, not free.",
+        "limits": [
+          "Implementation candidate: no owner-accepted real run recorded.",
+          "Not an operating-system sandbox; use trusted workspaces and verifiers.",
+          "Quality depends on how well your verifier encodes the criteria.",
+          "An ambiguous intent must be clarified; the agent must not invent product decisions.",
+          "Inference jobs per run are bounded (12 by default), repairs included.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm).",
+          "This workflow writes no code; sdd-pipeline 0.2.0 runs it before implementing and verifying the change."
+        ],
+        "exampleRequests": [
+          "Specify input validation for src/form.ts with criteria my npm test can check.",
+          "Turn my intent into an approved spec and task list for a change limited to docs/."
+        ]
+      },
+      "sha256": "6a45e91ff420c0e5749b7d0c44f6bf8f91084b15d768042169427ea415b02527",
+      "steps": 6,
+      "kinds": [
+        "workspace-read",
+        "llm-call",
+        "approval-gate",
+        "specification"
+      ],
+      "humanGate": true,
+      "agentGate": false
+    },
+    {
       "id": "sdd-pipeline",
       "name": "SDD: from requirements to verified code",
       "description": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
       "value": "Make the expected result explicit, then test the approved change against it.",
       "file": "workflows/sdd-pipeline.yaml",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -2578,7 +2708,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -2632,16 +2762,16 @@
       "brief": {
         "summary": "Turn your requirements into a specification, then have your agent implement and check the change against its acceptance criteria.",
         "howItWorks": [
-          "Reads only the files your workspace policy allows and pins the verifier inputs.",
-          "Your coding agent writes a brief: summary, checkable criteria, plan.",
-          "The specification is saved as a versioned revision.",
-          "You approve the exact specification, scope and verifier in your terminal.",
+          "Runs the pinned SDD brief workflow (sdd-brief) first: it reads only the files your workspace policy allows and pins the verifier inputs.",
+          "Your coding agent drafts what will be built: user stories, requirements, constraints, what must not change, edge cases and Given/When/Then acceptance criteria, or asks you questions first.",
+          "You review the draft in your terminal; then your agent plans the change and splits it into small tasks.",
+          "The specification is saved as a versioned revision and you approve the exact specification, scope and verifier.",
           "Your agent proposes full file contents; Q-Core writes only allowed paths.",
           "Your verifier runs; on failure a limited number of repair attempts follow, then it stops for you."
         ],
         "inputs": [
           "A workspace policy JSON (--workspace-policy): absolute workspace, allowedPaths, intent, verifier command and args, timeoutMs, maxRepairAttempts 0–5.",
-          "Your approval of the specification."
+          "Your review of the draft and your approval of the specification."
         ],
         "outputs": [
           "Changed files inside allowedPaths, plus local evidence (spec revision, hashes, verifier results) in the run state."
@@ -2693,13 +2823,14 @@
           "Turn my intent into an approved spec and a change limited to docs/ checked by my lint script."
         ]
       },
-      "sha256": "fb86702b0df84fec64000d3a398256d2413c862ccd322de9f52312d66a1fc5b5",
-      "steps": 7,
+      "sha256": "7e8c8c3f83e6c38e5c52a6df24f2982071369b02270e79888d606acd7704e0ef",
+      "steps": 10,
       "kinds": [
+        "workflow-call",
         "workspace-read",
         "llm-call",
-        "specification",
         "approval-gate",
+        "specification",
         "workspace-apply",
         "determined"
       ],
@@ -2770,7 +2901,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -2923,7 +3054,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3005,7 +3136,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3055,7 +3186,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3107,7 +3238,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3165,7 +3296,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [
@@ -3225,7 +3356,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3275,7 +3406,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3325,7 +3456,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3382,7 +3513,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3423,7 +3554,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3462,7 +3593,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3504,7 +3635,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3553,7 +3684,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3603,7 +3734,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3681,7 +3812,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3723,7 +3854,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3765,7 +3896,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3801,7 +3932,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3834,7 +3965,7 @@
       "license": "MIT",
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -3854,20 +3985,20 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.10.13-registry.38-candidate",
+  "releaseVersion": "2026.10.14-registry.39-candidate",
   "core": {
     "package": "q-core",
-    "version": "0.2.0-q-core.49",
+    "version": "0.2.0-q-core.50",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
     "contractRevision": 17,
-    "artifact": "vendor/q-core-0.2.0-q-core.49.tgz",
-    "artifactSha256": "631ba858051dcf08b4dbd204d12c50ed07c5b1901fadf5cdc8d9043905778394",
-    "integrity": "sha512-wGh7e6aoBYwzqniO0RsOLU+segf1AifXsW3ARj3q3aryW9dMxUWcP7lJ5gwmutdfmrI+3RA/Fk0fGyDma8RoYw==",
-    "schemaSha256": "d6336aee8bc3edaddd110ac0135204d1cf7b6689fa4eaae2b961febb72c1f4f1",
+    "artifact": "vendor/q-core-0.2.0-q-core.50.tgz",
+    "artifactSha256": "72b76743402eee64b178f5683acc22fc23f1c6255643386a05e80723a319a78c",
+    "integrity": "sha512-1v9+SbWZjTXWdiQK+Lb81ajnao35SCH7j825l6+JTiakSSnSvFqr5aviJAatyXtU9ISkGBFPqsGOVchO2ZLAUw==",
+    "schemaSha256": "f36a56d3c38cbbf237da36cfd51c0c58ac5b7689c4d977aead883a53fe664ef1",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.49 successor of Core.47: pinned nested workflow execution with typed child results, complete portable dependency export, validation diagnostics located in the actual portable source, and exact UTF-8/BOM bytes in nested graph snapshots and exports. q-core validate warns when a human gate approves only part of what a later side effect sends. Existing manifests run unchanged and human-confirmation policy is unchanged; validate --json keeps its previous fields (--graph adds the material graph); an entry file may be a symlink, a dependency may not.",
+    "source": "Core.50 successor of Core.49: an optional plan reference and optional brief sections (stories, requirements, non-functional requirements, constraints, out of scope, edge cases, tasks) in a specification, clarification in the sdd-brief specify step, and a child workflow that always passes a human gate guards the parent steps after it. A {summary, criteria, plan} specification hashes as before; existing manifests run unchanged.",
     "acceptanceRecord": "Acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -3889,7 +4020,7 @@
         "name": "SDD pipeline",
         "contentType": "workflow-template",
         "value": "Turn an intent into an approved specification and a verified project change.",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "status": "implementation-candidate",
         "inference": "cli",
         "dependencies": [
@@ -4303,7 +4434,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.49",
+          "version": "0.2.0-q-core.50",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4398,7 +4529,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.49",
+          "version": "0.2.0-q-core.50",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4499,7 +4630,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.49",
+          "version": "0.2.0-q-core.50",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4568,7 +4699,7 @@
         },
         "engine": {
           "package": "q-core",
-          "version": "0.2.0-q-core.49",
+          "version": "0.2.0-q-core.50",
           "manifest": "q-core.workflow/v1"
         },
         "dependencies": [],
@@ -4659,5 +4790,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "7d758343ba9c653814c80e5f0b9d1c48ca62506e168b526d8c7b17312ed9b219"
+  "releaseSha256": "44914ba166a126ddcd093dbdab60667f80fe5c159b2ab6997d2f2fa6c6cbc4de"
 }

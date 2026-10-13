@@ -1,14 +1,18 @@
 // Operational metadata is derived from the validated workflow manifest, never hand-kept.
 export function workflowMetadata(manifest) {
   const steps = [];
-  function walk(branch) {
+  // Pinned child workflows count as part of the workflow: their steps, gates and env.
+  const graph = manifest.materialGraph;
+  function walk(branch, key, seen) {
     for (const step of branch ?? []) {
       steps.push(step);
-      walk(step.then); walk(step.else); walk(step.default);
-      for (const branch of Object.values(step.cases ?? {})) walk(branch);
+      walk(step.then, key, seen); walk(step.else, key, seen); walk(step.default, key, seen);
+      for (const cases of Object.values(step.cases ?? {})) walk(cases, key, seen);
+      const child = step.kind === 'workflow-call' ? graph?.[key]?.resolved?.[step.config?.ref] : null;
+      if (child && !seen.includes(child)) walk(graph[child].manifest.steps, child, [...seen, child]);
     }
   }
-  walk(manifest.steps);
+  walk(manifest.steps, manifest.materialKey, [manifest.materialKey]);
   const refs = [];
   for (const step of steps) for (const value of Object.values(step.config ?? {})) {
     for (const match of String(value).matchAll(/\{\{\s*env\.([A-Z][A-Z0-9_]*)\s*\}\}/g)) {

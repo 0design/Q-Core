@@ -172,8 +172,12 @@ function consumeClarification(run, input) {
   return true;
 }
 
+/* Steps that may answer with clarification questions instead of a specification draft:
+   the brief of sdd-pipeline 0.1.0 and the specify step of the sdd-brief workflow. */
+const CLARIFYING_STEPS = new Set(['sdd-pipeline:brief', 'sdd-brief:specify']);
+const clarifies = (run, row) => CLARIFYING_STEPS.has(`${materialId(run, row)}:${row.stepId}`);
 function isSddClarification(run, step, output) {
-  return materialId(run, step) === 'sdd-pipeline' && step.stepId === 'brief' && output && typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 1 && Array.isArray(output.questions);
+  return clarifies(run, step) && output && typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 1 && Array.isArray(output.questions);
 }
 
 function materialId(run, row) { return run.materialGraph?.[run.invocations?.[row.invocationId ?? 'root']?.key]?.manifest.id ?? run.workflowId; }
@@ -554,7 +558,7 @@ export async function driveRun(run, opts = {}) {
         if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => id !== 'root' && resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null on every ancestor and use bounded inference jobs.');
         const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }) : undefined;
         if (step.config.input && explicitInput === undefined) throw new Error('CLI input reference did not resolve');
-        const input = run.clarificationContext && materialId(run, next) === 'sdd-pipeline' && next.stepId === 'brief'
+        const input = run.clarificationContext && clarifies(run, next)
           ? { ...explicitInput, clarification: structuredClone(run.clarificationContext) }
           : explicitInput;
         const response = registryCliStep(run, {
@@ -590,7 +594,7 @@ export async function driveRun(run, opts = {}) {
         persist(); onStep(next);
         return run;
       }
-      if (run.clarificationContext && materialId(run, next) === 'sdd-pipeline' && next.stepId === 'brief') delete run.clarificationContext;
+      if (run.clarificationContext && clarifies(run, next)) delete run.clarificationContext;
       if (['verify-artifact', 'determined'].includes(next.kind) && result.output.outcome === 'fail') {
         run.repairHistory ??= [];
         run.repairHistory.push(result.output);
