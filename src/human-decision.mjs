@@ -1,6 +1,6 @@
 /**
  * Human-only approval for the `q-core agent` (SDD) and `q-core content` JSON
- * protocols (Core 38).
+ * protocols.
  *
  * The JSON request can no longer carry a decision: a request with `approval` is
  * refused (HUMAN_APPROVAL_REQUIRED). When a run reaches its approval point the

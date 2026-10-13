@@ -126,13 +126,13 @@
       "path": "^registry/demos/sdd-verified-change\\.txt$",
       "line": "loopId|loopVersion|\"loops/",
       "token": "^(loopId|loopVersion|loops/[a-z0-9-]+(\\.yaml)?)$",
-      "reason": "recorded Core16 SDD transcript; workspace path redacted 2026-09-25 (redactions field)"
+      "reason": "recorded SDD transcript; workspace path redacted 2026-09-25 (redactions field)"
     },
     {
       "class": "historical-immutable",
       "path": "^registry/demos/[a-z0-9-]+\\.txt$",
       "line": "loopId|loopVersion|\"loops/",
-      "reason": "recorded 2026-09-19 Core16 acceptance transcript",
+      "reason": "recorded 2026-09-19 acceptance transcript",
       "token": "^(loopId|loopVersion|loops/[a-z0-9-]+(\\.yaml)?)$"
     },
     {
@@ -140,20 +140,20 @@
       "path": "^registry/demos/digest-multisource\\.txt$",
       "line": "the-decoder\\.com/openai-pauses",
       "token": "^//the-decoder\\.com/openai-pauses-its-most-capable-models-after-agents-exploit-loopholes-and-leak-data/$",
-      "reason": "a cited third-party article URL (the word loopholes), recorded in the Core34 live Digest transcript"
+      "reason": "a cited third-party article URL (the word loopholes), recorded in a live Digest transcript"
     },
     {
       "class": "generic-control-flow",
       "path": "^test/core37\\.test\\.mjs$",
       "line": "kind: loop",
-      "reason": "Core37 gate test: SPEC 5.7 control-flow kind",
+      "reason": "gate test: SPEC 5.7 control-flow kind",
       "token": "^loop$"
     },
     {
       "class": "third-party",
       "path": "^test/(core38-fact-check\\.test\\.mjs|fixtures/digest-run-65ef7d49\\.json|core41-review\\.test\\.mjs|fixtures/digest-run-05a7f579\\.json)$",
       "token": "^(loopholes?|//the-decoder\\.com/openai-pauses-its-most-capable-models-after-agents-exploit-loopholes-and-leak-data/)$",
-      "reason": "Core38 fact-check fixture: a cited third-party article (its URL and summary use the word loophole), quoted from live Digest run 65ef7d49"
+      "reason": "fact-check fixture: a cited third-party article (its URL and summary use the word loophole), quoted from a live Digest run"
     }
   ]
 }

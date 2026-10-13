@@ -1,6 +1,6 @@
 // Live parent-agent acceptance harness. It supplies no QFactory implementation
 // hints: initial text is copied byte-for-byte from the Site candidate; subsequent
-// inputs are explicit synthetic owner decisions reviewed by the supervising agent.
+// inputs are explicit synthetic decisions.
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';

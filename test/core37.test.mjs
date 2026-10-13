@@ -1,6 +1,5 @@
-/* Core37: a created workflow may not write files or send data before a person approves the run (E2E run 9,
-   27.09: the agent took a dismissed question as consent and built a gate-free workflow around its own script).
-   Also the Digest label and outlet-name leftovers of the Core36 review. */
+/* A created workflow may not write files or send data before a person approves the run.
+   Also covers Digest label and outlet-name cases. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtempSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
@@ -23,7 +22,7 @@ const AGENT = `  - id: judge\n    kind: approval-gate\n    config:\n      review
 const POST = `  - id: send\n    kind: api-request\n    config:\n      url: "https://hooks.example/x"\n`;
 const FETCH = `  - id: feed\n    kind: fetch\n    config:\n      url: "https://feed.example/rss"\n`;
 
-// The manifest E2E run 9 produced (Core35, 27.09): a decorative workspace-read, the work in the agent's own script.
+// A manifest with a decorative workspace-read, the work in the agent's own script.
 const RUN9 = `manifest: q-core.workflow/v1
 id: todo-scan
 name: "Morning TODO/FIXME summary"
@@ -53,11 +52,11 @@ test("GATE_REQUIRED negative examples: side effects with no human gate before th
     "a gate inside an if branch does not guard the step after the if": `  - id: check\n    kind: if\n    config:\n      condition: "true"\n    then:\n${HUMAN.replace(/^/gm, "    ").trimEnd()}\n${POST}`,
     "a gate in one switch case does not guard another": `  - id: route\n    kind: switch\n    config:\n      on: "a"\n    cases:\n      a:\n${HUMAN.replace(/^/gm, "      ").trimEnd()}\n      b:\n${POST.replace(/^/gm, "      ").trimEnd()}\n`,
     "a side effect inside a fan-out lane with no gate": `${FETCH}  - id: each\n    kind: fan-out\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
-    "review P0-1: lower-case get runs as POST": POST.replace('url:', 'method: get\n      url:'),
-    "review P0-1: mixed-case Get runs as POST": POST.replace('url:', 'method: Get\n      url:'),
-    "review P0-2: a templated method runs as POST": FETCH + POST.replace('url:', 'method: "{{steps.feed.output}}"\n      url:'),
-    "review P0-3: GET to a file: URL appends to a local file": POST.replace('url: "https://hooks.example/x"', 'method: GET\n      url: "file:///tmp/q37.jsonl"'),
-    "review P0-3: GET to a templated URL may fall back to the file sink": POST.replace('url: "https://hooks.example/x"', 'method: GET\n      url: "{{env.Q37_HOOK}}"'),
+    "lower-case get runs as POST": POST.replace('url:', 'method: get\n      url:'),
+    "mixed-case Get runs as POST": POST.replace('url:', 'method: Get\n      url:'),
+    "a templated method runs as POST": FETCH + POST.replace('url:', 'method: "{{steps.feed.output}}"\n      url:'),
+    "GET to a file: URL appends to a local file": POST.replace('url: "https://hooks.example/x"', 'method: GET\n      url: "file:///tmp/q37.jsonl"'),
+    "GET to a templated URL may fall back to the file sink": POST.replace('url: "https://hooks.example/x"', 'method: GET\n      url: "{{env.Q37_HOOK}}"'),
     "a side effect inside an each body with no gate": `${FETCH}  - id: every\n    kind: each\n    config:\n      over: "{{steps.feed.output}}"\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
     "a side effect inside a loop body with no gate": `  - id: again\n    kind: loop\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
     "workspace-apply with no gate": `  - id: ws\n    kind: workspace-read\n  - id: proposal\n    kind: llm-call\n    config:\n      instructions: "write"\n      input: "{{steps.ws.output}}"\n  - id: apply\n    kind: workspace-apply\n    config:\n      source: "{{steps.proposal.output}}"\n`,
@@ -123,7 +122,7 @@ test("UNUSED_WORKSPACE_READ: the run-9 manifest (a decorative read, work in the 
   // A read that a later step uses is fine; so is the Registry SDD shape as a created manifest.
   assert.doesNotThrow(() => validateManifest(doc(`  - id: ws\n    kind: workspace-read\n  - id: sum\n    kind: llm-call\n    config:\n      instructions: "summarise"\n      input: "{{steps.ws.output.files}}"\n`)));
   assert.doesNotThrow(() => loadManifest(resolve("registry/workflows/sdd-pipeline.yaml")));
-  // Review P1-4: an llm-call without input receives every prior output, so it uses the read.
+  // An llm-call without input receives every prior output, so it uses the read.
   assert.doesNotThrow(() => validateManifest(doc(`  - id: ws\n    kind: workspace-read\n  - id: sum\n    kind: llm-call\n    config:\n      instructions: "summarise"\n`)));
   // …but only a LATER llm-call: one before the read does not use it.
   assert.throws(() => validateManifest(doc(`  - id: sum\n    kind: llm-call\n    config:\n      instructions: "summarise"\n  - id: ws\n    kind: workspace-read\n`)), /UNUSED_WORKSPACE_READ/);
@@ -186,7 +185,7 @@ test("outletLinkText: blog.google, bbc.co.uk and electrek.co accept their publis
   for (const [name, url] of ok) assert.doesNotThrow(() => verify(item(`Агенти ([${name}](${url}))`)), `${name} for ${url}`);
   const bad = [
     ["Blog", G, "a generic prefix is not the publisher"], ["Co", BBC, "a generic second level is not the publisher"], ["UK", BBC, "a country code is not the publisher"],
-    ["The Verge", BBC, "another outlet"], ["The Atlantic", "https://t.me/xyiikc", "review P2-5: a letter t is not t.me"], ["Next", "https://x.com/a/status/1", "review P2-5: a letter x is not x.com"], ["тут", EL, "not a name"], ["co", EL, "a TLD"], ["news", BBC, "a generic word"],
+    ["The Verge", BBC, "another outlet"], ["The Atlantic", "https://t.me/xyiikc", "a letter t is not t.me"], ["Next", "https://x.com/a/status/1", "a letter x is not x.com"], ["тут", EL, "not a name"], ["co", EL, "a TLD"], ["news", BBC, "a generic word"],
   ];
   for (const [name, url, why] of bad) assert.throws(() => verify(item(`Агенти ([${name}](${url}))`)), /must name its outlet/, `${name} for ${url}: ${why}`);
 });

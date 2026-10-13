@@ -44,7 +44,7 @@ export async function runContentRequest(r, { env = process.env, signal } = {}) {
       r?.protocolVersion === "qf.content-request/v1",
       "Invalid content protocol",
     );
-    // Core 38: refused before any source is fetched; a person decides at a terminal.
+    // Refused before any source is fetched; a person decides at a terminal.
     if (r.approval !== undefined) throw approvalFieldRefused();
     insist(
       Array.isArray(r.allowedOrigins) &&

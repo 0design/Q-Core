@@ -1,8 +1,7 @@
 /**
  * The driver — `driveRun` without a database.
  *
- * Step for step it follows `lib/processes/orchestrator.ts`, and the order of the
- * checks is the part that matters most:
+ * The order of the checks is the part that matters most:
  *
  *   0. a kind the engine does not execute → the step fails BY NAME
  *   1. BUDGET, before the paid step — a ceiling verified afterwards is not a

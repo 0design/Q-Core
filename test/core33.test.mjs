@@ -287,7 +287,7 @@ test("Registry contract: llm-call/openrouter 1.1.0+ documents keyRef, secretSour
       if (dep.id === "llm-call-openrouter") assert.equal(dep.version, entry.version, workflow.id);
 });
 
-// ── review round 1: attempts without an answer, {{run.costUsd}}, agent-gate dry run, human gate ──
+// ── attempts without an answer, {{run.costUsd}}, agent-gate dry run, human gate ──
 
 test("a timed-out attempt followed by a successful retry makes the call's cost unknown, and the next model call is gated", async () => {
   const hangOnce = (n, url, init) => n === 1

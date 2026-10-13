@@ -18,5 +18,5 @@ try{
  const approved=await runSkill({...humanRequest,approval:{hash:human.nextAction.hash,decision:'approve'}});
  writeFileSync(join(workspace,'release.md'),good+'\nChanged after review.\n');
  const stale=await runSkill({...humanRequest,approval:{hash:human.nextAction.hash,decision:'approve'}});
- console.log(JSON.stringify({evidenceKind:'authored controlled fault injection; real independent subprocess verifiers; synthetic explicit human decision, not owner review',omitted,repaired,human,approved,stale,output:good},null,2));
+ console.log(JSON.stringify({evidenceKind:'authored controlled fault injection; real independent subprocess verifiers; synthetic explicit human decision, not a review of a real run',omitted,repaired,human,approved,stale,output:good},null,2));
 }finally{rmSync(workspace,{recursive:true,force:true});}

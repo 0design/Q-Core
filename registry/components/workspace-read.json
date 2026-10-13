@@ -27,11 +27,11 @@
   },
   "acceptance": {
     "status": "accepted",
-    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release or owner acceptance.",
+    "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
     "evidence": [
       {
         "file": "demos/sdd-verified-change.txt",
-        "sha256": "d0861ecbff938bd75e6f67755e3bd716c91a5c046f4d4575210d80aecf1bd140",
+        "sha256": "848e7c6a02e23a898d0a51d0e16a4501fc64fb708e5fee29826b713510a3eb96",
         "componentVersion": "0.1.0",
         "coreVersion": "0.2.0-core.16",
         "coreSha256": "d2e57c9a3c78b475e391619ea1f82f94e5299cfc3b9a8f8db54ea8ef42111593"

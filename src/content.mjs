@@ -29,7 +29,7 @@ export async function runContent(
   let lock, state, file, run;
   const cancelled = () => { if (signal?.aborted) throw new CoreError("CANCELLED", "Content operation cancelled"); };
   try {
-    // Core 38: only a person decides, with `q-core content approve` at a terminal.
+    // Only a person decides, with `q-core content approve` at a terminal.
     if (approval !== undefined) throw approvalFieldRefused();
     validateCallerInput({provider,inferenceReply,cancelInference,maxInferenceJobs,inferenceTtlMs});
     insist(

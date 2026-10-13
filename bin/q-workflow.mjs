@@ -108,7 +108,7 @@ Exit codes
  *
  * The `./` prefix is not decoration. Under launchd the working directory is `/`,
  * so the relative form of an absolute path is the same string with its leading
- * slash shaved off — `Users/oleg/…`, which reads like a path and is not one.
+ * slash shaved off — `Users/<name>/…`, which reads like a path and is not one.
  * Caught in the first scheduled run's log.
  */
 function shortPath(p) {

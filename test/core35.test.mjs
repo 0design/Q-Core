@@ -201,7 +201,7 @@ test("Digest 0.4.1–0.5 has no numeric length limit for a case, in the prompt o
   const digest = readFileSync(resolve("registry/workflows/digest.yaml"), "utf8");
   const manifest = loadManifest(resolve("registry/workflows/digest.yaml"));
   assert.ok(["0.4.1", "0.4.2", "0.5.0", "0.6.0", "0.6.1", "0.7.0", "0.7.1", "0.8.0", "0.8.1"].includes(manifest.version));
-  // Digest 0.6 has word and sentence caps by the owner's review of 27.09 (core38-fact-check.test.mjs).
+  // Digest 0.6 has word and sentence caps (see core38-fact-check.test.mjs).
   if (/^0\.[678]/.test(manifest.version)) return;
   assert.doesNotMatch(digest, /itemMaxWords/);
   const draft = manifest.steps.find((s) => s.id === "draft").config.instructions;

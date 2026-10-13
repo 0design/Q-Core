@@ -1,4 +1,4 @@
-// Core32: timestamp citations checked against the transcript markers, no local links, and two fail-closed false
+// Timestamp citations checked against the transcript markers, no local links, and two fail-closed false
 // refusals fixed (a thematic break after a list item or quote, a link with a title).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -66,7 +66,7 @@ test('podcast-summary (formerly podcast-digest) cites by timestamps, forbids loc
     assert.match(instructions, rule);
 });
 
-test('review round 1: nested setext headings, ### blocks without markers, local addresses anywhere, heading-first drafts', () => {
+test('nested setext headings, ### blocks without markers, local addresses anywhere, heading-first drafts', () => {
   const format = { requiredHeadings: '["## Сигнали","## Новини"]' };
   const sources = { sources: [{ url: 'https://example.org/a', text: 'A' }] };
   const ok = '## Сигнали\n\n- Сигнал і джерело https://example.org/a\n\n## Новини\n\n- Новина.\n';
