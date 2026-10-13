@@ -118,3 +118,51 @@ test('both Registry SDD workflows load as created (unreviewed) manifests', () =>
   for (const file of ['sdd-brief.yaml', 'sdd-pipeline.yaml']) assert.doesNotThrow(() => loadWorkflow(join(dir, file)), file);
   assert.ok(readdirSync(dir).includes('sdd-brief.yaml'));
 });
+
+test('rejecting the draft at review ends the run: no plan job, no specification revision, no file written', async t => {
+  const root = workspace(t), file = join(root, 'sdd-brief.yaml');
+  const manifest = loadWorkflow(file), store = new RunStore(file), run = createRun(manifest);
+  run.workspacePolicy = policyFor(root);
+  const opts = { store, callerProvider, settings: manifest.settings };
+  const before = readFileSync(join(root, 'sum.mjs'), 'utf8');
+  await driveRun(run, opts);
+  const job = run.pendingInference;
+  await driveRun(run, { ...opts, inferenceReply: { jobId: job.jobId, hash: job.hash, output: { text: JSON.stringify(draft) } } });
+  const review = run.steps.find(s => s.status === 'waiting_human');
+  assert.equal(review.stepId, 'review');
+  await resumeRun(run, { ...opts, decision: 'reject', confirmation: { channel: 'test-human' }, approvalHash: review.output.approvalHash });
+  assert.equal(run.status, 'failed');
+  assert.match(run.summary, /rejected at the gate/);
+  assert.equal(run.pendingInference, undefined, 'no plan job is created');
+  for (const id of ['plan', 'specification', 'approval']) assert.notEqual(run.steps.find(s => s.stepId === id).status, 'success', id);
+  assert.equal(run.output?.specification, undefined);
+  assert.equal(readFileSync(join(root, 'sum.mjs'), 'utf8'), before);
+  await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: review.output.approvalHash }), /gate|waiting/i, 'a rejected gate cannot be approved afterwards');
+});
+
+test('grandchild: only an unconditional human gate on every level up to the call guards the side effect', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'qf-grandchild-gate-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const gate = { id: 'approve', kind: 'approval-gate', config: { reviewer: 'human', bind: 'sha256', anchor: 'x' } };
+  const note = { id: 'note', kind: 'deduplicate', config: { source: '[]' } };
+  const doc = (id, steps, deps) => ({ manifest: 'q-core.workflow/v1', id, version: '1.0.0', ...(deps ? { dependencies: deps } : {}), steps });
+  const dep = (id, bytes) => ({ kind: 'workflow', id, version: '1.0.0', path: `./${id}.yaml`, sha256: digest(bytes) });
+  const send = { id: 'send', kind: 'api-request', config: { method: 'POST', url: 'https://example.test/hook', body: '{}' } };
+  const build = (grandSteps, childExtra = []) => {
+    const g = yaml(doc('grand', grandSteps)); writeFileSync(join(dir, 'grand.yaml'), g);
+    const c = yaml(doc('child', [...childExtra, { id: 'deep', kind: 'workflow-call', config: { ref: 'g', inputs: '{}' } }], { g: dep('grand', g) })); writeFileSync(join(dir, 'child.yaml'), c);
+    writeFileSync(join(dir, 'parent.yaml'), yaml(doc('parent', [{ id: 'call', kind: 'workflow-call', config: { ref: 'c', inputs: '{}' } }, send], { c: dep('child', c) })));
+    return () => loadWorkflow(join(dir, 'parent.yaml'));
+  };
+  assert.doesNotThrow(build([note, gate]), 'grandchild gate on its top level, called on the child top level');
+  assert.throws(build([note]), /GATE_REQUIRED: step "send"/, 'no gate anywhere');
+  assert.throws(build([{ id: 'branch', kind: 'if', config: { condition: 'true' }, then: [gate] }]), /GATE_REQUIRED: step "send"/, 'grandchild gate only in a branch');
+  // the child calls the gated grandchild only inside a branch
+  const g = yaml(doc('grand', [note, gate])); writeFileSync(join(dir, 'grand.yaml'), g);
+  const c = yaml(doc('child', [{ id: 'branch', kind: 'if', config: { condition: 'true' }, then: [{ id: 'deep', kind: 'workflow-call', config: { ref: 'g', inputs: '{}' } }] }], { g: dep('grand', g) }));
+  writeFileSync(join(dir, 'child.yaml'), c);
+  writeFileSync(join(dir, 'parent.yaml'), yaml(doc('parent', [{ id: 'call', kind: 'workflow-call', config: { ref: 'c', inputs: '{}' } }, send], { c: dep('child', c) })));
+  assert.throws(() => loadWorkflow(join(dir, 'parent.yaml')), /GATE_REQUIRED: step "send"/, 'gated grandchild called only in a child branch');
+  // a side effect inside the grandchild before its own gate is refused at its own path
+  assert.throws(build([send, gate]), /GATE_REQUIRED: step "send"/);
+});
