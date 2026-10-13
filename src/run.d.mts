@@ -5,6 +5,11 @@ export type RunStatus = "running" | "success" | "failed" | "cancelled" | "waitin
 export type StepStatus = "pending" | "running" | "success" | "failed" | "waiting_human" | "planned";
 
 export interface RunStep {
+  rowId?: string;
+  invocationId?: string;
+  childInvocationId?: string;
+  childStatus?: RunStatus;
+  childUsage?: { costUsd: number | null; tokensIn: number | null; tokensOut: number | null };
   seq: number;
   stepId: string;
   kind: string;
@@ -33,6 +38,8 @@ export interface RunStep {
 }
 
 export interface Run {
+  inputs?: Record<string, unknown>;
+  output?: Record<string, unknown>;
   runId: string;
   workflowId: string;
   workflowName: string;
@@ -86,7 +93,7 @@ export declare const DEFAULT_MAX_TOKENS: number;
 export declare const MAX_EXPANDED_RUN_ROWS: number;
 
 export declare function resolveKnobs(settings?: WorkflowManifestSettings): Knobs;
-export declare function createRun(manifest: WorkflowManifest, opts?: { trigger?: string }): Run;
+export declare function createRun(manifest: WorkflowManifest, opts?: { trigger?: string; inputs?: Record<string, unknown> }): Run;
 export declare function driveRun(run: Run, opts?: DriveOptions): Promise<Run>;
 /** A record of how a person made the decision; q-core approve records "tty-code". */
 export interface HumanConfirmation { channel: string; decision?: "approve" | "reject"; confirmedAt?: string }

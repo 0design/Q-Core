@@ -1,0 +1,16 @@
+manifest: q-core.component/v1
+id: clean
+version: "1.0.0"
+name: Remove duplicate sources
+inputs:
+  sources:
+    type: array
+    items: {type: object}
+outputs:
+  sources: {type: array, value: "{{steps.clean.output.sources}}"}
+  removed: {type: integer, value: "{{steps.clean.output.removed}}"}
+steps:
+  - id: clean
+    kind: deduplicate
+    config:
+      source: "{{inputs.sources}}"

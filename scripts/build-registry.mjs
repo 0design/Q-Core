@@ -3,6 +3,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { loadManifest } from '../src/manifest.mjs';
+import { validateComponentDescriptor } from '../src/component-descriptor.mjs';
+import { loadManifestGraph } from '../src/material-graph.mjs';
 import { loadPlannedCatalogEntries } from '../src/registry.mjs';
 import { workflowMetadata } from './registry-workflow-metadata.mjs';
 import { componentReadiness } from './registry-readiness.mjs';
@@ -60,7 +62,7 @@ export function buildRegistry(sourceRoot = root) {
   const assets = {};
   const ids = new Set();
   function asset(file) {
-    if (!/^(workflows|components|demos|authors|examples)\/[a-z0-9-]+\.(yaml|json|txt)$/.test(file)) throw Error('Unsafe registry path');
+    if (!/^(workflows|components|demos|authors|examples)\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.(yaml|json|txt)$/.test(file)) throw Error('Unsafe registry path');
     if (lstatSync(resolve(sourceRoot, file.split('/')[0])).isSymbolicLink() || lstatSync(resolve(sourceRoot, file)).isSymbolicLink()) throw Error('Registry symlink');
     return assets[file] ??= readFileSync(resolve(sourceRoot, file));
   }
@@ -73,6 +75,15 @@ export function buildRegistry(sourceRoot = root) {
       if (entry.engine?.version !== catalog.core.version) throw Error('Engine pin mismatch');
       const file = entry.file ?? `${key}.json`;
       entry.sha256 = sha(asset(file));
+      if (file.endsWith('.yaml')) {
+        const graph = loadManifestGraph(resolve(sourceRoot, file));
+        for (const dependency of Object.keys(graph.materialGraph)) asset(`${file.slice(0, file.lastIndexOf('/') + 1)}${dependency}`);
+      }
+      if (section === 'components' && file.endsWith('.json')) validateComponentDescriptor(JSON.parse(asset(file)));
+      if (section === 'components' && file.endsWith('.yaml')) {
+        const component = loadManifest(resolve(sourceRoot, file));
+        if (component.manifest !== 'q-core.component/v1' || component.id !== entry.id || component.version !== entry.version) throw Error('Executable component identity mismatch');
+      }
       if (section === 'workflows') {
         if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Workflow value is required');
         const manifest = loadManifest(resolve(sourceRoot, file));

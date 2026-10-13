@@ -6,7 +6,7 @@ import { subprocess, scopedEnvironment } from './subprocess.mjs';
 import { specification } from './specification.mjs';
 import { determined } from './determined.mjs';
 import { resolveTemplateValue } from './template.mjs';
-const value = (step, key, ctx) => resolveTemplateValue(step.config[key], { priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames });
+const value = (step, key, ctx) => resolveTemplateValue(step.config[key], { priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, inputs: ctx.inputs });
 
 export function validateWorkspacePolicy(policy) {
   insist(policy && Object.keys(policy).every(k => ['workspace','allowedPaths','intent','verifier','maxRepairAttempts','specification'].includes(k)), 'Invalid workspace policy fields');

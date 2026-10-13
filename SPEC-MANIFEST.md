@@ -242,6 +242,15 @@ One kind, two modes; they differ only in *who* decides.
 and for a reviewed Registry workflow installed unchanged. **A workflow you create
 needs one before any side effect** — see "Created workflows" below.
 
+**The subject of a human gate is one output:** that of the last successful step before
+it in the same material. When a side effect after the gate (until the next human gate)
+also sends the output of an earlier step, `q-core validate` prints the warning
+`GATE_SUBJECT_PARTIAL` (and adds `warnings` to `--json`): the person would approve less
+than is sent. It does not refuse the manifest. Return everything that is sent from one
+step or child workflow directly before the gate. Fields that stay local (`name`,
+`receiptKey`, `expect`, `timeoutSec`, `method`) are not judged, and a gate
+directly after a control-flow step, `fan-out` or another gate is not judged.
+
 **Only a person decides a human gate.** `q-core approve` (and `--reject`)
 asks on the controlling terminal: it prints the subject and a fresh one-time code to
 `/dev/tty` (never to stdout or stderr) and continues only when the same code is typed
@@ -717,3 +726,20 @@ environment before relying on a Registry composition.
   steps. An interrupted active side effect cannot use this shortcut.
 - `fetch.maxBodyBytes` optionally raises the bounded response capture from 64000
   to at most 2000000 bytes for static source pages; text output discloses truncation.
+
+## Nested materials (contract revisions 14–15)
+
+`workflow-call` invokes an exact local dependency declared under `dependencies`.
+Both workflows and executable `q-core.component/v1` components have typed inputs
+and output bindings. Pins, complete export, invocation isolation, ancestor budget
+accounting and persisted human-gate/caller-inference lifecycle are specified in
+[Nested materials](contracts/v1/nested-materials.md). Existing Registry JSON
+component descriptors remain nonexecutable metadata. Run the self-contained
+local example with `q-core run examples/nested/parent.yaml --json`.
+
+Graph and policy diagnostics identify the actual source with portable
+`materialPath`, retaining semantic `path` and YAML `line` when present. Dependency
+resolution errors locate the referencing pin where known; null or absent source
+provenance must never be interpreted as the root file. See the nested-material
+contract for the diagnostic boundary. Validation and human confirmation rules
+are unchanged.

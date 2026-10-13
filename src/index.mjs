@@ -9,7 +9,10 @@ export {
 } from "./contracts.mjs";
 export { coreCapabilities } from "./capabilities.mjs";
 export { loadManifest, validateManifest } from "./manifest.mjs";
-export { loadWorkflow, assertWorkflowPolicy, sideEffectOf } from "./workflow-policy.mjs";
+export { loadManifestGraph, exportMaterialBundle, MAX_CALL_DEPTH, MAX_MATERIALS } from './material-graph.mjs';
+export { bindInputs, bindOutputs } from './material-io.mjs';
+export { validateComponentDescriptor, loadComponentDescriptor } from './component-descriptor.mjs';
+export { loadWorkflow, assertWorkflowPolicy, sideEffectOf, approvalSubjectWarnings, workflowWarnings } from "./workflow-policy.mjs";
 export { openRouter } from "./providers/openrouter.mjs";
 export { claude } from "./providers/claude.mjs";
 export { runAgent } from "./agent.mjs";

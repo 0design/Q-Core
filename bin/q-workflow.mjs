@@ -29,7 +29,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { validateManifest, ManifestError } from "../src/manifest.mjs";
-import { loadWorkflow as loadManifest } from "../src/workflow-policy.mjs";
+import { loadWorkflow as loadManifest, workflowWarnings } from "../src/workflow-policy.mjs";
 import { createRun, driveRun, resumeRun, waitingGate, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
 import { confirmHumanDecision, HumanConfirmationError } from "../src/human-confirmation.mjs";
 import { RunStore } from "../src/state.mjs";
@@ -37,6 +37,8 @@ import { flattenWorkflowSteps } from "../src/flatten.mjs";
 import { checkForUpdate, updateNotice } from "../src/update-check.mjs";
 import { buildCatalog, fetchRemoteCatalog, fetchRemoteManifest, REMOTE_CATALOG_BASE, resolveCatalogRoots } from "../src/catalog.mjs";
 import { parseYaml } from "../src/yaml.mjs";
+import { exportMaterialBundle } from '../src/material-graph.mjs';
+import { loadComponentDescriptor } from '../src/component-descriptor.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(join(HERE, "..", "package.json"), "utf8"));
@@ -57,7 +59,10 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
   q-core catalog --section <name>    one section: workflows | components | demos
   q-core init <id> [dir]             copy one workflow here, ready to edit
   q-core validate <manifest>         check the manifest and print the plan
+                                    --json --graph adds ports, dependencies and the pinned material graph
+  q-core export <manifest> <dir>     export exact bytes and all pinned local dependencies
   q-core run <manifest> [--dry-run]  execute one pass
+                                    --inputs <inputs.json> binds typed root inputs
   q-core run <manifest> --caller-provider <provider.json> --json
                                     start explicit CLI caller inference
   q-core reply <manifest> <runId> <reply.json> --json
@@ -128,7 +133,7 @@ function fail(message, code = EXIT_FAILED) {
 /** Control-flow signal: the exit code has already been set. */
 class ExitSignal extends Error {}
 
-const VALUED_FLAGS = new Set(["section", "caller-provider", "approval-hash", "workspace-policy"]);
+const VALUED_FLAGS = new Set(["section", "caller-provider", "approval-hash", "workspace-policy", "inputs"]);
 
 function parseArgs(argv) {
   const flags = new Set();
@@ -201,13 +206,28 @@ function describePlan(manifest) {
 async function cmdValidate(args, flags) {
   const file = args[0];
   if (!file) fail("q-core validate <manifest>", EXIT_USAGE);
-  const manifest = loadManifest(file);
-  if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
+  if (file.endsWith('.json')) {
+    const component = loadComponentDescriptor(file);
+    process.stdout.write(flags.has('json') ? JSON.stringify({ kind: 'component', format: 'descriptor', executable: false, component }, null, 2) + '\n' : `✓ ${shortPath(file)} is a valid component descriptor; metadata only, not executable\n`);
     return EXIT_OK;
   }
-  process.stdout.write(`✓ ${shortPath(file)} is a valid q-core.workflow/v1 manifest\n\n`);
+  const manifest = loadManifest(file);
+  const warnings = workflowWarnings(manifest);
+  if (flags.has("json")) {
+    /* The JSON shape of Core.47 and earlier: the normalised workflow and the path as given. The verified
+       material graph (ports, dependencies, every pinned source) is opt-in with --graph, because it carries
+       the full text of every material. `warnings` appears only when there is one. */
+    const { id, name, version, description, owner, enabled, triggers, settings, steps } = manifest;
+    const out = flags.has("graph")
+      ? { ...manifest, file }
+      : { id, name, version, description, owner, enabled, triggers, settings, steps, file };
+    process.stdout.write(`${JSON.stringify(warnings.length ? { ...out, warnings } : out, null, 2)}\n`);
+    return EXIT_OK;
+  }
+  process.stdout.write(`✓ ${shortPath(file)} is a valid ${manifest.manifest} manifest (${Object.keys(manifest.materialGraph).length} pinned material(s))\n\n`);
   process.stdout.write(`${describePlan(manifest)}\n`);
+  for (const w of warnings)
+    process.stdout.write(`\n  ⚠ ${w.code}${w.materialPath ? ` in ${w.materialPath}` : ""} at ${w.path}: ${w.message}\n`);
   if (manifest.settings.sensitivity) {
     process.stdout.write(
       "\n  NOTE: settings.sensitivity is part of the format but not implemented by this runner.\n" +
@@ -252,7 +272,7 @@ async function cmdRun(args, flags, opts) {
   }
 
   const store = new RunStore(file);
-  const run = createRun(manifest, { trigger: dryRun ? "dry-run" : "manual" });
+  const run = createRun(manifest, { trigger: dryRun ? "dry-run" : "manual", inputs: opts.inputs ? readBoundedJson(opts.inputs) : {} });
   const abort = new AbortController();
   const cancel = () => abort.abort();
   process.on("SIGINT", cancel);
@@ -745,6 +765,13 @@ const commands = {
   catalog: cmdCatalog,
   init: cmdInit,
   validate: cmdValidate,
+  export: async (args, flags) => {
+    if (args.length !== 2) fail('q-core export <manifest> <new-directory>', EXIT_USAGE);
+    if (!args[0].endsWith('.json')) loadManifest(args[0]); // identical human policy and graph checks as validate/run
+    const bundle = exportMaterialBundle(args[0], args[1]);
+    process.stdout.write(flags.has('json') ? JSON.stringify(bundle, null, 2) + '\n' : `Exported ${bundle.files.length} pinned material(s); entry ${bundle.entry}\n`);
+    return EXIT_OK;
+  },
   run: cmdRun,
   reply: cmdReply,
   clarify: cmdClarify,

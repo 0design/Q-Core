@@ -13,6 +13,7 @@ The returned object has this execution contract:
 | `schema` | Introspection shape: `qf.capabilities/v1`. |
 | `packageVersion` | Actual installed package version. |
 | `manifestProtocol`, `agentProtocol`, `contentProtocol` | Protocol namespaces supported by this Core package. |
+| `componentProtocol`, `bundleProtocol`, `nestedWorkflowCalls` | Executable component and portable bundle namespaces; support for pinned local child calls. |
 | `contractRevision` | Revision from the single machine-readable contract metadata file. |
 | `providerKinds` | Provider kinds accepted by Core request validation. |
 | `reviewedCliVersions` | Reviewed local CLI versions keyed by provider. |

@@ -20,12 +20,14 @@
  */
 import { readFileSync } from "node:fs";
 import { parseYaml, YamlError } from "./yaml.mjs";
+import { validatePorts, safeName } from './material-io.mjs';
 
 /** The format tag every manifest must carry, verbatim. */
 export const MANIFEST_TAG = "q-core.workflow/v1";
+export const COMPONENT_TAG = "q-core.component/v1";
 
 /** Step kinds the engine executes. */
-export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"];
+export const ENGINE_KINDS = ["fetch", "llm-call", "api-request", "approval-gate", "fan-out", "if", "switch", "loop", "each", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined", "workflow-call"];
 
 /** Trigger kinds — entry points, not steps. `schedule` is one of these, not a runner. */
 export const TRIGGER_KINDS = ["schedule", "manual", "webhook", "signal", "intent-input", "workflow-input", "event"];
@@ -207,6 +209,13 @@ function validateStep(raw, path, seenIds) {
     step.config.maxItems = String(max);
     step.config.maxConcurrency = String(concurrency);
   }
+  if (kind === 'workflow-call') {
+    if (!safeName(config.ref)) throw new ManifestError('needs a dependency alias in config.ref', `${path}.config.ref`);
+    let inputs;
+    try { inputs = JSON.parse(config.inputs ?? '{}'); } catch { throw new ManifestError('must be a JSON object string', `${path}.config.inputs`); }
+    if (!isPlainObject(inputs)) throw new ManifestError('must be a JSON object string', `${path}.config.inputs`);
+    if (raw.then || raw.else || raw.cases || raw.default) throw new ManifestError('child steps come from the pinned dependency, not inline branches', path);
+  }
   return step;
 }
 
@@ -299,6 +308,7 @@ export function assertCron(expr, path = "cron") {
  */
 export function validateManifest(doc) {
   if (!isPlainObject(doc)) throw new ManifestError("the manifest must be a YAML mapping at the top level");
+  for (const reserved of ['materialGraph', 'materialKey', 'file']) if (Object.hasOwn(doc, reserved)) throw new ManifestError('reserved for verified loader state, not manifest input', reserved);
 
   const tag = doc.manifest;
   if (tag == null) {
@@ -308,7 +318,7 @@ export function validateManifest(doc) {
       "manifest",
     );
   }
-  if (tag !== MANIFEST_TAG) {
+  if (tag !== MANIFEST_TAG && tag !== COMPONENT_TAG) {
     const [family, ver] = String(tag).split("/");
     throw new ManifestError(
       family === "qloops.loop"
@@ -327,8 +337,27 @@ export function validateManifest(doc) {
 
   const seenIds = new Set();
   const steps = doc.steps.map((s, i) => validateStep(s, `steps[${i}]`, seenIds));
+  const dependencies = doc.dependencies ?? {};
+  if (!isPlainObject(dependencies)) throw new ManifestError('must be a mapping', 'dependencies');
+  for (const [alias, dependency] of Object.entries(dependencies)) {
+    const path = `dependencies.${alias}`;
+    if (!safeName(alias) || !isPlainObject(dependency)) throw new ManifestError('needs a safe alias and a pinned reference', path);
+    if (!['workflow', 'component'].includes(dependency.kind)) throw new ManifestError('kind must be workflow or component', path);
+    if (typeof dependency.id !== 'string' || !dependency.id.trim() || typeof dependency.version !== 'string' || !dependency.version.trim() || /^(latest|current|\*)$/.test(dependency.version)) throw new ManifestError('id and exact version are required', path);
+    if (!/^[a-f0-9]{64}$/.test(dependency.sha256 ?? '')) throw new ManifestError('exact lowercase SHA-256 is required', path);
+    if (typeof dependency.path !== 'string' || !dependency.path || dependency.path.startsWith('/') || dependency.path.includes('\\') || dependency.path.split('/').includes('..') || dependency.path.includes(':')) throw new ManifestError('path must be a portable local relative file without traversal', path);
+  }
+  const checkRefs = list => list.forEach(step => {
+    if (step.kind === 'workflow-call' && !Object.hasOwn(dependencies, step.config.ref)) throw new ManifestError(`missing dependency alias ${step.config.ref}`, `steps.${step.id}.config.ref`);
+    for (const branch of [step.then, step.else, step.default, ...Object.values(step.cases ?? {})]) if (branch) checkRefs(branch);
+  });
+  checkRefs(steps);
+  let inputs, outputs;
+  try { inputs = validatePorts(doc.inputs); outputs = validatePorts(doc.outputs, { output: true, path: 'outputs' }); }
+  catch (error) { throw new ManifestError(error.message); }
 
   return {
+    manifest: tag,
     id: doc.id,
     name: typeof doc.name === "string" ? doc.name : doc.id,
     version: doc.version == null ? "0" : String(doc.version),
@@ -337,6 +366,9 @@ export function validateManifest(doc) {
     enabled: doc.enabled !== false,
     triggers: validateTriggers(doc.triggers),
     settings: validateSettings(doc.settings),
+    inputs,
+    outputs,
+    dependencies: structuredClone(dependencies),
     steps,
   };
 }

@@ -104,6 +104,7 @@ function lastOutput(ctx) {
 /** Template context, carrying the lane variables so every runner sees them alike. */
 const tctx = (ctx) => ({
   priorOutputs: ctx.priorOutputs,
+  inputs: ctx.inputs,
   priorStepNames: ctx.priorStepNames,
   ...(ctx.item !== undefined ? { item: ctx.item } : {}),
   ...(ctx.itemIndex != null ? { index: ctx.itemIndex } : {}),

@@ -1,11 +1,12 @@
-import { readFileSync, writeFileSync, lstatSync, existsSync } from "node:fs";
-import { resolve, join, isAbsolute } from "node:path";
+import { readFileSync, writeFileSync, lstatSync, existsSync, mkdirSync, realpathSync } from "node:fs";
+import { resolve, join, isAbsolute, dirname, basename, posix } from "node:path";
 import { hash, insist, CoreError } from "./contracts.mjs";
 import { parseYaml } from "./yaml.mjs";
 import { validateManifest } from "./manifest.mjs";
+import { MAX_CALL_DEPTH, MAX_MATERIALS } from './material-graph.mjs';
 export async function readAsset(base, path) {
   insist(
-    /^(catalog\.json|(?:workflows|components|demos|authors|examples)\/[a-z0-9-]+\.(?:yaml|json|txt))$/.test(
+    /^(catalog\.json|(?:workflows|components|demos|authors|examples)\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.(?:yaml|json|txt))$/.test(
       path,
     ),
     "Unsafe registry asset path",
@@ -135,7 +136,7 @@ export async function loadRelease(base, sha256, { releaseVersion } = {}) {
         e.dependencies.every(d => d && typeof d.id === "string" && /^[a-z0-9-]+$/.test(d.id) &&
           /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(d.version ?? ""))), "Dependencies require exact identities");
       if (e.file !== undefined)
-        insist(e.file === `${section}/${e.id}.${section === "workflows" ? "yaml" : "json"}`, "Registry file must match its section and identity");
+        insist(e.file === `${section}/${e.id}.${section === "workflows" ? "yaml" : "json"}` || (section === 'components' && e.file === `components/${e.id}.yaml`), "Registry file must match its section and identity");
       insist(
         typeof e.id === "string" && /^[a-z0-9-]+$/.test(e.id) &&
           /^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(e.version ?? ""),
@@ -164,10 +165,29 @@ export async function installPinned({
   insist(entry, "Pinned workflow not found", "VERSION_NOT_FOUND");
   const resolved = [];
   const visiting = new Set();
+  const catalogVerified = new Set();
+  const materialFiles = new Map();
+  async function verifyMaterial(path, expected, ancestors = [], depth = 0) {
+    insist(depth <= MAX_CALL_DEPTH, 'Nested material depth exceeded');
+    insist(!ancestors.includes(path), 'Nested material dependency cycle');
+    const bytes = materialFiles.get(path)?.bytes ?? await readAsset(base, path);
+    insist(hash(bytes) === expected.sha256, `Artifact checksum mismatch: ${path}`, 'CHECKSUM_MISMATCH');
+    const manifest = validateManifest(parseYaml(new TextDecoder('utf-8', { fatal: true }).decode(bytes)));
+    insist(manifest.id === expected.id && manifest.version === expected.version && manifest.manifest === `q-core.${expected.kind}/v1`, `Nested material identity mismatch: ${path}`);
+    if (materialFiles.has(path)) return bytes;
+    if (!materialFiles.has(path)) {
+      insist(materialFiles.size < MAX_MATERIALS, 'Nested material count exceeded');
+      materialFiles.set(path, { bytes, manifest });
+    }
+    for (const ref of Object.values(manifest.dependencies)) await verifyMaterial(posix.join(posix.dirname(path), ref.path), ref, [...ancestors, path], depth + 1);
+    const key = `${expected.kind === 'component' ? 'components' : 'workflows'}/${manifest.id}@${manifest.version}`;
+    if (!resolved.some(record => record.path === path)) resolved.push({ key, path, sha256: expected.sha256 });
+    return bytes;
+  }
   async function verify(e, section = "workflows") {
     const key = `${section}/${e.id}@${e.version}`;
-    if (resolved.some((x) => x.key === key)) return;
     insist(!visiting.has(key), "Dependency cycle");
+    if (catalogVerified.has(key)) return;
     visiting.add(key);
     const path = e.file ?? `${section}/${e.id}.${section === "workflows" ? "yaml" : "json"}`;
     const bytes = await readAsset(base, path);
@@ -176,6 +196,7 @@ export async function installPinned({
       `Artifact checksum mismatch: ${e.id}`,
       "CHECKSUM_MISMATCH",
     );
+    if (path.endsWith('.yaml')) await verifyMaterial(path, { id: e.id, version: e.version, sha256: e.sha256, kind: section === 'components' ? 'component' : 'workflow' });
     for (const dep of e.dependencies ?? []) {
       const matches = [
         ...(catalog.components ?? []).map((e) => [e, "components"]),
@@ -190,7 +211,8 @@ export async function installPinned({
       await verify(...matches[0]);
     }
     visiting.delete(key);
-    resolved.push({ key, path, sha256: e.sha256 });
+    catalogVerified.add(key);
+    if (!resolved.some(record => record.path === path)) resolved.push({ key, path, sha256: e.sha256 });
     return bytes;
   }
   const bytes = await verify(entry);
@@ -204,7 +226,37 @@ export async function installPinned({
     !existsSync(destination) && !existsSync(destination + ".lock.json"),
     "Destination exists; refusing overwrite",
   );
-  writeFileSync(destination, bytes, { flag: "wx", mode: 0o600 });
+  const entryPath = entry.file ?? `workflows/${entry.id}.yaml`;
+  const heights = new Map();
+  const height = path => {
+    if (heights.has(path)) return heights.get(path);
+    const count = Math.max(0, ...Object.values(materialFiles.get(path).manifest.dependencies).map(ref => 1 + height(posix.join(posix.dirname(path), ref.path))));
+    heights.set(path, count); return count;
+  };
+  insist(height(entryPath) <= MAX_CALL_DEPTH, 'Nested material depth exceeded');
+  const installRoot = realpathSync(dirname(resolve(destination)));
+  const targets = new Map([[join(installRoot, basename(destination)), bytes]]);
+  const collected = new Set();
+  const collect = path => {
+    if (collected.has(path)) return;
+    collected.add(path);
+    const node = materialFiles.get(path);
+    for (const ref of Object.values(node.manifest.dependencies)) {
+      const childPath = posix.join(posix.dirname(path), ref.path);
+      const relativePath = posix.relative(posix.dirname(entryPath), childPath);
+      insist(!relativePath.startsWith('../') && !posix.isAbsolute(relativePath), 'Nested install path escapes destination');
+      const target = join(installRoot, relativePath), childBytes = materialFiles.get(childPath).bytes;
+      insist(!targets.has(target) || targets.get(target).equals(childBytes), 'Nested install path collision');
+      targets.set(target, childBytes); collect(childPath);
+    }
+  };
+  collect(entryPath);
+  for (const target of targets.keys()) {
+    insist(!existsSync(target), 'Dependency destination exists; refusing overwrite');
+    let current = dirname(target);
+    while (current !== installRoot) { if (existsSync(current)) insist(lstatSync(current).isDirectory() && !lstatSync(current).isSymbolicLink(), 'Unsafe dependency destination directory'); current = dirname(current); }
+  }
+  for (const [target, body] of targets) { mkdirSync(dirname(target), { recursive: true }); writeFileSync(target, body, { flag: 'wx', mode: 0o600 }); }
   writeFileSync(
     destination + ".lock.json",
     JSON.stringify(

@@ -31,6 +31,8 @@ import { resolveTemplateValue } from "./template.mjs";
 import { RunStore, newRunId } from "./state.mjs";
 import { hash, insist } from "./contracts.mjs";
 import { questions } from "./specification.mjs";
+import { bindInputs, bindOutputs, resolveBinding } from './material-io.mjs';
+import { MAX_CALL_DEPTH } from './material-graph.mjs';
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -39,6 +41,103 @@ export const DEFAULT_MAX_TOKENS = 1200;
 export const MAX_EXPANDED_RUN_ROWS = 10_000;
 
 const ENGINE_KINDS = new Set(["fetch", "llm-call", "api-request", "approval-gate", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"]);
+
+function invocationContext(run, id) {
+  const priorOutputs = {}, priorStepNames = {};
+  for (const row of run.steps) {
+    if ((row.invocationId ?? 'root') !== id || row.kind === 'workflow-return') continue;
+    priorStepNames[row.stepId] = row.name;
+    if (row.status === 'success' && row.output != null) priorOutputs[row.stepId] = row.output;
+  }
+  return { priorOutputs, priorStepNames, inputs: run.invocations?.[id]?.inputs ?? run.inputs ?? {} };
+}
+
+function ancestry(run, id) {
+  const list = [];
+  while (id && run.invocations?.[id]) {
+    if (list.includes(id) || list.length > MAX_CALL_DEPTH) throw new Error('Invalid persisted invocation ancestry');
+    list.push(id); id = run.invocations[id].parent;
+  }
+  return list;
+}
+
+function invocationRows(run, id) {
+  return run.steps.filter(row => !['workflow-call', 'workflow-return'].includes(row.kind) && ancestry(run, row.invocationId ?? 'root').includes(id));
+}
+
+function updateInvocationStates(run) {
+  for (const [id, frame] of Object.entries(run.invocations ?? {})) {
+    if (id === 'root') continue;
+    const rows = invocationRows(run, id);
+    const sum = field => rows.some(row => row[field] === null) ? null : roundUsd(rows.reduce((total, row) => total + (row[field] ?? 0), 0));
+    frame.usage = { costUsd: sum('costUsd'), tokensIn: sum('tokensIn'), tokensOut: sum('tokensOut') };
+    const call = run.steps.find(row => row.rowId === frame.callRowId);
+    if (!call) continue;
+    call.childUsage = frame.usage;
+    const failed = run.steps.find(row => row.status === 'failed' && ancestry(run, row.invocationId ?? 'root').includes(id));
+    frame.status = failed ? 'failed' : call.status === 'success' ? 'success' : run.status === 'cancelled' ? 'cancelled' : rows.some(row => row.status === 'waiting_human') ? 'waiting_human' : run.status === 'waiting_inference' ? 'waiting_inference' : 'running';
+    call.childStatus = frame.status;
+    if (failed) { call.status = 'failed'; call.errorText = `Child ${frame.key}: ${failed.errorText}`; call.finishedAt = failed.finishedAt; }
+  }
+}
+
+function invocationKnobs(run, id, rootKnobs) {
+  let knobs = { ...rootKnobs };
+  for (const frameId of ancestry(run, id).reverse().filter(value => value !== 'root')) {
+    const settings = run.invocations[frameId].settings;
+    if (settings.model !== undefined) knobs.model = settings.model;
+    if (settings.sensitivity) throw new Error('Child sensitivity policy is not implemented and cannot be ignored');
+  }
+  return knobs;
+}
+
+function invocationBudgetFailure(run, id, paidKind, modelCall) {
+  if (!paidKind) return null;
+  for (const frameId of ancestry(run, id).filter(value => value !== 'root')) {
+    const frame = run.invocations[frameId];
+    const cap = resolveKnobs(frame.settings).budgetUsd;
+    if (cap === null) continue;
+    const rows = invocationRows(run, frameId);
+    if (modelCall && rows.some(row => row.costUsd === null)) return `Child budget ${frame.key} cannot be checked: spend is unknown`;
+    const spent = rows.reduce((sum, row) => sum + (row.costUsd ?? 0), 0);
+    if (spent >= cap) return `Child budget ${frame.key} exhausted: $${spent.toFixed(6)} of $${cap.toFixed(6)}`;
+  }
+  return null;
+}
+
+function expandCall(run, row, context, dryRun) {
+  const parent = row.invocationId ?? 'root';
+  if (ancestry(run, parent).length > MAX_CALL_DEPTH) throw new Error(`workflow-call depth exceeds ${MAX_CALL_DEPTH}`);
+  const parentFrame = run.invocations[parent];
+  const key = run.materialGraph[parentFrame.key]?.resolved[row.config.ref];
+  const node = run.materialGraph[key];
+  if (!node) throw new Error(`Missing pinned dependency ${row.config.ref}`);
+  if (ancestry(run, parent).some(id => run.invocations[id].key === key)) throw new Error(`workflow-call cycle: ${key}`);
+  const child = node.manifest;
+  if (child.settings.sensitivity) throw new Error('Child sensitivity policy is not implemented and cannot be ignored');
+  if (dryRun) {
+    row.status = 'planned'; row.output = { planned: true, ref: row.config.ref, sha256: node.sha256, inputs: JSON.parse(row.config.inputs ?? '{}'), note: 'Pinned closure validated; child effects and dynamic bindings have not executed' };
+    row.startedAt = row.finishedAt = new Date().toISOString(); return;
+  }
+  const inputs = bindInputs(child.inputs, resolveBinding(JSON.parse(row.config.inputs ?? '{}'), context));
+  const id = newRunId();
+  const rows = createRun({ ...child, dependencies: {}, materialGraph: {} }, { inputs }).steps.map(childRow => ({ ...childRow, invocationId: id, depth: row.depth + 1 + childRow.depth }));
+  rows.push({ rowId: newRunId(), invocationId: id, stepId: '$return', kind: 'workflow-return', name: `Return ${child.id}`, config: {}, depth: row.depth + 1, status: 'pending', costUsd: 0, tokensIn: 0, tokensOut: 0 });
+  if (rows.length >= SEQ_STRIDE) throw new Error(`workflow-call expansion exceeds ${SEQ_STRIDE - 1} rows`);
+  if (!insertExpansionRows(run, row, rows)) throw new Error(row.errorText);
+  run.invocations[id] = { parent, key, inputs, settings: child.settings, callRowId: row.rowId, sha256: node.sha256, outputs: child.outputs };
+  row.status = 'running'; row.startedAt = new Date().toISOString(); row.childInvocationId = id;
+}
+
+function finishCall(run, row, dryRun) {
+  const frame = run.invocations[row.invocationId];
+  const call = run.steps.find(candidate => candidate.rowId === frame.callRowId);
+  if (!call) throw new Error('Missing parent call snapshot');
+  call.output = dryRun ? { planned: true } : bindOutputs(frame.outputs, invocationContext(run, row.invocationId));
+  call.status = row.status = dryRun ? 'planned' : 'success';
+  call.finishedAt = row.finishedAt = new Date().toISOString();
+  row.output = null;
+}
 
 function clarificationAnswers(value) {
   insist(value && typeof value === 'object' && !Array.isArray(value), 'Clarification answers must be an object', 'INVALID_CLARIFICATION');
@@ -74,8 +173,10 @@ function consumeClarification(run, input) {
 }
 
 function isSddClarification(run, step, output) {
-  return run.workflowId === 'sdd-pipeline' && step.stepId === 'brief' && output && typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 1 && Array.isArray(output.questions);
+  return materialId(run, step) === 'sdd-pipeline' && step.stepId === 'brief' && output && typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 1 && Array.isArray(output.questions);
 }
+
+function materialId(run, row) { return run.materialGraph?.[run.invocations?.[row.invocationId ?? 'root']?.key]?.manifest.id ?? run.workflowId; }
 
 /** The three knobs, resolved once per run, with where each value came from. */
 export function resolveKnobs(settings = {}) {
@@ -117,7 +218,9 @@ function summarise(status, rows, dryRun = false) {
 }
 
 /** Build the initial run record from a manifest. */
-export function createRun(manifest, { trigger = "manual" } = {}) {
+export function createRun(manifest, { trigger = "manual", inputs = {} } = {}) {
+  if (Object.keys(manifest.dependencies ?? {}).length && !manifest.materialGraph) throw new Error('Load the complete pinned dependency graph before creating a run (loadWorkflow/loadManifestGraph)');
+  const boundInputs = bindInputs(manifest.inputs, inputs);
   const flat = flattenWorkflowSteps(manifest.steps);
   return {
     runId: newRunId(),
@@ -132,8 +235,14 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
     costUsd: 0,
     tokensIn: 0,
     tokensOut: 0,
+    inputs: boundInputs,
+    outputPorts: structuredClone(manifest.outputs ?? {}),
+    materialGraph: structuredClone(manifest.materialGraph ?? {}),
+    invocations: { root: { key: manifest.materialKey ?? null, inputs: boundInputs, parent: null, settings: structuredClone(manifest.settings ?? {}) } },
     steps: flat.map(({ step, seq, depth, laneOf }) => ({
       seq,
+      rowId: newRunId(),
+      invocationId: 'root',
       stepId: step.id,
       kind: step.kind,
       name: stepLabel(step),
@@ -141,11 +250,11 @@ export function createRun(manifest, { trigger = "manual" } = {}) {
       laneOf,
       /* The step config is a SNAPSHOT. A run parked at a gate for a week must
          replay with the prompt it was created with, or its history starts lying. */
-      config: step.config,
-      then: step.then ?? null,
-      else: step.else ?? null,
-      cases: step.cases ?? null,
-      default: step.default ?? null,
+      config: structuredClone(step.config),
+      then: structuredClone(step.then ?? null),
+      else: structuredClone(step.else ?? null),
+      cases: structuredClone(step.cases ?? null),
+      default: structuredClone(step.default ?? null),
       status: "pending",
       decision: null,
       gateReason: null,
@@ -220,6 +329,7 @@ export async function driveRun(run, opts = {}) {
   }
 
   const persist = () => {
+    updateInvocationStates(run);
     if (store) store.save(run);
   };
 
@@ -261,6 +371,10 @@ export async function driveRun(run, opts = {}) {
       const anyFailed = run.steps.some((s) => s.status === "failed");
       const anyWaiting = run.steps.some((s) => s.status === "waiting_human");
       run.status = anyFailed ? "failed" : anyWaiting ? "waiting_human" : "success";
+      if (run.status === 'success' && !dryRun) {
+        try { run.output = bindOutputs(run.outputPorts, invocationContext(run, 'root')); }
+        catch (error) { run.status = 'failed'; run.summary = error.message; run.finishedAt = new Date().toISOString(); persist(); return run; }
+      }
       run.summary = summarise(run.status, run.steps, dryRun);
       run.finishedAt = new Date().toISOString();
       persist();
@@ -272,6 +386,7 @@ export async function driveRun(run, opts = {}) {
     const priorStepNames = {};
     for (const s of run.steps) {
       if (s.seq >= next.seq) break;
+      if ((s.invocationId ?? 'root') !== (next.invocationId ?? 'root') || s.kind === 'workflow-return') continue;
       priorStepNames[s.stepId] = s.name ?? s.kind;
       if (s.status === "success" && s.output != null) priorOutputs[s.stepId] = s.output;
     }
@@ -285,6 +400,21 @@ export async function driveRun(run, opts = {}) {
       cases: next.cases ?? undefined,
       default: next.default ?? undefined,
     };
+    const invocationId = next.invocationId ?? 'root';
+    const inputs = run.invocations?.[invocationId]?.inputs ?? run.inputs ?? {};
+
+    if (next.kind === 'workflow-call' || next.kind === 'workflow-return') {
+      try {
+        if (next.kind === 'workflow-call') expandCall(run, next, { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }, dryRun);
+        else finishCall(run, next, dryRun);
+      } catch (error) {
+        next.status = 'failed'; next.errorText = error.message; next.finishedAt = new Date().toISOString();
+        run.status = 'failed'; run.summary = error.message; run.finishedAt = next.finishedAt;
+      }
+      persist(); onStep(next);
+      if (next.status === 'failed') return run;
+      continue;
+    }
 
     /* ── 0. fan-out — rows, not output ─────────────────────────────────── */
     if (next.kind === "fan-out") {
@@ -324,6 +454,7 @@ export async function driveRun(run, opts = {}) {
 
     /* ── 1. BUDGET (knob 3), BEFORE the paid step ───────────────────────── */
     const spent = run.steps.reduce((acc, s) => acc + Number(s.costUsd ?? 0), 0);
+    const activeKnobs = invocationKnobs(run, invocationId, knobs);
     const cliStep = next.kind === "llm-call" && next.config.provider === "cli";
     const paidKind = (next.kind === "llm-call" && !cliStep) || next.kind === "approval-gate";
     /* An unknown cost (null) is not zero. With a ceiling set, the run cannot
@@ -332,6 +463,12 @@ export async function driveRun(run, opts = {}) {
     /* A human gate calls no model, so an unknown spend does not stop it; the
        legacy spent >= ceiling check below still applies to it as before. */
     const modelCall = paidKind && !(next.kind === "approval-gate" && (str(next.config, "reviewer") ?? "human") === "human");
+    const childBudget = invocationBudgetFailure(run, invocationId, paidKind, modelCall);
+    if (childBudget) {
+      next.status = 'failed'; next.gateReason = 'budget'; next.errorText = childBudget;
+      next.startedAt = next.finishedAt = new Date().toISOString(); run.status = 'failed'; run.summary = childBudget; run.finishedAt = next.finishedAt;
+      persist(); onStep(next); return run;
+    }
     if (modelCall && knobs.budgetUsd !== null && unknownSpend) {
       next.status = "failed";
       next.gateReason = "budget";
@@ -360,10 +497,11 @@ export async function driveRun(run, opts = {}) {
     /* ── 2. EXECUTE ─────────────────────────────────────────────────────── */
     const ctx = {
       runId: run.runId,
-      templateId: run.workflowId,
+      templateId: materialId(run, next),
       stepId: next.stepId,
       priorOutputs,
       priorStepNames,
+      inputs,
       item: next.item,
       itemIndex: next.itemIndex,
       apiKey,
@@ -389,7 +527,7 @@ export async function driveRun(run, opts = {}) {
        the author expected, and it says "planned", never "success". */
     if (dryRun) {
       try {
-        next.output = plannedOutput(step, ctx, knobs);
+        next.output = plannedOutput(step, ctx, activeKnobs);
       } catch (e) {
         /* An invalid call policy is reported by the dry run, not first by a paid run. */
         next.status = "failed";
@@ -413,15 +551,15 @@ export async function driveRun(run, opts = {}) {
       if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
       let result;
       if (cliStep) {
-        if (knobs.budgetUsd !== null) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null and use bounded inference jobs.');
-        const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }) : undefined;
+        if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => id !== 'root' && resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null on every ancestor and use bounded inference jobs.');
+        const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }) : undefined;
         if (step.config.input && explicitInput === undefined) throw new Error('CLI input reference did not resolve');
-        const input = run.clarificationContext && run.workflowId === 'sdd-pipeline' && next.stepId === 'brief'
+        const input = run.clarificationContext && materialId(run, next) === 'sdd-pipeline' && next.stepId === 'brief'
           ? { ...explicitInput, clarification: structuredClone(run.clarificationContext) }
           : explicitInput;
         const response = registryCliStep(run, {
           stepId: `${next.seq}:${next.stepId}`,
-          instructions: resolveTemplate(str(step.config, 'instructions') ?? '', { priorOutputs, priorStepNames, item: next.item, index: next.itemIndex }),
+          instructions: resolveTemplate(str(step.config, 'instructions') ?? '', { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }),
           input: run.repairContext ? { input: step.config.input ? input : priorOutputs, repair: run.repairContext } : step.config.input ? input : next.item === undefined ? priorOutputs : { item: next.item, index: next.itemIndex, steps: priorOutputs },
           provider: opts.callerProvider, reply: inferenceReply, save: persist,
           maxInferenceJobs: opts.maxInferenceJobs, inferenceTtlMs: opts.inferenceTtlMs,
@@ -433,7 +571,7 @@ export async function driveRun(run, opts = {}) {
         const output = format === 'json' ? JSON.parse(text) : { text };
         if (format === 'json' && (!output || typeof output !== 'object')) throw new Error('CLI JSON output must be an object or array');
         result = { output, unknownUsage: true, provider: response.provider };
-      } else result = await dispatch(step, ctx, knobs);
+      } else result = await dispatch(step, ctx, activeKnobs);
       if (isSddClarification(run, next, result.output)) {
         const requested = questions(result.output.questions);
         const inference = run.inferenceHistory?.at(-1);
@@ -452,7 +590,7 @@ export async function driveRun(run, opts = {}) {
         persist(); onStep(next);
         return run;
       }
-      if (run.clarificationContext && run.workflowId === 'sdd-pipeline' && next.stepId === 'brief') delete run.clarificationContext;
+      if (run.clarificationContext && materialId(run, next) === 'sdd-pipeline' && next.stepId === 'brief') delete run.clarificationContext;
       if (['verify-artifact', 'determined'].includes(next.kind) && result.output.outcome === 'fail') {
         run.repairHistory ??= [];
         run.repairHistory.push(result.output);
@@ -461,7 +599,7 @@ export async function driveRun(run, opts = {}) {
           next.status = 'failed'; next.output = result.output; next.errorText = 'Independent verifier failed; repair limit reached';
           next.finishedAt = new Date().toISOString(); run.status = 'needs_human'; run.summary = next.errorText; run.finishedAt = next.finishedAt; persist(); return run;
         }
-        const from = run.steps.find(s => s.stepId === next.config.repairFrom && s.seq < next.seq && s.kind === 'llm-call' && s.config.provider === 'cli');
+        const from = run.steps.find(s => s.stepId === next.config.repairFrom && (s.invocationId ?? 'root') === invocationId && s.seq < next.seq && s.kind === 'llm-call' && s.config.provider === 'cli');
         insist(from && run.steps.filter(s => s.seq >= from.seq && s.seq <= next.seq).every(s => ['llm-call','workspace-apply','verify-artifact','determined'].includes(s.kind)), 'Repair may only repeat the declared local proposal/apply/verify segment');
         run.repairAttempt = attempts + 1;
         run.repairSnapshot = snapshot(policy.workspace, policy.allowedPaths);
@@ -632,7 +770,7 @@ function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun, item
     return;
   }
 
-  const value = resolveTemplateValue(overExpr, { priorOutputs, priorStepNames, item, index });
+  const value = resolveTemplateValue(overExpr, { priorOutputs, priorStepNames, inputs: run.invocations?.[row.invocationId ?? 'root']?.inputs, item, index });
   if (!Array.isArray(value)) {
     if (dryRun) {
       /* Nothing has run, so no array can exist yet. Say that plainly instead of
@@ -698,8 +836,8 @@ function expandFanOut(run, row, step, priorOutputs, priorStepNames, dryRun, item
   };
 }
 
-function controlValue(expr, priorOutputs, priorStepNames, item, index) {
-  const context = { priorOutputs, priorStepNames, item, index };
+function controlValue(expr, priorOutputs, priorStepNames, item, index, inputs) {
+  const context = { priorOutputs, priorStepNames, item, index, inputs };
   const value = resolveTemplateValue(expr, context);
   if (value !== undefined) return value;
   const resolved = resolveTemplate(expr, context);
@@ -773,7 +911,7 @@ function insertExpansionRows(run, row, rows) {
   for (const candidate of run.steps) {
     if (candidate.seq > row.seq) candidate.seq += SEQ_STRIDE;
   }
-  rows.forEach((candidate, index) => { candidate.seq = row.seq + 1 + index; });
+  rows.forEach((candidate, index) => { candidate.seq = row.seq + 1 + index; candidate.invocationId ??= row.invocationId ?? 'root'; candidate.rowId ??= newRunId(); });
   run.steps.push(...rows);
   run.steps.sort((a, b) => a.seq - b.seq);
   return true;
@@ -781,6 +919,7 @@ function insertExpansionRows(run, row, rows) {
 
 function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
   const label = row.name ?? row.kind;
+  const inputs = run.invocations?.[row.invocationId ?? 'root']?.inputs;
   const fail = (message) => {
     row.status = "failed";
     row.errorText = `"${label}": ${message}`;
@@ -788,7 +927,7 @@ function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
   };
   if (step.kind === "if") {
     const expr = str(step.config, "condition") ?? str(step.config, "when");
-    const value = expr && controlValue(expr, priorOutputs, priorStepNames, row.item, row.itemIndex);
+    const value = expr && controlValue(expr, priorOutputs, priorStepNames, row.item, row.itemIndex, inputs);
     if (value === undefined) return fail(`condition "${expr}" did not resolve`);
     const truthy = typeof value === "boolean" ? value : ["true", "1", "yes", "on"].includes(String(value).toLowerCase());
     if (branchRows(run, row, [truthy ? (step.then ?? []) : (step.else ?? [])], [{ item: row.item, index: row.itemIndex ?? 0 }], dryRun)) row.output.condition = truthy;
@@ -796,7 +935,7 @@ function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
   }
   if (step.kind === "switch") {
     const expr = str(step.config, "on") ?? str(step.config, "value");
-    const value = expr && controlValue(expr, priorOutputs, priorStepNames, row.item, row.itemIndex);
+    const value = expr && controlValue(expr, priorOutputs, priorStepNames, row.item, row.itemIndex, inputs);
     if (value === undefined) return fail(`selector "${expr}" did not resolve`);
     const key = String(value);
     const hasCase = Object.prototype.hasOwnProperty.call(step.cases ?? {}, key);
@@ -814,7 +953,7 @@ function expandControl(run, row, step, priorOutputs, priorStepNames, dryRun) {
     return;
   }
   const over = str(step.config, "over");
-  const value = over && resolveTemplateValue(over, { priorOutputs, priorStepNames, item: row.item, index: row.itemIndex });
+  const value = over && resolveTemplateValue(over, { priorOutputs, priorStepNames, inputs, item: row.item, index: row.itemIndex });
   if (!Array.isArray(value)) return fail(`"over" (${over}) did not resolve to an array`);
   const maxItems = num(step.config, "maxItems") ?? 50;
   const maxConcurrency = num(step.config, "maxConcurrency") ?? 1;
@@ -832,7 +971,7 @@ export function waitingGate(run, approvalHash) {
   const gate = run.steps.find((s) => s.status === "waiting_human");
   if (!gate) throw new Error(`Run ${run.runId} is not waiting on anyone (status: ${run.status}).`);
   if (gate.config.bind === 'sha256') {
-    const subject = run.steps.filter(s => s.seq < gate.seq && s.status === 'success' && s.output != null).at(-1)?.output ?? null;
+    const subject = run.steps.filter(s => s.seq < gate.seq && (s.invocationId ?? 'root') === (gate.invocationId ?? 'root') && s.status === 'success' && s.output != null).at(-1)?.output ?? null;
     insist(approvalHash === gate.output.approvalHash && hash(subject) === approvalHash && hash(gate.output.subject) === approvalHash, 'Approval does not match the current exact subject', 'STALE_APPROVAL');
   }
   return gate;
@@ -864,6 +1003,7 @@ export async function resumeRun(run, { decision, approvalHash, confirmation, ...
     run.status = "failed";
     run.summary = `Step "${gate.name}": rejected at the gate.`;
     run.finishedAt = new Date().toISOString();
+    updateInvocationStates(run);
     opts.store?.save(run);
     return run;
   }
@@ -879,14 +1019,14 @@ export function cancelWaitingRun(run, { store } = {}) {
   run.cancelledFrom = run.status;
   invalidateInference(run);
   run.status = 'cancelled'; run.summary = 'Paused run cancelled; explicit resume is required';
-  run.finishedAt = new Date().toISOString(); store?.save(run);
+  run.finishedAt = new Date().toISOString(); updateInvocationStates(run); store?.save(run);
   return run;
 }
 export async function resumeCancelledRun(run, opts = {}) {
   insist(run.status === 'cancelled' && ['waiting_inference', 'waiting_human'].includes(run.cancelledFrom), 'Interrupted effects require reconciliation; only an explicitly paused cancellation can resume');
   run.status = run.cancelledFrom; delete run.cancelledFrom; run.finishedAt = null;
   run.summary = run.status === 'waiting_human' ? 'Waiting for approval of the pinned subject' : 'Resuming caller inference';
-  opts.store?.save(run);
+  updateInvocationStates(run); opts.store?.save(run);
   return run.status === 'waiting_human' ? run : driveRun(run, opts);
 }
 

@@ -108,3 +108,8 @@ it reports the supported provider and secret-store capabilities for those exact
 package bytes. Explicit current-agent inference for SDD and Content is specified
 in the [caller protocol](caller-inference.md). There is no automatic provider
 fallback: Core retains approval, execution and independent verification.
+# Nested material extension
+
+Contract revision 14 adds [nested workflows, executable components, typed I/O and
+portable dependency bundles](nested-materials.md). JSON component descriptors
+remain a distinct, nonexecutable Registry format.
