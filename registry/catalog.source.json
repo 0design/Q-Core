@@ -21,12 +21,6 @@
       "schedule": "30 6 * * *",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/brand-mentions.txt",
       "preview": {
@@ -134,7 +128,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -200,12 +194,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": null,
       "preview": {
@@ -359,13 +347,6 @@
       "schedule": "0 9 * * *",
       "model": null,
       "budgetUsd": 0.4,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_CHAT_ID",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/content-factory.txt",
       "preview": {
@@ -479,7 +460,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL; the same key and model also run the agent gate."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step and the agent gate in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest); the same key and model also run the agent gate."
             },
             {
               "id": "cli",
@@ -550,13 +531,6 @@
       "schedule": "30 6 * * *",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_CHAT_ID",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/content-feed.txt",
       "preview": {
@@ -663,7 +637,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -734,12 +708,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.15,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/feed-fanout.txt",
       "preview": {
@@ -842,7 +810,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -906,12 +874,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/json-digest.txt",
       "preview": {
@@ -1009,7 +971,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -1073,11 +1035,6 @@
       "schedule": "0 8 * * *",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/price-watch.txt",
       "preview": {
@@ -1183,7 +1140,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment and OPENROUTER_MODEL; they run the agent gate."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the agent gate step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest); the key and model run the agent gate."
             },
             {
               "id": "cli",
@@ -1242,12 +1199,6 @@
       "schedule": "0 7 * * 1",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/release-watch.txt",
       "preview": {
@@ -1350,7 +1301,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -1415,12 +1366,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL",
-        "OPENROUTER_MODEL"
-      ],
       "measured": null,
       "proof": "demos/strict-gate.txt",
       "preview": {
@@ -1518,7 +1463,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment and OPENROUTER_MODEL run the agent gate."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the agent gate step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest); the key and model run the agent gate."
             },
             {
               "id": "cli",
@@ -1580,10 +1525,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.05,
-      "needsEnv": [
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/webhook-relay.txt",
       "preview": {
@@ -1709,10 +1650,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.05,
-      "needsEnv": [
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/wide-fanout.txt",
       "preview": {
@@ -1895,12 +1832,6 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "needsEnv": [
-        "QF_DIGEST_DATE",
-        "QF_DIGEST_SINCE",
-        "QF_DIGEST_UNTIL",
-        "QF_DIGEST_RECEIVER_URL"
-      ],
       "permissions": {
         "execution": "explicit-local-scope"
       },
@@ -2079,12 +2010,6 @@
         "inference": "cli",
         "callerReady": true
       },
-      "needsEnv": [
-        "QF_DIGEST_DATE",
-        "QF_DIGEST_SINCE",
-        "QF_DIGEST_UNTIL",
-        "QF_DIGEST_RECEIVER_URL"
-      ],
       "permissions": {
         "execution": "explicit-local-scope"
       },
@@ -2572,7 +2497,6 @@
         "inference": "cli",
         "callerReady": true
       },
-      "needsEnv": [],
       "permissions": {
         "execution": "explicit-local-scope"
       },
@@ -3773,7 +3697,7 @@
       }
     }
   ],
-  "releaseVersion": "2026.10.10-registry.36-candidate",
+  "releaseVersion": "2026.10.13-registry.37-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.46",

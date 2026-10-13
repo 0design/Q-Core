@@ -21,11 +21,6 @@
       "schedule": "30 6 * * *",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/brand-mentions.txt",
       "preview": {
@@ -133,7 +128,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -177,7 +172,14 @@
           "Each morning, tell me which news items really mention our product and their tone.",
           "Filter a Google News RSS search for my studio name and post real mentions to my webhook."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "budget-guard",
@@ -199,11 +201,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": null,
       "preview": {
@@ -334,7 +331,14 @@
           "Show me that a $0 budget really stops a model step before it spends anything.",
           "Test the spending cap before I point a workflow at real work."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "content-factory",
@@ -357,12 +361,6 @@
       "schedule": "0 9 * * *",
       "model": null,
       "budgetUsd": 0.4,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_CHAT_ID"
-      ],
       "measured": null,
       "proof": "demos/content-factory.txt",
       "preview": {
@@ -476,7 +474,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL; the same key and model also run the agent gate."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step and the agent gate in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest); the same key and model also run the agent gate."
             },
             {
               "id": "cli",
@@ -525,7 +523,15 @@
           "Draft one Telegram post a day from my JSON feed and publish only after I approve it.",
           "Write a short channel post with links from this source, check the rules, ask me first."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_CHAT_ID",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "content-feed",
@@ -547,12 +553,6 @@
       "schedule": "30 6 * * *",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_CHAT_ID"
-      ],
       "measured": null,
       "proof": "demos/content-feed.txt",
       "preview": {
@@ -659,7 +659,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -707,7 +707,15 @@
           "Send a short morning digest of this RSS feed to my Telegram chat.",
           "One Telegram message a day with the worthwhile items from a design blog feed."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_CHAT_ID",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "feed-fanout",
@@ -730,11 +738,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.15,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/feed-fanout.txt",
       "preview": {
@@ -837,7 +840,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -879,7 +882,14 @@
           "For each of the latest 5 posts in this feed, send one sentence on who should care to my webhook.",
           "Process feed items one by one and push each summary to my webhook."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "json-digest",
@@ -901,11 +911,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/json-digest.txt",
       "preview": {
@@ -1003,7 +1008,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -1045,7 +1050,14 @@
           "Give my service a strict JSON count and titles of a feed, or fail.",
           "Test that a model returns valid JSON before my backend consumes it."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "price-watch",
@@ -1067,10 +1079,6 @@
       "schedule": "0 8 * * *",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/price-watch.txt",
       "preview": {
@@ -1176,7 +1184,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment and OPENROUTER_MODEL; they run the agent gate."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the agent gate step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest); the key and model run the agent gate."
             },
             {
               "id": "cli",
@@ -1213,7 +1221,13 @@
           "Alert me via webhook when USD/UAH goes above 42, after I confirm.",
           "Daily rate check that only bothers me on unusual days."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "release-watch",
@@ -1235,11 +1249,6 @@
       "schedule": "0 7 * * 1",
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/release-watch.txt",
       "preview": {
@@ -1342,7 +1351,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the llm-call step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest)."
             },
             {
               "id": "cli",
@@ -1385,7 +1394,14 @@
           "Weekly note on what changed in the React releases and anything breaking.",
           "Watch a dependency's GitHub releases and flag security fixes."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "strict-gate",
@@ -1407,11 +1423,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.1,
-      "needsEnv": [
-        "OPENROUTER_API_KEY",
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/strict-gate.txt",
       "preview": {
@@ -1509,7 +1520,7 @@
           "providers": [
             {
               "id": "openrouter",
-              "how": "As published: OPENROUTER_API_KEY in the environment and OPENROUTER_MODEL run the agent gate."
+              "how": "Store the key once with q-core auth set openrouter (macOS Keychain) and add secretSource: keychain to the agent gate step in your local copy. The published manifest reads OPENROUTER_API_KEY from the environment (secretSource env); keep it there only if you set it up that way yourself. Set OPENROUTER_MODEL (no model in the manifest); the key and model run the agent gate."
             },
             {
               "id": "cli",
@@ -1550,7 +1561,14 @@
           "Only send the rate alert if it is above the line; otherwise stop silently.",
           "Show me a machine check that can end a run without asking me."
         ]
-      }
+      },
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "webhook-relay",
@@ -1571,10 +1589,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.05,
-      "needsEnv": [
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/webhook-relay.txt",
       "preview": {
@@ -1678,7 +1692,12 @@
           "Copy this JSON endpoint to my webhook on demand without any AI.",
           "Forward a status JSON from one service to another receiver."
         ]
-      }
+      },
+      "needsEnv": [
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "wide-fanout",
@@ -1700,10 +1719,6 @@
       "schedule": null,
       "model": null,
       "budgetUsd": 0.05,
-      "needsEnv": [
-        "QCORE_SOURCE_URL",
-        "QCORE_WEBHOOK_URL"
-      ],
       "measured": null,
       "proof": "demos/wide-fanout.txt",
       "preview": {
@@ -1811,7 +1826,12 @@
           "Check that a 60-item feed is capped at 12 messages and the skip is reported.",
           "Test fan-out limits before I run a workflow over a big list."
         ]
-      }
+      },
+      "needsEnv": [
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL"
+      ],
+      "optionalEnv": []
     },
     {
       "id": "digest",
@@ -1886,12 +1906,6 @@
         "inference": "openrouter",
         "callerReady": false
       },
-      "needsEnv": [
-        "QF_DIGEST_SINCE",
-        "QF_DIGEST_UNTIL",
-        "QF_DIGEST_DATE",
-        "QF_DIGEST_RECEIVER_URL"
-      ],
       "permissions": {
         "execution": "explicit-local-scope"
       },
@@ -2017,7 +2031,26 @@
         "api-request"
       ],
       "humanGate": true,
-      "agentGate": false
+      "agentGate": false,
+      "needsEnv": [
+        "QF_DIGEST_SINCE",
+        "QF_DIGEST_UNTIL",
+        "QF_DIGEST_DATE",
+        "QF_DIGEST_RECEIVER_URL"
+      ],
+      "optionalEnv": [
+        "QF_DIGEST_FEED_1",
+        "QF_DIGEST_FEED_2",
+        "QF_DIGEST_FEED_3",
+        "QF_DIGEST_FEED_4",
+        "QF_DIGEST_FEED_5",
+        "QF_DIGEST_FEED_6",
+        "QF_DIGEST_FEED_7",
+        "QF_DIGEST_FEED_8",
+        "QF_DIGEST_FEED_9",
+        "QF_DIGEST_FEED_10",
+        "QF_DIGEST_TOPIC"
+      ]
     },
     {
       "id": "digest-cli",
@@ -2083,12 +2116,6 @@
         "inference": "cli",
         "callerReady": true
       },
-      "needsEnv": [
-        "QF_DIGEST_SINCE",
-        "QF_DIGEST_UNTIL",
-        "QF_DIGEST_DATE",
-        "QF_DIGEST_RECEIVER_URL"
-      ],
       "permissions": {
         "execution": "explicit-local-scope"
       },
@@ -2208,7 +2235,26 @@
         "api-request"
       ],
       "humanGate": true,
-      "agentGate": false
+      "agentGate": false,
+      "needsEnv": [
+        "QF_DIGEST_SINCE",
+        "QF_DIGEST_UNTIL",
+        "QF_DIGEST_DATE",
+        "QF_DIGEST_RECEIVER_URL"
+      ],
+      "optionalEnv": [
+        "QF_DIGEST_FEED_1",
+        "QF_DIGEST_FEED_2",
+        "QF_DIGEST_FEED_3",
+        "QF_DIGEST_FEED_4",
+        "QF_DIGEST_FEED_5",
+        "QF_DIGEST_FEED_6",
+        "QF_DIGEST_FEED_7",
+        "QF_DIGEST_FEED_8",
+        "QF_DIGEST_FEED_9",
+        "QF_DIGEST_FEED_10",
+        "QF_DIGEST_TOPIC"
+      ]
     },
     {
       "id": "podcast-summary",
@@ -2388,6 +2434,9 @@
         "QF_PODCAST_TRANSCRIPT_PART_2_URL",
         "QF_PODCAST_TITLE",
         "QF_PODCAST_VIDEO_URL"
+      ],
+      "optionalEnv": [
+        "QF_PODCAST_SOURCE_KIND"
       ]
     },
     {
@@ -2560,6 +2609,9 @@
         "QF_PODCAST_TRANSCRIPT_PART_2_URL",
         "QF_PODCAST_TITLE",
         "QF_PODCAST_VIDEO_URL"
+      ],
+      "optionalEnv": [
+        "QF_PODCAST_SOURCE_KIND"
       ]
     },
     {
@@ -2625,7 +2677,6 @@
         "inference": "cli",
         "callerReady": true
       },
-      "needsEnv": [],
       "permissions": {
         "execution": "explicit-local-scope"
       },
@@ -2704,7 +2755,9 @@
         "determined"
       ],
       "humanGate": true,
-      "agentGate": false
+      "agentGate": false,
+      "needsEnv": [],
+      "optionalEnv": []
     }
   ],
   "components": [
@@ -3854,7 +3907,7 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.10.10-registry.36-candidate",
+  "releaseVersion": "2026.10.13-registry.37-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.46",
@@ -4659,5 +4712,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "7b5d076db9c89508924bb1579b605b048b800a07e0bc0da15e0b71baddd21ad5"
+  "releaseSha256": "f016f0960e9834d5b976007e057bc163d90b3d517469f8edb2a7f2f6b379ee9a"
 }
