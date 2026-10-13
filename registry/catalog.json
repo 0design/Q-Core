@@ -3862,12 +3862,12 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 16,
     "artifact": "vendor/q-core-0.2.0-q-core.49.tgz",
-    "artifactSha256": "0b91a86b064ce552deb9d8410db715e38fcb25bcba9d09aa04743f46749b6a11",
-    "integrity": "sha512-x7rkEeNEu78WVlMRtm4TYIlHnRMTxXcPmRVszFDkzYl+z9mt8AhzP+Q+fpITcyltlYoxBi0U1o6RGa3ShdEuOQ==",
-    "schemaSha256": "c0a5dfdef057a98ea68eb8530c758a2d81f2aa8cbecfa7464cce9e5bad8cfad1",
+    "artifactSha256": "8bf8530847caa1fb801243f84b9aee6c1e6a4de6b37fcf7c832e6a097ac508c5",
+    "integrity": "sha512-+jVlcTKmBaqqTkTCsO+46maCdgruT0Pg612zDB4SmgcjK7wc+WCr+bxxiZ1r1NvUe/hZuWLkG75/IgVV4iPvWw==",
+    "schemaSha256": "d6336aee8bc3edaddd110ac0135204d1cf7b6689fa4eaae2b961febb72c1f4f1",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.49 successor of Core.47: pinned nested workflow execution with typed child results, complete portable dependency export, validation diagnostics located in the actual portable source, and exact UTF-8/BOM bytes in nested graph snapshots and exports. Existing manifests, validators and human-confirmation policy are unchanged.",
+    "source": "Core.49 successor of Core.47: pinned nested workflow execution with typed child results, complete portable dependency export, validation diagnostics located in the actual portable source, and exact UTF-8/BOM bytes in nested graph snapshots and exports. q-core validate warns when a human gate approves only part of what a later side effect sends. Existing manifests, validators and human-confirmation policy are unchanged.",
     "acceptanceRecord": "Acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "4be0e7cac6e577e24e71f2e4c6440dcfa9d8765dbfc687227c8775a27be39236"
+  "releaseSha256": "c0cd48066a03b60b28f306475d437f2f53cba8d464ee57d231c3d491e7af687e"
 }

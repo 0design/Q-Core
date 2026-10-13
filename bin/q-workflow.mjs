@@ -29,7 +29,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { validateManifest, ManifestError } from "../src/manifest.mjs";
-import { loadWorkflow as loadManifest } from "../src/workflow-policy.mjs";
+import { loadWorkflow as loadManifest, workflowWarnings } from "../src/workflow-policy.mjs";
 import { createRun, driveRun, resumeRun, waitingGate, cancelWaitingRun, resumeCancelledRun, resolveKnobs } from "../src/run.mjs";
 import { confirmHumanDecision, HumanConfirmationError } from "../src/human-confirmation.mjs";
 import { RunStore } from "../src/state.mjs";
@@ -211,12 +211,16 @@ async function cmdValidate(args, flags) {
     return EXIT_OK;
   }
   const manifest = loadManifest(file);
+  const warnings = workflowWarnings(manifest);
   if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
+    // `warnings` appears only when there is one, so the output of a clean manifest is unchanged.
+    process.stdout.write(`${JSON.stringify(warnings.length ? { ...manifest, warnings } : manifest, null, 2)}\n`);
     return EXIT_OK;
   }
   process.stdout.write(`✓ ${shortPath(file)} is a valid ${manifest.manifest} manifest (${Object.keys(manifest.materialGraph).length} pinned material(s))\n\n`);
   process.stdout.write(`${describePlan(manifest)}\n`);
+  for (const w of warnings)
+    process.stdout.write(`\n  ⚠ ${w.code}${w.materialPath ? ` in ${w.materialPath}` : ""} at ${w.path}: ${w.message}\n`);
   if (manifest.settings.sensitivity) {
     process.stdout.write(
       "\n  NOTE: settings.sensitivity is part of the format but not implemented by this runner.\n" +
