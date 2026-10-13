@@ -38,7 +38,10 @@ Mixed text is a string. Substituted data is not interpreted again as template
 code. Each child has its own inputs and step-output namespace.
 
 Dependency paths are relative to their containing manifest, below the entry
-directory; absolute paths, traversal and escaping symlinks are refused. Every
+directory; absolute paths and traversal are refused. The entry file may be a
+symlink: it is resolved once, and the directory of the real file is the root. A
+dependency may not be a symlink (inside or outside the root), because an export
+copies real files to their referenced paths. Every
 reference pins kind, id, exact version and SHA-256. The loader verifies the entire
 closure before execution, including unused declared dependencies. Missing files,
 unreadable files, identity mismatch, checksum mismatch, cycles, more than 16 call
@@ -65,6 +68,11 @@ workspace policy or budget ceiling.
 
 ## API and CLI
 
+- `q-core validate --json` prints the same fields as before nested materials
+  (`id`, `name`, `version`, `description`, `owner`, `enabled`, `triggers`,
+  `settings`, `steps`, and `file` as given). `--json --graph` adds the ports,
+  dependencies, `materialKey` and the verified `materialGraph` with every source.
+  Unknown top-level and step keys are dropped, not passed through.
 - `validateManifest(doc)` validates the workflow/executable-component shape and
   dependency declarations. It does not read dependencies or prove execution.
 - `loadManifestGraph(file)` verifies and snapshots the complete pinned closure.
@@ -89,7 +97,12 @@ workspace policy or budget ceiling.
   by `loadWorkflow` for executable calls; unresolved dependencies are refused.
 - `exportMaterialBundle(file, newDirectory)` copies exact source bytes and their
   dependency closure, returning `{ protocolVersion: "q-core.bundle/v1", entry,
-  files: [{ path, sha256, id, version, kind }] }`. It never overwrites a directory.
+  files: [{ path, sha256, id, version, kind }] }`. It never overwrites a directory:
+  files are written to a new sibling directory that is renamed into place, so a
+  failed export leaves nothing behind. `bundle.json` is reserved, compared without
+  letter case, and so are export paths that differ only in case; both are refused
+  before anything is written. `bundle.json` is an informational index: loading,
+  validation and runs use the entry's own pinned dependencies, never this file.
   A descriptor export sets `executable: false`; descriptor `builtFrom` metadata
   does not claim an executable closure.
 - Registry export includes reachable YAML dependency assets and their checksums.

@@ -110,7 +110,7 @@ function validateStep(raw, path, seenIds) {
   }
 
   const config = normaliseConfig(raw.config, `${path}.config`);
-  const step = { ...raw, id, kind, config };
+  const step = { id, kind, config };
 
   if (raw.then != null) {
     if (!Array.isArray(raw.then)) throw new ManifestError('"then" must be a list of steps', `${path}.then`);
@@ -357,7 +357,6 @@ export function validateManifest(doc) {
   catch (error) { throw new ManifestError(error.message); }
 
   return {
-    ...doc,
     manifest: tag,
     id: doc.id,
     name: typeof doc.name === "string" ? doc.name : doc.id,

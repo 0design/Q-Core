@@ -59,6 +59,7 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
   q-core catalog --section <name>    one section: workflows | components | demos
   q-core init <id> [dir]             copy one workflow here, ready to edit
   q-core validate <manifest>         check the manifest and print the plan
+                                    --json --graph adds ports, dependencies and the pinned material graph
   q-core export <manifest> <dir>     export exact bytes and all pinned local dependencies
   q-core run <manifest> [--dry-run]  execute one pass
                                     --inputs <inputs.json> binds typed root inputs
@@ -213,8 +214,14 @@ async function cmdValidate(args, flags) {
   const manifest = loadManifest(file);
   const warnings = workflowWarnings(manifest);
   if (flags.has("json")) {
-    // `warnings` appears only when there is one, so the output of a clean manifest is unchanged.
-    process.stdout.write(`${JSON.stringify(warnings.length ? { ...manifest, warnings } : manifest, null, 2)}\n`);
+    /* The JSON shape of Core.47 and earlier: the normalised workflow and the path as given. The verified
+       material graph (ports, dependencies, every pinned source) is opt-in with --graph, because it carries
+       the full text of every material. `warnings` appears only when there is one. */
+    const { id, name, version, description, owner, enabled, triggers, settings, steps } = manifest;
+    const out = flags.has("graph")
+      ? { ...manifest, file }
+      : { id, name, version, description, owner, enabled, triggers, settings, steps, file };
+    process.stdout.write(`${JSON.stringify(warnings.length ? { ...out, warnings } : out, null, 2)}\n`);
     return EXIT_OK;
   }
   process.stdout.write(`✓ ${shortPath(file)} is a valid ${manifest.manifest} manifest (${Object.keys(manifest.materialGraph).length} pinned material(s))\n\n`);

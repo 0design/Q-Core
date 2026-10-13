@@ -1,5 +1,5 @@
 /** Resolve exact local material bytes before execution; export the same closure. */
-import { readFileSync, realpathSync, statSync, lstatSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync, lstatSync, mkdirSync, writeFileSync, existsSync, mkdtempSync, renameSync, rmSync } from 'node:fs';
 import { resolve, dirname, relative, join, sep, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { validateManifest, ManifestError } from './manifest.mjs';
@@ -25,20 +25,23 @@ const located = (error, materialPath) => Object.assign(error, { materialPath: ma
 const referenceError = (message, reference, field = 'path') => located(new ManifestError(message, reference ? `${reference.path}.${field}` : undefined), reference?.materialPath);
 
 export function loadManifestGraph(file) {
-  let root;
-  try { root = realpathSync(dirname(resolve(file))); }
-  catch { throw referenceError('cannot resolve material directory'); }
+  /* The entry file itself may be a symlink (as before nested materials): it is resolved
+     once and its real directory is the root. Dependencies below that root may not be
+     symlinks, because an export copies real files to their referenced paths. */
+  let root, entry;
+  try { entry = realpathSync(resolve(file)); root = dirname(entry); }
+  catch (error) { throw referenceError(`cannot resolve the material file: ${error.code === 'ENOENT' ? 'file not found' : error.code ? `filesystem error (${error.code})` : 'unreadable'}`); }
   const portable = target => within(root, resolve(target)) ? relative(root, resolve(target)).split(sep).join('/') : null;
   const materialGraph = {};
   const paths = new Map();
   const identities = new Map();
   function visit(target, ancestors, expected, depth, reference) {
-    if (depth === 0) target = join(root, basename(target));
+    if (depth === 0) target = entry;
     if (depth > MAX_CALL_DEPTH) throw referenceError(`dependency depth exceeds ${MAX_CALL_DEPTH}`, reference);
     let actual, bytes;
     try {
       let check = root;
-      for (const segment of relative(root, resolve(target)).split(sep)) { check = join(check, segment); if (lstatSync(check).isSymbolicLink()) throw new Error('symlink dependency is not portable'); }
+      for (const segment of relative(root, resolve(target)).split(sep)) { check = join(check, segment); if (lstatSync(check).isSymbolicLink()) throw new Error('a dependency may not be a symlink (an export copies real files to their referenced paths)'); }
       actual = realpathSync(target);
       if (!within(root, actual)) throw new Error('dependency escapes the root directory (including symlinks)');
       if (!statSync(actual).isFile() || statSync(actual).size > MAX_MANIFEST_BYTES) throw new Error('dependency must be a bounded regular file');
@@ -109,19 +112,42 @@ export function exportMaterialBundle(file, destination) {
     const descriptor = loadComponentDescriptor(file), source = readFileSync(file), target = resolve(destination);
     if (existsSync(target)) throw new ManifestError('export destination already exists; choose a new directory');
     const path = basename(file);
-    if (path === 'bundle.json') throw new ManifestError('bundle.json is reserved for the export index');
+    assertPortableNames([path]);
     const bundle = { protocolVersion: 'q-core.bundle/v1', entry: path, executable: false, files: [{ path, sha256: digest(source), id: descriptor.id, version: descriptor.version ?? null, kind: 'component', format: 'descriptor' }] };
-    mkdirSync(target, { recursive: true }); writeFileSync(join(target, path), source, { flag: 'wx' });
-    writeFileSync(join(target, 'bundle.json'), JSON.stringify(bundle, null, 2) + '\n', { flag: 'wx' }); return bundle;
+    writeExport(target, [[path, source], ['bundle.json', JSON.stringify(bundle, null, 2) + '\n']]); return bundle;
   }
   const manifest = loadManifestGraph(file);
   const target = resolve(destination);
   if (existsSync(target)) throw new ManifestError('export destination already exists; choose a new directory');
   const files = Object.entries(manifest.materialGraph).map(([path, node]) => ({ path, sha256: node.sha256, id: node.manifest.id, version: node.manifest.version, kind: node.manifest.manifest === 'q-core.component/v1' ? 'component' : 'workflow' }));
   const bundle = { protocolVersion: 'q-core.bundle/v1', entry: manifest.materialKey, files };
-  if (files.some(file => file.path === 'bundle.json')) throw new ManifestError('bundle.json is reserved for the export index');
-  mkdirSync(target, { recursive: true });
-  for (const [path, node] of Object.entries(manifest.materialGraph)) { const output = join(target, path); mkdirSync(dirname(output), { recursive: true }); writeFileSync(output, node.source, { flag: 'wx' }); }
-  writeFileSync(join(target, 'bundle.json'), JSON.stringify(bundle, null, 2) + '\n', { flag: 'wx' });
+  assertPortableNames(files.map(file => file.path));
+  writeExport(target, [...Object.entries(manifest.materialGraph).map(([path, node]) => [path, node.source]), ['bundle.json', JSON.stringify(bundle, null, 2) + '\n']]);
   return bundle;
+}
+
+/* Checked before anything is written. Case-insensitive file systems (macOS, Windows) treat
+   Bundle.json as bundle.json and A.yaml as a.yaml, so names are compared case-folded. */
+function assertPortableNames(paths) {
+  const seen = new Map();
+  for (const path of paths) {
+    const folded = path.toLowerCase();
+    if (folded === 'bundle.json') throw new ManifestError('bundle.json is reserved for the export index (compared without letter case)');
+    if (seen.has(folded)) throw new ManifestError(`export paths ${seen.get(folded)} and ${path} differ only in letter case`);
+    seen.set(folded, path);
+  }
+}
+
+/* Written into a new sibling directory and renamed into place, so a failed export leaves no partial folder. */
+function writeExport(target, entries) {
+  mkdirSync(dirname(target), { recursive: true });
+  const temporary = mkdtempSync(join(dirname(target), `.${basename(target)}.export-`));
+  try {
+    for (const [path, body] of entries) { const output = join(temporary, path); mkdirSync(dirname(output), { recursive: true }); writeFileSync(output, body, { flag: 'wx' }); }
+    if (existsSync(target)) throw new ManifestError('export destination already exists; choose a new directory');
+    renameSync(temporary, target);
+  } catch (error) {
+    rmSync(temporary, { recursive: true, force: true });
+    throw error;
+  }
 }

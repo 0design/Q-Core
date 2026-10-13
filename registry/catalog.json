@@ -3860,14 +3860,14 @@
     "version": "0.2.0-q-core.49",
     "manifest": "q-core.workflow/v1",
     "protocol": "qf.agent/v1",
-    "contractRevision": 16,
+    "contractRevision": 17,
     "artifact": "vendor/q-core-0.2.0-q-core.49.tgz",
-    "artifactSha256": "8bf8530847caa1fb801243f84b9aee6c1e6a4de6b37fcf7c832e6a097ac508c5",
-    "integrity": "sha512-+jVlcTKmBaqqTkTCsO+46maCdgruT0Pg612zDB4SmgcjK7wc+WCr+bxxiZ1r1NvUe/hZuWLkG75/IgVV4iPvWw==",
+    "artifactSha256": "631ba858051dcf08b4dbd204d12c50ed07c5b1901fadf5cdc8d9043905778394",
+    "integrity": "sha512-wGh7e6aoBYwzqniO0RsOLU+segf1AifXsW3ARj3q3aryW9dMxUWcP7lJ5gwmutdfmrI+3RA/Fk0fGyDma8RoYw==",
     "schemaSha256": "d6336aee8bc3edaddd110ac0135204d1cf7b6689fa4eaae2b961febb72c1f4f1",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "immutable-release-artifact",
-    "source": "Core.49 successor of Core.47: pinned nested workflow execution with typed child results, complete portable dependency export, validation diagnostics located in the actual portable source, and exact UTF-8/BOM bytes in nested graph snapshots and exports. q-core validate warns when a human gate approves only part of what a later side effect sends. Existing manifests, validators and human-confirmation policy are unchanged.",
+    "source": "Core.49 successor of Core.47: pinned nested workflow execution with typed child results, complete portable dependency export, validation diagnostics located in the actual portable source, and exact UTF-8/BOM bytes in nested graph snapshots and exports. q-core validate warns when a human gate approves only part of what a later side effect sends. Existing manifests run unchanged and human-confirmation policy is unchanged; validate --json keeps its previous fields (--graph adds the material graph); an entry file may be a symlink, a dependency may not.",
     "acceptanceRecord": "Acceptance is recorded outside the immutable release, at acceptance/<releaseVersion>.json in the Registry root"
   },
   "releaseStatus": "candidate",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "c0cd48066a03b60b28f306475d437f2f53cba8d464ee57d231c3d491e7af687e"
+  "releaseSha256": "7d758343ba9c653814c80e5f0b9d1c48ca62506e168b526d8c7b17312ed9b219"
 }
