@@ -187,4 +187,4 @@ if you could not reach the PR step. Include the step, your OS and tool versions,
 what you expected, what happened, and the relevant error. Redact credentials and
 private data. Suggestions that make this guide easier to follow are welcome.
 
-<!-- test: M6 contribute-status check (0D-470); this PR is closed without merge -->
+<!-- test: contribute status check; this PR is closed without merge -->
