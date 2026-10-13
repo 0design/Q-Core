@@ -7,3 +7,17 @@ node_modules/
 __pycache__/
 docs/delivery/*
 !docs/delivery/.gitkeep
+# Run results stay outside the public repository (scripts/check-no-run-artifacts.mjs).
+evidence/
+runs/
+out/
+outputs/
+artifacts/
+captures/
+transcripts/
+downloads/
+dist/
+*.started
+*.vtt
+*.srt
+*transcript*.json
