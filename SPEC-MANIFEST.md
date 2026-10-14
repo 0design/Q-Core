@@ -311,9 +311,10 @@ templated URL, which can fall back to the local file sink) has no human
 `approval-gate` earlier on the same path (`GATE_REQUIRED`). A gate
 inside an `if` or `switch` branch guards only that branch; a gate before a
 branching step or a `fan-out` guards everything in it; an agent gate does not
-count. A `workflow-call` to a pinned child that always passes a human gate on its
-top-level list (directly or through a top-level call) guards the parent steps
-after the call; a child gate inside a branch does not. Reviewed Registry workflows keep their published shape: a manifest whose
+count. A `workflow-call` to a pinned child that always passes a human gate on
+its top-level list (directly or through a top-level call) guards the parent
+steps after the call; a child gate inside a branch does not. Reviewed Registry
+workflows keep their published shape: a manifest whose
 `<file>.lock.json` (written by `q-core install` and `q-core init`)
 names the SHA-256 of these exact bytes is exempt; the Registry build and catalogue
 read the format only. An adapted copy is a
@@ -706,8 +707,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   carry the optional lists `stories`, `requirements`, `nonFunctional`,
   `constraints`, `outOfScope`, `edgeCases` and `tasks` (1–50 items of at most
   2000 characters); they are recorded, approved and hashed only when present.
-  Only `criteria` bind to the verifier. An ambiguous intent must be clarified before the caller replies
-  (the `brief` step of sdd-pipeline 0.1.0 and the `specify` step of sdd-brief may
+  Only `criteria` bind to the verifier. An ambiguous intent must be clarified
+  before the caller replies (the `brief` step of sdd-pipeline 0.1.0 and the `specify` step of sdd-brief may
   return `{questions}` instead); a scope change starts a new specification
   revision, not a silent in-run edit.
 - `workspace-apply` takes `source` with `{files:[{path,content}]}` and `approval`

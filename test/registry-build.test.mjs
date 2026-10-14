@@ -64,3 +64,12 @@ test('an immutable Registry release refuses time-bound acceptance claims', async
   assert.throws(() => assertNoMutableAcceptanceClaims([{ note: 'Release acceptance: pending' }], 'fixture'), /Time-bound/);
   assert.doesNotThrow(() => assertNoMutableAcceptanceClaims({ scope: 'Controlled run; this evidence is not public-release or owner acceptance.', acceptance: { status: 'pending' } }, 'fixture'));
 });
+
+test('writing the source Registry without the packed Core archive is refused and changes nothing', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const before = readFileSync(new URL('../registry/SHA256SUMS', import.meta.url));
+  const run = spawnSync(process.execPath, ['scripts/build-registry.mjs'], { encoding: 'utf8' });
+  assert.equal(run.status, 2);
+  assert.match(run.stderr, /needs --core-artifact/);
+  assert.deepEqual(readFileSync(new URL('../registry/SHA256SUMS', import.meta.url)), before);
+});
