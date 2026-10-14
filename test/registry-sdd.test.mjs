@@ -3,17 +3,31 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, copyFileSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { loadManifest } from '../src/manifest.mjs';
+import { loadWorkflow as loadManifest } from '../src/workflow-policy.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
 import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
 // These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it (Core35).
 for (const name of AGENT_SESSION_ENV) delete process.env[name];
 const callerProvider = { kind: 'caller', agent: 'codex', model: 'test-double', payerScope: 'local-cli' };
-const spec = { summary: 'Return sum', criteria: ['sum(2,3) equals 5'], plan: ['Update sum.mjs', 'Run independent verifier'] };
+// sdd-pipeline 0.2.0 runs the pinned sdd-brief: specify (draft) -> review -> plan -> specification -> approval.
+const draft = { summary: 'Return sum', stories: ['As a caller, I want sum to add, so that totals are right'], criteria: ['Given 2 and 3, when sum runs, then it returns 5'], outOfScope: ['verify.mjs'] };
+const planned = { plan: ['Update sum.mjs', 'Run independent verifier'], tasks: ['Change the operator in sum.mjs'] };
+const spec = draft;
+/** Answer the draft, approve it, answer the plan: the run then waits at the final approval. */
+async function brief(run, answer, opts) {
+  await answer(run, draft); assert.equal(run.status, 'waiting_human');
+  const review = run.steps.find(s => s.status === 'waiting_human');
+  assert.equal(review.stepId, 'review');
+  await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: review.output.approvalHash });
+  assert.equal(run.status, 'waiting_inference');
+  await answer(run, planned); assert.equal(run.status, 'waiting_human');
+  assert.equal(run.steps.find(s => s.status === 'waiting_human').stepId, 'approval');
+}
 
 test('Registry SDD manifest preserves spec approval, repairs a real failed file and rejects verifier mutation', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-registry-sdd-')), file = join(root, 'sdd.yaml');
   copyFileSync(new URL('../registry/workflows/sdd-pipeline.yaml', import.meta.url), file);
+  copyFileSync(new URL('../registry/workflows/sdd-brief.yaml', import.meta.url), join(root, 'sdd-brief.yaml'));
   writeFileSync(join(root, 'sum.mjs'), 'export const sum=(a,b)=>a-b;');
   writeFileSync(join(root, 'verify.mjs'), 'import assert from "node:assert/strict"; import {sum} from "./sum.mjs"; assert.equal(sum(2,3),5);');
   const manifest = loadManifest(file), store = new RunStore(file);
@@ -26,7 +40,7 @@ test('Registry SDD manifest preserves spec approval, repairs a real failed file 
   async function start(overrides = {}) {
     const run = createRun(manifest); run.workspacePolicy = { ...policy, ...overrides };
     await driveRun(run, opts); assert.equal(run.status, 'waiting_inference');
-    await answer(run, spec); assert.equal(run.status, 'waiting_human');
+    await brief(run, answer, opts);
     return run;
   }
   async function approve(run) { const gate = run.steps.find(s => s.status === 'waiting_human'); await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: gate.output.approvalHash }); }
@@ -59,6 +73,7 @@ test('Registry SDD manifest preserves spec approval, repairs a real failed file 
 test('failed verification reaches needs_human at zero repair bound and a direct drive cannot bypass approval', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-registry-limit-')), file = join(root, 'sdd.yaml');
   copyFileSync(new URL('../registry/workflows/sdd-pipeline.yaml', import.meta.url), file);
+  copyFileSync(new URL('../registry/workflows/sdd-brief.yaml', import.meta.url), join(root, 'sdd-brief.yaml'));
   writeFileSync(join(root, 'value.txt'), 'original');
   writeFileSync(join(root, 'verify.mjs'), 'process.exit(1);');
   const manifest = loadManifest(file), store = new RunStore(file), run = createRun(manifest);
@@ -66,7 +81,7 @@ test('failed verification reaches needs_human at zero repair bound and a direct 
   const opts = { store, callerProvider, settings: manifest.settings };
   const answer = async output => { const job = run.pendingInference; return driveRun(run, { ...opts, inferenceReply: { jobId: job.jobId, hash: job.hash, output: { text: JSON.stringify(output) } } }); };
   try {
-    await driveRun(run, opts); await answer(spec);
+    await driveRun(run, opts); await brief(run, (_r, output) => answer(output), opts);
     await driveRun(run, opts);
     assert.equal(run.status, 'waiting_human');
     assert.equal(readFileSync(join(root, 'value.txt'), 'utf8'), 'original');
@@ -101,6 +116,7 @@ test('paused caller cancellation invalidates old job and resumes without repeati
 test('Registry SDD persists question-bound clarification and only creates the next caller job after exact answers', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-registry-sdd-clarification-')), file = join(root, 'sdd.yaml');
   copyFileSync(new URL('../registry/workflows/sdd-pipeline.yaml', import.meta.url), file);
+  copyFileSync(new URL('../registry/workflows/sdd-brief.yaml', import.meta.url), join(root, 'sdd-brief.yaml'));
   writeFileSync(join(root, 'sum.mjs'), 'export const sum=(a,b)=>a-b;');
   writeFileSync(join(root, 'verify.mjs'), 'import assert from "node:assert/strict"; import {sum} from "./sum.mjs"; assert.equal(sum(2,3),5);');
   const manifest = loadManifest(file), store = new RunStore(file), run = createRun(manifest);
@@ -115,7 +131,7 @@ test('Registry SDD persists question-bound clarification and only creates the ne
     await reply({ questions: [{ id: 'format', question: 'Which output format?' }] });
     assert.equal(run.status, 'waiting_human');
     assert.equal(run.pendingClarification.questions[0].id, 'format');
-    assert.equal(run.steps.find(step => step.stepId === 'brief').gateReason, 'clarification');
+    assert.equal(run.steps.find(step => step.stepId === 'specify').gateReason, 'clarification');
     const clarification = { hash: run.pendingClarification.hash, answers: [{ id: 'format', answer: 'Plain text' }] };
     const before = structuredClone(run.pendingClarification);
     await assert.rejects(driveRun(run, { ...opts, clarification: { ...clarification, hash: '0'.repeat(64) } }), /does not match/);

@@ -12,7 +12,7 @@
       "name": "SDD pipeline",
       "contentType": "workflow-template",
       "value": "Turn an intent into an approved specification and a verified project change.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "status": "implementation-candidate",
       "inference": "cli",
       "dependencies": [
@@ -426,7 +426,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -521,7 +521,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -622,7 +622,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -691,7 +691,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.49",
+        "version": "0.2.0-q-core.50",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],

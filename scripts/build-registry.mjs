@@ -86,7 +86,8 @@ export function buildRegistry(sourceRoot = root) {
       }
       if (section === 'workflows') {
         if (typeof entry.value !== 'string' || !entry.value.trim()) throw Error('Workflow value is required');
-        const manifest = loadManifest(resolve(sourceRoot, file));
+        // The verified graph, so metadata counts the steps, gates and env of pinned child workflows too.
+        const manifest = loadManifestGraph(resolve(sourceRoot, file));
         if (manifest.id !== entry.id || manifest.version !== entry.version) throw Error('Manifest identity mismatch');
         Object.assign(entry, workflowMetadata(manifest));
       }
@@ -139,6 +140,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     LICENSE: readFileSync(resolve(root, 'LICENSE')),
   };
   const coreIndex = process.argv.indexOf('--core-artifact');
+  /* SHA256SUMS of the source Registry pins the packed Core archive. Rewriting it without
+     that archive would silently drop the pin, so writing the source tree requires it. */
+  if (coreIndex < 0 && index < 0 && !process.argv.includes('--check')) {
+    console.error('build-registry: writing the source Registry needs --core-artifact <packed q-core.tgz>, because SHA256SUMS pins the Core archive. Nothing was written. Use --check or --export <dir> without it.');
+    process.exit(2);
+  }
   if (coreIndex >= 0) {
     if ((index < 0 && !process.argv.includes('--check')) || !process.argv[coreIndex + 1]) throw Error('Core artifact requires an export destination or --check, and an input file');
     const corePath = resolve(process.argv[coreIndex + 1]);

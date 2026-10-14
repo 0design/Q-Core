@@ -171,6 +171,7 @@
       "workflows/podcast-summary.yaml",
       "workflows/price-watch.yaml",
       "workflows/release-watch.yaml",
+      "workflows/sdd-brief.yaml",
       "workflows/sdd-pipeline.yaml",
       "workflows/strict-gate.yaml",
       "workflows/webhook-relay.yaml",

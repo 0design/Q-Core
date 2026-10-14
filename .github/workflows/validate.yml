@@ -41,8 +41,11 @@ jobs:
             exit 1
           fi
 
+      # A clean environment, as on a contributor machine without an agent session:
+      # provider tests refuse to run when an agent-session marker (CLAUDECODE, CODEX_*)
+      # is inherited, so the suite must not depend on the caller's environment.
       - name: tests
-        run: node --test test/*.test.mjs
+        run: env -i PATH="$PATH" HOME="$HOME" TMPDIR="${RUNNER_TEMP:-/tmp}" node --test test/*.test.mjs
 
       - name: public surface allowlist and private markers
         run: node scripts/check-public-surface.mjs

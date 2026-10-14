@@ -45,6 +45,15 @@ const isHumanGate = (step) => step.kind === "approval-gate" && (step.config?.rev
  * Reviewed Registry workflows (installed with a matching lock, or built into the
  * Registry release) keep their published shape and are not re-judged here.
  */
+/** True when every successful run of this material passes a human gate on its top-level
+ *  list (directly or through a top-level child call). A gate inside if/switch/each does not count. */
+function alwaysHumanGated(graph, key, seen = new Set()) {
+  if (seen.has(key)) return false;
+  seen.add(key);
+  return graph[key].manifest.steps.some((step) => isHumanGate(step) ||
+    (step.kind === 'workflow-call' && graph[key].resolved?.[step.config.ref] && alwaysHumanGated(graph, graph[key].resolved[step.config.ref], seen)));
+}
+
 export function assertHumanGateBeforeSideEffects(steps, { graph, key } = {}) {
   const walk = (list, gated, path, materialKey) => {
     let covered = gated;
@@ -64,6 +73,8 @@ export function assertHumanGateBeforeSideEffects(steps, { graph, key } = {}) {
         const childKey = graph?.[materialKey]?.resolved[step.config.ref];
         if (!childKey) throw Object.assign(new ManifestError('UNRESOLVED_DEPENDENCY: load and verify the complete graph before applying execution policy', at), { materialPath: materialKey ?? null });
         walk(graph[childKey].manifest.steps, covered, 'steps', childKey);
+        // A child that always stops at a human gate has had a person approve before it returns.
+        if (alwaysHumanGated(graph, childKey)) covered = true;
       }
       for (const key of ["then", "else", "default"]) if (step[key]) walk(step[key], covered, `${at}.${key}`, materialKey);
       for (const [name, branch] of Object.entries(step.cases ?? {})) walk(branch, covered, `${at}.cases.${name}`, materialKey);

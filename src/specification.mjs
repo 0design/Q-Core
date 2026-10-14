@@ -19,12 +19,28 @@ export function specification(value, code = "INVALID_REQUEST") {
     "Specification requires bounded summary, criteria and plan",
     code,
   );
+  // Optional sections of a fuller brief. Each is kept, shown at approval and hashed only
+  // when present, so a {summary, criteria, plan} specification hashes exactly as before.
+  const optional = {};
+  for (const k of SPEC_SECTIONS) {
+    if (value[k] === undefined) continue;
+    insist(
+      Array.isArray(value[k]) && value[k].length > 0 && value[k].length <= 50 && value[k].every((s) => text(s, 2000)),
+      `Specification ${k} must be a bounded list of text`,
+      code,
+    );
+    optional[k] = [...value[k]];
+  }
   return {
     summary: value.summary,
     criteria: [...value.criteria],
     plan: [...value.plan],
+    ...optional,
   };
 }
+/** Optional specification sections, in display order: user stories, functional and
+ *  non-functional requirements, constraints, what must not change, edge cases, tasks. */
+export const SPEC_SECTIONS = ["stories", "requirements", "nonFunctional", "constraints", "outOfScope", "edgeCases", "tasks"];
 export function validateSpecInputs(r) {
   insist(
     !(r.specChange && r.clarification),
