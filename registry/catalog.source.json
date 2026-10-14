@@ -2782,6 +2782,10 @@
       },
       "dependencies": [
         {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
           "id": "verify-sources",
           "version": "0.5.0"
         },
@@ -2794,6 +2798,10 @@
         {
           "id": "api-request",
           "version": "1.1.0"
+        },
+        {
+          "id": "if",
+          "version": "0.1.0"
         }
       ],
       "contentType": "workflow-template",
@@ -2870,6 +2878,7 @@
           "The link check covers links only; it does not verify the facts. You decide on the exact text.",
           "A check that objects goes to a person; the draft is not repaired automatically.",
           "The workflow only writes to the webhook you configure. It does not post to Telegram, LinkedIn or X.",
+          "The objection branch uses the control step `if`, which the Registry lists as a planned builtin (its generic runtime binding is not accepted as a component yet); Core runs it, and this workflow declares it as a dependency; the Registry still lists it as planned.",
           "The delivery key and its record live in the .qf folder beside the manifest, so a rerun from another folder is not recognised.",
           "Needs the Q-Core archive pinned by the Registry release (not on npm)."
         ],
