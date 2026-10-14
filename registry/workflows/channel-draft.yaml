@@ -1,0 +1,74 @@
+manifest: q-core.component/v1
+id: channel-draft
+version: "0.2.0"
+name: Adapt an approved source for one channel and check it
+description: >
+  Writes one channel-specific draft from an approved source, checks that it
+  links exactly the source, then checks the channel format and that nothing was
+  added. An objection goes to a person. This component never publishes.
+settings:
+  budgetUsd: null
+inputs:
+  channel: {type: string}
+  rules: {type: string}
+  title: {type: string}
+  text: {type: string}
+  url: {type: string}
+  sources: {type: array, items: {type: object}}
+outputs:
+  channel: {type: string, value: "{{inputs.channel}}"}
+  draft: {type: string, value: "{{steps.links.output.text}}"}
+  sourceHash: {type: string, value: "{{steps.links.output.sourceHash}}"}
+  receiptKey: {type: string, value: "{{inputs.channel}}:{{steps.links.output.sourceHash}}"}
+steps:
+  - id: draft
+    kind: llm-call
+    config:
+      name: "Write the channel draft"
+      provider: cli
+      format: text
+      instructions: |
+        Adapt the approved source below for {{inputs.channel}}.
+        Channel rules: {{inputs.rules}}
+        Keep every factual claim from the source; add nothing new.
+        End with the source link: {{inputs.url}}
+
+        Title: {{inputs.title}}
+        Source: {{inputs.text}}
+  - id: links
+    kind: verify-sources
+    config:
+      name: "Links: only the approved source"
+      draft: "{{steps.draft.output}}"
+      sources: "{{inputs.sources}}"
+      forbidLocalLinks: "true"
+  - id: check
+    kind: llm-call
+    config:
+      name: "Check format and facts"
+      provider: cli
+      format: json
+      instructions: |
+        Check the {{inputs.channel}} draft below against the channel rules and
+        the approved source. Return JSON only: {"pass": true|false, "reason": "..."}.
+        pass is true only if ALL hold: it follows the channel rules
+        ({{inputs.rules}}); it states no fact that is not in the approved source;
+        it has no hashtags. Otherwise pass is false and reason names the first
+        rule broken.
+
+        Approved source: {{inputs.text}}
+        Draft: {{steps.links.output.text}}
+  - id: objection
+    kind: if
+    config:
+      name: "Objection goes to a person"
+      condition: "{{steps.check.output.pass}}"
+    then: []
+    else:
+      - id: objection-review
+        kind: approval-gate
+        config:
+          name: "The check objected: keep this draft?"
+          reviewer: human
+          bind: sha256
+          anchor: "{{inputs.channel}} draft and the check's reason"

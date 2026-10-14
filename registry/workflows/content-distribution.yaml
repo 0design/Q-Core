@@ -1,0 +1,73 @@
+manifest: q-core.workflow/v1
+id: content-distribution
+version: "0.2.0"
+name: "Cross-channel distribution: Telegram, LinkedIn and X drafts"
+description: >
+  Adapts one approved source into Telegram, LinkedIn and X drafts with pinned
+  child components. Each draft must link exactly the source and pass an agent
+  format and facts check; an objection goes to a person. Then a person reviews
+  all three drafts before anything is sent. Each channel is delivered once per
+  source revision: a rerun on the same source is not resent.
+enabled: true
+triggers:
+  - kind: manual
+settings:
+  budgetUsd: null
+inputs:
+  title: {type: string}
+  text: {type: string}
+  url: {type: string}
+dependencies:
+  channels:
+    kind: component
+    id: channel-set
+    version: "0.2.0"
+    path: ./channel-set.yaml
+    sha256: 8007fa781710590611301c1fea41248c00bc28c872c5c38300e4f423af589242
+outputs:
+  telegram: {type: string, value: "{{steps.drafts.output.telegram}}"}
+  linkedin: {type: string, value: "{{steps.drafts.output.linkedin}}"}
+  x: {type: string, value: "{{steps.drafts.output.x}}"}
+steps:
+  - id: drafts
+    kind: workflow-call
+    config:
+      ref: channels
+      inputs: '{"title":"{{inputs.title}}","text":"{{inputs.text}}","url":"{{inputs.url}}"}'
+  - id: review
+    kind: approval-gate
+    config:
+      name: "Send these three drafts?"
+      reviewer: human
+      bind: sha256
+      anchor: "Telegram, LinkedIn and X drafts"
+  - id: send-telegram
+    kind: api-request
+    config:
+      name: "Send the Telegram draft"
+      method: POST
+      url: "{{env.QCORE_WEBHOOK_URL}}"
+      expect: "2xx"
+      timeoutSec: "20"
+      receiptKey: "{{steps.drafts.output.telegramKey}}"
+      body: '{"channel":"Telegram","text":"{{steps.drafts.output.telegram}}","run":"{{run.id}}"}'
+  - id: send-linkedin
+    kind: api-request
+    config:
+      name: "Send the LinkedIn draft"
+      method: POST
+      url: "{{env.QCORE_WEBHOOK_URL}}"
+      expect: "2xx"
+      timeoutSec: "20"
+      receiptKey: "{{steps.drafts.output.linkedinKey}}"
+      body: '{"channel":"LinkedIn","text":"{{steps.drafts.output.linkedin}}","run":"{{run.id}}"}'
+  - id: send-x
+    kind: api-request
+    config:
+      name: "Send the X draft"
+      method: POST
+      url: "{{env.QCORE_WEBHOOK_URL}}"
+      expect: "2xx"
+      timeoutSec: "20"
+      receiptKey: "{{steps.drafts.output.xKey}}"
+      body: '{"channel":"X","text":"{{steps.drafts.output.x}}","run":"{{run.id}}"}'
