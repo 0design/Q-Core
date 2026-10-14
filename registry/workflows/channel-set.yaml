@@ -1,0 +1,43 @@
+manifest: q-core.component/v1
+id: channel-set
+version: "0.2.0"
+name: Telegram, LinkedIn and X drafts from one source
+description: >
+  Calls the pinned channel-draft component once per channel and returns all
+  three drafts together, so a single review sees every text that would be sent.
+settings:
+  budgetUsd: null
+inputs:
+  title: {type: string}
+  text: {type: string}
+  url: {type: string}
+dependencies:
+  draft:
+    kind: component
+    id: channel-draft
+    version: "0.2.0"
+    path: ./channel-draft.yaml
+    sha256: 4b6002c585c4c067a5618f4e580629fd3f022ed73ad8d8322891dccc5bed6f9f
+outputs:
+  telegram: {type: string, value: "{{steps.telegram.output.draft}}"}
+  telegramKey: {type: string, value: "{{steps.telegram.output.receiptKey}}"}
+  linkedin: {type: string, value: "{{steps.linkedin.output.draft}}"}
+  linkedinKey: {type: string, value: "{{steps.linkedin.output.receiptKey}}"}
+  x: {type: string, value: "{{steps.x.output.draft}}"}
+  xKey: {type: string, value: "{{steps.x.output.receiptKey}}"}
+steps:
+  - id: telegram
+    kind: workflow-call
+    config:
+      ref: draft
+      inputs: '{"channel":"Telegram","rules":"Up to 900 characters, plain text, no hashtags, one idea.","title":"{{inputs.title}}","text":"{{inputs.text}}","url":"{{inputs.url}}","sources":[{"url":"{{inputs.url}}","title":"{{inputs.title}}","text":"{{inputs.text}}"}]}'
+  - id: linkedin
+    kind: workflow-call
+    config:
+      ref: draft
+      inputs: '{"channel":"LinkedIn","rules":"Up to 1300 characters, short paragraphs, a first line that states the point.","title":"{{inputs.title}}","text":"{{inputs.text}}","url":"{{inputs.url}}","sources":[{"url":"{{inputs.url}}","title":"{{inputs.title}}","text":"{{inputs.text}}"}]}'
+  - id: x
+    kind: workflow-call
+    config:
+      ref: draft
+      inputs: '{"channel":"X","rules":"Up to 280 characters including the link, no thread.","title":"{{inputs.title}}","text":"{{inputs.text}}","url":"{{inputs.url}}","sources":[{"url":"{{inputs.url}}","title":"{{inputs.title}}","text":"{{inputs.text}}"}]}'

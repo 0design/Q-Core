@@ -2760,6 +2760,133 @@
           "Turn my intent into an approved spec and a change limited to docs/ checked by my lint script."
         ]
       }
+    },
+    {
+      "id": "content-distribution",
+      "name": "Turn one approved post into checked drafts for Telegram, LinkedIn and X",
+      "description": "Your coding agent writes a version of one approved source for each channel, checks that it links only that source and adds no new facts, and you approve all three together before anything is sent to your webhook.",
+      "value": "Write once, get a draft per channel that sticks to the source, and send each one only after you approve the exact texts.",
+      "file": "workflows/content-distribution.yaml",
+      "version": "0.2.0",
+      "author": "0design",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/content-distribution.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.50",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-cli",
+          "version": "0.1.0"
+        },
+        {
+          "id": "verify-sources",
+          "version": "0.5.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
+      "builtinDependencies": [
+        {
+          "id": "api-request",
+          "version": "1.1.0"
+        },
+        {
+          "id": "if",
+          "version": "0.1.0"
+        }
+      ],
+      "contentType": "workflow-template",
+      "status": "implementation-candidate",
+      "acceptance": {
+        "status": "pending",
+        "evidence": []
+      },
+      "evidence": {
+        "status": "candidate-tests"
+      },
+      "executionProfile": {
+        "inference": "cli",
+        "callerReady": true
+      },
+      "needsEnv": [
+        "QCORE_WEBHOOK_URL"
+      ],
+      "permissions": {
+        "execution": "explicit-local-scope"
+      },
+      "brief": {
+        "summary": "Give it one source you approved (title, text and link). Your Claude or Codex session writes a Telegram, a LinkedIn and an X draft, each is checked against the source, and you approve all three together in your terminal before one request per channel goes to a webhook you control.",
+        "howItWorks": [
+          "Takes the title, text and link of the source you approved.",
+          "A pinned component (channel-set) calls a second pinned component (channel-draft) once per channel: Telegram, LinkedIn, X.",
+          "For each channel your agent writes the draft; Q-Core checks that it links exactly the source and no local link, then a second agent step checks the channel format and that nothing was added.",
+          "If that check objects, a person decides on that draft before the run continues.",
+          "You review all three drafts together and approve them in your terminal with q-core approve.",
+          "Only after that, each channel is sent as one request to QCORE_WEBHOOK_URL with a delivery key made of the channel and the source hash, so a rerun on the same source is not sent again."
+        ],
+        "inputs": [
+          "Title, text and link of a source you may process (inputs.title, inputs.text, inputs.url).",
+          "A webhook you control in QCORE_WEBHOOK_URL: an http(s) URL or file:///absolute/path.jsonl.",
+          "Your approval of the three drafts."
+        ],
+        "outputs": [
+          "The three approved drafts (telegram, linkedin, x) as workflow outputs.",
+          "One request per approved channel at your webhook: {channel, text, run}. Nothing is posted to Telegram, LinkedIn or X by this workflow."
+        ],
+        "knobs": [
+          {
+            "name": "Channel rules",
+            "what": "Length and style per channel are plain text in channel-set.yaml (the rules input of each call)."
+          },
+          {
+            "name": "Draft and check instructions",
+            "what": "The wording of the draft and the check steps is plain text in channel-draft.yaml."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A logged-in Claude Code or Codex CLI (it answers the model steps)",
+            "A webhook receiver you control, or an existing local folder for a file:///...jsonl receiver"
+          ],
+          "providers": [
+            {
+              "id": "cli",
+              "how": "As published (provider: cli, budgetUsd: null): q-core run --caller-provider provider.json ({\"kind\":\"caller\",\"agent\":\"claude\" or \"codex\",\"model\":\"current-session\",\"payerScope\":\"local-cli\"}), then answer each of the 6 model jobs (3 drafts, 3 checks) with q-core reply."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Where the approved drafts are sent: http(s) receiver or file:///absolute/path.jsonl",
+              "required": true
+            }
+          ]
+        },
+        "price": "No separate model bill: the six model steps run in your Claude or Codex subscription; cost is recorded as unknown, not free.",
+        "limits": [
+          "Candidate: a local run with replies written by the calling agent reached the final human approval; the approval, the delivery and a repeated approved run were not completed here.",
+          "The format and facts check is answered by the same agent session that wrote the draft, so it is a self-check, not an independent one.",
+          "The link check covers links only; it does not verify the facts. You decide on the exact text.",
+          "A check that objects goes to a person; the draft is not repaired automatically.",
+          "The workflow only writes to the webhook you configure. It does not post to Telegram, LinkedIn or X.",
+          "The objection branch uses the control step `if`, which the Registry lists as a planned builtin (its generic runtime binding is not accepted as a component yet); Core runs it, and this workflow declares it as a dependency; the Registry still lists it as planned.",
+          "The delivery key and its record live in the .qf folder beside the manifest, so a rerun from another folder is not recognised.",
+          "Needs the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Draft Telegram, LinkedIn and X versions of this announcement and let me approve all three before sending.",
+          "Prepare channel posts from this approved text and write them to a local .jsonl file."
+        ]
+      }
     }
   ],
   "components": [
