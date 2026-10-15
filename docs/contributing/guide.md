@@ -180,6 +180,37 @@ branch and rerun relevant checks. Contributors do not approve their own work on
 behalf of the maintainer. Merge and release are separate: a merged change is not
 necessarily published to the live catalog or installed by existing clients.
 
+### Automatic safety check
+
+`validate / check` also runs a safety check on pull requests from forks. It reads
+the changed files as data, never runs them, and writes what it found to the job
+summary in plain English. It fails the pull request when a contribution:
+
+- uses a shell or command step, or a step kind that SPEC-MANIFEST.md does not list;
+- calls a host its catalog entry does not declare in `permissions.network`, or a
+  raw IP address, URL shortener, paste site or request-capture host (declaring
+  those does not make them acceptable);
+- changes `package.json`, a lock file or npm settings, or depends on a Registry
+  component that does not exist;
+- reads an environment variable or secret the entry does not declare in
+  `needsEnv` or `permissions.environment`, or reads credential files;
+- changes anything outside `registry/workflows`, `registry/components`,
+  `registry/demos`, `registry/authors` and `registry/catalog.source.json`;
+- edits `.github/`, or edits `registry/catalog.json` / `registry/SHA256SUMS` so that
+  they are not exactly what `node scripts/build-registry.mjs --export registry --core-artifact …`
+  produces from your reviewed sources.
+
+Hosts and environment variables are declared in the entry in
+`registry/catalog.source.json`: `permissions.network` lists every host the file
+calls (including defaults written as `{{env.NAME:-https://host/...}}`), and
+`needsEnv` or `permissions.environment` lists every variable it reads.
+
+The check always runs the rules of the base branch, not the ones in your pull
+request. Regenerate `registry/catalog.json` and `registry/SHA256SUMS` as section 3
+describes, after your last edit. They are accepted only when `build-registry.mjs
+--check` passes on the pull request, byte for byte; a stale or hand-edited copy
+fails. The checksums can change only together with `registry/catalog.json`.
+
 ## Stuck?
 
 Comment on your PR, or [open an issue](https://github.com/0design/Q-Core/issues)

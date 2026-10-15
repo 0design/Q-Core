@@ -398,7 +398,10 @@
           "TELEGRAM_CHAT_ID",
           "OPENROUTER_MODEL"
         ],
-        "execution": "local-only"
+        "execution": "local-only",
+        "network": [
+          "api.telegram.org"
+        ]
       },
       "evidence": {
         "status": "historical-unverified"
@@ -584,7 +587,10 @@
           "TELEGRAM_CHAT_ID",
           "OPENROUTER_MODEL"
         ],
-        "execution": "local-only"
+        "execution": "local-only",
+        "network": [
+          "api.telegram.org"
+        ]
       },
       "evidence": {
         "status": "historical-unverified"
@@ -1104,7 +1110,10 @@
           "QCORE_WEBHOOK_URL",
           "OPENROUTER_MODEL"
         ],
-        "execution": "local-only"
+        "execution": "local-only",
+        "network": [
+          "open.er-api.com"
+        ]
       },
       "evidence": {
         "status": "historical-unverified"
@@ -1893,7 +1902,32 @@
         "QF_DIGEST_RECEIVER_URL"
       ],
       "permissions": {
-        "execution": "explicit-local-scope"
+        "execution": "explicit-local-scope",
+        "environment": [
+          "QF_DIGEST_FEED_1",
+          "QF_DIGEST_FEED_10",
+          "QF_DIGEST_FEED_2",
+          "QF_DIGEST_FEED_3",
+          "QF_DIGEST_FEED_4",
+          "QF_DIGEST_FEED_5",
+          "QF_DIGEST_FEED_6",
+          "QF_DIGEST_FEED_7",
+          "QF_DIGEST_FEED_8",
+          "QF_DIGEST_FEED_9",
+          "QF_DIGEST_TOPIC"
+        ],
+        "network": [
+          "feeds.arstechnica.com",
+          "openai.com",
+          "simonwillison.net",
+          "techcrunch.com",
+          "the-decoder.com",
+          "www.latent.space",
+          "www.marktechpost.com",
+          "www.technologyreview.com",
+          "www.theverge.com",
+          "www.wired.com"
+        ]
       },
       "brief": {
         "summary": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
@@ -2090,7 +2124,32 @@
         "QF_DIGEST_RECEIVER_URL"
       ],
       "permissions": {
-        "execution": "explicit-local-scope"
+        "execution": "explicit-local-scope",
+        "environment": [
+          "QF_DIGEST_FEED_1",
+          "QF_DIGEST_FEED_10",
+          "QF_DIGEST_FEED_2",
+          "QF_DIGEST_FEED_3",
+          "QF_DIGEST_FEED_4",
+          "QF_DIGEST_FEED_5",
+          "QF_DIGEST_FEED_6",
+          "QF_DIGEST_FEED_7",
+          "QF_DIGEST_FEED_8",
+          "QF_DIGEST_FEED_9",
+          "QF_DIGEST_TOPIC"
+        ],
+        "network": [
+          "feeds.arstechnica.com",
+          "openai.com",
+          "simonwillison.net",
+          "techcrunch.com",
+          "the-decoder.com",
+          "www.latent.space",
+          "www.marktechpost.com",
+          "www.technologyreview.com",
+          "www.theverge.com",
+          "www.wired.com"
+        ]
       },
       "brief": {
         "summary": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
@@ -2271,7 +2330,14 @@
         "callerReady": false
       },
       "permissions": {
-        "execution": "explicit-local-scope"
+        "execution": "explicit-local-scope",
+        "environment": [
+          "QF_PODCAST_SOURCE_KIND",
+          "QF_PODCAST_TITLE",
+          "QF_PODCAST_TRANSCRIPT_PART_1_URL",
+          "QF_PODCAST_TRANSCRIPT_PART_2_URL",
+          "QF_PODCAST_VIDEO_URL"
+        ]
       },
       "brief": {
         "summary": "Turn two transcript parts into a concise Ukrainian summary with checked timestamps. Review the exact text before approval.",
@@ -2451,7 +2517,14 @@
         "callerReady": true
       },
       "permissions": {
-        "execution": "explicit-local-scope"
+        "execution": "explicit-local-scope",
+        "environment": [
+          "QF_PODCAST_SOURCE_KIND",
+          "QF_PODCAST_TITLE",
+          "QF_PODCAST_TRANSCRIPT_PART_1_URL",
+          "QF_PODCAST_TRANSCRIPT_PART_2_URL",
+          "QF_PODCAST_VIDEO_URL"
+        ]
       },
       "brief": {
         "summary": "Use Claude or Codex to produce the same Ukrainian transcript summary with checked timestamps, without an OpenRouter key.",
@@ -4659,5 +4732,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "7d758343ba9c653814c80e5f0b9d1c48ca62506e168b526d8c7b17312ed9b219"
+  "releaseSha256": "04fe8a3259295c8d63ab342056571d4b55aab73c8e5a51da2dfb17146dd2ec2e"
 }
