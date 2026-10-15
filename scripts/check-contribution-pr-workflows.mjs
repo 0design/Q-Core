@@ -22,6 +22,8 @@ export function assertContributionPrWorkflows({ validate, registry }) {
   assertReadOnlyPermissions(validate, "baseline validation");
   assert.doesNotMatch(validate, /\$\{\{\s*secrets\s*\./, "baseline validation must not access secrets");
   assert.match(validate, /node --test test\/\*\.test\.mjs/, "baseline validation must run Core tests");
+  assert.match(validate, /check-contribution-safety\.mjs/, "baseline validation must run the contribution safety check");
+  assert.match(validate, /git archive "\$BASE" scripts src/, "the safety check must run the rules of the base commit, not of the pull request");
   assert.match(validate, /node scripts\/build-registry\.mjs --check/, "baseline validation must check Registry integrity");
 
   assert.match(

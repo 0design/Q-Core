@@ -25,10 +25,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The safety check below compares the pull request with its base commit.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      # Safety check of a contribution (a fork, or a submission/<hash> branch). It reads the changed files as DATA and
+      # never runs them. The rules come from the BASE commit (git archive), so a pull request cannot weaken the check
+      # that judges it; only the first pull request that introduces the check uses its own copy. Findings are written to
+      # the job summary in plain English. A fork run has no write token, so there is no comment, and no secret is used.
+      - name: contribution safety check
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          QCORE_REPOSITORY: ${{ github.repository }}
+          QCORE_PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          QCORE_PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          trusted="$RUNNER_TEMP/trusted-check"
+          mkdir -p "$trusted"
+          if git cat-file -e "$BASE:scripts/check-contribution-safety.mjs" 2>/dev/null; then
+            git archive "$BASE" scripts src | tar -x -C "$trusted"
+          else
+            cp -R scripts src "$trusted"/
+          fi
+          node "$trusted/scripts/check-contribution-safety.mjs" --repo . --base "$BASE" --head "$HEAD_SHA"
 
       # No `npm ci`: the package has no dependencies, and that is a property
       # worth protecting. If a lockfile ever appears here, something was added
