@@ -196,13 +196,20 @@ summary in plain English. It fails the pull request when a contribution:
   `needsEnv` or `permissions.environment`, or reads credential files;
 - changes anything outside `registry/workflows`, `registry/components`,
   `registry/demos`, `registry/authors` and `registry/catalog.source.json`;
-- edits `registry/catalog.json`, `registry/SHA256SUMS` or `.github/`.
+- edits `.github/`, or edits `registry/catalog.json` / `registry/SHA256SUMS` so that
+  they are not exactly what `node scripts/build-registry.mjs --export registry --core-artifact …`
+  produces from your reviewed sources.
+
+Hosts and environment variables are declared in the entry in
+`registry/catalog.source.json`: `permissions.network` lists every host the file
+calls (including defaults written as `{{env.NAME:-https://host/...}}`), and
+`needsEnv` or `permissions.environment` lists every variable it reads.
 
 The check always runs the rules of the base branch, not the ones in your pull
-request. Do not commit `registry/catalog.json` or `registry/SHA256SUMS`: a
-maintainer regenerates them after review, so `build-registry.mjs --check` may
-report catalog drift on a pull request that edits `registry/catalog.source.json`
-until then.
+request. Regenerate `registry/catalog.json` and `registry/SHA256SUMS` as section 3
+describes, after your last edit. They are accepted only when `build-registry.mjs
+--check` passes on the pull request, byte for byte; a stale or hand-edited copy
+fails. The checksums can change only together with `registry/catalog.json`.
 
 ## Stuck?
 

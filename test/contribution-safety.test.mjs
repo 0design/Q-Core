@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, readFileSync, readdirSync, cpSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -197,12 +197,166 @@ test("R5: the contribution area itself is allowed (all four folders and the sour
 });
 
 // R6 ---------------------------------------------------------------------------------------------------------------
-test("R6: catalog.json, SHA256SUMS and .github/ edits fail with their own reason", () => {
-  for (const path of ["registry/catalog.json", "registry/SHA256SUMS", ".github/workflows/validate.yml", ".github/CODEOWNERS"]) {
+test("R6: .github/ edits always fail; catalog.json and SHA256SUMS fail unless they match a fresh build", () => {
+  for (const path of [".github/workflows/validate.yml", ".github/CODEOWNERS"]) {
+    for (const catalogFresh of [false, true]) {
+      const r = checkContribution({ mode: "contribution", changes: changesFromMaps(BASE, { ...BASE, [path]: "changed" }), head: () => "changed", base: () => null, catalogFresh });
+      assert.ok(r.findings.some((f) => f.rule === "R6" && f.file === path), `${path} fresh=${catalogFresh}`);
+      assert.ok(!r.findings.some((f) => f.rule === "R5" && f.file === path), `${path} is reported once, as R6`);
+    }
+  }
+  for (const path of ["registry/catalog.json", "registry/SHA256SUMS"]) {
     const r = pr({ ...good(), [path]: "changed" });
     assert.ok(r.findings.some((f) => f.rule === "R6" && f.file === path), path);
-    assert.ok(!r.findings.some((f) => f.rule === "R5" && f.file === path), `${path} is reported once, as R6`);
+    assert.match(renderSummary(r), /not exactly what the Registry builder produces/);
   }
+});
+
+test("R6: a catalog.json that matches the fresh build is accepted, together with the checksums that contain its hash", () => {
+  const head = { ...BASE, ...good(), "registry/catalog.json": "regenerated", "registry/SHA256SUMS": "regenerated" };
+  const run = (catalogFresh, files = head) => checkContribution({ mode: "contribution", changes: changesFromMaps(BASE, files), head: (p) => files[p] ?? null, base: (p) => BASE[p] ?? null, catalogFresh });
+  assert.deepEqual(run(true).findings, []);
+  assert.ok(run(false).findings.some((f) => f.rule === "R6" && f.file === "registry/catalog.json"));
+  // The checksums alone cannot change: they only change with catalog.json or with the Core archive (a maintainer matter).
+  const sumsOnly = { ...BASE, ...good(), "registry/SHA256SUMS": "regenerated" };
+  assert.ok(run(true, sumsOnly).findings.some((f) => f.rule === "R6" && f.file === "registry/SHA256SUMS" && /only change together with catalog\.json/.test(f.what)));
+  // Root-level look-alikes and .github are never accepted.
+  assert.ok(run(true, { ...head, "catalog.json": "x" }).findings.some((f) => f.rule === "R6" && f.file === "catalog.json"));
+});
+
+// R6 with the real builder: the freshness the workflow passes is the exit status of `build-registry.mjs --check` ---------
+test("R6 end to end: a hand-edited or stale catalog.json fails, a regenerated one passes", { timeout: 120000 }, () => {
+  const dir = mkdtempSync(join(tmpdir(), "qcore-fresh-"));
+  cpSync(root, dir, { recursive: true, filter: (src) => !/(^|\/)(\.git|node_modules|vendor)$/.test(src) });
+  const sh = (cmd, args, opts = {}) => execFileSync(cmd, args, { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
+  const pack = () => { const out = join(dir, ".pack"); rmSync(out, { recursive: true, force: true }); mkdirSync(out); const j = JSON.parse(sh("npm", ["pack", "--ignore-scripts", "--pack-destination", out, "--json"])); return join(out, j[0].filename); };
+  const archive = pack();
+  const fresh = () => { try { sh("node", ["scripts/build-registry.mjs", "--check", "--core-artifact", archive]); return true; } catch { return false; } };
+  const verdict = (files) => checkContribution({ mode: "contribution", changes: changesFromMaps({ "registry/catalog.json": "old", "registry/SHA256SUMS": "old" }, files), head: (p) => files[p] ?? null, base: () => null, catalogFresh: fresh() });
+  const changed = () => ({ "registry/catalog.json": readFileSync(join(dir, "registry/catalog.json"), "utf8"), "registry/SHA256SUMS": readFileSync(join(dir, "registry/SHA256SUMS"), "utf8") });
+  assert.equal(fresh(), true, "the published Registry is fresh");
+  // A source edit without regenerating: stale.
+  const source = join(dir, "registry/catalog.source.json");
+  writeFileSync(source, readFileSync(source, "utf8").replace('"name": "Brand mentions', '"name": "Brand mentions!').replace('"Find your brand in a news feed"', '"Find your brand in a news feed!"'));
+  assert.equal(fresh(), false, "catalog.json is stale after a source edit");
+  assert.ok(verdict(changed()).findings.some((f) => f.rule === "R6" && f.file === "registry/catalog.json"));
+  // A hand edit of the generated file: fails the byte comparison.
+  const catalog = join(dir, "registry/catalog.json");
+  writeFileSync(catalog, readFileSync(catalog, "utf8").replace("Find your brand in a news feed", "Find your brand in a news feed (hand-edited)"));
+  assert.equal(fresh(), false);
+  const handEdited = verdict(changed());
+  assert.equal(handEdited.ok, false);
+  assert.ok(handEdited.findings.some((f) => f.rule === "R6" && f.file === "registry/catalog.json"));
+  // Regenerated after the last edit: fresh, accepted.
+  sh("node", ["scripts/build-registry.mjs", "--export", "registry", "--core-artifact", archive]);
+  assert.equal(fresh(), true);
+  const regenerated = verdict(changed());
+  assert.deepEqual(regenerated.findings.filter((f) => f.rule === "R6"), []);
+  // The checksums edited by hand while catalog.json is fresh: the builder's own check rejects them.
+  writeFileSync(join(dir, "registry/SHA256SUMS"), `${"0".repeat(64)}  catalog.json\n${readFileSync(join(dir, "registry/SHA256SUMS"), "utf8")}`);
+  assert.equal(fresh(), false);
+  assert.ok(verdict(changed()).findings.some((f) => f.rule === "R6" && f.file === "registry/SHA256SUMS"));
+});
+
+// Modes and output ---------------------------------------------------------------------------------------------------
+test("a maintainer pull request is shown the same findings but is never failed", () => {
+  const r = pr({ ...good(), "src/engine.mjs": "x", ".github/workflows/validate.yml": "x" }, { mode: "maintainer" });
+  assert.equal(r.ok, true);
+  assert.ok(r.errors >= 2);
+  assert.match(renderSummary(r), /advice only/);
+});
+
+test("the summary is plain English: what, why it matters, how to fix, per problem", () => {
+  const files = good();
+  files["registry/workflows/probe.yaml"] = workflow(GOOD_STEPS.replace("feeds.example.org", "bit.ly"));
+  const text = renderSummary(pr(files));
+  assert.match(text, /^## Contribution safety check: FAILED \(1 problem\)/);
+  assert.match(text, /- What: In step "read", field "url", the file calls bit\.ly, a URL shortener/);
+  assert.match(text, /- Why it matters: /);
+  assert.match(text, /- How to fix: /);
+});
+
+test("helpers: hostsOf and hostProblem", () => {
+  assert.deepEqual(hostsOf("{{env.A}}"), []);
+  assert.deepEqual(hostsOf("{{env.A:-https://u@h.example:8443/p}}"), [{ scheme: "https", host: "h.example", credentials: true }]);
+  assert.equal(hostProblem("feeds.example.org"), null);
+  assert.match(hostProblem("10.0.0.1"), /raw IP/);
+  assert.match(hostProblem("sub.tinyurl.com"), /shortener/);
+});
+
+// Calibration against what is already published -------------------------------------------------------------------------
+test("every engine step kind is described in SPEC-MANIFEST.md (the check's list cannot drift from the spec)", () => {
+  const spec = readFileSync(join(root, "SPEC-MANIFEST.md"), "utf8");
+  for (const kind of ENGINE_KINDS) assert.ok(spec.includes(`\`${kind}\``) || spec.includes(`kind: ${kind}`), kind);
+});
+
+function publishedRegistry() {
+  const files = {};
+  for (const d of ["workflows", "components"]) for (const f of readdirSync(join(root, "registry", d))) files[`registry/${d}/${f}`] = readFileSync(join(root, "registry", d, f), "utf8");
+  files["registry/catalog.source.json"] = readFileSync(join(root, "registry/catalog.source.json"), "utf8");
+  return files;
+}
+
+test("the whole published Registry passes: every host and environment variable it uses is declared in its entry", () => {
+  const files = publishedRegistry();
+  const changes = Object.keys(files).filter((p) => p !== "registry/catalog.source.json").map((p) => ({ path: p, status: "A" }));
+  const r = checkContribution({ mode: "contribution", changes, head: (p) => files[p] ?? null, base: () => null });
+  assert.deepEqual(r.findings, []);
+  assert.ok(changes.length >= 30, "the Registry was actually read");
+});
+
+test("editing an existing workflow (a new version of Digest) does not trip the check", () => {
+  const files = publishedRegistry();
+  const before = files["registry/workflows/digest.yaml"];
+  const after = before.replace(/^version: .*$/m, "version: 9.9.9");
+  assert.notEqual(before, after);
+  const head = { ...files, "registry/workflows/digest.yaml": after };
+  const r = checkContribution({ mode: "contribution", changes: changesFromMaps(files, head), head: (p) => head[p] ?? null, base: (p) => files[p] ?? null });
+  assert.deepEqual(r.findings, []);
+});
+
+test("every workflow in the published Registry declares its hosts as they really are (no extra, no missing)", () => {
+  const files = publishedRegistry();
+  const cat = JSON.parse(files["registry/catalog.source.json"]);
+  for (const entry of cat.workflows) {
+    const hosts = new Set();
+    for (const m of files[`registry/${entry.file}`].matchAll(/^\s+url:\s*"([^"]*)"/gm)) for (const h of hostsOf(m[1])) hosts.add(h.host);
+    assert.deepEqual([...hosts].sort(), [...(entry.permissions?.network ?? [])].sort(), entry.id);
+  }
+});
+
+// R6 with the real builder: the freshness the workflow passes is the exit status of `build-registry.mjs --check` ---------
+test("R6 end to end: a hand-edited or stale catalog.json fails, a regenerated one passes", { timeout: 120000 }, () => {
+  const dir = mkdtempSync(join(tmpdir(), "qcore-fresh-"));
+  cpSync(root, dir, { recursive: true, filter: (src) => !/(^|\/)(\.git|node_modules|vendor)$/.test(src) });
+  const sh = (cmd, args, opts = {}) => execFileSync(cmd, args, { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
+  const pack = () => { const out = join(dir, ".pack"); rmSync(out, { recursive: true, force: true }); mkdirSync(out); const j = JSON.parse(sh("npm", ["pack", "--ignore-scripts", "--pack-destination", out, "--json"])); return join(out, j[0].filename); };
+  const archive = pack();
+  const fresh = () => { try { sh("node", ["scripts/build-registry.mjs", "--check", "--core-artifact", archive]); return true; } catch { return false; } };
+  const verdict = (files) => checkContribution({ mode: "contribution", changes: changesFromMaps({ "registry/catalog.json": "old", "registry/SHA256SUMS": "old" }, files), head: (p) => files[p] ?? null, base: () => null, catalogFresh: fresh() });
+  const changed = () => ({ "registry/catalog.json": readFileSync(join(dir, "registry/catalog.json"), "utf8"), "registry/SHA256SUMS": readFileSync(join(dir, "registry/SHA256SUMS"), "utf8") });
+  assert.equal(fresh(), true, "the published Registry is fresh");
+  // A source edit without regenerating: stale.
+  const source = join(dir, "registry/catalog.source.json");
+  writeFileSync(source, readFileSync(source, "utf8").replace('"name": "Brand mentions', '"name": "Brand mentions!').replace('"Find your brand in a news feed"', '"Find your brand in a news feed!"'));
+  assert.equal(fresh(), false, "catalog.json is stale after a source edit");
+  assert.ok(verdict(changed()).findings.some((f) => f.rule === "R6" && f.file === "registry/catalog.json"));
+  // A hand edit of the generated file: fails the byte comparison.
+  const catalog = join(dir, "registry/catalog.json");
+  writeFileSync(catalog, readFileSync(catalog, "utf8").replace("Find your brand in a news feed", "Find your brand in a news feed (hand-edited)"));
+  assert.equal(fresh(), false);
+  const handEdited = verdict(changed());
+  assert.equal(handEdited.ok, false);
+  assert.ok(handEdited.findings.some((f) => f.rule === "R6" && f.file === "registry/catalog.json"));
+  // Regenerated after the last edit: fresh, accepted.
+  sh("node", ["scripts/build-registry.mjs", "--export", "registry", "--core-artifact", archive]);
+  assert.equal(fresh(), true);
+  const regenerated = verdict(changed());
+  assert.deepEqual(regenerated.findings.filter((f) => f.rule === "R6"), []);
+  // The checksums edited by hand while catalog.json is fresh: the builder's own check rejects them.
+  writeFileSync(join(dir, "registry/SHA256SUMS"), `${"0".repeat(64)}  catalog.json\n${readFileSync(join(dir, "registry/SHA256SUMS"), "utf8")}`);
+  assert.equal(fresh(), false);
+  assert.ok(verdict(changed()).findings.some((f) => f.rule === "R6" && f.file === "registry/SHA256SUMS"));
 });
 
 // Modes and output ---------------------------------------------------------------------------------------------------
@@ -283,6 +437,9 @@ test("validate.yml runs the check from the base commit, on pull_request, with no
   assert.match(validate, /git archive "\$BASE" scripts src/, "rules come from the base commit, not from the PR");
   assert.match(validate, /check-contribution-safety\.mjs/);
   assert.match(validate, /fetch-depth: 0/);
+  assert.match(validate, /if: always\(\) && github\.event_name == 'pull_request'/, "the check reports even when an earlier step failed");
+  assert.match(validate, /id: registrycheck/);
+  assert.match(validate, /QCORE_CATALOG_FRESH: \$\{\{ steps\.registrycheck\.outcome == 'success'/, "catalog.json is accepted only when the builder's own check passed");
   assert.doesNotMatch(validate, /\$\{\{\s*secrets\./);
   assert.doesNotMatch(validate, /:\s*write\b/);
 });
