@@ -122,6 +122,7 @@
     "objects": [
       "LICENSE",
       "authors/0design.json",
+      "authors/vasylromanets.json",
       "catalog.json",
       "components/agentation.json",
       "components/aindf-validator.json",
@@ -171,6 +172,7 @@
       "workflows/podcast-summary.yaml",
       "workflows/price-watch.yaml",
       "workflows/release-watch.yaml",
+      "workflows/rss-to-checklist.yaml",
       "workflows/sdd-pipeline.yaml",
       "workflows/strict-gate.yaml",
       "workflows/webhook-relay.yaml",
