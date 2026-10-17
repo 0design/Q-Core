@@ -1,0 +1,73 @@
+manifest: q-core.workflow/v1
+
+# Turn the latest items of a notices feed into a short to-do checklist with links.
+# OpenRouter example: configure the model explicitly. CLI acceptance uses the caller interface.
+
+id: rss-to-checklist
+name: "RSS to checklist: turn a feed into things to do"
+version: 0.1.0
+description: >
+  Reads the latest items of an RSS or Atom feed (school, council, building or
+  club notices) and writes a short checklist of the actions they ask of you,
+  each with its deadline and link. Stops for your approval of the exact text,
+  then sends it to your webhook.
+owner: vasylromanets
+enabled: true
+
+triggers:
+  - kind: manual
+
+settings:
+  budgetUsd: 0.10
+
+steps:
+  - id: rc-fetch
+    kind: fetch
+    config:
+      name: "Read feed"
+      url: "{{env.QCORE_SOURCE_URL}}"
+      format: rss
+      limit: "10"
+      timeoutSec: "30"
+
+  - id: rc-list
+    kind: llm-call
+    config:
+      name: "Write the checklist"
+      role: assistant
+      maxTokens: "700"
+      instructions: |
+        The `entries` array holds recent notices from one feed: a title, a
+        summary and a link.
+
+        Write a plain-text checklist of what the reader has to DO because of
+        these notices. One line per action, in this exact form:
+          [ ] <action in plain words> — by <deadline, or "no deadline"> — <link>
+
+        Rules:
+          • Only include actions a notice actually asks for. Do not invent
+            deadlines, links or tasks.
+          • Skip notices that are purely informational.
+          • Use the link of the notice the action comes from.
+          • Put the nearest deadline first.
+
+        If no notice asks for any action, reply exactly "Nothing to do." and
+        stop. Do not pad.
+
+  - id: rc-approve
+    kind: approval-gate
+    config:
+      name: "Approve the checklist"
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact checklist text, its deadlines and its links before it is sent"
+
+  - id: rc-send
+    kind: api-request
+    config:
+      name: "Send the checklist"
+      method: POST
+      url: "{{env.QCORE_WEBHOOK_URL}}"
+      expect: "2xx"
+      timeoutSec: "30"
+      body: '{"text":"{{steps.Write the checklist.output.text}}"}'

@@ -2640,6 +2640,185 @@
           "Turn my intent into an approved spec and a change limited to docs/ checked by my lint script."
         ]
       }
+    },
+    {
+      "id": "rss-to-checklist",
+      "name": "Turn a notices feed into a to-do checklist",
+      "description": "Read the latest items of an RSS or Atom feed and get a short checklist of the actions they ask of you, with deadlines and links, after you approve the exact text.",
+      "file": "workflows/rss-to-checklist.yaml",
+      "version": "0.1.0",
+      "steps": 3,
+      "topLevelSteps": 3,
+      "fansOut": false,
+      "maxItems": null,
+      "kinds": [
+        "fetch",
+        "llm-call",
+        "api-request"
+      ],
+      "humanGate": false,
+      "agentGate": false,
+      "schedule": null,
+      "model": null,
+      "budgetUsd": 0.1,
+      "needsEnv": [
+        "OPENROUTER_API_KEY",
+        "QCORE_SOURCE_URL",
+        "QCORE_WEBHOOK_URL",
+        "OPENROUTER_MODEL"
+      ],
+      "measured": null,
+      "proof": null,
+      "preview": {
+        "style": "applet",
+        "statement": "Turn notices into a checklist."
+      },
+      "author": "vasylromanets",
+      "license": "MIT",
+      "origin": {
+        "repository": "0design/Q-Core",
+        "path": "registry/workflows/rss-to-checklist.yaml",
+        "revision": "candidate"
+      },
+      "engine": {
+        "package": "q-core",
+        "version": "0.2.0-q-core.49",
+        "manifest": "q-core.workflow/v1"
+      },
+      "dependencies": [
+        {
+          "id": "llm-call-openrouter",
+          "version": "1.2.0"
+        }
+      ],
+      "permissions": {
+        "environment": [
+          "OPENROUTER_API_KEY",
+          "QCORE_SOURCE_URL",
+          "QCORE_WEBHOOK_URL",
+          "OPENROUTER_MODEL"
+        ],
+        "execution": "local-only"
+      },
+      "evidence": {
+        "status": "no-live-proof"
+      },
+      "sha256": "053b60d872a176426d35ac9fd55b653a0ed889eb57362cffe17f841e8271361c",
+      "value": "Know what you have to do and by when, without reading every notice in the feed.",
+      "executionProfile": {
+        "inference": "openrouter",
+        "callerReady": false
+      },
+      "contentType": "workflow-template",
+      "acceptance": {
+        "status": "pending",
+        "scope": "Registry composition and real user execution; historical output is not acceptance"
+      },
+      "status": "reference-only",
+      "builtinDependencies": [
+        {
+          "id": "fetch",
+          "version": "1.0.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        },
+        {
+          "id": "api-request",
+          "version": "1.1.0"
+        }
+      ],
+      "brief": {
+        "summary": "Read the latest items of an RSS or Atom feed and get a short checklist of the actions they ask of you, with deadlines and links, after you approve the exact text.",
+        "howItWorks": [
+          "Reads up to 10 items from the feed at QCORE_SOURCE_URL.",
+          "A model writes one '[ ] action — by deadline — link' line per action a notice actually asks for, or replies exactly 'Nothing to do.'",
+          "The run stops until you approve the exact checklist text in your own terminal with q-core approve.",
+          "After approval, the text is POSTed as {\"text\": …} to QCORE_WEBHOOK_URL."
+        ],
+        "inputs": [
+          "The URL of an RSS or Atom feed of notices (school, council, building, club)."
+        ],
+        "outputs": [
+          "A short plain-text checklist, POSTed to your webhook after your approval, or a file in .qf/out/ if no webhook is set."
+        ],
+        "knobs": [
+          {
+            "name": "QCORE_SOURCE_URL",
+            "what": "Which feed is read (env var)."
+          },
+          {
+            "name": "limit",
+            "what": "Items read from the feed, 10 in the manifest (rc-fetch step)."
+          },
+          {
+            "name": "instructions",
+            "what": "Checklist line format and rules, in the rc-list step of the manifest."
+          },
+          {
+            "name": "settings.budgetUsd",
+            "what": "Per-run spending cap, $0.10 in the manifest."
+          },
+          {
+            "name": "OPENROUTER_MODEL",
+            "what": "Model used on the OpenRouter route (env var)."
+          }
+        ],
+        "requires": {
+          "access": [
+            "A public GitHub releases feed URL",
+            "A webhook receiver URL (optional)",
+            "OpenRouter key, only on the OpenRouter route"
+          ],
+          "providers": [
+            {
+              "id": "openrouter",
+              "how": "As published: OPENROUTER_API_KEY in the environment (default secretSource env). Set OPENROUTER_MODEL (no model in the manifest)."
+            },
+            {
+              "id": "cli",
+              "how": "Edited copy: in rc-list add provider: cli and input: \"{{steps.rc-fetch.output}}\", set settings.budgetUsd: null, run q-core run --caller-provider provider.json (agent claude|codex), answer each job with q-core reply. The human approval-gate before rc-send is already in the manifest."
+            }
+          ],
+          "env": [
+            {
+              "name": "QCORE_SOURCE_URL",
+              "what": "URL of the GitHub releases Atom feed",
+              "required": true
+            },
+            {
+              "name": "QCORE_WEBHOOK_URL",
+              "what": "Receiver URL for the POST; if unset, the payload goes to .qf/out/",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_API_KEY",
+              "what": "OpenRouter key, read from the environment; only on the OpenRouter route",
+              "required": false
+            },
+            {
+              "name": "OPENROUTER_MODEL",
+              "what": "OpenRouter model id; no model is set in the manifest; only on the OpenRouter route",
+              "required": false
+            }
+          ]
+        },
+        "price": "OpenRouter: not measured; capped at $0.10 per run. CLI route: no separate model bill.",
+        "limits": [
+          "Reference example: shows the manifest format; no measured result and no accepted real run.",
+          "Only the feed's own title and summary are read, not the linked pages, so deadlines that appear only on the page are missed.",
+          "Action and deadline extraction is model judgement, not verified: check each line against its link.",
+          "The approval is a person's decision in a terminal: q-core approve refuses to run inside an agent session or a pipe.",
+          "If the webhook variable is unset, nothing is sent: the payload is written to .qf/out/ instead.",
+          "Model output is not deterministic; the order of steps, checks and stops is.",
+          "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
+        ],
+        "exampleRequests": [
+          "Read my kid's school notices feed and tell me what I need to do this week.",
+          "Turn the building management announcements into a checklist with deadlines."
+        ]
+      }
     }
   ],
   "components": [
