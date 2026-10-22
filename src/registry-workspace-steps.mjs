@@ -49,19 +49,48 @@ export function runSpecification(step, ctx) {
   insist(workspace?.policyHash === hash(workspace?.policy), 'Workspace policy identity changed');
   const spec = specification(workspace.policy.specification ?? source, 'INVALID_RESPONSE');
   insist(ctx.runStore, 'Versioned specification requires persistent storage');
-  const record = ctx.runStore.recordSpecification({ workflow: ctx.templateId, workspace: workspace.policy.workspace }, { spec, policyHash: workspace.policyHash });
-  return { output: { ...record, spec, plan: spec.plan, workspace } };
+  const identity = { workflow: ctx.templateId, workspace: workspace.policy.workspace };
+  const record = ctx.runStore.recordSpecification(identity, { spec, policyHash: workspace.policyHash });
+  return { output: { ...record, identity, spec, plan: spec.plan, workspace } };
 }
+
+function assertSpecificationRecord(record, ctx) {
+  const original = record?.workspace;
+  insist(original?.before && typeof original.before === 'object' && !Array.isArray(original.before), 'Planning snapshot required');
+  insist(original.policy && typeof original.policy === 'object' && !Array.isArray(original.policy) &&
+    typeof original.policyHash === 'string' && /^[a-f0-9]{64}$/.test(original.policyHash) &&
+    original.verifierSources && typeof original.verifierSources === 'object' && !Array.isArray(original.verifierSources), 'Invalid specification workspace structure');
+  const spec = specification(record.spec);
+  const identity = record.identity ?? { workflow: ctx.templateId, workspace: original.policy?.workspace };
+  insist(identity && Object.keys(identity).length === 2 && typeof identity.workflow === 'string' && identity.workflow.trim() &&
+    identity.workspace === original.policy?.workspace && isAbsolute(identity.workspace), 'Invalid specification identity');
+  insist(Number.isSafeInteger(record.revision) && record.revision > 0 && /^[a-f0-9]{64}$/.test(record.hash), 'Invalid specification revision or hash');
+  insist(original.policyHash === hash(original.policy), 'Specification workspace policy identity changed');
+  insist(hash(record.spec) === hash(spec) && Array.isArray(record.plan) && hash(record.plan) === hash(spec.plan), 'Specification structure or plan changed');
+  // Exactly the canonical hash recorded by RunStore.recordSpecification, not a claimed digest.
+  insist(record.hash === hash({ identity, value: { spec, policyHash: original.policyHash }, revision: record.revision }), 'Specification hash mismatch');
+}
+
 export function runWorkspaceApply(step, ctx) {
   const policy = validateWorkspacePolicy(ctx.workspacePolicy);
   const proposal = value(step, 'source', ctx);
   const hasApproval = Object.hasOwn(step.config, 'approval'), hasSpecification = Object.hasOwn(step.config, 'specification');
   insist(!(hasApproval && hasSpecification), 'Use either approval or specification, not both');
+  const gates = ctx.workspaceApprovalGates ?? [];
+  insist(!gates.length || hasApproval, 'Workspace apply governed by an approval-gate requires an explicit approval binding', 'STALE_APPROVAL');
   let spec;
   if (hasApproval) {
     const approved = value(step, 'approval', ctx);
     spec = approved?.subject;
     insist(spec?.workspace && approved?.approvalHash === hash(spec), 'Exact approved specification required');
+    for (const gate of gates) {
+      insist(gate.status === 'success' && gate.decision === 'approve' && gate.config?.bind === 'sha256', 'Workspace approval-gate requires approved sha256 binding', 'STALE_APPROVAL');
+      const approvedHash = gate.approvedSubjectHash ?? gate.boundSubjectHash;
+      insist(approvedHash && (!gate.boundSubjectHash || gate.boundSubjectHash === approvedHash) &&
+        approved.approvalHash === approvedHash && gate.output?.approvalHash === approvedHash &&
+        hash(gate.output?.subject) === approvedHash && hash(gate.currentSubject) === approvedHash,
+      'Workspace approval does not match the current exact approved subject', 'STALE_APPROVAL');
+    }
   } else if (hasSpecification) {
     spec = value(step, 'specification', ctx);
     insist(spec?.workspace && spec.hash, 'Exact specification required');
@@ -69,7 +98,7 @@ export function runWorkspaceApply(step, ctx) {
   const original = spec?.workspace;
   const policyHash = hash(policy), verifierSources = verifierIdentity(policy);
   if (original) {
-    insist(original.before && typeof original.before === 'object' && !Array.isArray(original.before), 'Planning snapshot required');
+    assertSpecificationRecord(spec, ctx);
     insist(policyHash === original.policyHash, hasApproval ? 'Execution policy changed after approval' : 'Execution policy changed after planning');
     insist(hash(verifierSources) === hash(original.verifierSources), 'Verifier source changed after planning');
   }

@@ -3864,7 +3864,7 @@
     "artifact": "vendor/q-core-0.2.0-q-core.50.tgz",
     "artifactSha256": "384661e672fc418b48c01b48e2f9fae29ae108a59593084f430ac240b855a3cb",
     "integrity": "sha512-TkYJTyRsWrkedRNGUR1uUA6TZPim1KgKjHsdHdl/94cLsynb3xQyo3R5rcG7REdyfQe3h95rmRgMaB7nT8+sZw==",
-    "schemaSha256": "002d576c0556d13d70f43938155dfc73ed52f72834d8b552a5aacca2f489e22e",
+    "schemaSha256": "15ad0090402776f1ebd7789dee34511b226e6f3d5669960098a78fe829ee8d6f",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "local-candidate-artifact",
     "source": "Core.50 local candidate: workspace-apply runs without an approval gate within an explicit workspace policy. Explicit human approval gates retain exact SHA-256 subject binding and terminal one-time confirmation; data-send approval policy is unchanged. Artifact hashes bind the exact locally packaged candidate; this is not release or owner acceptance.",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "b9666d36ed448a480500e978134fa4284389b2dc39e672c81e57efb388ff6cd8"
+  "releaseSha256": "3a78152e5fc4486c80582e7d0016f85edaac73e9b23e9ad9a13c6ef866778aef"
 }

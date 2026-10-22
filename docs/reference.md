@@ -229,14 +229,29 @@ the subject, ask the user to run the command and wait. Details and limits:
 SPEC-MANIFEST.md, `reviewer: human`.
 
 Approval is a component a workflow author places where a human decision is needed.
-`workspace-apply` is valid without an `approval-gate` and runs autonomously within
-the explicit local `--workspace-policy <json>`: allowed paths and pinned workspace
-and verifier hashes still bound every write. A source-only apply pins them at
-apply time; an optional `specification` reference uses the earlier planned
-snapshot instead. No policy, an out-of-policy path, changed pinned files or a
-changed verifier refuses the write. Adding a human gate
-keeps the same pause, exact SHA-256 binding (`bind: sha256`) and terminal-only
-decision; an agent cannot approve it.
+`workspace-apply` runs autonomously only when no preceding approval gate governs
+it on its execution path, including across parent and nested workflows. Every
+write requires the explicit local `--workspace-policy <json>`: allowed paths,
+workspace snapshots and verifier hashes still bound the write. A genuinely
+ungated source-only apply pins them at apply time; an optional `specification`
+reference uses the earlier planned snapshot instead. Q-Core validates that
+specification's structure and recomputes its canonical SHA-256 from the recorded
+workflow/workspace identity, specification content, policy hash and revision;
+changing the content while retaining its claimed hash refuses the write.
+
+A governed apply must declare `approval` bound to the governing gate's approved
+subject, and the gate must use `bind: sha256`. The validator checks this rule
+through control paths and nested workflows; runtime checks the actual approved
+subject and its hash again before writing. A later gate in the same workflow
+can approve a new subject; a nested gate cannot discard the approval binding
+inherited from its parent workflow. Omitting `approval`, substituting a
+different specification or passing an invalid/unresolved approval never selects
+autonomous execution. An already-approved legacy run without a separately
+recorded subject-hash anchor fails closed; restart it for a fresh approval.
+A legacy run still waiting at its gate can record that anchor when a person
+approves its current subject. No policy, an out-of-policy path, changed pinned files,
+symlinks or a changed verifier refuses the write. Human gates retain their pause
+and terminal-only decision; an agent cannot approve them.
 
 Created workflows still need a human gate before sending data (any `api-request`
 except a plain `GET` to a literal http(s) URL); `q-core validate` and `q-core run`
