@@ -8,7 +8,7 @@ import { determined } from './determined.mjs';
 import { resolveTemplateValue } from './template.mjs';
 const value = (step, key, ctx) => resolveTemplateValue(step.config[key], { priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, inputs: ctx.inputs });
 
-export function validateWorkspacePolicy(policy) {
+export function validateWorkspacePolicy(policy, { planning = true } = {}) {
   insist(policy, 'Workspace policy required for workspace access; pass --workspace-policy <file>');
   insist(policy && Object.keys(policy).every(k => ['workspace','allowedPaths','intent','verifier','maxRepairAttempts','specification'].includes(k)), 'Invalid workspace policy fields');
   insist(typeof policy.workspace === 'string' && isAbsolute(policy.workspace), 'Absolute workspace required');
@@ -18,6 +18,9 @@ export function validateWorkspacePolicy(policy) {
   const verifier = policy.verifier;
   insist(verifier && Object.keys(verifier).every(k => ['command','args','timeoutMs'].includes(k)) && isAbsolute(verifier.command) && Array.isArray(verifier.args) && verifier.args.length > 0 && verifier.args.every(a => typeof a === 'string'), 'Pinned verifier executable and file arguments required');
   insist(Number.isInteger(verifier.timeoutMs) && verifier.timeoutMs > 0 && verifier.timeoutMs <= 300000, 'Bounded verifier timeout required');
+  // Only planning may resolve a root alias. Execution must not silently follow
+  // a canonical workspace root replaced by a symlink after planning.
+  if (!planning) insist(!lstatSync(policy.workspace).isSymbolicLink(), 'Workspace root cannot be a symlink; resolve it at plan time', 'SCOPE_DENIED');
   const normalized = { ...structuredClone(policy), workspace: realpathSync(policy.workspace) };
   snapshot(normalized.workspace, normalized.allowedPaths);
   verifierIdentity(normalized);
@@ -72,7 +75,7 @@ function assertSpecificationRecord(record, ctx) {
 }
 
 export function runWorkspaceApply(step, ctx) {
-  const policy = validateWorkspacePolicy(ctx.workspacePolicy);
+  const policy = validateWorkspacePolicy(ctx.workspacePolicy, { planning: false });
   const proposal = value(step, 'source', ctx);
   const hasApproval = Object.hasOwn(step.config, 'approval'), hasSpecification = Object.hasOwn(step.config, 'specification');
   insist(!(hasApproval && hasSpecification), 'Use either approval or specification, not both');
@@ -111,7 +114,7 @@ export function runWorkspaceApply(step, ctx) {
   } finally { lock.release(); }
 }
 export async function runVerifyArtifact(step, ctx) {
-  const artifact = value(step, 'source', ctx), policy = validateWorkspacePolicy(ctx.workspacePolicy);
+  const artifact = value(step, 'source', ctx), policy = validateWorkspacePolicy(ctx.workspacePolicy, { planning: false });
   assertFreshWorkspaceArtifact(artifact, policy);
   const result = await subprocess(policy.verifier.command, policy.verifier.args, { cwd: policy.workspace, timeoutMs: policy.verifier.timeoutMs, signal: ctx.signal, env: scopedEnvironment(), maxBytes: 16000 });
   insist(hash(snapshot(policy.workspace, policy.allowedPaths)) === artifact.artifactHash && hash(verifierIdentity(policy)) === hash(artifact.verifierSources), 'Artifact or verifier changed during verification');
@@ -128,7 +131,7 @@ export function assertFreshWorkspaceArtifact(artifact, policy) {
 export async function runDetermined(step, ctx) {
   const artifact = value(step, 'source', ctx), spec = value(step, 'specification', ctx);
   insist(spec?.spec?.criteria?.length && spec.hash === artifact?.specHash, 'determined requires the specification binding');
-  const policy = validateWorkspacePolicy(ctx.workspacePolicy);
+  const policy = validateWorkspacePolicy(ctx.workspacePolicy, { planning: false });
   let checked;
   const result = await determined({ criteria: spec.spec.criteria.map((text, i) => ({ id: `criterion-${i + 1}`, text, verifier: { type: 'command', identity: hash(artifact.verifierSources) } })), maxRepairAttempts: 0, signal: ctx.signal }, {
     execute: async () => { assertFreshWorkspaceArtifact(artifact, policy); },

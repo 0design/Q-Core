@@ -738,6 +738,12 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   Writes refuse changes to their pinned source files or verifier, symlinks,
   out-of-scope paths and writable checker inputs. The verifier is a trusted
   user-selected command, not an operating-system sandbox.
+  These checks confine writes against workflow content and ordinary mistakes;
+  they do not defend against a concurrent hostile process running as the same
+  OS user. Such a process can race pathname-based filesystem operations, in the
+  same trust class as approval forgery or unsigned run-state edits described under
+  `reviewer: human`. Use an OS sandbox or container for that isolation. The hosted
+  runtime will run Q-Core in a container.
 - `verify-artifact` takes an applied artifact `source` and may set `repairFrom` to
   its caller proposal step. Failed checks repeat only the declared local
   proposal/apply/verify segment within the policy bound; missing/stale evidence

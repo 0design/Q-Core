@@ -11,7 +11,11 @@ started, see the [README](../README.md).
   stop conditions is.
 - An immutable Registry release does not claim its own acceptance. Acceptance is
   a separate write-once record at `acceptance/<release>.json`.
-- Q-Core is not an OS sandbox. Run it in workspaces and with verifiers you trust.
+- Q-Core confines writes against workflow content and ordinary mistakes. It does
+  not defend against a concurrent hostile process running as the same OS user:
+  filesystem races have the same trust limit as approval forgery or edits to
+  unsigned run state. Use an OS sandbox or container for that isolation, and use trusted
+  workspaces and verifiers. The hosted runtime will run Q-Core in a container.
 
 ## Hosted MCP
 
