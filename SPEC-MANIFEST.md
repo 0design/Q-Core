@@ -238,9 +238,15 @@ One kind, two modes; they differ only in *who* decides.
 | `mode` | `check` is `RESERVED` — refused | |
 
 **`reviewer: human`** parks the run as `waiting_human`. `q-core approve` continues it,
-`--reject` fails it. A human gate is optional for a workflow with no side effect,
-and for a reviewed Registry workflow installed unchanged. **A workflow you create
-needs one before any side effect** — see "Created workflows" below.
+`--reject` fails it. Approval is an optional component placed by the workflow
+author, rather than a base requirement for every write. `workspace-apply` can run
+autonomously only when no approval gate governs that apply on its execution
+path, bounded by an explicit workspace policy. A governing gate requires
+`bind: sha256` and an explicit `approval` binding on the apply; this applies across
+parent and nested workflows as well. Its approved subject and hash are checked
+again at apply time, even if the apply tries to omit its approval reference.
+Human gates retain their existing pause and decision requirements. The separate
+policy for created workflows that send data remains below.
 
 **The subject of a human gate is one output:** that of the last successful step before
 it in the same material. When a side effect after the gate (until the next human gate)
@@ -250,6 +256,8 @@ than is sent. It does not refuse the manifest. Return everything that is sent fr
 step or child workflow directly before the gate. Fields that stay local (`name`,
 `receiptKey`, `expect`, `timeoutSec`, `method`) are not judged, and a gate
 directly after a control-flow step, `fan-out` or another gate is not judged.
+This warning does not relax the mandatory subject binding for a governed
+`workspace-apply` described below.
 
 **Only a person decides a human gate.** `q-core approve` (and `--reject`)
 asks on the controlling terminal: it prints the subject and a fresh one-time code to
@@ -300,12 +308,12 @@ agent session, like `resumeRun`. The same limits apply as for `q-core approve`.
 The `approval` property stays in `contracts/v1/request.schema.json` (the hosted
 validator is shared across Cores); the runtime refuses it.
 
-**Created workflows: a human gate before any side effect.** A policy
+**Created workflows: optional approval for workspace writes, required approval for sends.** A policy
 on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
 stays byte-identical so one hosted validator serves several Cores): `q-core
 validate`, `q-core run`, `q-core approve` and the host refuse a
-workflow in which a step that writes files (`workspace-apply`) or sends data
-(every `api-request` except exactly `method: GET` to a literal `http(s)` URL: any
+workflow in which a step sends data (every `api-request` except exactly
+`method: GET` to a literal `http(s)` URL: any
 other method value, a templated method, no method (`POST`), a `file:` URL or a
 templated URL, which can fall back to the local file sink) has no human
 `approval-gate` earlier on the same path (`GATE_REQUIRED`). A gate
@@ -694,16 +702,48 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
 - Workspace components require an explicit local `--workspace-policy <json>`:
   absolute `workspace`, `allowedPaths`, `intent`, immutable `verifier` command,
   file `args`, `timeoutMs`, and `maxRepairAttempts` (0..5). Optional
-  `specification` imports bounded summary/criteria/plan but still needs approval.
-  Policy is persisted with the run; it cannot be supplied by generated output.
+  `specification` imports bounded summary/criteria/plan. Policy is mandatory for
+  workspace writes, including writes without a human gate: no policy refuses the
+  write. Policy is persisted with the run; it cannot be supplied by generated output.
 - `workspace-read` pins files and independent verifier inputs. `specification`
   takes `source` and `workspace` references and records a revision when spec or
   policy changes. An ambiguous intent must be clarified before the caller replies;
   a scope change starts a new specification revision, not a silent in-run edit.
-- `workspace-apply` takes `source` with `{files:[{path,content}]}` and `approval`
-  with the approved spec. It refuses changed source files, checker changes,
-  symlinks, out-of-scope paths and writable checker inputs. The verifier is a
-  trusted user-selected command, not an operating-system sandbox.
+  Its record hash is Q-Core's canonical SHA-256 of
+  `{identity: {workflow, workspace}, value: {spec, policyHash}, revision}`.
+- `workspace-apply` takes `source` with `{files:[{path,content}]}`. Writes run
+  autonomously within the workspace policy only when no preceding approval gate
+  governs the apply on its execution path. A gate in a parent workflow also
+  governs covered applies in nested workflows. Validation follows control paths
+  and pinned workflow dependencies; runtime enforces the gate binding again.
+  A governed apply must declare `approval` referring to the actual governing
+  gate's approved subject, and that gate must use `bind: sha256`. Omitting the
+  field or supplying another subject cannot bypass the gate. A later gate in
+  the same workflow can approve a new subject; a nested gate cannot discard
+  the inherited parent workflow's approval binding.
+  For a genuinely ungated apply, `source` alone pins the workspace and verifier
+  at apply time. Optional `specification: {{steps.specification.output}}` uses
+  that specification's planned snapshot, policy hash and verifier sources.
+  Q-Core validates the specification structure and recomputes its record hash
+  before applying; modified contents with an unchanged claimed hash are refused.
+  With `approval`, the full approved specification output (including its
+  snapshot and verifier inputs) must also match the gate's canonical subject
+  SHA-256 (`approvalHash`); the current subject is checked again before writing.
+  An invalid or unresolved approval never falls back to an ungated write.
+  A governed apply also requires a separately recorded subject-hash anchor;
+  an already-approved legacy run without one fails closed and must restart for
+  fresh approval. A legacy run still waiting at a gate can record the anchor
+  when a person approves its current subject.
+  `specification` and `approval` cannot both be supplied.
+  Writes refuse changes to their pinned source files or verifier, symlinks,
+  out-of-scope paths and writable checker inputs. The verifier is a trusted
+  user-selected command, not an operating-system sandbox.
+  These checks confine writes against workflow content and ordinary mistakes;
+  they do not defend against a concurrent hostile process running as the same
+  OS user. Such a process can race pathname-based filesystem operations, in the
+  same trust class as approval forgery or unsigned run-state edits described under
+  `reviewer: human`. Use an OS sandbox or container for that isolation. The hosted
+  runtime will run Q-Core in a container.
 - `verify-artifact` takes an applied artifact `source` and may set `repairFrom` to
   its caller proposal step. Failed checks repeat only the declared local
   proposal/apply/verify segment within the policy bound; missing/stale evidence
@@ -717,7 +757,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
 Use an exact package pin and validate the actual template in its target
 environment before relying on a Registry composition.
 - `determined` shares `source`, `specification` and `repairFrom` references. It
-  reuses the determined reducer's AND/freshness checks over approved criteria;
+  reuses the determined reducer's AND/freshness checks over specified criteria;
   all criteria bind to the explicitly selected independent verifier suite. The
   Registry driver persists pauses and bounded repair attempts around that reducer.
 - `q-core cancel <manifest> <runId>` cancels only a paused inference/approval run.

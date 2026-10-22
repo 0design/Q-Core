@@ -11,7 +11,11 @@ started, see the [README](../README.md).
   stop conditions is.
 - An immutable Registry release does not claim its own acceptance. Acceptance is
   a separate write-once record at `acceptance/<release>.json`.
-- Q-Core is not an OS sandbox. Run it in workspaces and with verifiers you trust.
+- Q-Core confines writes against workflow content and ordinary mistakes. It does
+  not defend against a concurrent hostile process running as the same OS user:
+  filesystem races have the same trust limit as approval forgery or edits to
+  unsigned run state. Use an OS sandbox or container for that isolation, and use trusted
+  workspaces and verifiers. The hosted runtime will run Q-Core in a container.
 
 ## Hosted MCP
 
@@ -228,13 +232,38 @@ An agent never runs this command. Without a terminal, inside an agent session
 the subject, ask the user to run the command and wait. Details and limits:
 SPEC-MANIFEST.md, `reviewer: human`.
 
-A workflow you create must have a human gate before any step that
-writes files (`workspace-apply`) or sends data (any `api-request` except a plain `GET` to a literal http(s) URL);
-`q-core validate` and `q-core run` refuse it otherwise (`GATE_REQUIRED`). A
-`workspace-read` that no later step uses is refused too (`UNUSED_WORKSPACE_READ`).
-Reviewed Registry workflows installed unchanged with `q-core install` keep their
-published shape. A rejected, dismissed or unanswered question is not approval, and
-an agent never replaces a Q-Core step with its own script.
+Approval is a component a workflow author places where a human decision is needed.
+`workspace-apply` runs autonomously only when no preceding approval gate governs
+it on its execution path, including across parent and nested workflows. Every
+write requires the explicit local `--workspace-policy <json>`: allowed paths,
+workspace snapshots and verifier hashes still bound the write. A genuinely
+ungated source-only apply pins them at apply time; an optional `specification`
+reference uses the earlier planned snapshot instead. Q-Core validates that
+specification's structure and recomputes its canonical SHA-256 from the recorded
+workflow/workspace identity, specification content, policy hash and revision;
+changing the content while retaining its claimed hash refuses the write.
+
+A governed apply must declare `approval` bound to the governing gate's approved
+subject, and the gate must use `bind: sha256`. The validator checks this rule
+through control paths and nested workflows; runtime checks the actual approved
+subject and its hash again before writing. A later gate in the same workflow
+can approve a new subject; a nested gate cannot discard the approval binding
+inherited from its parent workflow. Omitting `approval`, substituting a
+different specification or passing an invalid/unresolved approval never selects
+autonomous execution. An already-approved legacy run without a separately
+recorded subject-hash anchor fails closed; restart it for a fresh approval.
+A legacy run still waiting at its gate can record that anchor when a person
+approves its current subject. No policy, an out-of-policy path, changed pinned files,
+symlinks or a changed verifier refuses the write. Human gates retain their pause
+and terminal-only decision; an agent cannot approve them.
+
+Created workflows still need a human gate before sending data (any `api-request`
+except a plain `GET` to a literal http(s) URL); `q-core validate` and `q-core run`
+refuse those sends otherwise (`GATE_REQUIRED`). A `workspace-read` that no later
+step uses is refused too (`UNUSED_WORKSPACE_READ`). Reviewed Registry workflows
+installed unchanged with `q-core install` keep their published shape. A rejected,
+dismissed or unanswered question is not approval, and an agent never replaces a
+Q-Core step with its own script.
 
 ## YAML workflow commands
 

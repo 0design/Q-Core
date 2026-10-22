@@ -69,6 +69,12 @@
     },
     {
       "class": "generic-control-flow",
+      "path": "^(src/workflow-policy\\.mjs|test/round2-workspace-security\\.test\\.mjs)$",
+      "token": "^loop$",
+      "reason": "workspace approval binding across repeated control-flow bodies"
+    },
+    {
+      "class": "generic-control-flow",
       "path": "^test/q-workflow-cli-naming\\.test\\.mjs$",
       "line": "generic|kind: loop|loop\\\\s\\+repeat|loop\\.yaml",
       "reason": "CLI keeps the generic control-flow kind"

@@ -200,6 +200,9 @@ function describePlan(manifest) {
       ? `  ${c.dim("this workflow stops for a human — only a person continues it with `q-core approve` in their own terminal")}`
       : `  ${c.dim("no human gate — this workflow runs to the end on its own")}`,
   );
+  const hasWorkspaceWrite = [manifest, ...Object.values(manifest.materialGraph ?? {}).map((node) => node.manifest)]
+    .some((doc) => flattenWorkflowSteps(doc.steps).some(({ step }) => step.kind === "workspace-apply"));
+  if (hasWorkspaceWrite) lines.push(`  ${c.dim("workspace writes require --workspace-policy (allowed paths and pinned hashes); approval-gate is optional")}`);
   return lines.join("\n");
 }
 

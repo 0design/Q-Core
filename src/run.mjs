@@ -178,6 +178,27 @@ function isSddClarification(run, step, output) {
 
 function materialId(run, row) { return run.materialGraph?.[run.invocations?.[row.invocationId ?? 'root']?.key]?.manifest.id ?? run.workflowId; }
 
+function gateSubjectRow(run, gate) {
+  return gate.boundSubjectRowId
+    ? run.steps.find(row => row.rowId === gate.boundSubjectRowId)
+    : run.steps.filter(row => row.seq < gate.seq && (row.invocationId ?? 'root') === (gate.invocationId ?? 'root') && row.kind !== 'workflow-return' && row.status === 'success' && row.output != null).at(-1);
+}
+
+// Expanded rows contain only the taken control paths. Gates keep governing later writes across
+// workflow calls/returns; a child or a second source-only apply cannot shed a parent's approval.
+function workspaceApprovalGates(run, next) {
+  const effectiveAt = (id, cutoff) => {
+    const frame = run.invocations?.[id];
+    const call = frame?.parent && run.steps.find(row => row.rowId === frame.callRowId);
+    const inherited = call ? effectiveAt(frame.parent, call.seq) : [];
+    const local = run.steps.filter(row => row.seq < cutoff && row.kind === 'approval-gate' && row.status !== 'skipped' &&
+      ancestry(run, row.invocationId ?? 'root').includes(id)).at(-1);
+    return [...new Set([...inherited, ...(local ? [local] : [])])];
+  };
+  return effectiveAt(next.invocationId ?? 'root', next.seq)
+    .map(gate => ({ ...gate, currentSubject: gateSubjectRow(run, gate)?.output ?? null }));
+}
+
 /** The three knobs, resolved once per run, with where each value came from. */
 export function resolveKnobs(settings = {}) {
   const model = settings.model ?? process.env.OPENROUTER_MODEL ?? null;
@@ -514,6 +535,7 @@ export async function driveRun(run, opts = {}) {
       signal: opts.signal,
       runStore: store,
       workspacePolicy: run.workspacePolicy,
+      workspaceApprovalGates: next.kind === 'workspace-apply' ? workspaceApprovalGates(run, next) : [],
       repairSnapshot: run.repairSnapshot,
       repairAttempt: run.repairAttempt,
     };
@@ -614,6 +636,10 @@ export async function driveRun(run, opts = {}) {
       next.status = result.waitingHuman ? "waiting_human" : "success";
       next.gateReason = result.waitingHuman ? "gate" : null;
       next.output = result.output;
+      if (next.kind === 'approval-gate' && next.config.bind === 'sha256') {
+        next.boundSubjectHash = result.output?.approvalHash;
+        next.boundSubjectRowId = gateSubjectRow(run, next)?.rowId ?? null;
+      }
       next.tokensIn = result.tokensIn ?? 0;
       next.tokensOut = result.tokensOut ?? 0;
       next.costUsd = result.unknownUsage || costUsd === null ? null : roundUsd(costUsd);
@@ -972,7 +998,7 @@ export function waitingGate(run, approvalHash) {
   if (!gate) throw new Error(`Run ${run.runId} is not waiting on anyone (status: ${run.status}).`);
   if (gate.config.bind === 'sha256') {
     const subject = run.steps.filter(s => s.seq < gate.seq && (s.invocationId ?? 'root') === (gate.invocationId ?? 'root') && s.status === 'success' && s.output != null).at(-1)?.output ?? null;
-    insist(approvalHash === gate.output.approvalHash && hash(subject) === approvalHash && hash(gate.output.subject) === approvalHash, 'Approval does not match the current exact subject', 'STALE_APPROVAL');
+    insist(approvalHash === gate.output.approvalHash && (!gate.boundSubjectHash || gate.boundSubjectHash === approvalHash) && hash(subject) === approvalHash && hash(gate.output.subject) === approvalHash, 'Approval does not match the current exact subject', 'STALE_APPROVAL');
   }
   return gate;
 }
@@ -995,6 +1021,7 @@ export async function resumeRun(run, { decision, approvalHash, confirmation, ...
   insist(!marker, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal`, 'HUMAN_CONFIRMATION_REQUIRED');
   const gate = waitingGate(run, approvalHash);
   gate.decision = decision;
+  if (decision === 'approve' && gate.config.bind === 'sha256') gate.approvedSubjectHash = approvalHash;
   gate.confirmation = { channel: confirmation.channel, confirmedAt: confirmation.confirmedAt ?? new Date().toISOString() };
   if (decision === "reject") {
     gate.status = "failed";

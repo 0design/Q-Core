@@ -7,8 +7,10 @@
  * `run`, `approve` and the host when they load a manifest (loadWorkflow). Library calls (loadManifest,
  * createRun/driveRun) do not apply it; a hosted validator must call assertWorkflowPolicy itself.
  *
- * - GATE_REQUIRED: a step that writes files (workspace-apply) or sends data (every api-request except an
- *   exact method: GET to a literal http(s) URL) needs a human approval-gate earlier on the same path.
+ * - Workspace writes require runtime policy. Any preceding approval-gate also requires an explicit
+ *   approval binding; omitting it cannot turn a governed apply into an autonomous write.
+ * - GATE_REQUIRED: a step that sends data (every api-request except an exact method: GET to a literal
+ *   http(s) URL) needs a human approval-gate earlier on the same path.
  *   Reviewed Registry workflows (built into the Registry, installed or initialised unchanged) are exempt.
  * - UNUSED_WORKSPACE_READ: a workspace-read whose output no later step uses is refused in every workflow.
  */
@@ -37,10 +39,60 @@ export function sideEffectOf(step) {
 
 const isHumanGate = (step) => step.kind === "approval-gate" && (step.config?.reviewer ?? "human") === "human";
 
+/** Track possible latest local gates separately from inherited caller gates. A later local gate
+ * can approve a new subject, but a child cannot drop its parent's binding. At control joins and
+ * across repeated bodies, require a binding if any incoming path can have a governing gate. */
+export function assertWorkspaceApprovalBindings(steps, { graph, key } = {}) {
+  const unique = values => [...new Set(values)];
+  const childOf = (step, materialKey) => graph?.[materialKey]?.resolved?.[step.config.ref];
+  const gatesWithin = (list, materialKey) => list.flatMap(step => [
+    ...(step.kind === 'approval-gate' ? [step] : []),
+    ...branchesOf(step).flatMap(branch => gatesWithin(branch, materialKey)),
+    ...(step.kind === 'workflow-call' && childOf(step, materialKey) ? gatesWithin(graph[childOf(step, materialKey)].manifest.steps, childOf(step, materialKey)) : []),
+  ]);
+  const walk = (list, inherited, initial, path, materialKey) => {
+    // null is a possible path on which no local gate has executed yet.
+    let local = initial;
+    for (const [i, step] of list.entries()) {
+      const at = `${path}[${i}]`;
+      const refuse = message => { throw Object.assign(new ManifestError(message, at), { materialPath: materialKey ?? null }); };
+      const gates = unique([...inherited, ...local].filter(Boolean));
+      if (step.kind === 'workspace-apply' && gates.length) {
+        if (!step.config?.approval || Object.hasOwn(step.config, 'specification'))
+          refuse('WORKSPACE_APPROVAL_REQUIRED: workspace-apply governed by an approval-gate must declare approval; autonomous writes require a path with no governing gate');
+        if (gates.some(gate => gate.config?.bind !== 'sha256' || !isHumanGate(gate)))
+          refuse('WORKSPACE_APPROVAL_REQUIRED: every governing approval-gate must provide a human-approved sha256 subject');
+      }
+      if (step.kind === 'workflow-call') {
+        const childKey = childOf(step, materialKey);
+        if (!childKey) refuse('UNRESOLVED_DEPENDENCY: load and verify the complete graph before applying workspace approval policy');
+        const exits = walk(graph[childKey].manifest.steps, gates, [null], 'steps', childKey);
+        local = unique(exits.flatMap(gate => gate ? [gate] : local));
+      }
+      const branches = [
+        ...['then', 'else', 'default'].filter(name => step[name]).map(name => [name, step[name]]),
+        ...Object.entries(step.cases ?? {}).map(([name, branch]) => [`cases.${name}`, branch]),
+      ];
+      if (branches.length) {
+        const repeating = (step.kind === 'loop' && Number(step.config?.maxIterations ?? 10) > 1) ||
+          (['each', 'fan-out'].includes(step.kind) && Number(step.config?.maxItems ?? 50) > 1 && (step.kind === 'each' || step.config?.over));
+        const carried = repeating ? unique(branches.flatMap(([, branch]) => gatesWithin(branch, materialKey))) : [];
+        const exits = branches.flatMap(([name, branch]) => walk(branch, unique([...inherited, ...carried]), local, `${at}.${name}`, materialKey));
+        const exhaustive = (step.kind === 'if' && step.else) || (step.kind === 'switch' && step.default) || (step.kind === 'fan-out' && !step.config?.over);
+        local = unique([...(exhaustive ? [] : local), ...exits]);
+      }
+      if (step.kind === 'approval-gate') local = [step];
+    }
+    return local;
+  };
+  walk(steps, [], [null], 'steps', key);
+}
+
 /**
- * Gate required: a workflow created outside the reviewed Registry may not write
- * files or send data anywhere before a person has approved the run. A human
- * approval-gate must come EARLIER on the same path as every side-effect step. A gate
+ * Gate required for outbound requests: a workflow created outside the reviewed
+ * Registry may not send data before a person has approved the run. Workspace writes
+ * instead require a runtime workspace policy, with an optional approval component.
+ * A human approval-gate must come EARLIER on the same path as every outbound step. A gate
  * inside an if/switch branch guards only that branch. Agent gates do not count.
  * Reviewed Registry workflows (installed with a matching lock, or built into the
  * Registry release) keep their published shape and are not re-judged here.
@@ -51,10 +103,10 @@ export function assertHumanGateBeforeSideEffects(steps, { graph, key } = {}) {
     list.forEach((step, i) => {
       const at = `${path}[${i}]`;
       const effect = sideEffectOf(step);
-      if (effect && !covered) {
+      if (effect && step.kind !== "workspace-apply" && !covered) {
         throw Object.assign(new ManifestError(
           `GATE_REQUIRED: step "${step.id}" (${step.kind}) ${effect}, and no human approval-gate comes before it. ` +
-            "A workflow you create may not write files or send data before a person approves the run: add an " +
+            "A workflow you create may not send data before a person approves the run: add an " +
             "approval-gate step with reviewer: human (bind: sha256) before it, or install the reviewed Registry " +
             "workflow unchanged with q-core install. Do not move the work into your own script instead",
           at,
@@ -196,7 +248,7 @@ export function assertWorkspaceReadIsUsed(steps, outputs = {}) {
       throw new ManifestError(
         `UNUSED_WORKSPACE_READ: no step uses the output of workspace-read "${step.id}". Q-Core would read the ` +
           "project and do nothing with it. Make the work a Q-Core step that takes {{steps." + step.id + ".output}} " +
-          "(for example specification → human approval-gate → workspace-apply), not your own script",
+          "(for example specification → workspace-apply, with an optional human approval-gate), not your own script",
         at,
       );
     }
@@ -226,6 +278,7 @@ export function assertWorkflowPolicy(manifest, { reviewed = false } = {}) {
   };
   checkReads(manifest, manifest.materialKey);
   for (const [key, node] of Object.entries(manifest.materialGraph ?? {})) checkReads(node.manifest, key);
+  assertWorkspaceApprovalBindings(manifest.steps, { graph: manifest.materialGraph, key: manifest.materialKey });
   if (!reviewed) assertHumanGateBeforeSideEffects(manifest.steps, { graph: manifest.materialGraph, key: manifest.materialKey });
   return manifest;
 }
