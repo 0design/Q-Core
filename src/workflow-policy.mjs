@@ -7,8 +7,9 @@
  * `run`, `approve` and the host when they load a manifest (loadWorkflow). Library calls (loadManifest,
  * createRun/driveRun) do not apply it; a hosted validator must call assertWorkflowPolicy itself.
  *
- * - GATE_REQUIRED: a step that writes files (workspace-apply) or sends data (every api-request except an
- *   exact method: GET to a literal http(s) URL) needs a human approval-gate earlier on the same path.
+ * - Workspace writes are bounded by the mandatory runtime workspace policy; approval-gate is optional.
+ * - GATE_REQUIRED: a step that sends data (every api-request except an exact method: GET to a literal
+ *   http(s) URL) needs a human approval-gate earlier on the same path.
  *   Reviewed Registry workflows (built into the Registry, installed or initialised unchanged) are exempt.
  * - UNUSED_WORKSPACE_READ: a workspace-read whose output no later step uses is refused in every workflow.
  */
@@ -38,9 +39,10 @@ export function sideEffectOf(step) {
 const isHumanGate = (step) => step.kind === "approval-gate" && (step.config?.reviewer ?? "human") === "human";
 
 /**
- * Gate required: a workflow created outside the reviewed Registry may not write
- * files or send data anywhere before a person has approved the run. A human
- * approval-gate must come EARLIER on the same path as every side-effect step. A gate
+ * Gate required for outbound requests: a workflow created outside the reviewed
+ * Registry may not send data before a person has approved the run. Workspace writes
+ * instead require a runtime workspace policy, with an optional approval component.
+ * A human approval-gate must come EARLIER on the same path as every outbound step. A gate
  * inside an if/switch branch guards only that branch. Agent gates do not count.
  * Reviewed Registry workflows (installed with a matching lock, or built into the
  * Registry release) keep their published shape and are not re-judged here.
@@ -51,10 +53,10 @@ export function assertHumanGateBeforeSideEffects(steps, { graph, key } = {}) {
     list.forEach((step, i) => {
       const at = `${path}[${i}]`;
       const effect = sideEffectOf(step);
-      if (effect && !covered) {
+      if (effect && step.kind !== "workspace-apply" && !covered) {
         throw Object.assign(new ManifestError(
           `GATE_REQUIRED: step "${step.id}" (${step.kind}) ${effect}, and no human approval-gate comes before it. ` +
-            "A workflow you create may not write files or send data before a person approves the run: add an " +
+            "A workflow you create may not send data before a person approves the run: add an " +
             "approval-gate step with reviewer: human (bind: sha256) before it, or install the reviewed Registry " +
             "workflow unchanged with q-core install. Do not move the work into your own script instead",
           at,
@@ -196,7 +198,7 @@ export function assertWorkspaceReadIsUsed(steps, outputs = {}) {
       throw new ManifestError(
         `UNUSED_WORKSPACE_READ: no step uses the output of workspace-read "${step.id}". Q-Core would read the ` +
           "project and do nothing with it. Make the work a Q-Core step that takes {{steps." + step.id + ".output}} " +
-          "(for example specification → human approval-gate → workspace-apply), not your own script",
+          "(for example specification → workspace-apply, with an optional human approval-gate), not your own script",
         at,
       );
     }

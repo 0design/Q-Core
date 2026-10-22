@@ -228,13 +228,23 @@ An agent never runs this command. Without a terminal, inside an agent session
 the subject, ask the user to run the command and wait. Details and limits:
 SPEC-MANIFEST.md, `reviewer: human`.
 
-A workflow you create must have a human gate before any step that
-writes files (`workspace-apply`) or sends data (any `api-request` except a plain `GET` to a literal http(s) URL);
-`q-core validate` and `q-core run` refuse it otherwise (`GATE_REQUIRED`). A
-`workspace-read` that no later step uses is refused too (`UNUSED_WORKSPACE_READ`).
-Reviewed Registry workflows installed unchanged with `q-core install` keep their
-published shape. A rejected, dismissed or unanswered question is not approval, and
-an agent never replaces a Q-Core step with its own script.
+Approval is a component a workflow author places where a human decision is needed.
+`workspace-apply` is valid without an `approval-gate` and runs autonomously within
+the explicit local `--workspace-policy <json>`: allowed paths and pinned workspace
+and verifier hashes still bound every write. A source-only apply pins them at
+apply time; an optional `specification` reference uses the earlier planned
+snapshot instead. No policy, an out-of-policy path, changed pinned files or a
+changed verifier refuses the write. Adding a human gate
+keeps the same pause, exact SHA-256 binding (`bind: sha256`) and terminal-only
+decision; an agent cannot approve it.
+
+Created workflows still need a human gate before sending data (any `api-request`
+except a plain `GET` to a literal http(s) URL); `q-core validate` and `q-core run`
+refuse those sends otherwise (`GATE_REQUIRED`). A `workspace-read` that no later
+step uses is refused too (`UNUSED_WORKSPACE_READ`). Reviewed Registry workflows
+installed unchanged with `q-core install` keep their published shape. A rejected,
+dismissed or unanswered question is not approval, and an agent never replaces a
+Q-Core step with its own script.
 
 ## YAML workflow commands
 

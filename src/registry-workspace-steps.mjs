@@ -9,6 +9,7 @@ import { resolveTemplateValue } from './template.mjs';
 const value = (step, key, ctx) => resolveTemplateValue(step.config[key], { priorOutputs: ctx.priorOutputs, priorStepNames: ctx.priorStepNames, inputs: ctx.inputs });
 
 export function validateWorkspacePolicy(policy) {
+  insist(policy, 'Workspace policy required for workspace access; pass --workspace-policy <file>');
   insist(policy && Object.keys(policy).every(k => ['workspace','allowedPaths','intent','verifier','maxRepairAttempts','specification'].includes(k)), 'Invalid workspace policy fields');
   insist(typeof policy.workspace === 'string' && isAbsolute(policy.workspace), 'Absolute workspace required');
   insist(Array.isArray(policy.allowedPaths) && policy.allowedPaths.length > 0 && policy.allowedPaths.length <= 30 && policy.allowedPaths.every(p => typeof p === 'string') && new Set(policy.allowedPaths).size === policy.allowedPaths.length, 'Unique bounded allowed paths required');
@@ -52,17 +53,32 @@ export function runSpecification(step, ctx) {
   return { output: { ...record, spec, plan: spec.plan, workspace } };
 }
 export function runWorkspaceApply(step, ctx) {
-  const proposal = value(step, 'source', ctx), approved = value(step, 'approval', ctx);
-  const spec = approved?.subject;
-  insist(spec?.workspace && approved?.approvalHash === hash(spec), 'Exact approved specification required');
-  const original = spec.workspace, policy = validateWorkspacePolicy(ctx.workspacePolicy);
-  insist(hash(policy) === original.policyHash, 'Execution policy changed after approval');
-  insist(hash(verifierIdentity(policy)) === hash(original.verifierSources), 'Verifier source changed after planning');
-  const before = ctx.repairSnapshot ?? original.before;
+  const policy = validateWorkspacePolicy(ctx.workspacePolicy);
+  const proposal = value(step, 'source', ctx);
+  const hasApproval = Object.hasOwn(step.config, 'approval'), hasSpecification = Object.hasOwn(step.config, 'specification');
+  insist(!(hasApproval && hasSpecification), 'Use either approval or specification, not both');
+  let spec;
+  if (hasApproval) {
+    const approved = value(step, 'approval', ctx);
+    spec = approved?.subject;
+    insist(spec?.workspace && approved?.approvalHash === hash(spec), 'Exact approved specification required');
+  } else if (hasSpecification) {
+    spec = value(step, 'specification', ctx);
+    insist(spec?.workspace && spec.hash, 'Exact specification required');
+  }
+  const original = spec?.workspace;
+  const policyHash = hash(policy), verifierSources = verifierIdentity(policy);
+  if (original) {
+    insist(original.before && typeof original.before === 'object' && !Array.isArray(original.before), 'Planning snapshot required');
+    insist(policyHash === original.policyHash, hasApproval ? 'Execution policy changed after approval' : 'Execution policy changed after planning');
+    insist(hash(verifierSources) === hash(original.verifierSources), 'Verifier source changed after planning');
+  }
   const lock = lockWorkspace(policy.workspace);
   try {
+    // With no planning reference, the mandatory policy pins the current files at apply time.
+    const before = ctx.repairSnapshot ?? (original ? original.before : snapshot(policy.workspace, policy.allowedPaths));
     const after = applyFiles(policy.workspace, policy.allowedPaths, proposal?.files, before);
-    return { output: { workspace: policy.workspace, paths: policy.allowedPaths, artifactHash: hash(after), revision: (ctx.repairAttempt ?? 0) + 1, after, policyHash: original.policyHash, verifierSources: original.verifierSources, specHash: spec.hash } };
+    return { output: { workspace: policy.workspace, paths: policy.allowedPaths, artifactHash: hash(after), revision: (ctx.repairAttempt ?? 0) + 1, after, policyHash, verifierSources, specHash: spec?.hash } };
   } finally { lock.release(); }
 }
 export async function runVerifyArtifact(step, ctx) {
@@ -82,7 +98,7 @@ export function assertFreshWorkspaceArtifact(artifact, policy) {
  * mechanics. The persistent Registry driver owns caller waits and repair bounds. */
 export async function runDetermined(step, ctx) {
   const artifact = value(step, 'source', ctx), spec = value(step, 'specification', ctx);
-  insist(spec?.spec?.criteria?.length && spec.hash === artifact?.specHash, 'determined requires the approved specification binding');
+  insist(spec?.spec?.criteria?.length && spec.hash === artifact?.specHash, 'determined requires the specification binding');
   const policy = validateWorkspacePolicy(ctx.workspacePolicy);
   let checked;
   const result = await determined({ criteria: spec.spec.criteria.map((text, i) => ({ id: `criterion-${i + 1}`, text, verifier: { type: 'command', identity: hash(artifact.verifierSources) } })), maxRepairAttempts: 0, signal: ctx.signal }, {

@@ -116,6 +116,14 @@ test('child side effects cannot hide from human policy; output type failures pro
   assert.equal(failed.steps[0].status, 'failed');
 });
 
+test('an ungated workspace-apply remains valid inside a pinned child workflow', t => {
+  const dir = directory(t);
+  const child = document('writer', { steps: [{ id: 'apply', kind: 'workspace-apply', config: { source: '{"files":[{"path":"value.txt","content":"bounded"}]}' } }] });
+  const ref = write(dir, 'writer.yaml', child);
+  write(dir, 'parent.yaml', parent(ref, { outputs: {}, steps: [{ id: 'call', kind: 'workflow-call', config: { ref: 'cleaner' } }] }));
+  assert.doesNotThrow(() => loadWorkflow(join(dir, 'parent.yaml')));
+});
+
 test('template data is never reinterpreted and whole input refs preserve objects/null/booleans', () => {
   const context = { priorOutputs: {}, inputs: { value: '{{env.SECRET}}', bool: false, nullable: null, obj: { value: 4 } } };
   assert.deepEqual(resolveBinding({ value: '{{inputs.value}}', bool: '{{inputs.bool}}', nullable: '{{inputs.nullable}}', obj: '{{inputs.obj}}' }, context), { value: '{{env.SECRET}}', bool: false, nullable: null, obj: { value: 4 } });

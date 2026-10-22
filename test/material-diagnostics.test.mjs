@@ -65,7 +65,7 @@ test('binding diagnostics locate the actual calling control-flow field', t => {
   assert.equal(error.materialPath, 'parent.yaml'); assert.equal(error.path, 'steps[0].then[0].config.inputs'); assert.match(error.message, /expected array/);
 });
 
-test('child human-policy and unused-read diagnostics use child-relative paths without changing policy', t => {
+test('child outbound human-policy skips optional workspace approval and preserves child-relative diagnostics', t => {
   const dir = directory(t);
   let ref = child(dir, 'child.yaml', manifest('child', { steps: [{ id: 'send', kind: 'api-request', config: { url: 'https://example.test/never-called' } }] }));
   put(dir, 'parent.yaml', parent(ref));
@@ -73,6 +73,10 @@ test('child human-policy and unused-read diagnostics use child-relative paths wi
   assert.equal(gate.materialPath, 'child.yaml'); assert.equal(gate.path, 'steps[0]'); assert.match(gate.message, /GATE_REQUIRED/);
   const guarded = parent(ref); guarded.steps.unshift({ id: 'approve', kind: 'approval-gate', config: { reviewer: 'human', bind: 'sha256' } });
   put(dir, 'parent.yaml', guarded); assert.doesNotThrow(() => loadWorkflow(join(dir, 'parent.yaml'))); // Validation only; no approval or send.
+  ref = child(dir, 'child.yaml', manifest('child', { steps: [{ id: 'apply', kind: 'workspace-apply', config: { source: '{"files":[{"path":"value.txt","content":"bounded"}]}' } }, { id: 'send', kind: 'api-request', config: { url: 'https://example.test/never-called' } }] }));
+  put(dir, 'parent.yaml', parent(ref));
+  const outbound = thrown(() => loadWorkflow(join(dir, 'parent.yaml')));
+  assert.equal(outbound.materialPath, 'child.yaml'); assert.equal(outbound.path, 'steps[1]'); assert.match(outbound.message, /GATE_REQUIRED: step "send"/);
   ref = child(dir, 'child.yaml', manifest('child', { steps: [{ id: 'read', kind: 'workspace-read' }] })); put(dir, 'parent.yaml', parent(ref));
   const unused = thrown(() => loadWorkflow(join(dir, 'parent.yaml')));
   assert.equal(unused.materialPath, 'child.yaml'); assert.equal(unused.path, 'steps[0]'); assert.match(unused.message, /UNUSED_WORKSPACE_READ/);

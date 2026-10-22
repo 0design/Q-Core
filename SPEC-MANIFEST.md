@@ -238,9 +238,12 @@ One kind, two modes; they differ only in *who* decides.
 | `mode` | `check` is `RESERVED` — refused | |
 
 **`reviewer: human`** parks the run as `waiting_human`. `q-core approve` continues it,
-`--reject` fails it. A human gate is optional for a workflow with no side effect,
-and for a reviewed Registry workflow installed unchanged. **A workflow you create
-needs one before any side effect** — see "Created workflows" below.
+`--reject` fails it. Approval is an optional component placed by the workflow
+author, rather than a base requirement for every write. `workspace-apply` can run
+autonomously without a human gate, bounded by an explicit workspace policy. When
+present, a human gate keeps its existing pause and decision requirements; with
+`bind: sha256` it requires the exact subject hash. The separate policy for created
+workflows that send data remains below.
 
 **The subject of a human gate is one output:** that of the last successful step before
 it in the same material. When a side effect after the gate (until the next human gate)
@@ -300,12 +303,12 @@ agent session, like `resumeRun`. The same limits apply as for `q-core approve`.
 The `approval` property stays in `contracts/v1/request.schema.json` (the hosted
 validator is shared across Cores); the runtime refuses it.
 
-**Created workflows: a human gate before any side effect.** A policy
+**Created workflows: optional approval for workspace writes, required approval for sends.** A policy
 on top of the unchanged format (`src/workflow-policy.mjs`; `validateManifest`
 stays byte-identical so one hosted validator serves several Cores): `q-core
 validate`, `q-core run`, `q-core approve` and the host refuse a
-workflow in which a step that writes files (`workspace-apply`) or sends data
-(every `api-request` except exactly `method: GET` to a literal `http(s)` URL: any
+workflow in which a step sends data (every `api-request` except exactly
+`method: GET` to a literal `http(s)` URL: any
 other method value, a templated method, no method (`POST`), a `file:` URL or a
 templated URL, which can fall back to the local file sink) has no human
 `approval-gate` earlier on the same path (`GATE_REQUIRED`). A gate
@@ -694,16 +697,24 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
 - Workspace components require an explicit local `--workspace-policy <json>`:
   absolute `workspace`, `allowedPaths`, `intent`, immutable `verifier` command,
   file `args`, `timeoutMs`, and `maxRepairAttempts` (0..5). Optional
-  `specification` imports bounded summary/criteria/plan but still needs approval.
-  Policy is persisted with the run; it cannot be supplied by generated output.
+  `specification` imports bounded summary/criteria/plan. Policy is mandatory for
+  workspace writes, including writes without a human gate: no policy refuses the
+  write. Policy is persisted with the run; it cannot be supplied by generated output.
 - `workspace-read` pins files and independent verifier inputs. `specification`
   takes `source` and `workspace` references and records a revision when spec or
   policy changes. An ambiguous intent must be clarified before the caller replies;
   a scope change starts a new specification revision, not a silent in-run edit.
-- `workspace-apply` takes `source` with `{files:[{path,content}]}` and `approval`
-  with the approved spec. It refuses changed source files, checker changes,
-  symlinks, out-of-scope paths and writable checker inputs. The verifier is a
-  trusted user-selected command, not an operating-system sandbox.
+- `workspace-apply` takes `source` with `{files:[{path,content}]}`. A preceding
+  human `approval-gate` is optional; gate-free writes run autonomously within the
+  workspace policy. With `source` alone, it pins the workspace and verifier at
+  apply time. Optional `specification: {{steps.specification.output}}` binds it to
+  that specification's planned snapshot, policy hash, verifier sources and spec
+  hash. Optional `approval` instead requires the exact approved specification
+  and hash from a human gate; an invalid or unresolved approval never falls back
+  to an ungated write. `specification` and `approval` cannot both be supplied.
+  Writes refuse changes to their pinned source files or verifier, symlinks,
+  out-of-scope paths and writable checker inputs. The verifier is a trusted
+  user-selected command, not an operating-system sandbox.
 - `verify-artifact` takes an applied artifact `source` and may set `repairFrom` to
   its caller proposal step. Failed checks repeat only the declared local
   proposal/apply/verify segment within the policy bound; missing/stale evidence
@@ -717,7 +728,7 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
 Use an exact package pin and validate the actual template in its target
 environment before relying on a Registry composition.
 - `determined` shares `source`, `specification` and `repairFrom` references. It
-  reuses the determined reducer's AND/freshness checks over approved criteria;
+  reuses the determined reducer's AND/freshness checks over specified criteria;
   all criteria bind to the explicitly selected independent verifier suite. The
   Registry driver persists pauses and bounded repair attempts around that reducer.
 - `q-core cancel <manifest> <runId>` cancels only a paused inference/approval run.

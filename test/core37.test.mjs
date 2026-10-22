@@ -1,4 +1,4 @@
-/* A created workflow may not write files or send data before a person approves the run.
+/* Created outbound requests require human approval; workspace writes use workspace policy.
    Also covers Digest label and outlet-name cases. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -42,7 +42,7 @@ steps:
       name: "Read the working tree and pin the summary artifact + verifier by hash"
 `;
 
-test("GATE_REQUIRED negative examples: side effects with no human gate before them on the same path", () => {
+test("GATE_REQUIRED negative examples: outbound requests with no human gate before them on the same path", () => {
   const refused = {
     "POST with no gate": FETCH + POST,
     "POST is the default method": POST,
@@ -59,20 +59,20 @@ test("GATE_REQUIRED negative examples: side effects with no human gate before th
     "GET to a templated URL may fall back to the file sink": POST.replace('url: "https://hooks.example/x"', 'method: GET\n      url: "{{env.Q37_HOOK}}"'),
     "a side effect inside an each body with no gate": `${FETCH}  - id: every\n    kind: each\n    config:\n      over: "{{steps.feed.output}}"\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
     "a side effect inside a loop body with no gate": `  - id: again\n    kind: loop\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
-    "workspace-apply with no gate": `  - id: ws\n    kind: workspace-read\n  - id: proposal\n    kind: llm-call\n    config:\n      instructions: "write"\n      input: "{{steps.ws.output}}"\n  - id: apply\n    kind: workspace-apply\n    config:\n      source: "{{steps.proposal.output}}"\n`,
   };
   for (const [name, steps] of Object.entries(refused)) {
-    assert.throws(() => validateManifest(doc(steps)), /GATE_REQUIRED: step "(send|apply)"/, name);
+    assert.throws(() => validateManifest(doc(steps)), /GATE_REQUIRED: step "send"/, name);
   }
   assert.throws(() => validateManifest(doc(FETCH + POST)), /add an approval-gate step with reviewer: human.*Do not move the work into your own script/s);
 });
 
-test("GATE_REQUIRED positive examples: a human gate earlier on the path, read-only steps, reviewed Registry shapes", () => {
+test("GATE_REQUIRED positive examples: guarded requests, read-only steps, workspace writes and reviewed Registry shapes", () => {
   for (const [name, steps] of Object.entries({
     "human gate before POST": FETCH + HUMAN + POST,
     "human gate by default (no reviewer field)": FETCH + HUMAN.replace("      reviewer: human\n", "") + POST,
     "agent gate then human gate": FETCH + AGENT + HUMAN + POST,
     "GET is a read": POST.replace('url:', 'method: GET\n      url:'),
+    "workspace-apply with no gate": `  - id: ws\n    kind: workspace-read\n  - id: proposal\n    kind: llm-call\n    config:\n      instructions: "write"\n      input: "{{steps.ws.output}}"\n  - id: apply\n    kind: workspace-apply\n    config:\n      source: "{{steps.proposal.output}}"\n`,
     "no side effect at all": FETCH + `  - id: sum\n    kind: llm-call\n    config:\n      instructions: "summarise"\n      input: "{{steps.feed.output}}"\n`,
     "a gate before an if guards its branches": `${HUMAN}  - id: check\n    kind: if\n    config:\n      condition: "true"\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
     "a gate before a fan-out guards its lanes": `${FETCH}${HUMAN}  - id: each\n    kind: fan-out\n    then:\n${POST.replace(/^/gm, "    ").trimEnd()}\n`,
