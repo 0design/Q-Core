@@ -2,9 +2,9 @@
 if (process.argv[2] === "auth") {
   try {
     const { hasKeychainSecret, removeKeychainSecret, setKeychainSecret } = await import("../src/secrets.mjs");
-    const [operation, provider, keyRef = "OPENROUTER_API_KEY", ...extra] = process.argv.slice(3);
-    if (!operation || provider !== "openrouter" || extra.length || !["set", "status", "remove"].includes(operation))
-      throw new Error("Usage: q-core auth <set|status|remove> openrouter [KEY_REF]");
+    const [operation, provider, keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", ...extra] = process.argv.slice(3);
+    if (!operation || !["openrouter", "anthropic"].includes(provider) || extra.length || !["set", "status", "remove"].includes(operation))
+      throw new Error("Usage: q-core auth <set|status|remove> <openrouter|anthropic> [KEY_REF]");
     if (operation === "set") {
       await setKeychainSecret({ provider, keyRef });
       process.stdout.write(JSON.stringify({ provider, keyRef, stored: true }) + "\n");

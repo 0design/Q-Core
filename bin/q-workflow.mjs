@@ -84,11 +84,15 @@ Options
   --quiet       only errors
 
 Environment
-  OPENROUTER_API_KEY   only for llm-call steps that use OpenRouter (provider is not
-                       cli) and for an Agent-Gate; caller inference (provider: cli)
+  OPENROUTER_API_KEY   only for OpenRouter llm-call steps and an Agent-Gate;
+                       caller inference (provider: cli)
                        needs no key. With secretSource: keychain it is read from
                        the macOS Keychain instead (q-core auth set openrouter)
   OPENROUTER_MODEL     default model when the manifest does not set one
+  ANTHROPIC_API_KEY    for llm-call steps with provider: anthropic; secretSource:
+                       keychain uses q-core auth set anthropic instead
+  ANTHROPIC_MODEL      default Anthropic model when the manifest does not set one
+  ANTHROPIC_WORKSPACE_ID optional Anthropic workspace header (workspaceId overrides)
   QCORE_WEBHOOK_URL    where catalogue workflows send their result
   TELEGRAM_BOT_TOKEN   used by workflows that publish to Telegram
   TELEGRAM_CHAT_ID     the chat those workflows publish to

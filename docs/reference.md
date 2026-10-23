@@ -183,9 +183,70 @@ In a workflow, a model step records the provider's reported cost, else the liste
 price of the model that answered, else `null`; the run budget treats `null` as
 unknown, not zero (see SPEC-MANIFEST.md §4.2 and §5.2).
 
+### Native Anthropic
+
+Use `provider: anthropic` on an `llm-call` step to spend the owner's Anthropic API
+credit directly. No OpenRouter account, BYOK forwarding or external fetch shim is
+involved. The reusable adapter is also exported:
+
+```js
+import { anthropic } from 'q-core';
+const result = await anthropic({
+  messages: [{ role: 'user', content: 'Summarize this synthetic input.' }],
+  model: 'claude-sonnet-5', keyRef: 'ANTHROPIC_API_KEY',
+  payerScope: 'local-byok', maxTokens: 256, timeoutMs: 30000, retries: 2,
+});
+```
+
+Workflow model precedence is `config.model` → `settings.model` →
+`ANTHROPIC_MODEL`; there is no default model or provider fallback. Workflow calls
+use the existing `local-byok` payer scope.
+
+`keyRef` defaults to `ANTHROPIC_API_KEY`; `secretSource: env | keychain` uses the
+same secret resolver as OpenRouter. Only the alias belongs in a manifest. The
+key is sent as `x-api-key`, never persisted in run state or included in errors.
+A missing environment key fails with `AUTH_REQUIRED`; keychain failures retain
+their typed secret-store errors. Requests go to
+`https://api.anthropic.com/v1/messages`, with `anthropic-version: 2023-06-01`.
+Optional `workspaceId` (or `ANTHROPIC_WORKSPACE_ID`) sets
+`anthropic-workspace-id`. The adapter requires an explicit `payerScope` of
+`local-byok` or `site-funded`; the label does not establish a separate quota.
+
+Supported models and first-party prices in USD per million tokens:
+
+| Anthropic model | Accepted OpenRouter alias | Input | Output |
+|---|---|---:|---:|
+| `claude-sonnet-5` | `anthropic/claude-sonnet-5` | 2.00 | 10.00 |
+| `claude-haiku-5-5` | `anthropic/claude-haiku-5.5` | 0.10 | 0.50 |
+| `claude-opus-5-5` | `anthropic/claude-opus-5.5` | 4.00 | 20.00 |
+| `claude-haiku-4-5` | `anthropic/claude-haiku-4.5` | 1.00 | 5.00 |
+
+For Haiku 5.5, input above 100,000 tokens changes both rates to 0.50 input and
+2.50 output. These are the pinned direct-provider rates, separate from
+OpenRouter's table. Actual input usage includes cache-read and cache-creation
+tokens, as in the reference direct route.
+
+`maxTokens` becomes Messages API `max_tokens`. `reasoning: low | medium | high`
+maps to `output_config.effort`. With reasoning omitted or `off`, Sonnet 5 and
+Haiku 5.5 disable thinking; Opus 5.5 uses `low` effort because its thinking cannot
+be disabled. Legacy Haiku 4.5 runs without thinking or an effort parameter. Only
+legacy Haiku accepts `temperature`; sampling is omitted for the other models.
+
+The adapter requests streaming and reads the complete answer within each
+attempt's timeout. Network errors, dropped/incomplete streams, timeouts, 429 and
+5xx responses retry with the same bounded policy; ordinary 4xx fail immediately.
+`stop_reason: max_tokens` fails as `OUTPUT_LIMIT`, preserving billed usage.
+Usage-based cost enters the existing step/run budget accounting; per-call
+`maxCallCostUsd` checks the worst case of all permitted attempts before sending.
+An attempt with unreadable usage may have been billed: its cost remains unknown
+even if a retry succeeds, and a dollar-capped run refuses the next paid step.
+
+### HTTP retry policy
+
 HTTP transport retries network/timeout/429/5xx failures with bounded backoff;
 ordinary 4xx fail fast. Caller cancellation stops request/backoff without retry.
-Response body parsing errors are not retried. Internal policy allows 0–10 retries,
+OpenRouter response body parsing errors are not retried. Anthropic reads and
+validates its stream inside the retry attempt. Internal policy allows 0–10 retries,
 positive timeouts and nonnegative delays; invalid policy fails before requests.
 Retries of outgoing requests can duplicate writes: use receipt-aware content APIs
 for publication. Retry is never exactly-once delivery.

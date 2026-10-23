@@ -14,6 +14,7 @@ export { bindInputs, bindOutputs } from './material-io.mjs';
 export { validateComponentDescriptor, loadComponentDescriptor } from './component-descriptor.mjs';
 export { loadWorkflow, assertWorkflowPolicy, sideEffectOf, approvalSubjectWarnings, workflowWarnings } from "./workflow-policy.mjs";
 export { openRouter } from "./providers/openrouter.mjs";
+export { anthropic } from "./providers/anthropic.mjs";
 export { claude } from "./providers/claude.mjs";
 export { runAgent } from "./agent.mjs";
 export { runContent, reconcilePublication } from "./content.mjs";

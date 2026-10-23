@@ -19,8 +19,8 @@ function ensureKeychain(platform = process.platform) {
     );
 }
 
-export function keychainIdentity(provider, keyRef = "OPENROUTER_API_KEY") {
-  insist(provider === "openrouter", "Only the OpenRouter secret store is supported");
+export function keychainIdentity(provider, keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY") {
+  insist(["openrouter", "anthropic"].includes(provider), "Unsupported provider secret store");
   insist(
     typeof keyRef === "string" &&
       Buffer.byteLength(keyRef) <= MAX_KEY_REF_LENGTH &&
@@ -28,8 +28,8 @@ export function keychainIdentity(provider, keyRef = "OPENROUTER_API_KEY") {
     "Invalid secret keyRef",
   );
   return Object.freeze({
-    service: SERVICE,
-    account: `openrouter:${keyRef}`,
+    service: provider === "openrouter" ? SERVICE : "com.qfactory.q-core.anthropic",
+    account: `${provider}:${keyRef}`,
   });
 }
 
@@ -79,7 +79,7 @@ function cleanSecret(stdout) {
 }
 
 export async function getKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   options = {},
 ) {
   ensureKeychain(platform);
@@ -89,7 +89,7 @@ export async function getKeychainSecret(
 }
 
 export async function hasKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   options = {},
 ) {
   ensureKeychain(platform);
@@ -100,7 +100,7 @@ export async function hasKeychainSecret(
 }
 
 export async function removeKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   options = {},
 ) {
   ensureKeychain(platform);
@@ -114,7 +114,7 @@ export async function removeKeychainSecret(
  * and stdin is inherited so its protected prompt handles entry and echo.
  */
 export async function setKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   { interactive = runInteractiveSecurity, isInteractive = () => process.stdin.isTTY && process.stdout.isTTY } = {},
 ) {
   ensureKeychain(platform);
@@ -208,7 +208,7 @@ async function runInteractiveSecurity(args, { timeoutMs = 120000 } = {}) {
 }
 
 export async function resolveProviderSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", secretSource = "env", env = process.env, platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", secretSource = "env", env = process.env, platform = process.platform } = {},
   options = {},
 ) {
   insist(SECRET_STORE_MODES.includes(secretSource), "Invalid secretSource");

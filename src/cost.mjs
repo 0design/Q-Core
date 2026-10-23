@@ -72,3 +72,45 @@ export function worstCaseCallUsd({ model, messagesBytes, maxTokens, attempts = 1
   const promptTokens = messagesBytes + 64;
   return attempts * (promptTokens * rate[0] + maxTokens * rate[1]);
 }
+
+/** First-party Anthropic prices and request capabilities, copied from the
+ * owner's working direct-API reference on 2026-10-23. These are separate from
+ * the OpenRouter fallback table: choosing a provider must not change what an
+ * existing OpenRouter call is charged or allowed to spend. */
+const ANTHROPIC_MODELS = Object.freeze({
+  "claude-haiku-5-5": Object.freeze({ id: "claude-haiku-5-5", in: 0.10, out: 0.50, longIn: 0.50, longOut: 2.50, longAbove: 100_000, sampling: false, canDisable: true }),
+  "claude-sonnet-5": Object.freeze({ id: "claude-sonnet-5", in: 2, out: 10, sampling: false, canDisable: true }),
+  "claude-opus-5-5": Object.freeze({ id: "claude-opus-5-5", in: 4, out: 20, sampling: false, canDisable: false }),
+  "claude-haiku-4-5": Object.freeze({ id: "claude-haiku-4-5", in: 1, out: 5, sampling: true, legacy: true }),
+});
+const ANTHROPIC_ALIASES = Object.freeze({
+  "anthropic/claude-haiku-5.5": "claude-haiku-5-5",
+  "anthropic/claude-sonnet-5": "claude-sonnet-5",
+  "anthropic/claude-opus-5.5": "claude-opus-5-5",
+  "anthropic/claude-haiku-4.5": "claude-haiku-4-5",
+});
+
+/** Canonical first-party model and capabilities, or null for an unknown model. */
+export function anthropicModel(model) {
+  const key = String(model ?? "").trim().toLowerCase();
+  const id = Object.hasOwn(ANTHROPIC_ALIASES, key) ? ANTHROPIC_ALIASES[key] : key;
+  return Object.hasOwn(ANTHROPIC_MODELS, id) ? ANTHROPIC_MODELS[id] : null;
+}
+
+/** First-party usage charge. The reference counts ordinary and cache input
+ * tokens together; callers supply their sum. Haiku's long-context tier applies
+ * to the whole call once input exceeds 100,000 tokens. */
+export function anthropicUsdForModelTokens(model, tokensIn, tokensOut) {
+  const entry = anthropicModel(model);
+  const tin = count(tokensIn), tout = count(tokensOut);
+  if (!entry || tin === null || tout === null) return null;
+  const long = entry.longAbove !== undefined && tin > entry.longAbove;
+  return (tin * (long ? entry.longIn : entry.in) + tout * (long ? entry.longOut : entry.out)) / 1_000_000;
+}
+
+/** Same conservative prompt-byte and all-attempt bound as OpenRouter, using
+ * the native provider's rates (including a possible long-context tier). */
+export function worstCaseAnthropicCallUsd({ model, messagesBytes, maxTokens, attempts = 1 }) {
+  const single = anthropicUsdForModelTokens(model, messagesBytes + 64, maxTokens);
+  return single === null ? null : attempts * single;
+}

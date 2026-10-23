@@ -77,6 +77,11 @@ export function describeWorkflow(file, { examplesDir } = {}) {
 
   const needsModel = kinds.includes("llm-call") || gates.some((g) => g.config?.reviewer === "agent");
   const env = envRefsOf(m);
+  const providerEnv = [];
+  if (all.some(s => s.kind === "llm-call" && s.config?.provider !== "anthropic") || gates.some(g => g.config?.reviewer === "agent"))
+    providerEnv.push("OPENROUTER_API_KEY");
+  for (const step of all.filter(s => s.kind === "llm-call" && s.config?.provider === "anthropic" && s.config?.secretSource !== "keychain"))
+    providerEnv.push(step.config.keyRef ?? "ANTHROPIC_API_KEY");
 
   let measured = null;
   let proof = null;
@@ -122,7 +127,7 @@ export function describeWorkflow(file, { examplesDir } = {}) {
     schedule: m.triggers.find((t) => t.kind === "schedule")?.cron ?? null,
     model: needsModel ? knobs.model : null,
     budgetUsd: knobs.budgetUsd,
-    needsEnv: needsModel && !env.includes("OPENROUTER_API_KEY") ? ["OPENROUTER_API_KEY", ...env] : env,
+    needsEnv: [...new Set([...providerEnv.filter(key => !env.includes(key)), ...env])],
     measured,
     proof,
   };

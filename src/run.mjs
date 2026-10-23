@@ -85,7 +85,10 @@ function invocationKnobs(run, id, rootKnobs) {
   let knobs = { ...rootKnobs };
   for (const frameId of ancestry(run, id).reverse().filter(value => value !== 'root')) {
     const settings = run.invocations[frameId].settings;
-    if (settings.model !== undefined) knobs.model = settings.model;
+    if (settings.model !== undefined) {
+      knobs.model = settings.model;
+      knobs.provenance = { ...knobs.provenance, model: "workflow settings" };
+    }
     if (settings.sensitivity) throw new Error('Child sensitivity policy is not implemented and cannot be ignored');
   }
   return knobs;
@@ -219,6 +222,8 @@ export function resolveKnobs(settings = {}) {
 
 /** Per-step model override (knob 2 is strongest at the step). */
 function stepModel(step, knobs) {
+  if (step.config.provider === "anthropic")
+    return str(step.config, "model") ?? (knobs.provenance?.model === "OPENROUTER_MODEL" ? null : knobs.model) ?? process.env.ANTHROPIC_MODEL ?? null;
   return str(step.config, "model") ?? knobs.model;
 }
 function stepMaxTokens(step) {
@@ -526,6 +531,7 @@ export async function driveRun(run, opts = {}) {
       item: next.item,
       itemIndex: next.itemIndex,
       apiKey,
+      providers: opts.providers,
       /* What the run has spent BEFORE this step — the number {{run.costUsd}}
          resolves to. On the last api-request it is the run's whole cost. */
       spentUsd: unknownSpend ? null : spent,
@@ -570,7 +576,7 @@ export async function driveRun(run, opts = {}) {
     }
 
     try {
-      if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
+      if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter", "anthropic"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
       let result;
       if (cliStep) {
         if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => id !== 'root' && resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null on every ancestor and use bounded inference jobs.');
