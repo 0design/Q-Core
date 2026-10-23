@@ -1,6 +1,7 @@
 import { fetchWithRetry } from "../http.mjs";
 import { CoreError, insist } from "../contracts.mjs";
 import { resolveProviderSecret } from "../secrets.mjs";
+import { registerPersistenceSecret } from '../persistence.mjs';
 import { worstCaseCallUsd } from "../cost.mjs";
 const metric = (n) =>
   typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
@@ -110,6 +111,7 @@ export async function openRouter(
   );
   if (typeof key !== "string" || !key.trim())
     throw new CoreError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
+  registerPersistenceSecret(key);
   /* Billing honesty. A 4xx/429/5xx answer is not a completion and is treated as
      not billed. An attempt that ended WITHOUT a readable answer (timeout,
      dropped connection, cancellation, unreadable body) may have been processed

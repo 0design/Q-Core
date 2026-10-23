@@ -2,6 +2,7 @@ import { fetchWithRetry } from "../http.mjs";
 import { setTimeout as delay } from "node:timers/promises";
 import { CoreError, insist } from "../contracts.mjs";
 import { resolveProviderSecret } from "../secrets.mjs";
+import { registerPersistenceSecret } from '../persistence.mjs';
 import { anthropicModel, anthropicUsageCost, worstCaseAnthropicCallUsd } from "../cost.mjs";
 
 const API = "https://api.anthropic.com/v1/messages";
@@ -12,6 +13,10 @@ const MAX_RESPONSE_BYTES = 8_192_000;
 const MAX_TEXT_BYTES = 512_000;
 const RETRY_DELAYS_MS = [1_500, 4_000];
 const unknownUsage = () => ({ tokensIn: null, tokensOut: null, costUsd: null, billingUnknown: true });
+
+// Carry the call's redactor through in-memory reply spreads without exposing
+// the credential (or a serializable redaction field) in persisted replies.
+export const ANTHROPIC_SANITIZE_OUTPUT = Symbol("anthropic.sanitizeOutput");
 
 function safeError(code, message) { return new CoreError(code, message); }
 
@@ -216,7 +221,15 @@ export async function anthropic({
     throw safeError(code, code === "AUTH_REQUIRED" ? `Missing or unavailable secret reference ${keyRef}` : "Anthropic secret retrieval failed");
   }
   if (typeof key !== "string" || !key.trim()) throw safeError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
-  const redact = value => typeof value === "string" ? value.split(key).join("[REDACTED]") : value;
+  registerPersistenceSecret(key);
+  key = key.trim();
+  const redact = value => {
+    if (typeof value === "string") return value.split(key).join("[REDACTED]");
+    if (Array.isArray(value)) return value.map(redact);
+    if (value && typeof value === "object")
+      return Object.fromEntries(Object.entries(value).map(([name, child]) => [redact(name), redact(child)]));
+    return value;
+  };
   const system = messages.filter(message => message.role === "system").map(message => message.content).join("\n\n");
   const body = {
     model: entry.id, max_tokens: maxTokens,
@@ -273,10 +286,15 @@ export async function anthropic({
       }
       if (response) {
         const rejected = response.status === 429 || (response.status >= 500 && response.status <= 599);
+        if (!response.ok) {
+          // Cancellation is transport work too: injected bodies may hang,
+          // reject, throw synchronously, or return no promise. Keep disposal
+          // inside this attempt's deadline and the caller's abort signal.
+          await abortable(Promise.resolve().then(() => response.body?.cancel()).catch(() => {}), attemptSignal);
+        }
         if (!rejected || attempt === retries) break;
         // Rejection headers are unbilled. Do not consume an error body before
         // discarding it and retrying the Messages request.
-        await response.body?.cancel().catch(() => {});
         response = undefined;
       }
       const delays = delaysMs ?? RETRY_DELAYS_MS;
@@ -289,7 +307,6 @@ export async function anthropic({
     throw failed(error?.name === "TimeoutError" ? "TIMEOUT" : "NETWORK", "Anthropic unreachable");
   }
   if (!response.ok) {
-    await response.body?.cancel().catch(() => {});
     const code = [401, 403].includes(response.status) ? "AUTH_REQUIRED"
       : response.status === 429 ? "RATE_LIMITED" : "PROVIDER_ERROR";
     throw failed(code, `Anthropic ${response.status} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`);
@@ -314,6 +331,7 @@ export async function anthropic({
     throw billed("COST_LIMIT", `Anthropic usage cost $${usage.costUsd} above maxCallCostUsd $${maxCallCostUsd}`);
   return {
     content: redact(parsed.text.trim()), requestId: typeof parsed.id === "string" ? redact(parsed.id) : null,
-    provider: { kind: "anthropic", version: "1", requestedModel: model, model: answeredModel, payerScope }, usage,
+    provider: { kind: "anthropic", version: "1", requestedModel: redact(model), model: answeredModel, payerScope }, usage,
+    [ANTHROPIC_SANITIZE_OUTPUT]: redact,
   };
 }

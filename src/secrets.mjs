@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { access } from "node:fs/promises";
 import { subprocess, scopedEnvironment } from "./subprocess.mjs";
 import { CoreError, insist } from "./contracts.mjs";
+import { registerPersistenceSecret } from './persistence.mjs';
 
 const SECURITY = "/usr/bin/security";
 const SERVICE = "com.qfactory.q-core.openrouter";
@@ -85,7 +86,7 @@ export async function getKeychainSecret(
   ensureKeychain(platform);
   const result = await runSecurity(argsFor("get", keychainIdentity(provider, keyRef)), options);
   if (result.code !== 0) throw storeError("retrieval", result);
-  return cleanSecret(result.stdout);
+  return registerPersistenceSecret(cleanSecret(result.stdout));
 }
 
 export async function hasKeychainSecret(
@@ -219,7 +220,7 @@ export async function resolveProviderSecret(
     throw new CoreError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
   if (Buffer.byteLength(value) > MAX_SECRET_BYTES)
     throw new CoreError("AUTH_REQUIRED", "Configured secret is too large");
-  return value;
+  return registerPersistenceSecret(value);
 }
 
 export const SECRET_STORE = Object.freeze({

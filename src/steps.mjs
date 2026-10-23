@@ -19,7 +19,8 @@ import { resolveTemplate, resolveTemplateDeep, resolveTemplateValue, resolveUrlT
 import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
-import { constants as fsConstants, closeSync, existsSync, fstatSync, lstatSync, openSync, realpathSync, statSync, writeSync } from "node:fs";
+import { constants as fsConstants, closeSync, existsSync, fstatSync, lstatSync, openSync, realpathSync, statSync } from "node:fs";
+import { guardedWriteSync, registerPersistenceSecret } from './persistence.mjs';
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 export { fetchWithRetry } from "./http.mjs";
@@ -37,7 +38,7 @@ function boundedTimeoutSec(config, label) {
 }
 
 import { openRouter } from "./providers/openrouter.mjs";
-import { anthropic } from "./providers/anthropic.mjs";
+import { anthropic, ANTHROPIC_SANITIZE_OUTPUT } from "./providers/anthropic.mjs";
 import { stepCostUsd, worstCaseAnthropicCallUsd } from "./cost.mjs";
 
 /* API call policy for a model-backed step. Every paid attempt is a
@@ -231,6 +232,7 @@ export async function chatOnce({ apiKey, provider = "openrouter", providers, key
   // key would charge/send as the wrong credential. Keychain resolution ignores
   // this env value and remains explicitly selected by secretSource.
   const selectedKey = keyRef === "OPENROUTER_API_KEY" ? apiKey : process.env[keyRef];
+  registerPersistenceSecret(selectedKey);
   const request = { model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, ...(reasoning === undefined ? {} : { reasoning }) };
   const result = provider === "anthropic"
     ? await (providers?.anthropic ?? anthropic)({ ...request, workspaceId })
@@ -328,7 +330,13 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     error.spend = { costUsd, costSource, tokensIn: usage.tokensIn, tokensOut: usage.tokensOut };
     throw error;
   }
-  return { output: parsed ?? { text: content, model }, tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, costUsd, costSource, ...(provider === "anthropic" ? { provider: reply.provider } : {}) };
+  // JSON.parse can turn Unicode escapes back into a credential, including in
+  // object keys. Sanitize the decoded native output before it reaches state or
+  // a later step; the provider keeps its normalized credential in the closure.
+  const output = parsed ?? { text: content, model };
+  return { output: provider === "anthropic" && reply[ANTHROPIC_SANITIZE_OUTPUT]
+    ? reply[ANTHROPIC_SANITIZE_OUTPUT](output) : output,
+    tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, costUsd, costSource, ...(provider === "anthropic" ? { provider: reply.provider } : {}) };
 }
 
 /* ────────────────────── approval-gate (human | agent) ────────────────────── */
@@ -518,10 +526,10 @@ export async function runApiRequest(step, ctx) {
     const payload = buildBody(step, ctx, t);
     const line = JSON.stringify(payload);
     const sendFile = async () => {
-      const fd = openSync(path, fsConstants.O_WRONLY | fsConstants.O_APPEND | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW, 0o600);
+      const fd = openSync(path, fsConstants.O_RDWR | fsConstants.O_APPEND | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW, 0o600);
       try {
         insist(fstatSync(fd).isFile(), `"${label}": the file destination must be a regular file`);
-        writeSync(fd, `${line}\n`);
+        guardedWriteSync(fd, `${line}\n`);
       } finally { closeSync(fd); }
       return { output: { dispatched: true, sink: "file", url: pathToFileURL(path).href, file: path } };
     };

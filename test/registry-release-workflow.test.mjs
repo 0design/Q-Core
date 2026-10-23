@@ -35,3 +35,15 @@ test("a publish build that diverges from the pull request build is rejected", ()
   assert.notEqual(diverged, publish);
   assert.throws(() => assertRegistryReleaseWorkflows({ publish: diverged, registry }), /same release build commands/);
 });
+
+test("removing the secret artifact gate from both release builds is rejected", () => {
+  const guard = '          npm run check:artifact-secrets -- --archive "/tmp/core-package/$CORE_ARCHIVE"\n';
+  assert.notEqual(publish.replace(guard, ""), publish);
+  assert.throws(() => assertRegistryReleaseWorkflows({ publish: publish.replace(guard, ""), registry: registry.replace(guard, "") }), /scan the exact packed Core archive/);
+});
+
+test("removing the persistence gate from both release builds is rejected", () => {
+  const remove = source => source.replace(" && npm run check:persistence-writes", "");
+  assert.notEqual(remove(publish), publish);
+  assert.throws(() => assertRegistryReleaseWorkflows({ publish: remove(publish), registry: remove(registry) }), /check guarded persistence/);
+});

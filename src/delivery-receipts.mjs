@@ -1,4 +1,5 @@
-import { mkdirSync, existsSync, lstatSync, writeFileSync, readFileSync } from 'node:fs';
+import { guardedWriteFileSync } from './persistence.mjs';
+import { mkdirSync, existsSync, lstatSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hash, insist } from './contracts.mjs';
 import { atomicJson } from './workspace.mjs';
@@ -15,7 +16,7 @@ export async function deliverOnce({ store, destination, key, payloadHash }, send
   const receiptKey = hash({ destination, key });
   const file = join(store.dir, 'receipts', `${receiptKey}.json`);
   const claim = { receiptKey, sourceKey: key, payloadHash, phase: 'sending' };
-  try { writeFileSync(file, JSON.stringify(claim), { flag: 'wx', mode: 0o600 }); }
+  try { guardedWriteFileSync(file, JSON.stringify(claim), { flag: 'wx', mode: 0o600, receipt: claim }); }
   catch (error) {
     if (error.code !== 'EEXIST') throw error;
     insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe delivery receipt');
@@ -28,7 +29,8 @@ export async function deliverOnce({ store, destination, key, payloadHash }, send
     const result = await send();
     insist(result?.output?.dispatched === true, 'Delivery did not produce a receiver receipt');
     const output = { ...result.output, receiptKey, payloadHash, duplicatePrevented: false };
-    atomicJson(file, { ...claim, phase: 'delivered', output });
+    const persisted = atomicJson(file, { ...claim, phase: 'delivered', output });
+    if (persisted.redactedSecrets > 0) output.redactedSecrets = persisted.redactedSecrets;
     return { ...result, output };
   } catch (error) {
     atomicJson(file, { ...claim, phase: 'uncertain' });

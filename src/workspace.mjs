@@ -1,9 +1,9 @@
+import { guardedWriteFileSync } from './persistence.mjs';
 import {
   lstatSync,
   existsSync,
   realpathSync,
   readFileSync,
-  writeFileSync,
   mkdirSync,
   renameSync,
   openSync,
@@ -173,7 +173,7 @@ export function applyFiles(workspace, allowedPaths, files, before) {
       fd = openSync(tmp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
       tempStat = fstatSync(fd, { bigint: true });
       checkDirectories(root, directories);
-      writeFileSync(fd, f.content);
+      guardedWriteFileSync(fd, f.content);
       insist(sameFile(tempStat, lstatSync(tmp, { bigint: true })), "Workspace temporary file changed", "WORKSPACE_CHANGED");
       scopedPath(root, f.path);
       checkDirectories(root, directories);
@@ -194,11 +194,13 @@ export function applyFiles(workspace, allowedPaths, files, before) {
 }
 export function atomicJson(file, value) {
   const tmp = `${file}.${randomUUID()}.tmp`;
-  writeFileSync(tmp, JSON.stringify(value, null, 2) + "\n", {
+  const result = guardedWriteFileSync(tmp, JSON.stringify(value, null, 2) + "\n", {
     flag: "wx",
     mode: 0o600,
+    receipt: value,
   });
   renameSync(tmp, file);
+  return result;
 }
 export function lockWorkspace(workspace) {
   const dir = join(realpathSync(workspace), ".qf");
@@ -219,7 +221,7 @@ export function lockWorkspace(workspace) {
       "Workspace already locked; inspect interrupted run before removing stale lock",
     );
   }
-  writeFileSync(fd, JSON.stringify({ pid: process.pid }));
+  guardedWriteFileSync(fd, JSON.stringify({ pid: process.pid }));
   return {
     dir,
     release() {

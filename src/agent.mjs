@@ -1,5 +1,6 @@
 import { specification, questions, recordSpec } from "./specification.mjs";
 import { randomUUID } from "node:crypto";
+import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
 import { readFileSync, existsSync, lstatSync, statSync, realpathSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import {
@@ -105,7 +106,11 @@ function waitingAction(r) {
   }
 }
 
-export async function runAgent(
+export async function runAgent(request, options = {}) {
+  return withPersistenceSecrets({ env: persistenceEnvironment(request) }, () => runAgentScoped(request, options));
+}
+
+async function runAgentScoped(
   request,
   { signal, generate, launch = subprocess } = {},
 ) {

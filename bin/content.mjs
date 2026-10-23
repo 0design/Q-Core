@@ -1,3 +1,4 @@
+import { guardedStreamWrite } from "../src/persistence.mjs";
 import { readFileSync, statSync } from "node:fs";
 import { runContentRequest } from "../src/content-runner.mjs";
 import { EXIT_CODES, resultEnvelope } from "../src/contracts.mjs";
@@ -13,10 +14,10 @@ export async function contentCli(file) {
       JSON.parse(readFileSync(file, "utf8")),
       { signal: abort.signal },
     );
-    console.log(JSON.stringify(result));
+    guardedStreamWrite(process.stdout, JSON.stringify(result) + "\n");
     process.exitCode = EXIT_CODES[result.status];
   } catch {
-    process.stdout.write(
+    guardedStreamWrite(process.stdout,
       JSON.stringify(
         resultEnvelope(null, {
           protocolVersion: "qf.content/v1",

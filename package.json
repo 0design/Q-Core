@@ -18,9 +18,11 @@
     "check:public-surface": "node scripts/check-public-surface.mjs",
     "check:product-names": "node scripts/check-product-names.mjs",
     "check:naming-inventory": "node scripts/check-naming-inventory.mjs",
-    "prepack": "npm run check:public-surface && npm run check:product-names",
+    "check:persistence-writes": "node scripts/check-persistence-writes.mjs",
+    "check:artifact-secrets": "node scripts/check-no-secrets-in-artifacts.mjs",
+    "prepack": "npm run check:public-surface && npm run check:product-names && npm run check:persistence-writes && npm run check:artifact-secrets",
     "test:registry-export": "node scripts/test-exact-registry-export.mjs",
-    "test:package": "npm run check:public-surface && npm run check:product-names && node scripts/test-package.mjs && node scripts/test-content-package.mjs && npm run test:registry-export"
+    "test:package": "npm run check:public-surface && npm run check:product-names && npm run check:persistence-writes && npm run check:artifact-secrets && node scripts/test-package.mjs && node scripts/test-content-package.mjs && npm run test:registry-export"
   },
   "files": [
     "bin/",

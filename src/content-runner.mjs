@@ -7,6 +7,7 @@ import { insist, resultEnvelope, hash, CoreError } from "./contracts.mjs";
 import { recoveryAction } from "./recovery.mjs";
 import { validateCallerInput, contentMessages } from "./caller-inference.mjs";
 import { approvalFieldRefused } from "./human-decision.mjs";
+import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
 async function boundedText(response) {
   const reader = response.body.getReader();
   const parts = [];
@@ -38,6 +39,10 @@ function allowedUrl(raw, origins) {
 /** Concrete source/model/check/webhook adapters. Receiver must implement the
  * documented receipt contract; Telegram is not inferred from a file sink. */
 export async function runContentRequest(r, { env = process.env, signal } = {}) {
+  return withPersistenceSecrets({ env: persistenceEnvironment(r, env) }, () => runContentRequestScoped(r, { env, signal }));
+}
+
+async function runContentRequestScoped(r, { env, signal }) {
   let combined;
   try {
     insist(

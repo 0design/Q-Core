@@ -73,15 +73,29 @@ export function worstCaseCallUsd({ model, messagesBytes, maxTokens, attempts = 1
   return attempts * (promptTokens * rate[0] + maxTokens * rate[1]);
 }
 
-/** First-party Anthropic prices and request capabilities, copied from the
- * owner's working direct-API reference on 2026-10-23. These are separate from
- * the OpenRouter fallback table: choosing a provider must not change what an
- * existing OpenRouter call is charged or allowed to spend. */
+/** First-party Anthropic prices in USD per 1M tokens, checked 2026-10-23:
+ * https://platform.claude.com/docs/en/about-claude/pricing
+ * https://platform.claude.com/docs/en/models/haiku-5-5/overview
+ * https://platform.claude.com/docs/en/models/sonnet-5/overview
+ * https://platform.claude.com/docs/en/models/opus-5-5/overview
+ * https://platform.claude.com/docs/en/models/haiku-4-5/overview
+ * Keep every cache rate explicit: Opus 5.5 reads cost $0.20, not 0.1x input.
+ * These are separate from the OpenRouter fallback table: choosing a provider
+ * must not change what an existing OpenRouter call is charged or can spend. */
 const ANTHROPIC_MODELS = Object.freeze({
-  "claude-haiku-5-5": Object.freeze({ id: "claude-haiku-5-5", in: 0.10, out: 0.50, longIn: 0.50, longOut: 2.50, longAbove: 100_000, sampling: false, canDisable: true }),
-  "claude-sonnet-5": Object.freeze({ id: "claude-sonnet-5", in: 2, out: 10, sampling: false, canDisable: true }),
-  "claude-opus-5-5": Object.freeze({ id: "claude-opus-5-5", in: 4, out: 20, sampling: false, canDisable: false }),
-  "claude-haiku-4-5": Object.freeze({ id: "claude-haiku-4-5", in: 1, out: 5, sampling: true, legacy: true }),
+  "claude-haiku-5-5": Object.freeze({ id: "claude-haiku-5-5",
+    in: 0.10, out: 0.50, cacheWrite5m: 0.125, cacheWrite1h: 0.20, cacheRead: 0.01,
+    longIn: 0.50, longOut: 2.50, longCacheWrite5m: 0.625, longCacheWrite1h: 1, longCacheRead: 0.05,
+    longAbove: 100_000, sampling: false, canDisable: true }),
+  "claude-sonnet-5": Object.freeze({ id: "claude-sonnet-5",
+    in: 2, out: 10, cacheWrite5m: 2.50, cacheWrite1h: 4, cacheRead: 0.20,
+    sampling: false, canDisable: true }),
+  "claude-opus-5-5": Object.freeze({ id: "claude-opus-5-5",
+    in: 4, out: 20, cacheWrite5m: 5, cacheWrite1h: 8, cacheRead: 0.20,
+    sampling: false, canDisable: false }),
+  "claude-haiku-4-5": Object.freeze({ id: "claude-haiku-4-5",
+    in: 1, out: 5, cacheWrite5m: 1.25, cacheWrite1h: 2, cacheRead: 0.10,
+    sampling: true, legacy: true }),
 });
 const ANTHROPIC_ALIASES = Object.freeze({
   "anthropic/claude-haiku-5.5": "claude-haiku-5-5",
@@ -116,8 +130,8 @@ export function anthropicUsdForModelTokens(model, tokensIn, tokensOut) {
 const anthropicCount = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
 const optionalAnthropicCount = value => value === undefined ? 0 : anthropicCount(value);
 
-/** Price the native usage fields separately. Total input selects the context
- * tier; cache reads cost 0.1x base input, 5m writes 1.25x and 1h writes 2x.
+/** Price the native usage fields separately at explicit model-specific rates.
+ * Total input selects the context tier for every token category.
  * A positive aggregate write count without a valid duration breakdown cannot
  * establish a price. Never silently treat unknown writes as ordinary input. */
 export function anthropicUsageCost(model, usage) {
@@ -144,8 +158,11 @@ export function anthropicUsageCost(model, usage) {
   const long = entry.longAbove !== undefined && tokensIn > entry.longAbove;
   const inputRate = long ? entry.longIn : entry.in;
   const outputRate = long ? entry.longOut : entry.out;
+  const readRate = long ? entry.longCacheRead : entry.cacheRead;
+  const write5mRate = long ? entry.longCacheWrite5m : entry.cacheWrite5m;
+  const write1hRate = long ? entry.longCacheWrite1h : entry.cacheWrite1h;
   return { tokensIn, tokensOut,
-    costUsd: ((regular + read * 0.1 + write5m * 1.25 + write1h * 2) * inputRate + tokensOut * outputRate) / 1_000_000 };
+    costUsd: (regular * inputRate + read * readRate + write5m * write5mRate + write1h * write1hRate + tokensOut * outputRate) / 1_000_000 };
 }
 
 /** Conservative prompt-byte and all-attempt bound for the native provider.

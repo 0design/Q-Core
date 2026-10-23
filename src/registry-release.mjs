@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, lstatSync, existsSync, mkdirSync, realpathSync } from "node:fs";
+import { guardedWriteFileSync } from './persistence.mjs';
+import { readFileSync, lstatSync, existsSync, mkdirSync, realpathSync } from "node:fs";
 import { resolve, join, isAbsolute, dirname, basename, posix } from "node:path";
 import { hash, insist, CoreError } from "./contracts.mjs";
 import { parseYaml } from "./yaml.mjs";
@@ -256,8 +257,9 @@ export async function installPinned({
     let current = dirname(target);
     while (current !== installRoot) { if (existsSync(current)) insist(lstatSync(current).isDirectory() && !lstatSync(current).isSymbolicLink(), 'Unsafe dependency destination directory'); current = dirname(current); }
   }
-  for (const [target, body] of targets) { mkdirSync(dirname(target), { recursive: true }); writeFileSync(target, body, { flag: 'wx', mode: 0o600 }); }
-  writeFileSync(
+  // Pinned material and its lock must preserve the bytes verified above.
+  for (const [target, body] of targets) { mkdirSync(dirname(target), { recursive: true }); guardedWriteFileSync(target, body, { flag: 'wx', mode: 0o600, failOnRedaction: true }); }
+  guardedWriteFileSync(
     destination + ".lock.json",
     JSON.stringify(
       {
@@ -272,7 +274,7 @@ export async function installPinned({
       null,
       2,
     ) + "\n",
-    { flag: "wx", mode: 0o600 },
+    { flag: "wx", mode: 0o600, failOnRedaction: true },
   );
   return {
     id,

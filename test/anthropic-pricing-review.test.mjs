@@ -74,6 +74,39 @@ test("Anthropic cache pricing: ordinary input, reads and both write durations re
   near(anthropicUsageCost(model, ordinary).costUsd, 0.003);
 });
 
+// Independent USD/MTok expectations from the official pricing/model pages,
+// checked 2026-10-23; do not derive cache prices from the implementation table.
+for (const [name, pricedModel, tokens, input, output, write5m, write1h, read] of [
+  ["Haiku 5.5 short context", "claude-haiku-5-5", 1000, 0.10, 0.50, 0.125, 0.20, 0.01],
+  ["Haiku 5.5 long context", "claude-haiku-5-5", 100_001, 0.50, 2.50, 0.625, 1, 0.05],
+  ["Sonnet 5", "claude-sonnet-5", 1000, 2, 10, 2.50, 4, 0.20],
+  ["Opus 5.5", "claude-opus-5-5", 1000, 4, 20, 5, 8, 0.20],
+  ["Haiku 4.5 alias", "claude-haiku-4-5", 1000, 1, 5, 1.25, 2, 0.10],
+  ["Haiku 4.5 snapshot", "claude-haiku-4-5-20251001", 1000, 1, 5, 1.25, 2, 0.10],
+]) {
+  test(`Anthropic official pricing: ${name} prices each token category independently`, () => {
+    near(anthropicUsageCost(pricedModel, { input_tokens: tokens, output_tokens: 0 }).costUsd, tokens * input / 1_000_000);
+    near(anthropicUsageCost(pricedModel, { input_tokens: 0, cache_read_input_tokens: tokens, output_tokens: 0 }).costUsd, tokens * read / 1_000_000);
+    near(anthropicUsageCost(pricedModel, { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: tokens,
+      cache_creation: { ephemeral_5m_input_tokens: tokens } }).costUsd, tokens * write5m / 1_000_000);
+    near(anthropicUsageCost(pricedModel, { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: tokens,
+      cache_creation: { ephemeral_1h_input_tokens: tokens } }).costUsd, tokens * write1h / 1_000_000);
+    // A long-context output charge needs a long prompt to select that tier.
+    const prompt = tokens > 100_000 ? tokens : 0;
+    near(anthropicUsageCost(pricedModel, { input_tokens: prompt, output_tokens: 1000 }).costUsd,
+      (prompt * input + 1000 * output) / 1_000_000);
+  });
+}
+
+test("Anthropic official pricing: Opus 5.5 cache reads reject the former universal 0.1x price", async () => {
+  const usage = { input_tokens: 0, cache_read_input_tokens: 1_000_000, output_tokens: 0 };
+  const priced = anthropicUsageCost("claude-opus-5-5", usage);
+  assert.equal(priced.costUsd, 0.20);
+  assert.notEqual(priced.costUsd, 0.40, "Opus 5.5 reads must not use 10% of its $4 input rate");
+  const result = await run(usage, "claude-opus-5-5", { model: "claude-opus-5-5" });
+  assert.equal(result.usage.costUsd, 0.20, "the native provider must record the model-specific read cost");
+});
+
 test("Anthropic cache pricing: JSON provider response prices the dated answering model and durations", async () => {
   const actual = await run(cached);
   assert.deepEqual([actual.usage.tokensIn, actual.usage.tokensOut], [1060, 100]);

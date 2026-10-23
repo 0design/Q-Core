@@ -1,5 +1,6 @@
+import { guardedWriteFileSync } from './persistence.mjs';
 /** Resolve exact local material bytes before execution; export the same closure. */
-import { readFileSync, realpathSync, statSync, lstatSync, mkdirSync, writeFileSync, existsSync, mkdtempSync, renameSync, rmSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync, lstatSync, mkdirSync, existsSync, mkdtempSync, renameSync, rmSync } from 'node:fs';
 import { resolve, dirname, relative, join, sep, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { validateManifest, ManifestError } from './manifest.mjs';
@@ -143,7 +144,9 @@ function writeExport(target, entries) {
   mkdirSync(dirname(target), { recursive: true });
   const temporary = mkdtempSync(join(dirname(target), `.${basename(target)}.export-`));
   try {
-    for (const [path, body] of entries) { const output = join(temporary, path); mkdirSync(dirname(output), { recursive: true }); writeFileSync(output, body, { flag: 'wx' }); }
+    // Export hashes identify exact reviewed bytes. A credential-bearing bundle
+    // cannot be changed safely without invalidating its integrity metadata.
+    for (const [path, body] of entries) { const output = join(temporary, path); mkdirSync(dirname(output), { recursive: true }); guardedWriteFileSync(output, body, { flag: 'wx', failOnRedaction: true }); }
     if (existsSync(target)) throw new ManifestError('export destination already exists; choose a new directory');
     renameSync(temporary, target);
   } catch (error) {

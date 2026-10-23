@@ -20,6 +20,9 @@ function buildCommands(source, workflow) {
   const pack = lines.findIndex(line => /^npm pack\b/.test(line));
   const exported = lines.findIndex(line => /build-registry\.mjs --export/.test(line));
   assert.ok(pack >= 0 && check > pack && exported > check, `${workflow} must pack Core, then check, then export`);
+  const artifactGuard = lines.findIndex(line => /^npm run check:artifact-secrets -- --archive "\/tmp\/core-package\/\$CORE_ARCHIVE"$/.test(line));
+  assert.ok(artifactGuard > pack && artifactGuard < check, `${workflow} must scan the exact packed Core archive for secret-shaped strings before Registry checks`);
+  assert.ok(lines.slice(0, pack).some(line => /npm run check:persistence-writes/.test(line)), `${workflow} must check guarded persistence before packing Core`);
   return lines;
 }
 

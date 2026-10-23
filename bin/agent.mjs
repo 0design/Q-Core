@@ -1,3 +1,4 @@
+import { guardedStreamWrite } from "../src/persistence.mjs";
 import { readFileSync, statSync } from "node:fs";
 import { runAgent } from "../src/agent.mjs";
 import { EXIT_CODES, resultEnvelope } from "../src/contracts.mjs";
@@ -25,11 +26,11 @@ export async function agentCli(file) {
     const result = await runAgent(JSON.parse(input), {
       signal: controller.signal,
     });
-    process.stdout.write(JSON.stringify(result) + "\n");
+    guardedStreamWrite(process.stdout, JSON.stringify(result) + "\n");
     process.exitCode =
       result.error?.code === "INVALID_REQUEST" ? 64 : EXIT_CODES[result.status];
   } catch {
-    process.stdout.write(
+    guardedStreamWrite(process.stdout,
       JSON.stringify(
         resultEnvelope(null, {
           summary: "Invalid request JSON or file",

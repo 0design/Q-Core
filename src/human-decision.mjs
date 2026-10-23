@@ -17,6 +17,7 @@
  * `approval`; Core proceeds only when that record is bound to the current
  * approval hash.
  */
+import { guardedStreamWrite } from "./persistence.mjs";
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, isAbsolute, join } from "node:path";
 import { CoreError, insist } from "./contracts.mjs";
@@ -175,7 +176,7 @@ export function humanApproveCli(kind, argv, io = {}) {
   }
   const [workspace, runId, ...extra] = positional;
   if (!workspace || !runId || extra.length || !approvalHash || [...flags].some((f) => !["reject", "json"].includes(f))) {
-    err.write(`${USAGE(kind)}\n`);
+    guardedStreamWrite(err, `${USAGE(kind)}\n`);
     return 64;
   }
   const decision = flags.has("reject") ? "reject" : "approve";
@@ -184,8 +185,8 @@ export function humanApproveCli(kind, argv, io = {}) {
   try {
     run = loadWaitingRun({ kind, workspace, runId, approvalHash });
   } catch (e) {
-    if (json) out.write(JSON.stringify({ runId, error: { code: e.code ?? "INVALID_REQUEST", message: e.message } }) + "\n");
-    err.write(`${e.code ?? "INVALID_REQUEST"}: ${e.message}\nNothing changed.\n`);
+    if (json) guardedStreamWrite(out, JSON.stringify({ runId, error: { code: e.code ?? "INVALID_REQUEST", message: e.message } }) + "\n");
+    guardedStreamWrite(err, `${e.code ?? "INVALID_REQUEST"}: ${e.message}\nNothing changed.\n`);
     return 1;
   }
   const command = humanApproveCommand(kind, realpathSync(workspace), runId, approvalHash) + (decision === "reject" ? " --reject" : "");
@@ -198,8 +199,8 @@ export function humanApproveCli(kind, argv, io = {}) {
   } catch (e) {
     if (!(e instanceof HumanConfirmationError)) throw e;
     if (json)
-      out.write(JSON.stringify({ runId, status: "needs_human", error: { code: e.code, reason: e.reason, message: e.message }, nextAction: { ...askHumanToApprove(kind, { workspace, runId, approvalHash }), command } }) + "\n");
-    err.write(
+      guardedStreamWrite(out, JSON.stringify({ runId, status: "needs_human", error: { code: e.code, reason: e.reason, message: e.message }, nextAction: { ...askHumanToApprove(kind, { workspace, runId, approvalHash }), command } }) + "\n");
+    guardedStreamWrite(err,
       `HUMAN_CONFIRMATION_REQUIRED: ${e.message}\n` +
         `q-core ${kind} approve takes a decision only from a person typing a one-time code at their own terminal.\n` +
         `The run is still waiting; nothing changed.\n` +
@@ -210,12 +211,12 @@ export function humanApproveCli(kind, argv, io = {}) {
   }
   try {
     const recorded = recordHumanDecision({ kind, workspace, runId, approvalHash, decision, confirmation });
-    if (json) out.write(JSON.stringify({ runId, status: "recorded", humanDecision: recorded }) + "\n");
-    else out.write(`\n  RECORDED: ${decision} for run ${runId}. The caller continues by sending the same request again, without approval.\n`);
+    if (json) guardedStreamWrite(out, JSON.stringify({ runId, status: "recorded", humanDecision: recorded }) + "\n");
+    else guardedStreamWrite(out, `\n  RECORDED: ${decision} for run ${runId}. The caller continues by sending the same request again, without approval.\n`);
     return 0;
   } catch (e) {
-    if (json) out.write(JSON.stringify({ runId, error: { code: e.code ?? "INVALID_REQUEST", message: e.message } }) + "\n");
-    err.write(`${e.code ?? "INVALID_REQUEST"}: ${e.message}\nNothing changed.\n`);
+    if (json) guardedStreamWrite(out, JSON.stringify({ runId, error: { code: e.code ?? "INVALID_REQUEST", message: e.message } }) + "\n");
+    guardedStreamWrite(err, `${e.code ?? "INVALID_REQUEST"}: ${e.message}\nNothing changed.\n`);
     return 1;
   }
 }

@@ -33,6 +33,7 @@ import { CoreError, hash, insist } from "./contracts.mjs";
 import { questions } from "./specification.mjs";
 import { bindInputs, bindOutputs, resolveBinding } from './material-io.mjs';
 import { MAX_CALL_DEPTH } from './material-graph.mjs';
+import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -347,6 +348,11 @@ export function destinationProblems(steps) {
  * @param {object} opts   { store, apiKey, dryRun, onStep }
  */
 export async function driveRun(run, opts = {}) {
+  return withPersistenceSecrets({ env: persistenceEnvironment(run, opts.env ?? process.env),
+    secrets: [opts.apiKey, ...Object.values(opts.secrets ?? {})], receipt: run }, () => driveRunScoped(run, opts));
+}
+
+async function driveRunScoped(run, opts) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
   let inferenceReply = opts.inferenceReply;
   if (opts.clarification !== undefined) {
