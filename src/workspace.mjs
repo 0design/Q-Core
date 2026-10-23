@@ -1,4 +1,4 @@
-import { guardedWriteFileSync } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync } from './persistence.mjs';
 import {
   lstatSync,
   existsSync,
@@ -41,6 +41,7 @@ function checkDirectories(root, directories) {
 }
 
 function prepareParent(root, parent, rootStat) {
+  assertPersistencePath(parent);
   const directories = [{ path: root, stat: rootStat }];
   let part = root;
   for (const segment of relative(root, parent).split("/").filter(Boolean)) {
@@ -51,6 +52,7 @@ function prepareParent(root, parent, rootStat) {
       stat = lstatSync(part, { bigint: true });
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
+      assertPersistencePath(part);
       mkdirSync(part);
       stat = lstatSync(part, { bigint: true });
     }
@@ -153,7 +155,7 @@ export function applyFiles(workspace, allowedPaths, files, before) {
       "Proposal escapes scope or size limit",
       "SCOPE_DENIED",
     );
-    scopedPath(root, f.path);
+    assertPersistencePath(scopedPath(root, f.path));
   }
   insist(
     hash(snapshot(root, allowedPaths)) === hash(before),
@@ -162,14 +164,19 @@ export function applyFiles(workspace, allowedPaths, files, before) {
   );
   for (const f of files) {
     const file = scopedPath(root, f.path);
-    const directories = prepareParent(root, dirname(file), rootStat);
     const tmp = `${file}.${randomUUID()}.tmp`;
+    // The descriptor writer cannot recover the pathname after open. Check both
+    // final and temporary names before creating even their parent directories.
+    assertPersistencePath(file);
+    assertPersistencePath(tmp);
+    const directories = prepareParent(root, dirname(file), rootStat);
     let fd, tempStat, renamed = false;
     try {
       // Node has no portable openat/renameat API. Rechecks narrow the race;
       // isolation from hostile same-user processes requires an OS sandbox.
       checkDirectories(root, directories);
       insist(Number.isInteger(constants.O_NOFOLLOW), "Secure writes require O_NOFOLLOW", "SCOPE_DENIED");
+      assertPersistencePath(tmp);
       fd = openSync(tmp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
       tempStat = fstatSync(fd, { bigint: true });
       checkDirectories(root, directories);
@@ -177,6 +184,8 @@ export function applyFiles(workspace, allowedPaths, files, before) {
       insist(sameFile(tempStat, lstatSync(tmp, { bigint: true })), "Workspace temporary file changed", "WORKSPACE_CHANGED");
       scopedPath(root, f.path);
       checkDirectories(root, directories);
+      assertPersistencePath(tmp);
+      assertPersistencePath(file);
       renameSync(tmp, file);
       renamed = true;
       insist(inside(root, realpathSync(file)), "Written file escaped workspace", "SCOPE_DENIED");
@@ -194,26 +203,34 @@ export function applyFiles(workspace, allowedPaths, files, before) {
 }
 export function atomicJson(file, value) {
   const tmp = `${file}.${randomUUID()}.tmp`;
+  assertPersistencePath(file);
+  assertPersistencePath(tmp);
   const result = guardedWriteFileSync(tmp, JSON.stringify(value, null, 2) + "\n", {
     flag: "wx",
     mode: 0o600,
     receipt: value,
   });
+  assertPersistencePath(tmp);
+  assertPersistencePath(file);
   renameSync(tmp, file);
   return result;
 }
 export function lockWorkspace(workspace) {
   const dir = join(realpathSync(workspace), ".qf");
+  const lock = join(dir, "agent.lock");
+  assertPersistencePath(dir);
+  assertPersistencePath(lock);
   if (existsSync(dir))
     insist(
       !lstatSync(dir).isSymbolicLink() && lstatSync(dir).isDirectory(),
       "Unsafe state directory",
       "SCOPE_DENIED",
     );
+  assertPersistencePath(dir);
   mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const lock = join(dir, "agent.lock");
   let fd;
   try {
+    assertPersistencePath(lock);
     fd = openSync(lock, "wx", 0o600);
   } catch {
     throw new CoreError(

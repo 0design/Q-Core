@@ -1,4 +1,4 @@
-import { guardedWriteFileSync, registerPersistenceSecret } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, registerPersistenceSecret } from './persistence.mjs';
 /** Explicit local host for installed workflows. No daemon installation or remote shell. */
 import { readFileSync, mkdirSync, lstatSync, existsSync, renameSync, unlinkSync } from 'node:fs';
 import { resolve, join } from 'node:path';
@@ -29,7 +29,13 @@ export function cronMatches(expression, date) {
   return matches[0] && matches[1] && matches[3] && day;
 }
 
-function atomic(file, data) { const tmp = file + '.tmp'; guardedWriteFileSync(tmp, JSON.stringify(data), {mode:0o600, receipt:data}); renameSync(tmp,file); }
+function atomic(file, data) {
+  const tmp = file + '.tmp';
+  assertPersistencePath(file); assertPersistencePath(tmp);
+  guardedWriteFileSync(tmp, JSON.stringify(data), {mode:0o600, receipt:data});
+  assertPersistencePath(tmp); assertPersistencePath(file);
+  renameSync(tmp,file);
+}
 function safeJson(file) { insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe host state'); return JSON.parse(readFileSync(file,'utf8')); }
 export function createLocalHost(config) {
   insist(config && Object.keys(config).every(k=>['manifest','manifestSha256','callerProvider','workspacePolicy'].includes(k)), 'Unsupported host configuration');
@@ -43,9 +49,10 @@ export function createLocalHost(config) {
   }
   const policy = config.workspacePolicy ? validateWorkspacePolicy(config.workspacePolicy) : null;
   const store = new RunStore(file), dir = join(store.dir,'host',hash(file));
+  const lock = join(dir,'lock'), active = join(dir,'active.json');
+  for (const path of [dir, lock, active, active + '.tmp']) assertPersistencePath(path);
   mkdirSync(dir,{recursive:true,mode:0o700});
   for(const path of [store.dir,join(store.dir,'host'),dir]) insist(!lstatSync(path).isSymbolicLink(),'Unsafe host directory');
-  const lock = join(dir,'lock'), active = join(dir,'active.json');
   async function dispatch(kind,eventId) {
     insist(['manual','schedule','webhook'].includes(kind),'Unsupported host trigger');
     insist(typeof eventId === 'string' && /^[a-zA-Z0-9_.:-]{1,128}$/.test(eventId),'Bounded event ID required');
@@ -53,6 +60,7 @@ export function createLocalHost(config) {
     insist(manifest.enabled,'Workflow is disabled');
     insist(manifest.triggers.some(t=>t.kind===kind),'Trigger is not declared by this workflow');
     const receipt=join(dir,hash({kind,eventId})+'.json');
+    for (const path of [receipt, receipt + '.tmp', active, active + '.tmp', lock]) assertPersistencePath(path);
     guardedWriteFileSync(lock,'',{flag:'wx',mode:0o600});
     try {
       if(existsSync(receipt)) { const prior=safeJson(receipt); insist(prior.phase==='completed','Prior trigger outcome is uncertain; reconcile before retry'); return {...prior,duplicate:true}; }

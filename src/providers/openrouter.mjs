@@ -2,10 +2,12 @@ import { fetchWithRetry } from "../http.mjs";
 import { CoreError, insist } from "../contracts.mjs";
 import { resolveProviderSecret } from "../secrets.mjs";
 import { registerPersistenceSecret } from '../persistence.mjs';
-import { worstCaseCallUsd } from "../cost.mjs";
+import { rateForModel, worstCaseCallUsd } from "../cost.mjs";
 const metric = (n) =>
   typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
 const MAX_KEY_REF_LENGTH = 128;
+const httpStatus = response => Number.isInteger(response?.status) && response.status >= 100 && response.status <= 599
+  ? response.status : null;
 export async function openRouter(
   {
     messages,
@@ -105,10 +107,18 @@ export async function openRouter(
   // Omitted source remains environment-backed for all existing callers.
   // Keychain access is opt-in through an explicit provider field.
   const source = secretSource ?? "env";
-  const key = await secretResolver(
-    { provider: "openrouter", keyRef, secretSource: source, env, signal },
-    { signal, timeoutMs },
-  );
+  let key;
+  try {
+    key = await secretResolver(
+      { provider: "openrouter", keyRef, secretSource: source, env, signal },
+      { signal, timeoutMs },
+    );
+  } catch (error) {
+    if (signal?.aborted) throw new CoreError("CANCELLED", "OpenRouter cancelled");
+    const code = ["AUTH_REQUIRED", "SECRET_MISSING", "SECRET_STORE_UNSUPPORTED", "SECRET_STORE_DENIED", "INVALID_REQUEST", "TIMEOUT", "CANCELLED"].includes(error?.code)
+      ? error.code : "AUTH_REQUIRED";
+    throw new CoreError(code, "OpenRouter secret retrieval failed");
+  }
   if (typeof key !== "string" || !key.trim())
     throw new CoreError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
   registerPersistenceSecret(key);
@@ -119,8 +129,9 @@ export async function openRouter(
      (null) rather than the last attempt's figure or zero. */
   let unknownBilling = false;
   const unknownUsage = () => ({ tokensIn: null, tokensOut: null, costUsd: null, billingUnknown: true });
-  const unbilled = (code, message) => {
+  const unbilled = (code, message, response) => {
     const error = new CoreError(code, message);
+    if (httpStatus(response) !== null) error.status = httpStatus(response);
     if (unknownBilling) error.usage = unknownUsage();
     return error;
   };
@@ -151,20 +162,24 @@ export async function openRouter(
     if (signal?.aborted)
       throw unbilled("CANCELLED", "OpenRouter cancelled");
     throw unbilled(
-      e.name === "TimeoutError" ? "TIMEOUT" : "NETWORK",
+      e?.name === "TimeoutError" ? "TIMEOUT" : "NETWORK",
       "OpenRouter unreachable",
     );
   }
   if (!res.ok) {
-    await res.body?.cancel().catch(() => {});
-    const code = [401, 403].includes(res.status)
+    // Error bodies and headers never become diagnostics. Disposal itself may
+    // fail synchronously or asynchronously with provider-controlled text.
+    await Promise.resolve().then(() => res.body?.cancel()).catch(() => {});
+    const status = httpStatus(res);
+    const code = [401, 403].includes(status)
       ? "AUTH_REQUIRED"
-      : res.status === 429
+      : status === 429
         ? "RATE_LIMITED"
         : "PROVIDER_ERROR";
     throw unbilled(
       code,
-      `OpenRouter ${res.status} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`,
+      `OpenRouter${status === null ? "" : ` ${status}`} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`,
+      res,
     );
   }
   let json;
@@ -206,7 +221,13 @@ export async function openRouter(
   const billed = (code, message) => {
     const error = new CoreError(code, message);
     error.usage = usage;
-    error.model = typeof json?.model === "string" ? json.model : null;
+    error.status = httpStatus(res);
+    // Keep the existing rate-table fallback without exposing a model supplied
+    // by an error envelope. Unknown models must remain unpriced, even when the
+    // requested model has a rate. This internal value is not serializable.
+    const model = typeof json?.model === "string" ? json.model.trim().toLowerCase() : "";
+    const rates = rateForModel(model);
+    Object.defineProperty(error, "model", { value: rates?.every(Number.isFinite) ? model : "" });
     return error;
   };
   const content = json?.choices?.[0]?.message?.content;

@@ -1,4 +1,4 @@
-import { guardedWriteFileSync } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync } from './persistence.mjs';
 import { mkdirSync, existsSync, lstatSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hash, insist } from './contracts.mjs';
@@ -9,12 +9,13 @@ import { atomicJson } from './workspace.mjs';
 export async function deliverOnce({ store, destination, key, payloadHash }, send) {
   insist(store && typeof store.dir === 'string', 'Idempotent delivery requires persistent run storage');
   insist(typeof key === 'string' && /^[a-f0-9]{64}$/.test(key), 'Delivery key must be a resolved SHA-256');
-  for (const directory of [store.dir, join(store.dir, 'receipts')]) {
-    if (existsSync(directory)) insist(lstatSync(directory).isDirectory() && !lstatSync(directory).isSymbolicLink(), 'Unsafe receipt directory');
-    else mkdirSync(directory, { recursive: true, mode: 0o700 });
-  }
   const receiptKey = hash({ destination, key });
   const file = join(store.dir, 'receipts', `${receiptKey}.json`);
+  for (const path of [store.dir, join(store.dir, 'receipts'), file]) assertPersistencePath(path);
+  for (const directory of [store.dir, join(store.dir, 'receipts')]) {
+    if (existsSync(directory)) insist(lstatSync(directory).isDirectory() && !lstatSync(directory).isSymbolicLink(), 'Unsafe receipt directory');
+    else { assertPersistencePath(directory); mkdirSync(directory, { recursive: true, mode: 0o700 }); }
+  }
   const claim = { receiptKey, sourceKey: key, payloadHash, phase: 'sending' };
   try { guardedWriteFileSync(file, JSON.stringify(claim), { flag: 'wx', mode: 0o600, receipt: claim }); }
   catch (error) {

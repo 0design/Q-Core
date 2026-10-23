@@ -20,7 +20,7 @@ import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
 import { constants as fsConstants, closeSync, existsSync, fstatSync, lstatSync, openSync, realpathSync, statSync } from "node:fs";
-import { guardedWriteSync, registerPersistenceSecret } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteSync, registerPersistenceSecret } from './persistence.mjs';
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 export { fetchWithRetry } from "./http.mjs";
@@ -523,9 +523,11 @@ export async function runApiRequest(step, ctx) {
      duplicate rules as HTTP; the folder must exist and must not be reached through a symlink. */
   if (/^file:/i.test(url)) {
     const path = checkFileDestination(url);
+    assertPersistencePath(path);
     const payload = buildBody(step, ctx, t);
     const line = JSON.stringify(payload);
     const sendFile = async () => {
+      assertPersistencePath(path);
       const fd = openSync(path, fsConstants.O_RDWR | fsConstants.O_APPEND | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW, 0o600);
       try {
         insist(fstatSync(fd).isFile(), `"${label}": the file destination must be a regular file`);

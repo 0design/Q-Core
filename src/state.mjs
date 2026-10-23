@@ -1,4 +1,4 @@
-import { guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
 /**
  * Run state — plain files under `.qf/`, next to the manifest. No database.
  *
@@ -37,10 +37,15 @@ function ensureIgnored(dir) {
 }
 
 function writeJsonAtomic(file, value, { failOnRedaction = false } = {}) {
+  const tmp = `${file}.${process.pid}.tmp`;
+  assertPersistencePath(file);
+  assertPersistencePath(tmp);
+  assertPersistencePath(dirname(file));
   mkdirSync(dirname(file), { recursive: true });
   for (let dir = dirname(file); dir !== dirname(dir); dir = dirname(dir)) if (dir.endsWith(`/${STATE_DIR_NAME}`)) { ensureIgnored(dir); break; }
-  const tmp = `${file}.${process.pid}.tmp`;
   const result = guardedWriteFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", receipt: value, failOnRedaction });
+  assertPersistencePath(tmp);
+  assertPersistencePath(file);
   renameSync(tmp, file);
   return result;
 }
@@ -75,10 +80,13 @@ export class RunStore {
   }
 
   recordSpecification(identity, value) {
+    const file = join(this.dir, `spec-${hash(identity)}.json`), lock = `${file}.lock`;
+    assertPersistencePath(this.dir);
+    assertPersistencePath(file);
+    assertPersistencePath(lock);
     mkdirSync(this.dir, { recursive: true, mode: 0o700 });
     ensureIgnored(this.dir);
     insist(!lstatSync(this.dir).isSymbolicLink(), 'Unsafe specification directory');
-    const file = join(this.dir, `spec-${hash(identity)}.json`), lock = `${file}.lock`;
     guardedWriteFileSync(lock, '', { flag: 'wx', mode: 0o600 });
     try {
       if (existsSync(file)) insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe specification file');
@@ -140,9 +148,11 @@ export class RunStore {
   /** Write one file-sink delivery and return its path. */
   writeSink(runId, body) {
     this.runFile(runId); // validate caller-provided identity before constructing an output path
+    const file = join(this.outDir, `${runId}.txt`);
+    assertPersistencePath(file);
+    assertPersistencePath(this.outDir);
     mkdirSync(this.outDir, { recursive: true });
     ensureIgnored(this.dir);
-    const file = join(this.outDir, `${runId}.txt`);
     guardedWriteFileSync(file, body, "utf8");
     return file;
   }

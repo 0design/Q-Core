@@ -19,6 +19,8 @@ const unknownUsage = () => ({ tokensIn: null, tokensOut: null, costUsd: null, bi
 export const ANTHROPIC_SANITIZE_OUTPUT = Symbol("anthropic.sanitizeOutput");
 
 function safeError(code, message) { return new CoreError(code, message); }
+const httpStatus = response => Number.isInteger(response?.status) && response.status >= 100 && response.status <= 599
+  ? response.status : null;
 
 /** A custom Response/reader must obey the same timeout as a native fetch body. */
 async function abortable(promise, signal) {
@@ -90,7 +92,9 @@ async function readJson(res, signal) {
   const textBlocks = Array.isArray(json?.content) ? json.content.filter(block => block?.type === "text") : null;
   const text = textBlocks?.every(block => typeof block.text === "string")
     ? textBlocks.map(block => block.text).join("") : null;
-  return { id: json?.id, model: json?.model, stop: json?.stop_reason, text, usage: json?.usage, error: json?.error };
+  // The error envelope is untrusted free text. Retain only its presence; a
+  // provider can echo credentials in any spelling inside its fields.
+  return { id: json?.id, model: json?.model, stop: json?.stop_reason, text, usage: json?.usage, error: Boolean(json?.error) };
 }
 
 async function readStream(res, signal) {
@@ -99,7 +103,7 @@ async function readStream(res, signal) {
   const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "", bytes = 0, textBytes = 0, text = "", id, model, stop, complete = false;
   const usage = {};
-  let error;
+  let errorType;
   const appendText = (value) => {
     if (typeof value !== "string") throw safeError("INVALID_RESPONSE", "Anthropic stream contains invalid text");
     textBytes += Buffer.byteLength(value);
@@ -125,7 +129,11 @@ async function readStream(res, signal) {
       stop = value.delta?.stop_reason ?? stop;
       Object.assign(usage, value.usage ?? {});
     } else if (value?.type === "message_stop") complete = true;
-    else if (value?.type === "error") error = value.error ?? { type: "api_error" };
+    else if (value?.type === "error") {
+      const type = value.error?.type;
+      errorType = ["authentication_error", "permission_error", "rate_limit_error", "overloaded_error", "api_error", "timeout_error"].includes(type)
+        ? type : "api_error";
+    }
   };
   const drain = () => {
     let boundary;
@@ -148,7 +156,7 @@ async function readStream(res, signal) {
     buffer += decoder.decode();
     drain();
     if (buffer.trim()) event(buffer);
-    if (error) throw streamError(error.type);
+    if (errorType) throw streamError(errorType);
     if (!complete) throw streamFailure();
     return { id, model, stop, text, usage };
   } catch (failure) {
@@ -243,8 +251,9 @@ export async function anthropic({
   }
   if (entry.sampling) body.temperature = temperature;
   let unknownBilling = false, parsed;
-  const failed = (code, message) => {
+  const failed = (code, message, response) => {
     const error = safeError(code, message);
+    if (httpStatus(response) !== null) error.status = httpStatus(response);
     if (unknownBilling) error.usage = unknownUsage();
     return error;
   };
@@ -307,9 +316,12 @@ export async function anthropic({
     throw failed(error?.name === "TimeoutError" ? "TIMEOUT" : "NETWORK", "Anthropic unreachable");
   }
   if (!response.ok) {
-    const code = [401, 403].includes(response.status) ? "AUTH_REQUIRED"
-      : response.status === 429 ? "RATE_LIMITED" : "PROVIDER_ERROR";
-    throw failed(code, `Anthropic ${response.status} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`);
+    const status = httpStatus(response);
+    const code = [401, 403].includes(status) ? "AUTH_REQUIRED"
+      : status === 429 ? "RATE_LIMITED" : "PROVIDER_ERROR";
+    // Do not copy statusText, headers, request IDs or any error-body field.
+    // Unknown response metadata is discarded, rather than spelling-filtered.
+    throw failed(code, `Anthropic${status === null ? "" : ` ${status}`} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`, response);
   }
   // Price only the model that actually answered, never silently substitute the
   // requested model if an upstream response names a different/unknown model.
@@ -320,7 +332,9 @@ export async function anthropic({
   const billed = (code, message) => {
     const error = safeError(code, message);
     error.usage = usage;
-    error.model = answeredModel;
+    // Native usage is already priced. An arbitrary response model must never
+    // hitch a ride on a failure that callers may serialize or log.
+    error.status = httpStatus(response);
     return error;
   };
   if (parsed?.stop === "max_tokens") throw billed("OUTPUT_LIMIT", "Anthropic completion truncated");

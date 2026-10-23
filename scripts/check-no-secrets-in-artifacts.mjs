@@ -6,30 +6,19 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
+import { assertNoDecodedSecrets } from "../src/secret-decoding.mjs";
 
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const secretShape = /(?:\bsk-(?:(?:ant-|or-)[A-Za-z0-9_-]{16,}|(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,})|\bgsk_[A-Za-z0-9]{20,}|\bAIza[A-Za-z0-9_-]{30,}|\bgh[pousr]_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{22,}|\b(?:AKIA|ASIA)[A-Z0-9]{16}\b|\b[0-9]{8,10}:[A-Za-z0-9_-]{30,})/;
+const secretShape = /(?:sk-(?:(?:ant-|or-)[A-Za-z0-9_-]{16,}|(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,})|gsk_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{30,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{22,}|(?:AKIA|ASIA)[A-Z0-9]{16}|[0-9]{8,10}:[A-Za-z0-9_-]{30,})/;
 
 // These transformations are detection only. Never include matched bytes in an
 // error, stdout, or a generated file, including a synthetic test credential.
 export function assertNoSecretShapes(bytes) {
-  const pending = [{ text: Buffer.from(bytes).toString("utf8"), depth: 0 }];
-  const seen = new Set();
-  while (pending.length) {
-    const { text, depth } = pending.pop();
-    if (seen.has(text)) continue;
-    seen.add(text);
-    if (secretShape.test(text)) throw new Error("Secret-shaped string detected in release artifact; release refused");
-    if (depth >= 4) continue;
-    const enqueue = decoded => { if (decoded !== text) pending.push({ text: decoded, depth: depth + 1 }); };
-    enqueue(text.replace(/\\+u([\da-f]{4})/gi, (_match, hex) => String.fromCharCode(Number.parseInt(hex, 16))).replace(/\\\//g, "/").replace(/\\\\/g, "\\"));
-    enqueue(text.replace(/(?:%[\da-f]{2})+/gi, value => {
-      try { return decodeURIComponent(value); } catch { return value; }
-    }));
-    for (const match of text.matchAll(/[A-Za-z0-9+/_-]{24,}={0,2}/g)) {
-      const decoded = Buffer.from(match[0], "base64").toString("utf8");
-      if (decoded !== match[0]) pending.push({ text: decoded, depth: depth + 1 });
-    }
+  try { assertNoDecodedSecrets(bytes, text => secretShape.test(text)); }
+  catch (error) {
+    throw new Error(error?.code === 'SECRET_DECODE_MATCH'
+      ? "Secret-shaped string detected in release artifact; release refused"
+      : "Cannot safely scan release artifacts; release refused");
   }
 }
 

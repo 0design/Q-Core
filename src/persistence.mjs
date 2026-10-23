@@ -1,6 +1,7 @@
 import { writeFileSync, writeSync, fstatSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { CoreError } from './contracts.mjs';
+import { assertNoDecodedSecrets } from './secret-decoding.mjs';
 
 // Credentials stay in memory. All persistent bytes, including temporary files,
 // pass this boundary; provider response filtering is an independent first layer.
@@ -84,6 +85,13 @@ function redact(bytes, failOnRedaction) {
   for (const pattern of checks) {
     pattern.lastIndex = 0;
     if (pattern.test(text)) throw unsafe();
+  }
+  if (checks.length) {
+    try {
+      const secrets = [...knownSecrets];
+      const minSecretBytes = Math.min(12, ...secrets.map(secret => Buffer.byteLength(secret)));
+      assertNoDecodedSecrets(text, decoded => secrets.some(secret => decoded.includes(secret)), { minSecretBytes });
+    } catch { throw unsafe(); }
   }
   if (redactedSecrets) {
     try {
@@ -171,13 +179,13 @@ function remember(target, text) {
   }
 }
 
-function checkPath(file) {
+export function assertPersistencePath(file) {
   if (typeof file !== 'number') redact(Buffer.from(file instanceof URL ? file.href : file), true);
 }
 
 /** The sole file writer. Check before open/create/truncate, including temp files. */
 export function guardedWriteFileSync(file, data, options) {
-  checkPath(file);
+  assertPersistencePath(file);
   const { output, fsOptions, redactedSecrets } = prepare(data, options);
   const append = typeof file === 'number' || /^a/.test(fsOptions.flag ?? 'w');
   const tail = checkedContinuation(append ? previousTail(file, fileIdentity(file)) : '', output);
@@ -211,13 +219,14 @@ export function guardedStreamWrite(stream, data) {
   const identity = typeof stream.fd === 'number' ? fileIdentity(stream.fd) : null;
   // stdout and stderr can share one log inode after `2>&1`; use the physical
   // destination rather than the JavaScript stream identity in that case.
-  if (identity?.stat.isFile() && !streamFileTails.has(identity.key) && streamFileTails.size >= 64) throw unsafe();
-  const previous = identity?.stat.isFile()
+  const sharedDestination = identity && (identity.stat.isFile() || identity.stat.isFIFO() || identity.stat.isSocket());
+  if (sharedDestination && !streamFileTails.has(identity.key) && streamFileTails.size >= 64) throw unsafe();
+  const previous = sharedDestination
     ? (streamFileTails.get(identity.key) ?? previousTail(stream.fd, identity))
     : streamTails.get(stream);
   const tail = checkedContinuation(previous ?? '', output);
   const accepted = stream.write(output);
-  if (identity?.stat.isFile()) { streamFileTails.set(identity.key, tail); remember(stream.fd, tail); }
+  if (sharedDestination) { streamFileTails.set(identity.key, tail); remember(stream.fd, tail); }
   else streamTails.set(stream, tail);
   return accepted;
 }

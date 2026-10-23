@@ -1,4 +1,4 @@
-import { guardedWriteFileSync } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync } from './persistence.mjs';
 /**
  * Update channel.
  *
@@ -46,6 +46,8 @@ function readCache() {
 function writeCache(value) {
   try {
     const f = cacheFile();
+    assertPersistencePath(f);
+    assertPersistencePath(dirname(f));
     mkdirSync(dirname(f), { recursive: true });
     guardedWriteFileSync(f, JSON.stringify(value), "utf8");
   } catch {

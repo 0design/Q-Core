@@ -108,6 +108,7 @@
     "src/run.d.mts",
     "src/run.mjs",
     "src/secrets.mjs",
+    "src/secret-decoding.mjs",
     "src/skill.mjs",
     "src/specification.mjs",
     "src/state.mjs",
