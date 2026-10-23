@@ -38,7 +38,7 @@ function boundedTimeoutSec(config, label) {
 
 import { openRouter } from "./providers/openrouter.mjs";
 import { anthropic } from "./providers/anthropic.mjs";
-import { stepCostUsd } from "./cost.mjs";
+import { stepCostUsd, worstCaseAnthropicCallUsd } from "./cost.mjs";
 
 /* API call policy for a model-backed step. Every paid attempt is a
    decision of the workflow author, so the bounds are explicit and checked
@@ -289,6 +289,11 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
       throw new CoreError("INVALID_REQUEST", `"${label}": input must reference one prior step output, for example "{{steps.unique.output}}".`);
   }
   const user = JSON.stringify(payload, null, 2).slice(0, 60_000);
+
+  if (provider === 'anthropic' && ctx.reserveAnthropicCost) {
+    const messagesBytes = Buffer.byteLength(JSON.stringify([{ role: 'system', content: system }, { role: 'user', content: user }]));
+    ctx.reserveAnthropicCost(worstCaseAnthropicCallUsd({ model, messagesBytes, maxTokens, attempts: policy.retries + 1 }));
+  }
 
   let reply;
   try {

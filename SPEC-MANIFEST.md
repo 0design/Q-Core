@@ -219,20 +219,29 @@ Supported native models are `claude-sonnet-5`, `claude-haiku-5-5`,
 First-party input/output prices per million tokens are respectively $2/$10,
 $0.10/$0.50, $4/$20 and $1/$5. For Haiku 5.5 above 100,000 input tokens, both
 rates become $0.50/$2.50. This table is independent of OpenRouter's rates.
+The response snapshot `claude-haiku-4-5-20251001` is mapped explicitly to Haiku
+4.5; unknown snapshot IDs remain unpriced. A pinned snapshot request keeps its ID.
 
 `maxTokens` bounds the Messages API `max_tokens`. `reasoning: low | medium | high`
 maps to `output_config.effort`; omitted reasoning or `off` disables thinking on
 Sonnet 5 and Haiku 5.5, and selects `low` effort on Opus 5.5. Legacy Haiku 4.5
 receives neither effort nor thinking. `temperature` is sent only to the legacy
 model. The streamed answer is read to completion inside each attempt's timeout;
-network failures, incomplete streams, timeouts, 429 and 5xx retry, while ordinary
+only proven connection-establishment/DNS failures and rejected 429/5xx responses
+before body consumption may retry. Accepted-stream failures, timeouts and
+ambiguous transport errors stop without replay, with billing unknown. Ordinary
 4xx fail immediately. A `max_tokens` stop fails as `OUTPUT_LIMIT`.
 
-Actual usage (including cache-read and cache-creation input tokens) is priced by
-the direct-provider table and recorded in existing budget accounting. A billed
-answer that fails, including truncation, retains its cost. Unreadable usage after
-a timeout or dropped stream leaves cost unknown even if a retry succeeds; the
-next paid step is refused under a run budget, as in §4.2.
+Ordinary input, cache reads and cache writes are priced separately by the
+direct-provider table. Cache reads cost 0.1x base input, five-minute writes 1.25x
+and one-hour writes 2x; total input selects the context tier. Missing/inconsistent
+cache duration counts leave the cost unknown. A billed answer that fails,
+including truncation, retains its cost. Unreadable accepted usage leaves cost
+unknown without replay. Before dispatch, the full worst-case cost of all allowed
+attempts (including the highest cache-write rate) must fit the remaining root and
+every ancestor budget, even when `maxCallCostUsd` is absent. The serial runner
+releases each reservation to actual spend before the next call. The next paid
+step is refused when spend is unknown under a finite budget, as in §4.2.
 
 The step's **input is every prior successful output**, as JSON, capped at 60 000
 characters. Inside a fan-out lane, its own item comes first. With `input` set to one

@@ -89,17 +89,22 @@ const ANTHROPIC_ALIASES = Object.freeze({
   "anthropic/claude-opus-5.5": "claude-opus-5-5",
   "anthropic/claude-haiku-4.5": "claude-haiku-4-5",
 });
+// Explicit response IDs only: a suffix is not proof of a supported snapshot.
+// Haiku 4.5's documented dated ID is also the model returned for alias calls.
+const ANTHROPIC_SNAPSHOTS = Object.freeze({
+  "claude-haiku-4-5-20251001": Object.freeze({ ...ANTHROPIC_MODELS["claude-haiku-4-5"], id: "claude-haiku-4-5-20251001" }),
+});
 
 /** Canonical first-party model and capabilities, or null for an unknown model. */
 export function anthropicModel(model) {
   const key = String(model ?? "").trim().toLowerCase();
   const id = Object.hasOwn(ANTHROPIC_ALIASES, key) ? ANTHROPIC_ALIASES[key] : key;
-  return Object.hasOwn(ANTHROPIC_MODELS, id) ? ANTHROPIC_MODELS[id] : null;
+  return Object.hasOwn(ANTHROPIC_MODELS, id) ? ANTHROPIC_MODELS[id]
+    : Object.hasOwn(ANTHROPIC_SNAPSHOTS, id) ? ANTHROPIC_SNAPSHOTS[id] : null;
 }
 
-/** First-party usage charge. The reference counts ordinary and cache input
- * tokens together; callers supply their sum. Haiku's long-context tier applies
- * to the whole call once input exceeds 100,000 tokens. */
+/** Ordinary-input compatibility helper. Cache-bearing responses must use
+ * anthropicUsageCost so their distinct input rates and durations are retained. */
 export function anthropicUsdForModelTokens(model, tokensIn, tokensOut) {
   const entry = anthropicModel(model);
   const tin = count(tokensIn), tout = count(tokensOut);
@@ -108,9 +113,51 @@ export function anthropicUsdForModelTokens(model, tokensIn, tokensOut) {
   return (tin * (long ? entry.longIn : entry.in) + tout * (long ? entry.longOut : entry.out)) / 1_000_000;
 }
 
-/** Same conservative prompt-byte and all-attempt bound as OpenRouter, using
- * the native provider's rates (including a possible long-context tier). */
+const anthropicCount = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+const optionalAnthropicCount = value => value === undefined ? 0 : anthropicCount(value);
+
+/** Price the native usage fields separately. Total input selects the context
+ * tier; cache reads cost 0.1x base input, 5m writes 1.25x and 1h writes 2x.
+ * A positive aggregate write count without a valid duration breakdown cannot
+ * establish a price. Never silently treat unknown writes as ordinary input. */
+export function anthropicUsageCost(model, usage) {
+  const entry = anthropicModel(model);
+  const regular = anthropicCount(usage?.input_tokens);
+  const read = optionalAnthropicCount(usage?.cache_read_input_tokens);
+  const write = optionalAnthropicCount(usage?.cache_creation_input_tokens);
+  const total = regular === null || read === null || write === null ? null : regular + read + write;
+  const tokensIn = Number.isSafeInteger(total) ? total : null;
+  const tokensOut = anthropicCount(usage?.output_tokens);
+  const unknown = { tokensIn, tokensOut, costUsd: null };
+  if (!entry || tokensIn === null || tokensOut === null) return unknown;
+
+  let write5m = 0, write1h = 0;
+  if (usage?.cache_creation !== undefined) {
+    const creation = usage.cache_creation;
+    if (!creation || typeof creation !== "object" || Array.isArray(creation)
+      || Object.keys(creation).some(key => !["ephemeral_5m_input_tokens", "ephemeral_1h_input_tokens"].includes(key))) return unknown;
+    write5m = optionalAnthropicCount(creation.ephemeral_5m_input_tokens);
+    write1h = optionalAnthropicCount(creation.ephemeral_1h_input_tokens);
+    if (write5m === null || write1h === null || write5m + write1h !== write) return unknown;
+  } else if (write > 0) return unknown;
+
+  const long = entry.longAbove !== undefined && tokensIn > entry.longAbove;
+  const inputRate = long ? entry.longIn : entry.in;
+  const outputRate = long ? entry.longOut : entry.out;
+  return { tokensIn, tokensOut,
+    costUsd: ((regular + read * 0.1 + write5m * 1.25 + write1h * 2) * inputRate + tokensOut * outputRate) / 1_000_000 };
+}
+
+/** Conservative prompt-byte and all-attempt bound for the native provider.
+ * Bound every input token at the highest cache-write rate (1h, 2x), including
+ * any context-tier change, even though normal string requests do not ask to
+ * populate the cache. */
 export function worstCaseAnthropicCallUsd({ model, messagesBytes, maxTokens, attempts = 1 }) {
-  const single = anthropicUsdForModelTokens(model, messagesBytes + 64, maxTokens);
+  if (!Number.isSafeInteger(messagesBytes) || messagesBytes < 0
+    || !Number.isSafeInteger(maxTokens) || maxTokens <= 0
+    || !Number.isSafeInteger(attempts) || attempts <= 0) return null;
+  const input = messagesBytes + 64;
+  const { costUsd: single } = anthropicUsageCost(model, { input_tokens: 0, output_tokens: maxTokens,
+    cache_creation_input_tokens: input, cache_creation: { ephemeral_1h_input_tokens: input } });
   return single === null ? null : attempts * single;
 }

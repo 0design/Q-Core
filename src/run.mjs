@@ -29,7 +29,7 @@ import { resolveTemplate, missingEnvRefs } from "./template.mjs";
 import { num, str } from "./config.mjs";
 import { resolveTemplateValue } from "./template.mjs";
 import { RunStore, newRunId } from "./state.mjs";
-import { hash, insist } from "./contracts.mjs";
+import { CoreError, hash, insist } from "./contracts.mjs";
 import { questions } from "./specification.mjs";
 import { bindInputs, bindOutputs, resolveBinding } from './material-io.mjs';
 import { MAX_CALL_DEPTH } from './material-graph.mjs';
@@ -106,6 +106,26 @@ function invocationBudgetFailure(run, id, paidKind, modelCall) {
     if (spent >= cap) return `Child budget ${frame.key} exhausted: $${spent.toFixed(6)} of $${cap.toFixed(6)}`;
   }
   return null;
+}
+
+/* The driver dispatches one step at a time. Holding the full attempt bound
+   against every remaining ceiling before dispatch reserves it for this call;
+   once the call finishes, its actual spend replaces that bound. */
+function reserveAnthropicCost(run, id, rootKnobs, worstCaseUsd) {
+  const budgets = [{ name: 'Run', cap: rootKnobs.budgetUsd, rows: run.steps }];
+  for (const frameId of ancestry(run, id).filter(value => value !== 'root')) {
+    const frame = run.invocations[frameId];
+    budgets.push({ name: `Child ${frame.key}`, cap: resolveKnobs(frame.settings).budgetUsd, rows: invocationRows(run, frameId) });
+  }
+  for (const { name, cap, rows } of budgets) {
+    if (cap === null) continue;
+    const unknown = rows.some(row => row.costUsd === null);
+    const spent = rows.reduce((sum, row) => sum + (row.costUsd ?? 0), 0);
+    if (unknown || !Number.isFinite(worstCaseUsd) || worstCaseUsd < 0)
+      throw new CoreError('BUDGET_EXCEEDED', `${name} budget cannot reserve Anthropic attempts: cost is unknown; the call was not made`);
+    if (spent + worstCaseUsd > cap)
+      throw new CoreError('BUDGET_EXCEEDED', `${name} budget cannot reserve Anthropic worst-case cost $${worstCaseUsd.toFixed(6)} against $${(cap - spent).toFixed(6)} remaining; the call was not made`);
+  }
 }
 
 function expandCall(run, row, context, dryRun) {
@@ -544,6 +564,8 @@ export async function driveRun(run, opts = {}) {
       workspaceApprovalGates: next.kind === 'workspace-apply' ? workspaceApprovalGates(run, next) : [],
       repairSnapshot: run.repairSnapshot,
       repairAttempt: run.repairAttempt,
+      ...(next.kind === 'llm-call' && next.config.provider === 'anthropic'
+        ? { reserveAnthropicCost: worst => reserveAnthropicCost(run, invocationId, knobs, worst) } : {}),
     };
 
     next.status = "running";
@@ -648,7 +670,10 @@ export async function driveRun(run, opts = {}) {
       }
       next.tokensIn = result.tokensIn ?? 0;
       next.tokensOut = result.tokensOut ?? 0;
-      next.costUsd = result.unknownUsage || costUsd === null ? null : roundUsd(costUsd);
+      // Native cache-read usage can cost fractions of a micro-dollar. Preserve
+      // it on the row so later reservations cannot undercount previous spend.
+      next.costUsd = result.unknownUsage || costUsd === null ? null
+        : next.kind === 'llm-call' && next.config.provider === 'anthropic' ? costUsd : roundUsd(costUsd);
       if (result.costSource) next.costSource = result.costSource;
       if (result.provider) next.provider = result.provider;
       if (result.unknownUsage) { next.tokensIn = null; next.tokensOut = null; }
@@ -688,6 +713,7 @@ export async function driveRun(run, opts = {}) {
         return run;
       }
       next.status = "failed";
+      if (e?.code === 'BUDGET_EXCEEDED') next.gateReason = 'budget';
       next.errorText = e instanceof Error ? e.message : String(e);
       next.finishedAt = new Date().toISOString();
       recordSpend(run, next, e?.spend);
@@ -710,7 +736,8 @@ function roundUsd(value) {
    refused by an Agent-Gate) still spent money. The step and the run record it. */
 function recordSpend(run, row, spend) {
   if (!spend || typeof spend !== "object") return;
-  row.costUsd = spend.costUsd === null ? null : roundUsd(spend.costUsd);
+  row.costUsd = spend.costUsd === null ? null
+    : row.kind === 'llm-call' && row.config.provider === 'anthropic' ? spend.costUsd : roundUsd(spend.costUsd);
   row.costSource = spend.costSource;
   row.tokensIn = spend.tokensIn ?? null;
   row.tokensOut = spend.tokensOut ?? null;

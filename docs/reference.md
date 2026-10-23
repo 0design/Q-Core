@@ -223,8 +223,13 @@ Supported models and first-party prices in USD per million tokens:
 
 For Haiku 5.5, input above 100,000 tokens changes both rates to 0.50 input and
 2.50 output. These are the pinned direct-provider rates, separate from
-OpenRouter's table. Actual input usage includes cache-read and cache-creation
-tokens, as in the reference direct route.
+OpenRouter's table. The documented response snapshot
+`claude-haiku-4-5-20251001` maps explicitly to Haiku 4.5 pricing; unknown snapshot
+IDs remain unpriced. Explicit snapshot requests retain their pinned model ID.
+Total input (ordinary, cache-read and cache-creation tokens) selects the context
+tier. Ordinary input costs the base rate, cache reads 0.1 times that rate,
+five-minute writes 1.25 times and one-hour writes 2 times. Cache writes with
+missing or inconsistent duration counts remain unpriced.
 
 `maxTokens` becomes Messages API `max_tokens`. `reasoning: low | medium | high`
 maps to `output_config.effort`. With reasoning omitted or `off`, Sonnet 5 and
@@ -233,20 +238,26 @@ be disabled. Legacy Haiku 4.5 runs without thinking or an effort parameter. Only
 legacy Haiku accepts `temperature`; sampling is omitted for the other models.
 
 The adapter requests streaming and reads the complete answer within each
-attempt's timeout. Network errors, dropped/incomplete streams, timeouts, 429 and
-5xx responses retry with the same bounded policy; ordinary 4xx fail immediately.
+attempt's timeout. Only proven connection-establishment/DNS failures and rejected
+429/5xx responses before body consumption may retry. Dropped/incomplete accepted
+streams, body timeouts and ambiguous transport failures stop immediately with
+unknown billing; ordinary 4xx fail immediately.
 `stop_reason: max_tokens` fails as `OUTPUT_LIMIT`, preserving billed usage.
 Usage-based cost enters the existing step/run budget accounting; per-call
 `maxCallCostUsd` checks the worst case of all permitted attempts before sending.
-An attempt with unreadable usage may have been billed: its cost remains unknown
-even if a retry succeeds, and a dollar-capped run refuses the next paid step.
+Every native workflow call also reserves that bound against the remaining root
+and all ancestor budgets, even without a per-call cap. The bound uses the highest
+cache-write rate and applicable context tier. Sequential calls release the
+reservation to actual spend after completion. Unreadable accepted usage may have
+been billed: its cost remains unknown and the request is never replayed.
 
 ### HTTP retry policy
 
 HTTP transport retries network/timeout/429/5xx failures with bounded backoff;
 ordinary 4xx fail fast. Caller cancellation stops request/backoff without retry.
 OpenRouter response body parsing errors are not retried. Anthropic reads and
-validates its stream inside the retry attempt. Internal policy allows 0–10 retries,
+validates its stream within the attempt deadline, with the narrower safe-retry
+policy described above. Internal policy allows 0–10 retries,
 positive timeouts and nonnegative delays; invalid policy fails before requests.
 Retries of outgoing requests can duplicate writes: use receipt-aware content APIs
 for publication. Retry is never exactly-once delivery.

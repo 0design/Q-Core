@@ -1,7 +1,8 @@
 import { fetchWithRetry } from "../http.mjs";
+import { setTimeout as delay } from "node:timers/promises";
 import { CoreError, insist } from "../contracts.mjs";
 import { resolveProviderSecret } from "../secrets.mjs";
-import { anthropicModel, anthropicUsdForModelTokens, worstCaseAnthropicCallUsd } from "../cost.mjs";
+import { anthropicModel, anthropicUsageCost, worstCaseAnthropicCallUsd } from "../cost.mjs";
 
 const API = "https://api.anthropic.com/v1/messages";
 const VERSION = "2023-06-01";
@@ -9,7 +10,7 @@ const VERSION = "2023-06-01";
 // rejecting an otherwise valid, token-by-token 32k-token response.
 const MAX_RESPONSE_BYTES = 8_192_000;
 const MAX_TEXT_BYTES = 512_000;
-const metric = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
+const RETRY_DELAYS_MS = [1_500, 4_000];
 const unknownUsage = () => ({ tokensIn: null, tokensOut: null, costUsd: null, billingUnknown: true });
 
 function safeError(code, message) { return new CoreError(code, message); }
@@ -29,9 +30,21 @@ async function abortable(promise, signal) {
 }
 
 function streamFailure() {
-  // This deliberately matches the shared HTTP retry policy. Neither an
-  // upstream error message nor a fetch error (which can contain headers) leaks.
+  // A successful response can already be billed even if its stream is lost.
+  // Keep the public error sanitized; the provider never replays this attempt.
   return new TypeError("fetch failed: Anthropic stream ended before message_stop");
+}
+
+function definitelyUnbilledConnectionFailure(error) {
+  // A generic fetch failure, reset, socket close or timeout may occur after a
+  // POST was accepted. Only connection establishment/DNS errors prove that no
+  // Messages request could have reached the provider.
+  const codes = new Set(["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED", "ENETUNREACH", "EHOSTUNREACH", "UND_ERR_CONNECT_TIMEOUT"]);
+  let cause = error;
+  for (let depth = 0; cause && depth < 5; depth++, cause = cause.cause) {
+    if (codes.has(cause.code)) return true;
+  }
+  return false;
 }
 
 function streamError(type) {
@@ -138,7 +151,7 @@ async function readStream(res, signal) {
     if (failure instanceof CoreError || failure?.name === "TimeoutError" || failure?.name === "AbortError"
       || signal?.aborted || /fetch failed/.test(failure?.message ?? "")) throw failure;
     // A connection that closes during a successful HTTP response may already
-    // have been billed, and must be retried inside the attempt timeout.
+    // have been billed; its sanitized failure must terminate the call.
     throw streamFailure();
   } finally { try { reader.releaseLock(); } catch {} }
 }
@@ -224,24 +237,52 @@ export async function anthropic({
   };
   let response;
   try {
-    response = await fetcher(endpoint, {
-      method: "POST", signal,
-      headers: { "x-api-key": key, "anthropic-version": VERSION, "Content-Type": "application/json",
-        ...(workspace ? { "anthropic-workspace-id": workspace.trim() } : {}) },
-      body: JSON.stringify(body),
-    }, {
-      timeoutMs, retries, delaysMs,
-      onAttemptError: () => { unknownBilling = true; },
-      readResponse: async (res, context) => { parsed = await readResponse(res, context); },
-    });
-    // A small injected fetcher may return a Response directly. Its body still
-    // gets a bounded read; production fetchWithRetry consumes it per attempt.
-    if (response.ok && parsed === undefined) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      signal?.throwIfAborted();
       const timeout = AbortSignal.timeout(timeoutMs);
-      parsed = await readResponse(response, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
+      const attemptSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
+      let accepted = false;
+      parsed = undefined;
+      try {
+        response = await abortable(fetcher(endpoint, {
+          method: "POST", signal: attemptSignal,
+          headers: { "x-api-key": key, "anthropic-version": VERSION, "Content-Type": "application/json",
+            ...(workspace ? { "anthropic-workspace-id": workspace.trim() } : {}) },
+          body: JSON.stringify(body),
+        }, {
+          // Shared HTTP retries can replay a billed POST. Keep each invocation
+          // to one attempt and enforce the native provider's narrower policy.
+          timeoutMs, retries: 0, delaysMs,
+          readResponse: async res => {
+            if (!res.ok) return;
+            accepted = true;
+            parsed = await readResponse(res, { signal: attemptSignal });
+          },
+        }), attemptSignal);
+        // Small injected fetchers may return a Response directly; the same
+        // acceptance boundary and entire-attempt deadline still apply.
+        if (response.ok && parsed === undefined) {
+          accepted = true;
+          parsed = await readResponse(response, { signal: attemptSignal });
+        }
+      } catch (error) {
+        const unbilled = !accepted && definitelyUnbilledConnectionFailure(error);
+        if (!unbilled) unknownBilling = true;
+        if (signal?.aborted || !unbilled || attempt === retries) throw error;
+        response = undefined;
+      }
+      if (response) {
+        const rejected = response.status === 429 || (response.status >= 500 && response.status <= 599);
+        if (!rejected || attempt === retries) break;
+        // Rejection headers are unbilled. Do not consume an error body before
+        // discarding it and retrying the Messages request.
+        await response.body?.cancel().catch(() => {});
+        response = undefined;
+      }
+      const delays = delaysMs ?? RETRY_DELAYS_MS;
+      await delay(delays[Math.min(attempt, delays.length - 1)], undefined, { signal });
     }
   } catch (error) {
-    unknownBilling = true;
     if (signal?.aborted) throw failed("CANCELLED", "Anthropic cancelled");
     if (["INVALID_RESPONSE", "AUTH_REQUIRED", "RATE_LIMITED", "PROVIDER_ERROR"].includes(error?.code))
       throw failed(error.code, `Anthropic ${error.code === "INVALID_RESPONSE" ? "response body invalid or too large" : "request failed"}`);
@@ -253,16 +294,11 @@ export async function anthropic({
       : response.status === 429 ? "RATE_LIMITED" : "PROVIDER_ERROR";
     throw failed(code, `Anthropic ${response.status} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`);
   }
-  const counts = parsed?.usage;
-  const regular = metric(counts?.input_tokens);
-  const cacheRead = counts?.cache_read_input_tokens === undefined ? 0 : metric(counts.cache_read_input_tokens);
-  const cacheWrite = counts?.cache_creation_input_tokens === undefined ? 0 : metric(counts.cache_creation_input_tokens);
-  const tokensIn = regular === null || cacheRead === null || cacheWrite === null ? null : regular + cacheRead + cacheWrite;
-  const tokensOut = metric(counts?.output_tokens);
   // Price only the model that actually answered, never silently substitute the
   // requested model if an upstream response names a different/unknown model.
   const answeredModel = typeof parsed?.model === "string" ? redact(parsed.model) : null;
-  const usage = { tokensIn, tokensOut, costUsd: unknownBilling ? null : anthropicUsdForModelTokens(answeredModel, tokensIn, tokensOut),
+  const pricedUsage = anthropicUsageCost(answeredModel, parsed?.usage);
+  const usage = { ...pricedUsage, ...(unknownBilling ? { costUsd: null } : {}),
     ...(unknownBilling ? { billingUnknown: true } : {}) };
   const billed = (code, message) => {
     const error = safeError(code, message);

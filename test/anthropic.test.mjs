@@ -160,7 +160,7 @@ for (const mode of ["local HTTP", "injected stream"]) {
       assert.equal(call.body.stream, true);
       assert.deepEqual(call.body.thinking, { type: "disabled" });
       assert.equal(Object.hasOwn(call.body, "temperature"), false);
-      return json(completion({ content: [{ type: "thinking", thinking: "private" }, { type: "text", text: " Done " }], usage: { input_tokens: 1000, cache_read_input_tokens: 30, cache_creation_input_tokens: 10, output_tokens: 100 } }));
+      return json(completion({ content: [{ type: "thinking", thinking: "private" }, { type: "text", text: " Done " }], usage: { input_tokens: 1000, cache_read_input_tokens: 30, cache_creation_input_tokens: 10, cache_creation: { ephemeral_5m_input_tokens: 10, ephemeral_1h_input_tokens: 0 }, output_tokens: 100 } }));
     }, async calls => {
       const result = await anthropic(request({ maxTokens: 77, messages: [{ role: "system", content: "First" }, { role: "user", content: "Hello" }, { role: "system", content: "Second" }] }), { env: environment });
       assert.equal(result.content, "Done");
@@ -169,19 +169,19 @@ for (const mode of ["local HTTP", "injected stream"]) {
       assert.equal(result.provider.requestedModel, "claude-sonnet-5");
       assert.equal(result.usage.tokensIn, 1040);
       assert.equal(result.usage.tokensOut, 100);
-      closeTo(result.usage.costUsd, 0.00308);
+      closeTo(result.usage.costUsd, 0.003031);
       assert.equal(calls.length, 1);
       assert.equal(JSON.stringify(result).includes(KEY), false);
     });
   });
 
   check("fragmented SSE is read to message_stop and merges incremental usage", async (t, anthropic) => {
-    await withTransport(t, mode, () => stream({ usage: { input_tokens: 1000, cache_read_input_tokens: 30, cache_creation_input_tokens: 10, output_tokens: 0 } }), async () => {
+    await withTransport(t, mode, () => stream({ usage: { input_tokens: 1000, cache_read_input_tokens: 30, cache_creation_input_tokens: 10, cache_creation: { ephemeral_5m_input_tokens: 10, ephemeral_1h_input_tokens: 0 }, output_tokens: 0 } }), async () => {
       const result = await anthropic(request(), { env: environment });
       assert.equal(result.content, "Готово");
       assert.equal(result.requestId, "msg-stream");
       assert.deepEqual([result.usage.tokensIn, result.usage.tokensOut], [1040, 100]);
-      closeTo(result.usage.costUsd, 0.00308);
+      closeTo(result.usage.costUsd, 0.003031);
     });
   });
 
@@ -195,27 +195,33 @@ for (const mode of ["local HTTP", "injected stream"]) {
     });
   });
 
-  check("network failure retries and marks the whole call billing unknown", async (t, anthropic) => {
+  check("ambiguous network failure stops without replay and marks billing unknown", async (t, anthropic) => {
     await withTransport(t, mode, n => n === 1 ? { network: true } : json(), async calls => {
-      const result = await anthropic(request({ retries: 1 }), { env: environment });
-      assert.equal(calls.length, 2);
-      assert.equal(result.content, "Done");
-      assert.equal(result.usage.costUsd, null);
-      assert.equal(result.usage.billingUnknown, true);
+      await assert.rejects(anthropic(request({ retries: 2 }), { env: environment }), error => {
+        assert.equal(error.code, "NETWORK");
+        assert.equal(error.usage.costUsd, null);
+        assert.equal(error.usage.billingUnknown, true);
+        assert.equal(JSON.stringify(error).includes(KEY), false);
+        return true;
+      });
+      assert.equal(calls.length, 1, "a possible paid POST is never replayed");
     });
   });
 
-  for (const failure of ["dropped stream", "missing message_stop"]) check(`${failure} retries inside the attempt and keeps unknown billing`, async (t, anthropic) => {
+  for (const failure of ["dropped stream", "missing message_stop"]) check(`${failure} stops inside the attempt and keeps unknown billing`, async (t, anthropic) => {
     await withTransport(t, mode, n => n === 1 ? { ...stream({ complete: false }), ...(failure === "dropped stream" ? { drop: true } : {}) } : stream(), async calls => {
-      const result = await anthropic(request({ retries: 1 }), { env: environment });
-      assert.equal(calls.length, 2);
-      assert.equal(result.content, "Готово");
-      assert.equal(result.usage.costUsd, null);
-      assert.equal(result.usage.billingUnknown, true);
+      await assert.rejects(anthropic(request({ retries: 2 }), { env: environment }), error => {
+        assert.equal(error.code, "NETWORK");
+        assert.equal(error.usage.costUsd, null);
+        assert.equal(error.usage.billingUnknown, true);
+        assert.equal(JSON.stringify(error).includes(KEY), false);
+        return true;
+      });
+      assert.equal(calls.length, 1, "successful headers/partial stream forbid replay");
     });
   });
 
-  check("per-attempt timeout covers the entire body and exhausts exactly the allowed attempts", async (t, anthropic) => {
+  check("per-attempt timeout covers the entire body without replaying an accepted POST", async (t, anthropic) => {
     await withTransport(t, mode, () => ({ ...stream({ complete: false }), end: false }), async calls => {
       const start = Date.now();
       await assert.rejects(anthropic(request({ retries: 1, timeoutMs: 50 }), { env: environment }), error => {
@@ -225,18 +231,21 @@ for (const mode of ["local HTTP", "injected stream"]) {
         assert.equal(JSON.stringify(error).includes(KEY), false);
         return true;
       });
-      assert.equal(calls.length, 2);
+      assert.equal(calls.length, 1);
       assert.ok(Date.now() - start < 2000);
     });
   });
 
-  check("body timeout can recover on the next attempt but cannot claim an exact total cost", async (t, anthropic) => {
+  check("body timeout cannot replay even when another attempt would succeed", async (t, anthropic) => {
     await withTransport(t, mode, n => n === 1 ? { ...stream({ complete: false }), end: false } : stream(), async calls => {
-      const result = await anthropic(request({ retries: 1, timeoutMs: 100 }), { env: environment });
-      assert.equal(calls.length, 2);
-      assert.equal(result.content, "Готово");
-      assert.equal(result.usage.costUsd, null);
-      assert.equal(result.usage.billingUnknown, true);
+      await assert.rejects(anthropic(request({ retries: 2, timeoutMs: 100 }), { env: environment }), error => {
+        assert.equal(error.code, "TIMEOUT");
+        assert.equal(error.usage.costUsd, null);
+        assert.equal(error.usage.billingUnknown, true);
+        assert.equal(JSON.stringify(error).includes(KEY), false);
+        return true;
+      });
+      assert.equal(calls.length, 1);
     });
   });
 
@@ -253,10 +262,10 @@ for (const mode of ["local HTTP", "injected stream"]) {
   });
 
   check("Haiku long-context pricing includes cache reads and writes at the reference threshold", async (t, anthropic) => {
-    await withTransport(t, mode, () => json(completion({ model: "claude-haiku-5-5", usage: { input_tokens: 99_999, cache_read_input_tokens: 1, cache_creation_input_tokens: 1, output_tokens: 100 } })), async () => {
+    await withTransport(t, mode, () => json(completion({ model: "claude-haiku-5-5", usage: { input_tokens: 99_999, cache_read_input_tokens: 1, cache_creation_input_tokens: 1, cache_creation: { ephemeral_5m_input_tokens: 1, ephemeral_1h_input_tokens: 0 }, output_tokens: 100 } })), async () => {
       const result = await anthropic(request({ model: "claude-haiku-5-5" }), { env: environment });
       assert.equal(result.usage.tokensIn, 100_001);
-      closeTo(result.usage.costUsd, (100_001 * 0.50 + 100 * 2.50) / 1e6);
+      closeTo(result.usage.costUsd, ((99_999 + 0.1 + 1.25) * 0.50 + 100 * 2.50) / 1e6);
     });
   });
 
