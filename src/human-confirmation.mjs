@@ -1,3 +1,4 @@
+import { guardedOpenSync } from './persistence.mjs';
 /**
  * Human confirmation for a human gate (`q-core approve`).
  *
@@ -21,7 +22,7 @@
  *   state on disk. The instructions forbid all of these.
  * - POSIX terminals only (macOS, Linux). There is no Windows console path yet.
  */
-import { openSync, closeSync, readSync, writeSync } from "node:fs";
+import { closeSync, readSync, writeSync } from "node:fs";
 import { randomInt } from "node:crypto";
 
 /** Environment variables that mark a process started by a coding agent. */
@@ -65,8 +66,8 @@ function openControllingTerminal() {
     throw new HumanConfirmationError("no-terminal", "Human approval needs a POSIX terminal (macOS or Linux); Windows consoles are not supported yet.");
   let rfd, wfd;
   try {
-    rfd = openSync("/dev/tty", "r");
-    wfd = openSync("/dev/tty", "w");
+    rfd = guardedOpenSync("/dev/tty", "r");
+    wfd = guardedOpenSync("/dev/tty", "w");
   } catch {
     if (rfd !== undefined) closeSync(rfd);
     throw new HumanConfirmationError("no-terminal", "This process has no controlling terminal.");

@@ -1,6 +1,6 @@
-import { assertPersistencePath, guardedWriteFileSync, registerPersistenceSecret } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, registerPersistenceSecret, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync } from './persistence.mjs';
 /** Explicit local host for installed workflows. No daemon installation or remote shell. */
-import { readFileSync, mkdirSync, lstatSync, existsSync, renameSync, unlinkSync } from 'node:fs';
+import { readFileSync, lstatSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
@@ -34,7 +34,7 @@ function atomic(file, data) {
   assertPersistencePath(file); assertPersistencePath(tmp);
   guardedWriteFileSync(tmp, JSON.stringify(data), {mode:0o600, receipt:data});
   assertPersistencePath(tmp); assertPersistencePath(file);
-  renameSync(tmp,file);
+  guardedRenameSync(tmp,file);
 }
 function safeJson(file) { insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe host state'); return JSON.parse(readFileSync(file,'utf8')); }
 export function createLocalHost(config) {
@@ -51,7 +51,7 @@ export function createLocalHost(config) {
   const store = new RunStore(file), dir = join(store.dir,'host',hash(file));
   const lock = join(dir,'lock'), active = join(dir,'active.json');
   for (const path of [dir, lock, active, active + '.tmp']) assertPersistencePath(path);
-  mkdirSync(dir,{recursive:true,mode:0o700});
+  guardedMkdirSync(dir,{recursive:true,mode:0o700});
   for(const path of [store.dir,join(store.dir,'host'),dir]) insist(!lstatSync(path).isSymbolicLink(),'Unsafe host directory');
   async function dispatch(kind,eventId) {
     insist(['manual','schedule','webhook'].includes(kind),'Unsupported host trigger');
@@ -77,7 +77,7 @@ export function createLocalHost(config) {
       const output={phase:'completed',runId:run.runId,kind,eventId,status:result.status};
       atomic(receipt,output);
       return output;
-    } finally { unlinkSync(lock); }
+    } finally { guardedUnlinkSync(lock); }
   }
   async function tick(date=new Date()) {
     const manifest=verify();

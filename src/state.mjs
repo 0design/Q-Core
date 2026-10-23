@@ -1,4 +1,4 @@
-import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync } from './persistence.mjs';
 /**
  * Run state — plain files under `.qf/`, next to the manifest. No database.
  *
@@ -16,7 +16,7 @@ import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, wi
  * half-written JSON that the next `q-core status` then refuses to parse — that turns
  * one failed run into a permanently broken directory.
  */
-import { mkdirSync, readFileSync, readdirSync, renameSync, existsSync, lstatSync, unlinkSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, lstatSync } from "node:fs";
 import { hash, insist } from './contracts.mjs';
 import { dirname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -41,12 +41,12 @@ function writeJsonAtomic(file, value, { failOnRedaction = false } = {}) {
   assertPersistencePath(file);
   assertPersistencePath(tmp);
   assertPersistencePath(dirname(file));
-  mkdirSync(dirname(file), { recursive: true });
+  guardedMkdirSync(dirname(file), { recursive: true });
   for (let dir = dirname(file); dir !== dirname(dir); dir = dirname(dir)) if (dir.endsWith(`/${STATE_DIR_NAME}`)) { ensureIgnored(dir); break; }
   const result = guardedWriteFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", receipt: value, failOnRedaction });
   assertPersistencePath(tmp);
   assertPersistencePath(file);
-  renameSync(tmp, file);
+  guardedRenameSync(tmp, file);
   return result;
 }
 
@@ -84,7 +84,7 @@ export class RunStore {
     assertPersistencePath(this.dir);
     assertPersistencePath(file);
     assertPersistencePath(lock);
-    mkdirSync(this.dir, { recursive: true, mode: 0o700 });
+    guardedMkdirSync(this.dir, { recursive: true, mode: 0o700 });
     ensureIgnored(this.dir);
     insist(!lstatSync(this.dir).isSymbolicLink(), 'Unsafe specification directory');
     guardedWriteFileSync(lock, '', { flag: 'wx', mode: 0o600 });
@@ -99,7 +99,7 @@ export class RunStore {
       withPersistenceSecrets({ env: persistenceEnvironment({ identity, value }) },
         () => writeJsonAtomic(file, { revision, hash: approvalHash, contentHash, history: [...previous.history, { revision, hash: approvalHash, value }] }, { failOnRedaction: true }));
       return { revision, hash: approvalHash };
-    } finally { unlinkSync(lock); }
+    } finally { guardedUnlinkSync(lock); }
   }
 
   load(runId) {
@@ -151,7 +151,7 @@ export class RunStore {
     const file = join(this.outDir, `${runId}.txt`);
     assertPersistencePath(file);
     assertPersistencePath(this.outDir);
-    mkdirSync(this.outDir, { recursive: true });
+    guardedMkdirSync(this.outDir, { recursive: true });
     ensureIgnored(this.dir);
     guardedWriteFileSync(file, body, "utf8");
     return file;

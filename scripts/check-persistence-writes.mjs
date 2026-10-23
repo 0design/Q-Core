@@ -5,16 +5,40 @@ import { fileURLToPath } from 'node:url';
 
 // Syntax-aware lexical analysis: inspect every import declaration and member
 // capability, including aliases. No source is evaluated and no parser package is
-// needed at install/prepack time. Unknown computed access on an output capability
+// needed at install/prepack time. Mutation capabilities are banned even when
+// unused or passed elsewhere: path checks belong inside the guarded wrappers.
+// Unknown computed access on an output capability
 // fails closed instead of trusting one selected spelling of `write`.
 const MUTATORS = new Set([
   'writeFile', 'writeFileSync', 'appendFile', 'appendFileSync',
-  'createWriteStream', 'write', 'writeSync', 'writev', 'writevSync',
+  'createWriteStream', 'WriteStream', 'FileWriteStream',
+  // Read-stream constructors accept write flags too; no runtime caller needs
+  // their unrestricted constructor/options capability outside the boundary.
+  'createReadStream', 'ReadStream', 'FileReadStream', 'write', 'writeSync', 'writev', 'writevSync',
   'copyFile', 'copyFileSync', 'cp', 'cpSync',
-  'truncate', 'truncateSync', 'ftruncate', 'ftruncateSync', 'open', 'promises',
+  'truncate', 'truncateSync', 'ftruncate', 'ftruncateSync',
+  'mkdir', 'mkdirSync', 'mkdtemp', 'mkdtempSync', 'mkdtempDisposable', 'mkdtempDisposableSync',
+  'open', 'openSync', 'rename', 'renameSync', 'link', 'linkSync', 'symlink', 'symlinkSync',
+  'unlink', 'unlinkSync', 'rm', 'rmSync', 'rmdir', 'rmdirSync',
+  'chmod', 'chmodSync', 'chown', 'chownSync', 'lchmod', 'lchmodSync', 'lchown', 'lchownSync',
+  'fchmod', 'fchmodSync', 'fchown', 'fchownSync',
+  'utimes', 'utimesSync', 'lutimes', 'lutimesSync', 'futimes', 'futimesSync',
+  'fsync', 'fsyncSync', 'fdatasync', 'fdatasyncSync', 'promises',
   // A named default binding still exposes the entire filesystem namespace.
   'default',
 ]);
+// Unknown/new fs exports fail closed too, so adding a Node mutation API does
+// not silently expand the capabilities available to runtime callers.
+const READ_ONLY_FS_IMPORTS = new Set([
+  'access', 'accessSync', 'exists', 'existsSync', 'close', 'closeSync',
+  'read', 'readSync', 'readv', 'readvSync', 'readFile', 'readFileSync',
+  'readdir', 'readdirSync', 'readlink', 'readlinkSync', 'realpath', 'realpathSync',
+  'lstat', 'lstatSync', 'fstat', 'fstatSync', 'stat', 'statSync', 'statfs', 'statfsSync',
+  'glob', 'globSync', 'opendir', 'opendirSync', 'openAsBlob',
+  'watch', 'watchFile', 'unwatchFile', 'constants', 'F_OK', 'R_OK', 'W_OK', 'X_OK',
+  'Dir', 'Dirent', 'Stats', '_toUnixTimestamp',
+]);
+const READERS_WITH_FLAGS = new Set(['readFile', 'readFileSync']);
 const CONSOLE_WRITERS = new Set([
   'assert', 'clear', 'count', 'countReset', 'debug', 'dir', 'dirxml', 'error',
   'group', 'groupCollapsed', 'groupEnd', 'info', 'log', 'table', 'time',
@@ -154,6 +178,7 @@ export function inspectPersistenceSource(source, file) {
   catch { return [{ file: path, line: 1, reason: 'Cannot analyze JavaScript syntax; persistence capability check fails closed' }]; }
   const aliases = new Map([['process', ['process']], ['console', ['console']], ['require', ['require']], ['globalThis', ['globalThis']]]);
   const constants = new Map();
+  const flaggedReaders = new Map(), readerImportTokens = new Set();
   const value = index => tokens[index]?.value;
   function constant(start, end) {
     while (value(start) === '(' && pairs.get(start) === end - 1) { start++; end--; }
@@ -209,7 +234,7 @@ export function inspectPersistenceSource(source, file) {
   // aliases: one writeSync(wfd, text), with wfd opened exclusively as /dev/tty.
   const writeSyncCalls = tokens.flatMap((token, index) => token.value === 'writeSync' && value(index + 1) === '(' ? [index] : []);
   const ttyAssignment = tokens.some((token, index) => token.value === 'wfd'
-    && value(index + 1) === '=' && value(index + 2) === 'openSync' && value(index + 3) === '('
+    && value(index + 1) === '=' && value(index + 2) === 'guardedOpenSync' && value(index + 3) === '('
     && value(index + 4) === '/dev/tty' && value(index + 5) === ',' && value(index + 6) === 'w' && value(index + 7) === ')');
   const terminalOnly = path === 'src/human-confirmation.mjs' && ttyAssignment && writeSyncCalls.length === 1
     && tokens.filter(token => token.type === 'identifier' && token.value === 'writeSync').length === 2
@@ -255,6 +280,18 @@ export function inspectPersistenceSource(source, file) {
       const imported = value(part), aliased = value(part + 1) === 'as';
       if (MUTATORS.has(imported) && !(imported === 'writeSync' && !aliased && terminalOnly)) {
         report(part, `Direct fs ${imported} bypasses the guarded persistence writer`);
+      }
+      if (!MUTATORS.has(imported) && !READ_ONLY_FS_IMPORTS.has(imported)) {
+        report(part, `Unknown fs ${imported} capability; use named read-only imports or a guarded wrapper`);
+      }
+      if (READERS_WITH_FLAGS.has(imported)) {
+        if (value(index) === 'export') report(part, 'Exported fs reader exposes writable open flags; keep options statically read-only');
+        else {
+          const localIndex = aliased ? part + 2 : part;
+          flaggedReaders.set(value(localIndex), imported);
+          readerImportTokens.add(localIndex);
+          readerImportTokens.add(part);
+        }
       }
       if (aliased) part += 2;
     }
@@ -356,6 +393,60 @@ export function inspectPersistenceSource(source, file) {
       }
       if (unsafeModule) report(index, 'Dynamic filesystem/module loaders can bypass persistence; use named read-only imports');
     }
+  }
+  // readFile's innocuous name still exposes open flags (`flag: 'w'` can create
+  // or truncate). Permit only direct calls whose options cannot contain one.
+  function safeReadOptions(start, end) {
+    if (start === end) return true;
+    if (tokens[start]?.type === 'string' && start + 1 === end) return true;
+    if (value(start) === 'null' && start + 1 === end) return true;
+    if (value(start) !== '{' || pairs.get(start) !== end - 1) return false;
+    let ownReadFlag = false;
+    for (let index = start + 1; index < end - 1; index++) {
+      if (value(index) === ',') continue;
+      const key = value(index);
+      if (!['identifier', 'string'].includes(tokens[index]?.type) || key === '__proto__' || value(index + 1) !== ':') return false;
+      const expression = index + 2;
+      let expressionEnd = expression;
+      while (expressionEnd < end - 1 && value(expressionEnd) !== ',') {
+        if (['(', '[', '{'].includes(value(expressionEnd))) expressionEnd = pairs.get(expressionEnd);
+        expressionEnd++;
+      }
+      if (key === 'flag') {
+        if (!(expression + 1 === expressionEnd
+            && ((tokens[expression]?.type === 'string' && ['r', 'rs', 'sr'].includes(value(expression)))
+              || value(expression) === '0'))) return false;
+        ownReadFlag = true;
+      }
+      index = expressionEnd;
+    }
+    // An own flag also defeats an inherited writable Object.prototype.flag.
+    return ownReadFlag;
+  }
+  for (let index = 0; index < tokens.length; index++) {
+    if (tokens[index].type !== 'identifier' || !flaggedReaders.has(value(index)) || readerImportTokens.has(index)) continue;
+    if (value(index + 1) !== '(') {
+      report(index, 'Escaped fs reader capability exposes writable open flags; use a direct statically read-only call');
+      continue;
+    }
+    const end = pairs.get(index + 1);
+    if (value(index + 2) === '...') {
+      report(index, 'Spread fs reader arguments can hide writable open flags; use a direct statically read-only call');
+      continue;
+    }
+    let argument = index + 2;
+    while (argument < end && value(argument) !== ',') {
+      if (['(', '[', '{'].includes(value(argument))) argument = pairs.get(argument);
+      argument++;
+    }
+    if (argument === end) continue;
+    const optionsStart = argument + 1;
+    argument = optionsStart;
+    while (argument < end && value(argument) !== ',') {
+      if (['(', '[', '{'].includes(value(argument))) argument = pairs.get(argument);
+      argument++;
+    }
+    if (!safeReadOptions(optionsStart, argument)) report(index, 'fs reader options can mutate paths through open flags; keep options statically read-only');
   }
   return findings;
 }

@@ -23,8 +23,8 @@
  * nothing today" must not look the same to whatever is watching. A run parked at
  * a gate exits 2 — not a failure, not a success, and worth telling apart.
  */
-import { existsSync, readFileSync, readdirSync, statSync, unlinkSync } from "node:fs";
-import { guardedWriteFileSync, guardedStreamWrite } from "../src/persistence.mjs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { guardedWriteFileSync, guardedStreamWrite, guardedUnlinkSync } from "../src/persistence.mjs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -733,7 +733,7 @@ async function cmdDoctor(args, flags) {
   try {
     const probe = join(process.cwd(), `.q-core-write-probe-${process.pid}`);
     guardedWriteFileSync(probe, "");
-    unlinkSync(probe);
+    guardedUnlinkSync(probe);
     add("ok", "write access here", process.cwd());
   } catch {
     add("fail", "write access here", `cannot write in ${process.cwd()} — .qf/ state has nowhere to go`);

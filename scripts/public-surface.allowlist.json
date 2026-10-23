@@ -109,6 +109,7 @@
     "src/run.mjs",
     "src/secrets.mjs",
     "src/secret-decoding.mjs",
+    "src/secret-html-entities.mjs",
     "src/skill.mjs",
     "src/specification.mjs",
     "src/state.mjs",

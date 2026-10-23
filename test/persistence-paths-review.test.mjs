@@ -2,13 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { syncBuiltinESMExports } from 'node:module';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, fstatSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { applyFiles, atomicJson, lockWorkspace, snapshot } from '../src/workspace.mjs';
 import { digest, exportMaterialBundle } from '../src/material-graph.mjs';
-import { registerPersistenceSecret } from '../src/persistence.mjs';
+import {
+  guardedMkdirSync, guardedMkdtemp, guardedOpenSync, guardedRenameSync,
+  guardedRm, guardedRmSync, guardedUnlinkSync, guardedWriteFileSync,
+  registerPersistenceSecret,
+} from '../src/persistence.mjs';
 import { RunStore } from '../src/state.mjs';
 import { deliverOnce } from '../src/delivery-receipts.mjs';
 import { createLocalHost } from '../src/host.mjs';
@@ -21,8 +25,17 @@ import { hash } from '../src/contracts.mjs';
 // assertions cover every new output name created by the production functions.
 const KEY = ['path', 'credential', 'review', 'B47'].join('-');
 registerPersistenceSecret(KEY);
+const NAMED_KEY = KEY.replaceAll('-', '_');
+registerPersistenceSecret(NAMED_KEY);
 const encodings = {
   raw: KEY,
+  'HTML decimal entities': [...KEY].map(char => `&#${char.codePointAt(0)};`).join(''),
+  'HTML hexadecimal entities': [...KEY].map(char => `&#x${char.codePointAt(0).toString(16)};`).join(''),
+  'HTML named entities': NAMED_KEY.replaceAll('_', '&lowbar;'),
+  'JSON byte array': JSON.stringify([...Buffer.from(KEY)]),
+  'JS hexadecimal escapes': [...Buffer.from(KEY)].map(byte => `\\x${byte.toString(16).padStart(2, '0')}`).join(''),
+  'JS Unicode escapes': [...KEY].map(char => `\\u${char.codePointAt(0).toString(16).padStart(4, '0')}`).join(''),
+  'JS Unicode codepoint escapes': [...KEY].map(char => `\\u{${char.codePointAt(0).toString(16)}}`).join(''),
   hex: Buffer.from(KEY).toString('hex'),
   'prefixed base64': Buffer.from(`x${KEY}`).toString('base64'),
   'double percent': [...Buffer.from(KEY)].map(byte => `%25${byte.toString(16).padStart(2, '0')}`).join(''),
@@ -191,5 +204,60 @@ test('update cache validates its path before mkdir while retaining silent-cache 
   delete process.env.QF_NO_UPDATE_CHECK;
   t.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => ({ version: '99.0.0' }) }));
   assert.equal((await checkForUpdate('1.0.0')).version, '99.0.0');
+  assert.deepEqual(readdirSync(root), []);
+});
+
+
+for (const [encoding, value] of Object.entries(encodings)) {
+  test(`guarded pathname mutations reject ${encoding} names before filesystem side effects`, async t => {
+    const root = directory(t), secretPath = join(root, value), safe = join(root, 'safe');
+    assert.throws(() => guardedMkdirSync(secretPath, { recursive: true }), unsafe);
+    assert.throws(() => guardedOpenSync(secretPath, 'w'), unsafe);
+    await assert.rejects(guardedMkdtemp(secretPath), unsafe);
+    assert.deepEqual(readdirSync(root), []);
+    writeFileSync(safe, 'retained');
+    assert.throws(() => guardedRenameSync(safe, secretPath), unsafe);
+    assert.throws(() => guardedRenameSync(secretPath, safe), unsafe);
+    assert.equal(readFileSync(safe, 'utf8'), 'retained', 'both rename paths are checked before moving anything');
+    writeFileSync(secretPath, 'input fixture');
+    assert.throws(() => guardedOpenSync(secretPath, 'w'), unsafe);
+    assert.equal(readFileSync(secretPath, 'utf8'), 'input fixture', 'refused open cannot truncate an existing file');
+    assert.throws(() => guardedUnlinkSync(secretPath), unsafe);
+    assert.throws(() => guardedRmSync(secretPath, { force: true }), unsafe);
+    // Async removal checks synchronously, before scheduling its fs operation.
+    assert.throws(() => guardedRm(secretPath, { force: true }), unsafe);
+    assert.equal(readFileSync(secretPath, 'utf8'), 'input fixture');
+  });
+}
+
+test('guarded temporary-directory creation checks the complete generated name before mkdir', async t => {
+  const root = directory(t);
+  t.mock.method(crypto, 'randomUUID', () => KEY);
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(guardedMkdtemp(join(root, 'safe-prefix-')), unsafe);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+  assert.deepEqual(readdirSync(root), []);
+});
+
+test('guarded pathname wrappers preserve ordinary filesystem operations', async t => {
+  const root = directory(t), parent = join(root, 'nested'), source = join(parent, 'source.txt'), destination = join(parent, 'destination.txt');
+  guardedMkdirSync(parent, { recursive: true, mode: 0o700 });
+  const fd = guardedOpenSync(source, 'wx', 0o600);
+  try {
+    guardedWriteFileSync(fd, 'checked bytes');
+    assert.equal(fstatSync(fd).mode & 0o777, 0o600);
+  } finally { closeSync(fd); }
+  guardedRenameSync(source, destination);
+  assert.equal(existsSync(source), false);
+  assert.equal(readFileSync(destination, 'utf8'), 'checked bytes');
+  guardedUnlinkSync(destination);
+  guardedRmSync(parent, { recursive: true });
+  const temporary = await guardedMkdtemp(join(root, 'temporary-'));
+  assert.equal(existsSync(temporary), true);
+  await guardedRm(temporary, { recursive: true });
   assert.deepEqual(readdirSync(root), []);
 });

@@ -1,4 +1,6 @@
-import { writeFileSync, writeSync, fstatSync, statSync, openSync, readSync, closeSync } from 'node:fs';
+import { writeFileSync, writeSync, fstatSync, statSync, openSync, readSync, closeSync, mkdirSync, renameSync, unlinkSync, rmSync } from 'node:fs';
+import { mkdir, rm } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { CoreError } from './contracts.mjs';
 import { assertNoDecodedSecrets } from './secret-decoding.mjs';
@@ -11,8 +13,9 @@ const patterns = new Map();
 const tails = new Map();
 const streamTails = new WeakMap();
 const streamFileTails = new Map();
-// A credential is at most 8192 bytes; the longest accepted JSON/percent/base64
-// spelling fits in this suffix even when split across separate append calls.
+// Continuity is bounded: inspect the most recent 1,048,576 bytes on disk and
+// retain 1,048,576 UTF-16 code units for cached append/stream history. Arbitrarily
+// expanded encodings split across earlier calls are outside this finite guard.
 const TAIL_BYTES = 1_048_576;
 const MARKER = '[REDACTED]';
 const unsafe = () => new CoreError('PERSISTENCE_SECRET_UNSAFE', 'Persistence refused: bytes could not be safely checked or redacted');
@@ -181,6 +184,54 @@ function remember(target, text) {
 
 export function assertPersistencePath(file) {
   if (typeof file !== 'number') redact(Buffer.from(file instanceof URL ? file.href : file), true);
+}
+
+// Path mutations are capabilities too: validate every pathname before the first
+// side effect, including both names for moves. A caller's earlier check cannot
+// substitute for this boundary, because a new callsite could omit it.
+export function guardedMkdirSync(path, options) {
+  assertPersistencePath(path);
+  return mkdirSync(path, options);
+}
+
+export function guardedOpenSync(path, flags, mode) {
+  assertPersistencePath(path);
+  return openSync(path, flags, mode);
+}
+
+export function guardedRenameSync(source, destination) {
+  assertPersistencePath(source);
+  assertPersistencePath(destination);
+  return renameSync(source, destination);
+}
+
+export function guardedUnlinkSync(path) {
+  assertPersistencePath(path);
+  return unlinkSync(path);
+}
+
+export function guardedRmSync(path, options) {
+  assertPersistencePath(path);
+  return rmSync(path, options);
+}
+
+export function guardedRm(path, options) {
+  assertPersistencePath(path);
+  return rm(path, options);
+}
+
+export async function guardedMkdtemp(prefix) {
+  assertPersistencePath(prefix);
+  if (typeof prefix !== 'string') throw unsafe();
+  // Choose and check the complete random name before mkdir. Native mkdtemp
+  // chooses its suffix inside the mutation, too late to guard the full path.
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const path = prefix + randomUUID();
+    assertPersistencePath(path);
+    try { await mkdir(path, { mode: 0o700 }); return path; }
+    catch (error) { if (error.code !== 'EEXIST') throw error; }
+  }
+  throw unsafe();
 }
 
 /** The sole file writer. Check before open/create/truncate, including temp files. */

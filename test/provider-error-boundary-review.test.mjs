@@ -9,7 +9,7 @@ import { createRun, driveRun, RunStore } from "../src/run.mjs";
 import { validateManifest } from "../src/manifest.mjs";
 
 // Synthetic provider fixture only. All transports below are injected offline.
-const KEY = "review-provider-boundary-credential-fixture";
+const KEY = ["review", "provider", "boundary", "credential", "fixture"].join("_");
 const percent = value => [...Buffer.from(value)].map(byte => `%${byte.toString(16).padStart(2, "0")}`).join("");
 const unicode = value => [...value].map(char => `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`).join("");
 const encodings = [
@@ -17,6 +17,12 @@ const encodings = [
   ["base64 with a prefix offset", Buffer.from(`x${KEY}`).toString("base64")],
   ["double percent", percent(percent(KEY))],
   ["JSON escapes", unicode(KEY)],
+  ["HTML decimal entities", [...KEY].map(char => `&#${char.codePointAt(0)};`).join("")],
+  ["HTML hexadecimal entities", [...KEY].map(char => `&#x${char.codePointAt(0).toString(16)};`).join("")],
+  ["HTML named entities", KEY.replaceAll("_", "&lowbar;")],
+  ["JSON byte array", JSON.stringify([...Buffer.from(KEY)])],
+  ["JavaScript hex escapes", [...Buffer.from(KEY)].map(byte => `\\x${byte.toString(16).padStart(2, "0")}`).join("")],
+  ["JavaScript braced Unicode escapes", [...KEY].map(char => `\\u{${char.codePointAt(0).toString(16)}}`).join("")],
   ["whitespace", [...KEY].join(" ")],
 ];
 const request = provider => ({

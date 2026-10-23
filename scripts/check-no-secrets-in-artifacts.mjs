@@ -22,6 +22,20 @@ export function assertNoSecretShapes(bytes) {
   }
 }
 
+export function assertNoArchiveSecretShapes(bytes) {
+  // Tar NUL padding separates otherwise unrelated headers and file contents.
+  // Every covered transport preserves a literal NUL, and credential shapes
+  // exclude it, so no detectable shape can span this delimiter. Scan every
+  // non-NUL byte with unchanged per-check budgets instead of multiplying
+  // whole-archive decoding branches across unrelated source files.
+  let start = 0;
+  for (let end = 0; end <= bytes.length; end++) {
+    if (end < bytes.length && bytes[end] !== 0) continue;
+    if (end > start) assertNoSecretShapes(bytes.subarray(start, end));
+    start = end + 1;
+  }
+}
+
 function descendants(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const file = join(directory, entry.name);
@@ -58,7 +72,7 @@ export function checkArtifacts({ root = rootDirectory, archive } = {}) {
   if (archive) {
     // Scan uncompressed bytes, not gzip bytes; tar headers and every payload are
     // inspected without extracting paths or trusting an external tar executable.
-    assertNoSecretShapes(gunzipSync(readFileSync(resolve(root, archive))));
+    assertNoArchiveSecretShapes(gunzipSync(readFileSync(resolve(root, archive))));
   }
   return { files: files.size, packageFiles: packed[0].files.length, exampleFiles: exampleFiles.length, archives: archive ? 1 : 0, secretShapes: 0 };
 }

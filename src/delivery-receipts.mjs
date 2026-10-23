@@ -1,5 +1,5 @@
-import { assertPersistencePath, guardedWriteFileSync } from './persistence.mjs';
-import { mkdirSync, existsSync, lstatSync, readFileSync } from 'node:fs';
+import { assertPersistencePath, guardedWriteFileSync, guardedMkdirSync } from './persistence.mjs';
+import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hash, insist } from './contracts.mjs';
 import { atomicJson } from './workspace.mjs';
@@ -14,7 +14,7 @@ export async function deliverOnce({ store, destination, key, payloadHash }, send
   for (const path of [store.dir, join(store.dir, 'receipts'), file]) assertPersistencePath(path);
   for (const directory of [store.dir, join(store.dir, 'receipts')]) {
     if (existsSync(directory)) insist(lstatSync(directory).isDirectory() && !lstatSync(directory).isSymbolicLink(), 'Unsafe receipt directory');
-    else { assertPersistencePath(directory); mkdirSync(directory, { recursive: true, mode: 0o700 }); }
+    else { assertPersistencePath(directory); guardedMkdirSync(directory, { recursive: true, mode: 0o700 }); }
   }
   const claim = { receiptKey, sourceKey: key, payloadHash, phase: 'sending' };
   try { guardedWriteFileSync(file, JSON.stringify(claim), { flag: 'wx', mode: 0o600, receipt: claim }); }

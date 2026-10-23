@@ -1,15 +1,11 @@
-import { assertPersistencePath, guardedWriteFileSync } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, guardedMkdirSync, guardedRenameSync, guardedOpenSync, guardedUnlinkSync } from './persistence.mjs';
 import {
   lstatSync,
   existsSync,
   realpathSync,
   readFileSync,
-  mkdirSync,
-  renameSync,
-  openSync,
   fstatSync,
   closeSync,
-  unlinkSync,
   constants,
 } from "node:fs";
 import { resolve, dirname, join, relative } from "node:path";
@@ -53,7 +49,7 @@ function prepareParent(root, parent, rootStat) {
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
       assertPersistencePath(part);
-      mkdirSync(part);
+      guardedMkdirSync(part);
       stat = lstatSync(part, { bigint: true });
     }
     insist(stat.isDirectory() && !stat.isSymbolicLink(), "Symlinks are not allowed", "SCOPE_DENIED");
@@ -67,7 +63,7 @@ function removeOwnedTemp(tmp, stat) {
   try {
     // A pathname may have been replaced. Never delete a different file or link.
     const current = lstatSync(tmp, { bigint: true });
-    if (current.isFile() && sameFile(stat, current)) unlinkSync(tmp);
+    if (current.isFile() && sameFile(stat, current)) guardedUnlinkSync(tmp);
   } catch (error) {
     if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error;
   }
@@ -177,7 +173,7 @@ export function applyFiles(workspace, allowedPaths, files, before) {
       checkDirectories(root, directories);
       insist(Number.isInteger(constants.O_NOFOLLOW), "Secure writes require O_NOFOLLOW", "SCOPE_DENIED");
       assertPersistencePath(tmp);
-      fd = openSync(tmp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+      fd = guardedOpenSync(tmp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
       tempStat = fstatSync(fd, { bigint: true });
       checkDirectories(root, directories);
       guardedWriteFileSync(fd, f.content);
@@ -186,7 +182,7 @@ export function applyFiles(workspace, allowedPaths, files, before) {
       checkDirectories(root, directories);
       assertPersistencePath(tmp);
       assertPersistencePath(file);
-      renameSync(tmp, file);
+      guardedRenameSync(tmp, file);
       renamed = true;
       insist(inside(root, realpathSync(file)), "Written file escaped workspace", "SCOPE_DENIED");
       checkDirectories(root, directories);
@@ -212,7 +208,7 @@ export function atomicJson(file, value) {
   });
   assertPersistencePath(tmp);
   assertPersistencePath(file);
-  renameSync(tmp, file);
+  guardedRenameSync(tmp, file);
   return result;
 }
 export function lockWorkspace(workspace) {
@@ -227,11 +223,11 @@ export function lockWorkspace(workspace) {
       "SCOPE_DENIED",
     );
   assertPersistencePath(dir);
-  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  guardedMkdirSync(dir, { recursive: true, mode: 0o700 });
   let fd;
   try {
     assertPersistencePath(lock);
-    fd = openSync(lock, "wx", 0o600);
+    fd = guardedOpenSync(lock, "wx", 0o600);
   } catch {
     throw new CoreError(
       "WORKSPACE_LOCKED",
@@ -243,7 +239,7 @@ export function lockWorkspace(workspace) {
     dir,
     release() {
       closeSync(fd);
-      unlinkSync(lock);
+      guardedUnlinkSync(lock);
     },
   };
 }

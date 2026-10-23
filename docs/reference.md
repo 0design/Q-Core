@@ -17,6 +17,59 @@ started, see the [README](../README.md).
   unsigned run state. Use an OS sandbox or container for that isolation, and use trusted
   workspaces and verifiers. The hosted runtime will run Q-Core in a container.
 
+## Persistence trust model
+
+The primary protection for provider failures is structural: unrestricted error
+bodies, headers, status text, request IDs and thrown diagnostics from Anthropic
+and OpenRouter never enter persisted errors or logs. Rejected HTTP bodies are
+discarded without reading them. JSON/SSE error envelopes become fixed local
+messages and allowlisted codes, validated numeric status and usage fields; the
+provider's free text and nested objects are dropped before the persistence
+boundary. Successful model content is intended workflow output and may be
+saved through that boundary; this rule does not discard successful answers.
+
+The persistence guard is defence in depth, not a guarantee for **any encoding**
+of a credential. It checks registered environment/resolver credentials in file
+bytes, pathnames and stdout/stderr (which a shell can redirect to logs). Known
+literal/JSON/percent spellings can be redacted; other detected encoded secrets
+and decoding-budget exhaustion refuse the operation before writing. Detection
+decodes only temporary in-memory candidates and never emits decoded data.
+Covered representations are:
+
+- Literal text, JSON Unicode and short escapes, and escaped backslashes.
+- Percent-encoded UTF-8, hexadecimal bytes, base64 and base64url, including
+  prefixed alignments and whitespace-wrapped base64.
+- HTML decimal/hexadecimal numeric entities (with or without semicolons) and
+  HTML5 named entities, including their legacy semicolonless aliases.
+- JSON byte arrays containing only integer byte values from 0 through 255,
+  interpreted as UTF-8.
+- JavaScript `\xHH`, `\uHHHH` and `\u{…}` escapes.
+
+These transformations can compose within bounded decoding: at most six levels,
+131,072 distinct candidates and 64 MiB of total candidate bytes per check.
+Append and redirected-stream checks retain the most recent 1,048,576 UTF-16 code
+units of text for continuity (or read a 1 MiB suffix of an existing file), shared
+across stdout/stderr when they use the same destination. An encoded value split
+across more history than that window is outside the
+continuation guarantee (for example, byte arrays with extreme whitespace or
+entities with extreme leading-zero padding).
+Unknown transforms, encryption and arbitrary application-specific encodings
+are outside this guard's coverage. The offline release scan uses the same
+decoder against known credential shapes in package paths/contents, example
+outputs and supplied decompressed archives; it cannot identify every arbitrary
+runtime credential. Archive scanning checks every non-NUL byte run with the same
+budgets: literal NUL bytes delimit all covered transports and credential shapes,
+so unrelated tar headers and payloads do not multiply whole-archive branches.
+
+Runtime pathname mutations go through guarded wrappers in
+`src/persistence.mjs`, which check relevant path arguments before creating,
+opening, renaming or removing filesystem entries. The bypass lint checks
+`src/` and `bin/`, rejecting direct filesystem mutation capabilities (including
+write-mode opens, links, copies and metadata changes) outside that module.
+Read-only operations do not grant write capability. This is an enforced source
+boundary for Q-Core's runtime, not an OS sandbox for hostile same-user processes,
+external tools or arbitrary executable workflow code.
+
 ## Hosted MCP
 
 `https://qfactory.io/api/mcp` (Streamable HTTP, no key) exposes read-only tools

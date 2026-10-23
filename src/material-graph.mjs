@@ -1,6 +1,6 @@
-import { assertPersistencePath, guardedWriteFileSync } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, guardedMkdirSync, guardedRenameSync, guardedRmSync } from './persistence.mjs';
 /** Resolve exact local material bytes before execution; export the same closure. */
-import { readFileSync, realpathSync, statSync, lstatSync, mkdirSync, existsSync, renameSync, rmSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync, lstatSync, existsSync } from 'node:fs';
 import { resolve, dirname, relative, join, sep, basename } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { validateManifest, ManifestError } from './manifest.mjs';
@@ -155,11 +155,11 @@ function writeExport(target, entries) {
     assertPersistencePath(join(temporary, path));
   }
   assertPersistencePath(dirname(target));
-  mkdirSync(dirname(target), { recursive: true });
+  guardedMkdirSync(dirname(target), { recursive: true });
   assertPersistencePath(temporary);
   // Exclusive mkdir preserves mkdtemp's refusal to reuse an existing path,
   // while making the entire randomized name available for pre-creation checks.
-  mkdirSync(temporary, { mode: 0o700 });
+  guardedMkdirSync(temporary, { mode: 0o700 });
   try {
     assertPersistencePath(temporary);
     // Export hashes identify exact reviewed bytes. A credential-bearing bundle
@@ -168,15 +168,15 @@ function writeExport(target, entries) {
       const output = join(temporary, path);
       assertPersistencePath(output);
       assertPersistencePath(dirname(output));
-      mkdirSync(dirname(output), { recursive: true });
+      guardedMkdirSync(dirname(output), { recursive: true });
       guardedWriteFileSync(output, body, { flag: 'wx', failOnRedaction: true });
     }
     if (existsSync(target)) throw new ManifestError('export destination already exists; choose a new directory');
     assertPersistencePath(temporary);
     assertPersistencePath(target);
-    renameSync(temporary, target);
+    guardedRenameSync(temporary, target);
   } catch (error) {
-    rmSync(temporary, { recursive: true, force: true });
+    guardedRmSync(temporary, { recursive: true, force: true });
     throw error;
   }
 }
