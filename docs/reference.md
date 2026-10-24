@@ -61,6 +61,16 @@ across stdout/stderr when they use the same destination. An encoded value split
 across more history than that window is outside the
 continuation guarantee (for example, byte arrays with extreme whitespace or
 entities with extreme leading-zero padding).
+Independent file/FIFO/socket stream queues keep one destination owner until all
+write callbacks finish. After a write error, a regular file can recover only
+after those callbacks settle: a readable descriptor must recheck the physical
+bytes since the owner's last verified boundary, including up to 1 MiB of prior
+overlap, within the existing 8 MiB whole-record limit. Recovery requires complete,
+stable reads and valid UTF-8; the submitted buffers are never treated as proof
+of what reached disk. An unreadable, changing or unverifiable file, or a failed
+FIFO/socket/other non-regular destination, refuses further output with
+`PERSISTENCE_DESTINATION_QUARANTINED`. A regular file may retry verification with
+a readable descriptor; a non-regular destination needs a new generation.
 Unknown transforms, encryption and arbitrary application-specific encodings
 are outside this guard's coverage. The offline release scan uses the same
 decoder against known credential shapes in package paths/contents, example

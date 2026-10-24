@@ -96,17 +96,20 @@ test('a drained stream retains ownership until all queued callbacks complete', t
   assert.equal(text(), 'first ordinary chunk\nsecond ordinary chunk\nthird ordinary chunk\n');
 });
 
-test('an older queued write failure keeps the destination closed', t => {
+test('an older queued write failure blocks until callbacks settle and then rechecks regular output', t => {
   const { a, b, text } = destination(t);
   guardedStreamWrite(a, 'first partial chunk\n');
   a.flush();
   guardedStreamWrite(a, 'second ordinary chunk\n');
   a.complete(new Error('partial flush failure'));
-  a.flush();
-  a.complete();
   assert.throws(() => guardedStreamWrite(b, 'third ordinary chunk\n'), { code: 'PERSISTENCE_SECRET_UNSAFE' });
   assert.throws(() => guardedStreamWrite(a, 'third ordinary chunk\n'), { code: 'PERSISTENCE_SECRET_UNSAFE' });
-  assert.equal(text(), 'first partial chunk\nsecond ordinary chunk\n');
+  a.flush();
+  a.complete();
+  guardedStreamWrite(b, 'third ordinary chunk\n');
+  b.flush();
+  b.complete();
+  assert.equal(text(), 'first partial chunk\nsecond ordinary chunk\nthird ordinary chunk\n');
 });
 
 test('a partial flush without writableLength preserves the queued secret prefix', t => {

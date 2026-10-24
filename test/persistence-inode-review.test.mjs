@@ -124,7 +124,10 @@ test('an asynchronous partial FIFO flush failure cannot erase its guarded histor
     const output = { fd, write(bytes, callback) { writeSync(fd, bytes); setImmediate(() => callback(new Error('partial flush failure'))); return true; } };
     guardedStreamWrite(output, prefix);
     await new Promise(resolve => setImmediate(resolve));
-    assert.throws(() => guardedStreamWrite(stream(fd), suffix), { code: 'PERSISTENCE_SECRET_UNSAFE' });
+    assert.throws(() => guardedStreamWrite(stream(fd), suffix), {
+      code: 'PERSISTENCE_DESTINATION_QUARANTINED',
+      message: /quarantin|recover|reconstruct/i,
+    });
     const received = Buffer.alloc(prefix.length);
     assert.equal(readSync(fd, received), prefix.length);
     assert.equal(received.toString(), prefix);

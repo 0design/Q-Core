@@ -3,7 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { CoreError } from './contracts.mjs';
-import { assertNoDecodedSecrets } from './secret-decoding.mjs';
+import { assertNoDecodedSecrets, MAX_SECRET_RECORD_BYTES } from './secret-decoding.mjs';
 
 // Credentials stay in memory. All persistent bytes, including temporary files,
 // pass this boundary; provider response filtering is an independent first layer.
@@ -20,6 +20,7 @@ const streamFileWrites = new Map();
 const TAIL_BYTES = 1_048_576;
 const MARKER = '[REDACTED]';
 const unsafe = () => new CoreError('PERSISTENCE_SECRET_UNSAFE', 'Persistence refused: bytes could not be safely checked or redacted');
+const quarantined = reason => new CoreError('PERSISTENCE_DESTINATION_QUARANTINED', `Persistence destination quarantined after a write failure: ${reason}`);
 const credentialName = /(?:key|token|secret|password|credential|authorization|cookie)/i;
 
 export function registerPersistenceSecret(value) {
@@ -199,6 +200,45 @@ function remember(target, text, previous) {
   }
 }
 
+function recoverStreamDestination(fd, identity, writes) {
+  if (!identity.stat.isFile()) throw quarantined('partial output from a non-regular file cannot be reread');
+  try {
+    const size = Number(identity.stat.size), boundary = Number(writes.boundary);
+    if (!Number.isSafeInteger(size) || !Number.isSafeInteger(boundary) || size < boundary) throw unsafe();
+    // The queued tail describes intended bytes, not necessarily the bytes a
+    // failed write emitted. Recheck every byte since this owner acquired the
+    // destination, with overlap before that last verified boundary.
+    const start = Math.max(0, boundary - TAIL_BYTES);
+    const length = size - start;
+    // Reuse the existing whole-record ceiling, including overlap. Splitting
+    // this scan could miss a representation spanning artificial chunks.
+    if (length > MAX_SECRET_RECORD_BYTES) throw unsafe();
+    const bytes = Buffer.alloc(length);
+    let count = 0;
+    while (count < length) {
+      const read = readSync(fd, bytes, count, length - count, start + count);
+      if (!Number.isSafeInteger(read) || read <= 0 || read > length - count) throw unsafe();
+      count += read;
+    }
+    // A byte-window cut may begin inside an otherwise valid UTF-8 character.
+    // Only that leading fragment may be skipped; redact uses fatal decoding
+    // for all remaining bytes, including an incomplete failed-write suffix.
+    let offset = 0;
+    if (start) while (offset < 3 && (bytes[offset] & 0xc0) === 0x80) offset++;
+    const { text } = redact(bytes.subarray(offset), true);
+    const after = fileIdentity(fd);
+    if (!after || after.key !== identity.key || after.generation !== identity.generation || after.version !== identity.version) throw unsafe();
+    const next = { generation: identity.generation, version: after.version, text: text.slice(-TAIL_BYTES), pending: false };
+    streamFileTails.set(identity.key, next);
+    remember(fd, next.text, next);
+    streamFileWrites.delete(identity.key);
+  } catch {
+    // Keep the failed owner so a later readable fd can retry reconstruction;
+    // unreadable, changing, oversized or unsafe contents never release it.
+    throw quarantined('regular-file output could not be completely reread and verified within the 8 MiB record limit (including overlap); retry with a readable, stable file');
+  }
+}
+
 export function assertPersistencePath(file) {
   if (typeof file !== 'number') redact(Buffer.from(file instanceof URL ? file.href : file), true);
 }
@@ -289,12 +329,17 @@ export function guardedStreamWrite(stream, data) {
   // destination rather than the JavaScript stream identity in that case.
   const sharedDestination = identity && (identity.stat.isFile() || identity.stat.isFIFO() || identity.stat.isSocket());
   if (sharedDestination && !streamFileTails.has(identity.key) && streamFileTails.size >= 64) throw unsafe();
-  const active = sharedDestination ? streamFileWrites.get(identity.key) : null;
+  let active = identity ? streamFileWrites.get(identity.key) : null;
   // Independent Writable queues can flush in a different order from .write
   // calls. Keep one owner until every callback confirms its writes, even when
   // writableLength is already zero or unavailable. Cache refreshes cannot
   // release this lock, and a recycled inode starts a new generation.
-  if (active && active.generation === identity.generation && (active.unsafe || active.stream !== stream)) throw unsafe();
+  if (active && active.generation === identity.generation) {
+    if (active.unsafe && active.pending === 0) {
+      recoverStreamDestination(stream.fd, identity, active);
+      active = null;
+    } else if (active.unsafe || (sharedDestination && active.stream !== stream)) throw unsafe();
+  }
   const cached = sharedDestination ? streamFileTails.get(identity.key) : null;
   if (cached?.unsafe && cached.generation === identity.generation) throw unsafe();
   const previous = sharedDestination
@@ -302,18 +347,19 @@ export function guardedStreamWrite(stream, data) {
       ? cached.text : previousTail(stream.fd, identity))
     : streamTails.get(stream);
   const tail = checkedContinuation(previous ?? '', output);
-  if (!sharedDestination) {
+  if (!identity) {
     const accepted = stream.write(output);
     streamTails.set(stream, tail);
     return accepted;
   }
-  const writes = active?.generation === identity.generation ? active : { generation: identity.generation, stream, pending: 0 };
+  const writes = active?.generation === identity.generation ? active : { generation: identity.generation, stream, pending: 0, boundary: identity.stat.size };
   writes.pending++;
   streamFileWrites.set(identity.key, writes);
   const next = { generation: identity.generation, version: identity.version, text: tail, pending: true };
-  streamFileTails.set(identity.key, next);
+  if (sharedDestination) streamFileTails.set(identity.key, next);
   const fail = () => {
     writes.unsafe = true;
+    if (!sharedDestination) return;
     if (streamFileWrites.get(identity.key) !== writes) return;
     const current = streamFileTails.get(identity.key);
     if (current?.generation !== identity.generation) return;
@@ -325,7 +371,7 @@ export function guardedStreamWrite(stream, data) {
     // Writable streams may flush after .write returns. Only the latest queued
     // continuation can refresh its snapshot; an older callback must not erase
     // a newer tail. Synchronous wrappers are covered by the immediate refresh.
-    if (streamFileTails.get(identity.key) !== next || next.unsafe) return;
+    if (!sharedDestination || streamFileTails.get(identity.key) !== next || next.unsafe) return;
     try {
       if (error) throw error;
       const written = fileIdentity(stream.fd);
@@ -334,9 +380,8 @@ export function guardedStreamWrite(stream, data) {
       next.pending = writes.pending > 0;
       remember(stream.fd, tail, next);
     } catch {
-      // A failed flush may still have emitted a credential prefix. Keep that
-      // destination closed until its generation changes; forgetting its tail
-      // would allow a later write to complete the credential.
+      // A failed flush may still have emitted a credential prefix. Keep this
+      // owner until all callbacks settle and physical bytes can be rechecked.
       fail();
     }
   };
@@ -354,6 +399,7 @@ export function guardedStreamWrite(stream, data) {
   try { accepted = stream.write(output, complete); }
   catch (error) { fail(); complete(error); throw error; }
   refresh();
+  if (!sharedDestination) streamTails.set(stream, tail);
   return accepted;
 }
 
