@@ -30,7 +30,7 @@ function recycledInode(t) {
   return { nextGeneration() { generation++; changed++; }, changedMetadata() { changed++; } };
 }
 
-const stream = fd => ({ fd, write(bytes) { writeSync(fd, bytes); return true; } });
+const stream = fd => ({ fd, write(bytes, callback) { writeSync(fd, bytes); callback(); return true; } });
 
 for (const mode of ['a', 'a+']) {
   test(`a recycled Linux log inode cannot reuse an earlier stream tail (${mode})`, t => {

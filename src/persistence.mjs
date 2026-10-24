@@ -13,6 +13,7 @@ const patterns = new Map();
 const tails = new Map();
 const streamTails = new WeakMap();
 const streamFileTails = new Map();
+const streamFileWrites = new Map();
 // Continuity is bounded: inspect the most recent 1,048,576 bytes on disk and
 // retain 1,048,576 UTF-16 code units for cached append/stream history. Arbitrarily
 // expanded encodings split across earlier calls are outside this finite guard.
@@ -283,6 +284,12 @@ export function guardedStreamWrite(stream, data) {
   // destination rather than the JavaScript stream identity in that case.
   const sharedDestination = identity && (identity.stat.isFile() || identity.stat.isFIFO() || identity.stat.isSocket());
   if (sharedDestination && !streamFileTails.has(identity.key) && streamFileTails.size >= 64) throw unsafe();
+  const active = sharedDestination ? streamFileWrites.get(identity.key) : null;
+  // Independent Writable queues can flush in a different order from .write
+  // calls. Keep one owner until every callback confirms its writes, even when
+  // writableLength is already zero or unavailable. Cache refreshes cannot
+  // release this lock, and a recycled inode starts a new generation.
+  if (active && active.generation === identity.generation && (active.unsafe || active.stream !== stream)) throw unsafe();
   const cached = sharedDestination ? streamFileTails.get(identity.key) : null;
   if (cached?.unsafe && cached.generation === identity.generation) throw unsafe();
   const previous = sharedDestination
@@ -295,9 +302,21 @@ export function guardedStreamWrite(stream, data) {
     streamTails.set(stream, tail);
     return accepted;
   }
+  const writes = active?.generation === identity.generation ? active : { generation: identity.generation, stream, pending: 0 };
+  writes.pending++;
+  streamFileWrites.set(identity.key, writes);
   const next = { generation: identity.generation, version: identity.version, text: tail, pending: true };
   streamFileTails.set(identity.key, next);
-  const refresh = (error, completed = false) => {
+  const fail = () => {
+    writes.unsafe = true;
+    if (streamFileWrites.get(identity.key) !== writes) return;
+    const current = streamFileTails.get(identity.key);
+    if (current?.generation !== identity.generation) return;
+    current.unsafe = true;
+    current.pending = false;
+    if (identity.stat.isFile()) tails.set(identity.key, current);
+  };
+  const refresh = error => {
     // Writable streams may flush after .write returns. Only the latest queued
     // continuation can refresh its snapshot; an older callback must not erase
     // a newer tail. Synchronous wrappers are covered by the immediate refresh.
@@ -307,20 +326,28 @@ export function guardedStreamWrite(stream, data) {
       const written = fileIdentity(stream.fd);
       if (!written || written.key !== identity.key || written.generation !== identity.generation) throw unsafe();
       next.version = written.version;
-      next.pending = !completed && stream.writableLength > 0;
+      next.pending = writes.pending > 0;
       remember(stream.fd, tail, next);
     } catch {
       // A failed flush may still have emitted a credential prefix. Keep that
       // destination closed until its generation changes; forgetting its tail
       // would allow a later write to complete the credential.
-      next.unsafe = true;
-      next.pending = false;
-      if (identity.stat.isFile()) tails.set(identity.key, next);
+      fail();
     }
   };
+  let completed = false;
+  const complete = error => {
+    if (completed) return;
+    completed = true;
+    // An older queued callback can fail after a newer tail replaced it.
+    if (error) fail();
+    writes.pending--;
+    refresh(error);
+    if (writes.pending === 0 && !writes.unsafe && streamFileWrites.get(identity.key) === writes) streamFileWrites.delete(identity.key);
+  };
   let accepted;
-  try { accepted = stream.write(output, error => refresh(error, true)); }
-  catch (error) { refresh(error); throw error; }
+  try { accepted = stream.write(output, complete); }
+  catch (error) { fail(); complete(error); throw error; }
   refresh();
   return accepted;
 }
