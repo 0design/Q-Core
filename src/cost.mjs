@@ -82,24 +82,30 @@ export function worstCaseCallUsd({ model, messagesBytes, maxTokens, attempts = 1
  * Keep every cache rate explicit: Opus 5.5 reads cost $0.20, not 0.1x input.
  * These are separate from the OpenRouter fallback table: choosing a provider
  * must not change what an existing OpenRouter call is charged or can spend. */
-const ANTHROPIC_MODELS = Object.freeze({
+export const ANTHROPIC_MODELS = Object.freeze({
   "claude-haiku-5-5": Object.freeze({ id: "claude-haiku-5-5",
     in: 0.10, out: 0.50, cacheWrite5m: 0.125, cacheWrite1h: 0.20, cacheRead: 0.01,
     longIn: 0.50, longOut: 2.50, longCacheWrite5m: 0.625, longCacheWrite1h: 1, longCacheRead: 0.05,
-    longAbove: 100_000, sampling: false, canDisable: true }),
+    longAbove: 100_000, sampling: false, thinkingOff: "disabled" }),
   "claude-sonnet-5": Object.freeze({ id: "claude-sonnet-5",
     in: 2, out: 10, cacheWrite5m: 2.50, cacheWrite1h: 4, cacheRead: 0.20,
-    sampling: false, canDisable: true }),
+    sampling: false, thinkingOff: "disabled" }),
+  // Standard $2/$10 rates supplied for Sonnet 5.5; Anthropic cache multipliers
+  // are 1.25x for 5m writes, 2x for 1h writes, and 0.1x for reads.
+  "claude-sonnet-5-5": Object.freeze({ id: "claude-sonnet-5-5",
+    in: 2, out: 10, cacheWrite5m: 2.50, cacheWrite1h: 4, cacheRead: 0.20,
+    sampling: false, thinkingOff: "between_tools" }),
   "claude-opus-5-5": Object.freeze({ id: "claude-opus-5-5",
     in: 4, out: 20, cacheWrite5m: 5, cacheWrite1h: 8, cacheRead: 0.20,
-    sampling: false, canDisable: false }),
+    sampling: false, thinkingOff: null }),
   "claude-haiku-4-5": Object.freeze({ id: "claude-haiku-4-5",
     in: 1, out: 5, cacheWrite5m: 1.25, cacheWrite1h: 2, cacheRead: 0.10,
-    sampling: true, legacy: true }),
+    sampling: true, legacy: true, thinkingOff: null }),
 });
 const ANTHROPIC_ALIASES = Object.freeze({
   "anthropic/claude-haiku-5.5": "claude-haiku-5-5",
   "anthropic/claude-sonnet-5": "claude-sonnet-5",
+  "anthropic/claude-sonnet-5.5": "claude-sonnet-5-5",
   "anthropic/claude-opus-5.5": "claude-opus-5-5",
   "anthropic/claude-haiku-4.5": "claude-haiku-4-5",
 });

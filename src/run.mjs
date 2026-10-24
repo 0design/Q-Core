@@ -570,7 +570,7 @@ async function driveRunScoped(run, opts) {
       workspaceApprovalGates: next.kind === 'workspace-apply' ? workspaceApprovalGates(run, next) : [],
       repairSnapshot: run.repairSnapshot,
       repairAttempt: run.repairAttempt,
-      ...(next.kind === 'llm-call' && next.config.provider === 'anthropic'
+      ...(modelCall && next.config.provider === 'anthropic'
         ? { reserveAnthropicCost: worst => reserveAnthropicCost(run, invocationId, knobs, worst) } : {}),
     };
 
@@ -679,7 +679,7 @@ async function driveRunScoped(run, opts) {
       // Native cache-read usage can cost fractions of a micro-dollar. Preserve
       // it on the row so later reservations cannot undercount previous spend.
       next.costUsd = result.unknownUsage || costUsd === null ? null
-        : next.kind === 'llm-call' && next.config.provider === 'anthropic' ? costUsd : roundUsd(costUsd);
+        : modelCall && next.config.provider === 'anthropic' ? costUsd : roundUsd(costUsd);
       if (result.costSource) next.costSource = result.costSource;
       if (result.provider) next.provider = result.provider;
       if (result.unknownUsage) { next.tokensIn = null; next.tokensOut = null; }
@@ -743,7 +743,7 @@ function roundUsd(value) {
 function recordSpend(run, row, spend) {
   if (!spend || typeof spend !== "object") return;
   row.costUsd = spend.costUsd === null ? null
-    : row.kind === 'llm-call' && row.config.provider === 'anthropic' ? spend.costUsd : roundUsd(spend.costUsd);
+    : ['llm-call', 'approval-gate'].includes(row.kind) && row.config.provider === 'anthropic' ? spend.costUsd : roundUsd(spend.costUsd);
   row.costSource = spend.costSource;
   row.tokensIn = spend.tokensIn ?? null;
   row.tokensOut = spend.tokensOut ?? null;

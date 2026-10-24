@@ -252,6 +252,44 @@ export function parseJsonObject(content) {
   }
 }
 
+/** Agent gates accept only a complete JSON verdict, optionally fenced. */
+function parseAgentVerdict(content) {
+  if (typeof content !== "string") return null;
+  let json = content.trim();
+  if (json.startsWith("```")) {
+    const fence = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i.exec(json);
+    if (!fence) return null;
+    json = fence[1];
+  }
+  try {
+    const verdict = JSON.parse(json);
+    if (!verdict || Array.isArray(verdict) || typeof verdict !== "object"
+      || !Object.hasOwn(verdict, "pass") || typeof verdict.pass !== "boolean") return null;
+
+    // JSON.parse validates the grammar but silently overwrites duplicate keys.
+    // Scan complete string/structure tokens in the original JSON so escaped
+    // spellings of the same key are also rejected, at every object depth.
+    const tokens = json.match(/"(?:\\[\s\S]|[^"\\])*"|[{}[\]:,]/g) ?? [];
+    const scopes = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (token === "{") scopes.push(new Set());
+      else if (token === "[") scopes.push(null);
+      else if (token === "}" || token === "]") scopes.pop();
+      else if (token.startsWith('"') && tokens[i + 1] === ":") {
+        const key = JSON.parse(token), keys = scopes.at(-1);
+        if (keys.has(key)) return null;
+        keys.add(key);
+      }
+    }
+    return verdict;
+  } catch {
+    return null;
+  }
+}
+
+const INVALID_AGENT_VERDICT = "Invalid agent verdict — expected one unambiguous JSON object with a boolean pass.";
+
 export async function runLlmCall(step, ctx, model, maxTokens) {
   const label = stepLabel(step);
   const instructions = resolveTemplate(requireStr(step.config, "instructions", label), tctx(ctx));
@@ -378,10 +416,21 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     );
   }
   const policy = llmCallPolicy(step.config, label);
-  const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
+  const provider = str(step.config, "provider") ?? "openrouter";
+  insist(["openrouter", "anthropic"].includes(provider), "Unknown API provider; no fallback is allowed");
+  const keyRef = str(step.config, "keyRef") ?? (provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY");
   const secretSource = str(step.config, "secretSource") ?? "env";
   const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
-  if (secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
+  const missingAnthropicKey = () => ({
+    output: {
+      gate: { reviewer: "agent", anchor, rubric },
+      verdict: null,
+      escalated: true,
+      reason: "No Anthropic key — the machine check did not run. The gate was handed to a human, not waved through.",
+    },
+    waitingHuman: true,
+  });
+  if (provider === "openrouter" && secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
     if (keyRef === "OPENROUTER_API_KEY") {
       return {
         output: {
@@ -399,36 +448,57 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     );
   }
 
-  if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override.");
+  if (!model) throw new Error(`${provider === "anthropic" ? "Anthropic" : "OpenRouter"} model is not configured; set ${provider === "anthropic" ? "ANTHROPIC_MODEL" : "OPENROUTER_MODEL"} or an explicit model override.`);
+
+  const system =
+    "You are a strict validation gate in an autonomous factory. Judge the CANDIDATE against the RUBRIC. " +
+    'Return ONLY one JSON object: {"pass": true|false, "reason": "one sentence"}. ' +
+    "Default to pass=false when the rubric is not clearly satisfied.";
+  const user = JSON.stringify({ rubric, candidate: lastOutput(ctx) }, null, 2).slice(0, 60_000);
+  const gateMaxTokens = Math.min(maxTokens, 300);
+  if (provider === "anthropic" && ctx.reserveAnthropicCost) {
+    const messagesBytes = Buffer.byteLength(JSON.stringify([{ role: "system", content: system }, { role: "user", content: user }]));
+    ctx.reserveAnthropicCost(worstCaseAnthropicCallUsd({ model, messagesBytes, maxTokens: gateMaxTokens, attempts: policy.retries + 1 }));
+  }
 
   let reply;
   try {
     reply = await chatOnce({
     apiKey: ctx.apiKey,
+    provider,
+    providers: ctx.providers,
+    workspaceId: str(step.config, "workspaceId"),
     keyRef,
     secretSource,
     model,
     retries: policy.retries,
     timeoutMs: policy.timeoutMs,
     maxCallCostUsd: policy.maxCallCostUsd,
-    system:
-      "You are a strict validation gate in an autonomous factory. Judge the CANDIDATE against the RUBRIC. " +
-      'Return ONLY one JSON object: {"pass": true|false, "reason": "one sentence"}. ' +
-      "Default to pass=false when the rubric is not clearly satisfied.",
-    user: JSON.stringify({ rubric, candidate: lastOutput(ctx) }, null, 2).slice(0, 60_000),
-    maxTokens: Math.min(maxTokens, 300),
+    system,
+    user,
+    maxTokens: gateMaxTokens,
     temperature: 0,
+    ...(provider !== "anthropic" || step.config.reasoning == null ? {} : { reasoning: String(step.config.reasoning) }),
     signal: ctx.signal,
     });
   } catch (error) {
-    throw withSpend(error, model);
+    // Only missing credentials before dispatch hand the gate to a human.
+    // A rejected HTTP request (including 401/403) remains a provider failure.
+    if (provider === "anthropic" && error?.status === undefined && !error?.usage
+      && ["AUTH_REQUIRED", "SECRET_MISSING"].includes(error?.code)) return missingAnthropicKey();
+    throw withSpend(error, model, provider);
   }
   const { content, usage } = reply;
 
-  const verdict = parseJsonObject(content);
+  const verdict = parseAgentVerdict(content);
   const pass = verdict?.pass === true;
-  const reason = typeof verdict?.reason === "string" ? verdict.reason : content.slice(0, 300);
-  const tokens = { tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, ...llmCost(usage, model) };
+  const rawReason = !verdict ? INVALID_AGENT_VERDICT
+    : typeof verdict.reason === "string" ? verdict.reason
+    : provider === "anthropic" ? "No reason provided." : content.slice(0, 300);
+  const reason = provider === "anthropic" && reply[ANTHROPIC_SANITIZE_OUTPUT]
+    ? reply[ANTHROPIC_SANITIZE_OUTPUT](rawReason) : rawReason;
+  const tokens = { tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, ...llmCost(usage, model, provider),
+    ...(provider === "anthropic" ? { provider: reply.provider } : {}) };
 
   if (pass) {
     return { output: { gate: { reviewer: "agent", anchor, rubric }, verdict: { pass: true, reason } }, ...tokens };

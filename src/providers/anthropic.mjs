@@ -66,7 +66,7 @@ function streamError(type) {
   return error;
 }
 
-async function readJson(res, signal) {
+async function readJsonBody(res, signal) {
   let json;
   if (res.body?.getReader) {
     const reader = res.body.getReader();
@@ -90,12 +90,36 @@ async function readJson(res, signal) {
     if (Buffer.byteLength(JSON.stringify(json)) > MAX_RESPONSE_BYTES)
       throw safeError("INVALID_RESPONSE", "Anthropic response is too large");
   }
+  return json;
+}
+
+async function readJson(res, signal) {
+  const json = await readJsonBody(res, signal);
   const textBlocks = Array.isArray(json?.content) ? json.content.filter(block => block?.type === "text") : null;
   const text = textBlocks?.every(block => typeof block.text === "string")
     ? textBlocks.map(block => block.text).join("") : null;
   // The error envelope is untrusted free text. Retain only its presence; a
   // provider can echo credentials in any spelling inside its fields.
   return { id: json?.id, model: json?.model, stop: json?.stop_reason, text, usage: json?.usage, error: Boolean(json?.error) };
+}
+
+/** Whether a 400 body says the key needs a workspace (Anthropic invalid_request_error mentioning "workspace"). */
+const workspaceError = (json) => json?.error?.type === "invalid_request_error"
+  && typeof json.error.message === "string" && /\bworkspace\b/i.test(json.error.message);
+
+/** Only the API's error type is surfaced: a fixed-vocabulary token such as invalid_request_error, and only from a JSON
+ *  answer. The free-text message can echo request content or credential fragments, so it never enters diagnostics. */
+function jsonAnswer(res) {
+  try {
+    const mediaType = (res.headers?.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+    return /^application\/(?:[\w.-]+\+)?json$/.test(mediaType);
+  } catch {
+    return false; // unreadable headers: no detail, and the body stays unread
+  }
+}
+function errorType(json) {
+  const type = json?.error?.type;
+  return typeof type === "string" && /^[a-z][a-z_]{0,63}$/.test(type) ? type : null;
 }
 
 async function readStream(res, signal) {
@@ -183,9 +207,10 @@ async function readResponse(res, { signal } = {}) {
   }
 }
 
-// Inspect only a bounded 400 envelope and retain a boolean. No upstream text or
-// metadata crosses this classification boundary, even for malformed bodies.
-async function requiresWorkspace(res, signal) {
+// Read a bounded error envelope once and return the parsed JSON (null when oversized or
+// malformed). Callers keep only the workspace flag and a validated error type from it;
+// no upstream free text crosses into diagnostics.
+async function readErrorJson(res, signal) {
   let reader;
   try {
     let json;
@@ -197,19 +222,18 @@ async function requiresWorkspace(res, signal) {
         const { done, value } = await abortable(reader.read(), signal);
         if (done) break;
         bytes += value.byteLength;
-        if (bytes > MAX_ERROR_BYTES) return false;
+        if (bytes > MAX_ERROR_BYTES) return null;
         parts.push(Buffer.from(value));
       }
       json = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(parts)));
     } else {
       json = await abortable(res.json(), signal);
-      if (Buffer.byteLength(JSON.stringify(json)) > MAX_ERROR_BYTES) return false;
+      if (Buffer.byteLength(JSON.stringify(json)) > MAX_ERROR_BYTES) return null;
     }
-    return json?.error?.type === "invalid_request_error"
-      && typeof json.error.message === "string" && /\bworkspace\b/i.test(json.error.message);
+    return json;
   } catch (error) {
     if (signal?.aborted) throw error;
-    return false;
+    return null;
   } finally {
     // Cancel without awaiting an untrusted cancellation promise. The read is
     // already bounded by the attempt deadline, including on abort/oversize.
@@ -295,7 +319,7 @@ export async function anthropic({
   };
   if (!entry.legacy) {
     if (reasoning && reasoning !== "off") body.output_config = { effort: reasoning };
-    else if (entry.canDisable) body.thinking = { type: "disabled" };
+    else if (entry.thinkingOff) body.thinking = { type: entry.thinkingOff };
     else body.output_config = { effort: "low" };
   }
   if (entry.sampling) body.temperature = temperature;
@@ -306,7 +330,7 @@ export async function anthropic({
     if (unknownBilling) error.usage = unknownUsage();
     return error;
   };
-  let response;
+  let response, errorDetail;
   try {
     for (let attempt = 0; attempt <= retries; attempt++) {
       signal?.throwIfAborted();
@@ -345,7 +369,14 @@ export async function anthropic({
       if (response) {
         const rejected = response.status === 429 || (response.status >= 500 && response.status <= 599);
         if (!response.ok) {
-          if (response.status === 400) workspaceRequired = await requiresWorkspace(response, attemptSignal);
+          if (!rejected || attempt === retries) {
+            // One bounded read of the error body serves both: the workspace hint (400) and the safe error type.
+            // The body is read only when something needs it: the workspace hint (400) or a JSON answer's type.
+            const json = jsonAnswer(response);
+            const body = response.status === 400 || json ? await readErrorJson(response, attemptSignal) : null;
+            if (response.status === 400) workspaceRequired = workspaceError(body);
+            errorDetail = json ? errorType(body) : null;
+          }
           // Cancellation is transport work too: injected bodies may hang,
           // reject, throw synchronously, or return no promise. Keep disposal
           // inside this attempt's deadline and the caller's abort signal.
@@ -370,9 +401,8 @@ export async function anthropic({
     if (workspaceRequired) throw failed("ANTHROPIC_WORKSPACE_REQUIRED", "Anthropic: вкажіть workspaceRef", response);
     const code = [401, 403].includes(status) ? "AUTH_REQUIRED"
       : status === 429 ? "RATE_LIMITED" : "PROVIDER_ERROR";
-    // Do not copy statusText, headers, request IDs or any error-body field.
-    // Unknown response metadata is discarded, rather than spelling-filtered.
-    throw failed(code, `Anthropic${status === null ? "" : ` ${status}`} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`, response);
+    const message = `Anthropic${status === null ? "" : ` ${status}`} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`;
+    throw failed(code, `${message}${errorDetail ? `: ${errorDetail}` : ""}`.slice(0, 300), response);
   }
   // Price only the model that actually answered, never silently substitute the
   // requested model if an upstream response names a different/unknown model.

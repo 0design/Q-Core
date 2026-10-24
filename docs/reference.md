@@ -256,9 +256,10 @@ unknown, not zero (see SPEC-MANIFEST.md §4.2 and §5.2).
 
 ### Native Anthropic
 
-Use `provider: anthropic` on an `llm-call` step to spend the owner's Anthropic API
-credit directly. No OpenRouter account, BYOK forwarding or external fetch shim is
-involved. The reusable adapter is also exported:
+Use `provider: anthropic` on an `llm-call` or `approval-gate` (`reviewer: agent`)
+step to spend the owner's Anthropic API credit directly. No OpenRouter account,
+BYOK forwarding or external fetch shim is involved. The reusable adapter is also
+exported:
 
 ```js
 import { anthropic } from 'q-core';
@@ -277,7 +278,12 @@ use the existing `local-byok` payer scope.
 same secret resolver as OpenRouter. Only the alias belongs in a manifest. The
 key is sent as `x-api-key`, never persisted in run state or included in errors.
 A missing environment key fails with `AUTH_REQUIRED`; keychain failures retain
-their typed secret-store errors. Requests go to
+their typed secret-store errors. An agent gate hands a missing environment or
+keychain key to a human (`waiting_human`, no verdict); HTTP authentication errors
+still fail. It uses the same native pricing, budget reservation, provider receipt
+and no-replay policy as `llm-call`, without switching providers. For a keychain
+gate set `provider: anthropic`, `secretSource: keychain` and the model explicitly;
+`keyRef` defaults to `ANTHROPIC_API_KEY`. Requests go to
 `https://api.anthropic.com/v1/messages`, with `anthropic-version: 2023-06-01`.
 Optional `workspaceRef` defaults to `ANTHROPIC_WORKSPACE_ID` and resolves through
 the same `secretSource` as `keyRef`. A present value sets `anthropic-workspace-id`;
@@ -294,6 +300,7 @@ Supported models and first-party prices in USD per million tokens:
 | Anthropic model | Accepted OpenRouter alias | Input | Output |
 |---|---|---:|---:|
 | `claude-sonnet-5` | `anthropic/claude-sonnet-5` | 2.00 | 10.00 |
+| `claude-sonnet-5-5` | `anthropic/claude-sonnet-5.5` | 2.00 | 10.00 |
 | `claude-haiku-5-5` | `anthropic/claude-haiku-5.5` | 0.10 | 0.50 |
 | `claude-opus-5-5` | `anthropic/claude-opus-5.5` | 4.00 | 20.00 |
 | `claude-haiku-4-5` | `anthropic/claude-haiku-4.5` | 1.00 | 5.00 |
@@ -305,11 +312,12 @@ OpenRouter's table. The documented response snapshot
 IDs remain unpriced. Explicit snapshot requests retain their pinned model ID.
 Total input (ordinary, cache-read and cache-creation tokens) selects the context
 tier. Ordinary input costs the base rate, cache reads 0.1 times that rate,
-five-minute writes 1.25 times and one-hour writes 2 times. Cache writes with
+five-minute writes 1.25 times and one-hour writes 2 times. For Sonnet 5.5 these
+cache rates are $0.20/$2.50/$4.00 per million tokens respectively. Cache writes with
 missing or inconsistent duration counts remain unpriced.
 
 `maxTokens` becomes Messages API `max_tokens`. `reasoning: low | medium | high`
-maps to `output_config.effort`. With reasoning omitted or `off`, Sonnet 5 and
+maps to `output_config.effort`. With reasoning omitted or `off`, Sonnet 5/5.5 and
 Haiku 5.5 disable thinking; Opus 5.5 uses `low` effort because its thinking cannot
 be disabled. Legacy Haiku 4.5 runs without thinking or an effort parameter. Only
 legacy Haiku accepts `temperature`; sampling is omitted for the other models.
