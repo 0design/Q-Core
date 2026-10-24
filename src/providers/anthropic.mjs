@@ -3,6 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { CoreError, insist } from "../contracts.mjs";
 import { resolveProviderSecret } from "../secrets.mjs";
 import { registerPersistenceSecret } from '../persistence.mjs';
+import { assertNoDecodedSecrets } from '../secret-decoding.mjs';
 import { anthropicModel, anthropicUsageCost, worstCaseAnthropicCallUsd } from "../cost.mjs";
 
 const API = "https://api.anthropic.com/v1/messages";
@@ -65,7 +66,7 @@ function streamError(type) {
   return error;
 }
 
-async function readJson(res, signal) {
+async function readJsonBody(res, signal) {
   let json;
   if (res.body?.getReader) {
     const reader = res.body.getReader();
@@ -89,12 +90,40 @@ async function readJson(res, signal) {
     if (Buffer.byteLength(JSON.stringify(json)) > MAX_RESPONSE_BYTES)
       throw safeError("INVALID_RESPONSE", "Anthropic response is too large");
   }
+  return json;
+}
+
+async function readJson(res, signal) {
+  const json = await readJsonBody(res, signal);
   const textBlocks = Array.isArray(json?.content) ? json.content.filter(block => block?.type === "text") : null;
   const text = textBlocks?.every(block => typeof block.text === "string")
     ? textBlocks.map(block => block.text).join("") : null;
   // The error envelope is untrusted free text. Retain only its presence; a
   // provider can echo credentials in any spelling inside its fields.
   return { id: json?.id, model: json?.model, stop: json?.stop_reason, text, usage: json?.usage, error: Boolean(json?.error) };
+}
+
+async function readErrorDetail(res, { signal, redact, secrets, messages }) {
+  try {
+    // Only the final JSON rejection is read. Other metadata and the request
+    // envelope never enter diagnostics; malformed/unsafe detail stays generic.
+    if (!/\bapplication\/(?:[\w.+-]+\+)?json\b/i.test(res.headers?.get("content-type") ?? "")) return null;
+    const json = await readJsonBody(res, signal);
+    if (typeof json?.error?.type !== "string" || !json.error.type.trim()
+      || typeof json.error.message !== "string" || !json.error.message.trim()) return null;
+    const detail = redact(`${json.error.type}: ${json.error.message}`);
+    const forbidden = [...secrets, ...messages.map(message => message.content).filter(Boolean)];
+    const compact = value => value.replace(/\s+/gu, "");
+    // Preserve the existing encoded-secret boundary as well as literal
+    // redaction. Failed/budget-limited decoding drops the entire detail.
+    assertNoDecodedSecrets(detail, decoded => forbidden.some(value => decoded.includes(value)
+      || (compact(value) && compact(decoded).includes(compact(value)))),
+    { minSecretBytes: Math.min(12, ...forbidden.map(value => Buffer.byteLength(value))) });
+    return detail.replace(/[\s\u0000-\u001f\u007f-\u009f]+/gu, " ").trim();
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason ?? error;
+    return null;
+  }
 }
 
 async function readStream(res, signal) {
@@ -231,8 +260,9 @@ export async function anthropic({
   if (typeof key !== "string" || !key.trim()) throw safeError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
   registerPersistenceSecret(key);
   key = key.trim();
+  const secrets = [key, ...(workspace ? [workspace.trim()] : [])];
   const redact = value => {
-    if (typeof value === "string") return value.split(key).join("[REDACTED]");
+    if (typeof value === "string") return secrets.reduce((text, secret) => text.split(secret).join("[REDACTED]"), value);
     if (Array.isArray(value)) return value.map(redact);
     if (value && typeof value === "object")
       return Object.fromEntries(Object.entries(value).map(([name, child]) => [redact(name), redact(child)]));
@@ -246,7 +276,7 @@ export async function anthropic({
   };
   if (!entry.legacy) {
     if (reasoning && reasoning !== "off") body.output_config = { effort: reasoning };
-    else if (entry.canDisable) body.thinking = { type: "disabled" };
+    else if (entry.thinkingOff) body.thinking = { type: entry.thinkingOff };
     else body.output_config = { effort: "low" };
   }
   if (entry.sampling) body.temperature = temperature;
@@ -257,7 +287,7 @@ export async function anthropic({
     if (unknownBilling) error.usage = unknownUsage();
     return error;
   };
-  let response;
+  let response, errorDetail;
   try {
     for (let attempt = 0; attempt <= retries; attempt++) {
       signal?.throwIfAborted();
@@ -296,6 +326,8 @@ export async function anthropic({
       if (response) {
         const rejected = response.status === 429 || (response.status >= 500 && response.status <= 599);
         if (!response.ok) {
+          if (!rejected || attempt === retries)
+            errorDetail = await readErrorDetail(response, { signal: attemptSignal, redact, secrets, messages });
           // Cancellation is transport work too: injected bodies may hang,
           // reject, throw synchronously, or return no promise. Keep disposal
           // inside this attempt's deadline and the caller's abort signal.
@@ -319,9 +351,8 @@ export async function anthropic({
     const status = httpStatus(response);
     const code = [401, 403].includes(status) ? "AUTH_REQUIRED"
       : status === 429 ? "RATE_LIMITED" : "PROVIDER_ERROR";
-    // Do not copy statusText, headers, request IDs or any error-body field.
-    // Unknown response metadata is discarded, rather than spelling-filtered.
-    throw failed(code, `Anthropic${status === null ? "" : ` ${status}`} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`, response);
+    const message = `Anthropic${status === null ? "" : ` ${status}`} — ${code === "AUTH_REQUIRED" ? "invalid or revoked key" : "request failed"}`;
+    throw failed(code, `${message}${errorDetail ? `: ${errorDetail}` : ""}`.slice(0, 300), response);
   }
   // Price only the model that actually answered, never silently substitute the
   // requested model if an upstream response names a different/unknown model.
