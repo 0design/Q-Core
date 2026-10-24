@@ -11,6 +11,7 @@ const VERSION = "2023-06-01";
 // rejecting an otherwise valid, token-by-token 32k-token response.
 const MAX_RESPONSE_BYTES = 8_192_000;
 const MAX_TEXT_BYTES = 512_000;
+const MAX_ERROR_BYTES = 16_384;
 const RETRY_DELAYS_MS = [1_500, 4_000];
 const unknownUsage = () => ({ tokensIn: null, tokensOut: null, costUsd: null, billingUnknown: true });
 
@@ -182,10 +183,45 @@ async function readResponse(res, { signal } = {}) {
   }
 }
 
+// Inspect only a bounded 400 envelope and retain a boolean. No upstream text or
+// metadata crosses this classification boundary, even for malformed bodies.
+async function requiresWorkspace(res, signal) {
+  let reader;
+  try {
+    let json;
+    if (res.body?.getReader) {
+      reader = res.body.getReader();
+      const parts = [];
+      let bytes = 0;
+      for (;;) {
+        const { done, value } = await abortable(reader.read(), signal);
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > MAX_ERROR_BYTES) return false;
+        parts.push(Buffer.from(value));
+      }
+      json = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(parts)));
+    } else {
+      json = await abortable(res.json(), signal);
+      if (Buffer.byteLength(JSON.stringify(json)) > MAX_ERROR_BYTES) return false;
+    }
+    return json?.error?.type === "invalid_request_error"
+      && typeof json.error.message === "string" && /\bworkspace\b/i.test(json.error.message);
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return false;
+  } finally {
+    // Cancel without awaiting an untrusted cancellation promise. The read is
+    // already bounded by the attempt deadline, including on abort/oversize.
+    try { Promise.resolve(reader?.cancel()).catch(() => {}); } catch {}
+    try { reader?.releaseLock(); } catch {}
+  }
+}
+
 export async function anthropic({
   messages, model, keyRef = "ANTHROPIC_API_KEY", payerScope, maxTokens, temperature = 0.3,
   timeoutMs = 90_000, retries = 2, delaysMs, signal, secretSource, maxCallCostUsd,
-  reasoning, workspaceId,
+  reasoning, workspaceId, workspaceRef = "ANTHROPIC_WORKSPACE_ID",
 }, options = {}) {
   const { env = process.env, fetcher = fetchWithRetry, secretResolver = resolveProviderSecret, endpoint = API } = options;
   insist(Number.isInteger(retries) && retries >= 0 && retries <= 10, "retries must be 0..10");
@@ -203,12 +239,8 @@ export async function anthropic({
   insist(Number.isInteger(maxTokens) && maxTokens > 0 && maxTokens <= 32000, "maxTokens must be 1..32000");
   insist(Number.isFinite(temperature) && temperature >= 0 && temperature <= 2, "Invalid temperature");
   insist(typeof keyRef === "string" && Buffer.byteLength(keyRef) <= 128 && /^[A-Z_][A-Z0-9_]*$/.test(keyRef), "Invalid keyRef");
+  insist(typeof workspaceRef === "string" && Buffer.byteLength(workspaceRef) <= 128 && /^[A-Z_][A-Z0-9_]*$/.test(workspaceRef), "Invalid workspaceRef");
   insist(typeof secretResolver === "function", "Invalid secret resolver");
-  const envWorkspace = typeof env?.ANTHROPIC_WORKSPACE_ID === "string"
-    ? env.ANTHROPIC_WORKSPACE_ID.trim() || undefined : env?.ANTHROPIC_WORKSPACE_ID;
-  const workspace = workspaceId ?? envWorkspace;
-  insist(workspace === undefined || (typeof workspace === "string" && workspace.trim()
-    && workspace.length <= 200 && !/[\u0000-\u001f\u007f]/.test(workspace)), "Invalid Anthropic workspaceId");
   const entry = anthropicModel(model);
   if (maxCallCostUsd !== undefined) {
     insist(typeof maxCallCostUsd === "number" && Number.isFinite(maxCallCostUsd) && maxCallCostUsd > 0 && maxCallCostUsd <= 100,
@@ -231,8 +263,25 @@ export async function anthropic({
   if (typeof key !== "string" || !key.trim()) throw safeError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
   registerPersistenceSecret(key);
   key = key.trim();
+  let workspace = workspaceId;
+  if (workspace === undefined || workspace === null) {
+    try {
+      workspace = await secretResolver({ provider: "anthropic", keyRef: workspaceRef,
+        secretSource: secretSource ?? "env", env, signal, optional: true }, { signal, timeoutMs });
+    } catch (error) {
+      if (signal?.aborted) throw safeError("CANCELLED", "Anthropic cancelled");
+      const code = ["AUTH_REQUIRED", "SECRET_MISSING", "SECRET_STORE_UNSUPPORTED", "SECRET_STORE_DENIED", "INVALID_REQUEST", "TIMEOUT", "CANCELLED"].includes(error?.code)
+        ? error.code : "AUTH_REQUIRED";
+      throw safeError(code, "Anthropic workspace reference retrieval failed");
+    }
+  }
+  registerPersistenceSecret(workspace);
+  if (typeof workspace === "string") workspace = workspace.trim() || undefined;
+  insist(workspace === undefined || (typeof workspace === "string"
+    && workspace.length <= 200 && !/[\u0000-\u001f\u007f]/.test(workspace)), "Invalid Anthropic workspace reference value");
+  const protectedValues = [...new Set([key, workspace].filter(Boolean))].sort((a, b) => b.length - a.length);
   const redact = value => {
-    if (typeof value === "string") return value.split(key).join("[REDACTED]");
+    if (typeof value === "string") return protectedValues.reduce((text, secret) => text.split(secret).join("[REDACTED]"), value);
     if (Array.isArray(value)) return value.map(redact);
     if (value && typeof value === "object")
       return Object.fromEntries(Object.entries(value).map(([name, child]) => [redact(name), redact(child)]));
@@ -250,7 +299,7 @@ export async function anthropic({
     else body.output_config = { effort: "low" };
   }
   if (entry.sampling) body.temperature = temperature;
-  let unknownBilling = false, parsed;
+  let unknownBilling = false, parsed, workspaceRequired = false;
   const failed = (code, message, response) => {
     const error = safeError(code, message);
     if (httpStatus(response) !== null) error.status = httpStatus(response);
@@ -296,6 +345,7 @@ export async function anthropic({
       if (response) {
         const rejected = response.status === 429 || (response.status >= 500 && response.status <= 599);
         if (!response.ok) {
+          if (response.status === 400) workspaceRequired = await requiresWorkspace(response, attemptSignal);
           // Cancellation is transport work too: injected bodies may hang,
           // reject, throw synchronously, or return no promise. Keep disposal
           // inside this attempt's deadline and the caller's abort signal.
@@ -317,6 +367,7 @@ export async function anthropic({
   }
   if (!response.ok) {
     const status = httpStatus(response);
+    if (workspaceRequired) throw failed("ANTHROPIC_WORKSPACE_REQUIRED", "Anthropic: вкажіть workspaceRef", response);
     const code = [401, 403].includes(status) ? "AUTH_REQUIRED"
       : status === 429 ? "RATE_LIMITED" : "PROVIDER_ERROR";
     // Do not copy statusText, headers, request IDs or any error-body field.

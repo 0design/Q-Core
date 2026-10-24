@@ -21,7 +21,7 @@ function response(usage, answeredModel = "claude-haiku-4-5-20251001") {
   }), { status: 200, headers: { "content-type": "application/json" } });
 }
 const run = (usage, answeredModel, overrides = {}) => anthropic({ ...request, ...overrides }, {
-  env: {}, secretResolver: async () => "fixture-only-pricing-key",
+  env: {}, secretResolver: async args => args.optional ? undefined : "fixture-only-pricing-key",
   fetcher: async () => response(usage, answeredModel),
 });
 
@@ -34,7 +34,7 @@ test("Anthropic snapshot pricing: documented Haiku response ID resolves explicit
   near(result.usage.costUsd, 0.0015);
   let sent;
   await anthropic({ ...request, model: "claude-haiku-4-5-20251001" }, {
-    env: {}, secretResolver: async () => "fixture-only-pricing-key",
+    env: {}, secretResolver: async args => args.optional ? undefined : "fixture-only-pricing-key",
     fetcher: async (_url, init) => { sent = JSON.parse(init.body); return response(ordinary); },
   });
   assert.equal(sent.model, "claude-haiku-4-5-20251001", "a pinned request must not be rewritten to a mutable alias");
@@ -119,7 +119,7 @@ test("Anthropic cache pricing: streaming keeps the start-event duration breakdow
     + event({ type: "content_block_delta", delta: { type: "text_delta", text: "Done" } })
     + event({ type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 100 } })
     + event({ type: "message_stop" });
-  const actual = await anthropic(request, { env: {}, secretResolver: async () => "fixture-only-pricing-key",
+  const actual = await anthropic(request, { env: {}, secretResolver: async args => args.optional ? undefined : "fixture-only-pricing-key",
     fetcher: async () => new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } }) });
   assert.deepEqual([actual.usage.tokensIn, actual.usage.tokensOut], [1060, 100]);
   near(actual.usage.costUsd, 0.0015555);
