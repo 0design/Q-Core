@@ -195,6 +195,8 @@ for (const [name, body, contentType] of [
   ["plain text", `${KEY} ${WORKSPACE} private-error-body`, "text/plain"],
   ["HTML", `<html>${KEY} ${WORKSPACE}</html>`, "text/html"],
   ["JSON under a non-JSON content-type", JSON.stringify({ error: { type: "api_error", message: `${KEY} ${WORKSPACE}` } }), "text/plain"],
+  ["JSON under text/plain with a JSON-looking parameter", JSON.stringify({ error: { type: "api_error", message: "x" } }), 'text/plain; note="application/json"'],
+  ["JSON under a media type that only contains json", JSON.stringify({ error: { type: "api_error", message: "x" } }), "application/jsonp"],
   ["malformed JSON", `{"error":{"message":"${KEY} ${WORKSPACE}"`, "application/json"],
 ]) {
   test(`Anthropic error detail: ${name} keeps the generic diagnostic`, async () => {

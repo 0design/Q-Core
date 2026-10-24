@@ -107,7 +107,8 @@ async function readErrorDetail(res, { signal }) {
     // Only the API's error type is surfaced: a fixed-vocabulary token such as
     // invalid_request_error. The free-text message can echo request content or
     // credential fragments, so it never enters diagnostics.
-    if (!/\bapplication\/(?:[\w.+-]+\+)?json\b/i.test(res.headers?.get("content-type") ?? "")) return null;
+    const mediaType = (res.headers?.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+    if (!/^application\/(?:[\w.-]+\+)?json$/.test(mediaType)) return null;
     const json = await readJsonBody(res, signal);
     const type = json?.error?.type;
     return typeof type === "string" && /^[a-z][a-z_]{0,63}$/.test(type) ? type : null;
