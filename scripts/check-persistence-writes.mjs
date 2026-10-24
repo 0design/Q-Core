@@ -368,7 +368,14 @@ export function inspectPersistenceSource(source, file) {
     const loader = ref.parts[0] === 'globalThis' ? ref.parts.slice(1) : ref.parts;
     const builtinLoader = loader.join('.') === 'process.getBuiltinModule';
     if ((value(index) === 'import' || loader[0] === 'require' || builtinLoader) && value(ref.end) === '(') {
-      const end = pairs.get(ref.end), module = constant(ref.end + 1, end);
+      const end = pairs.get(ref.end);
+      // The specifier is the first argument only: import('node:fs', {}) and a trailing comma must not hide it.
+      let specifierEnd = ref.end + 1;
+      while (specifierEnd < end && value(specifierEnd) !== ',') {
+        if (['(', '[', '{'].includes(value(specifierEnd))) specifierEnd = pairs.get(specifierEnd);
+        specifierEnd++;
+      }
+      const module = constant(ref.end + 1, specifierEnd);
       let unsafeModule = FS_MODULES.has(module) || LOADER_MODULES.has(module);
       // call/apply/bind retain the filesystem-loading capability. Inspect their
       // argument expressions (including apply's array) instead of matching one

@@ -27,6 +27,10 @@ const rejected = [
   ['reviewer openSync secret path', "import { openSync } from 'node:fs'; openSync(secret, 'w');"],
   ['write-mode open flag alias', "import { openSync as acquire } from 'node:fs'; const flags = 'a+'; acquire(secret, flags);"],
   ['read-only direct open capability also stays guarded', "import { openSync } from 'node:fs'; openSync(path, 'r');"],
+  ['dynamic import with options', "const fs = await import('node:fs', {}); fs.mkdirSync(secret);"],
+  ['dynamic import with trailing comma', "const fs = await import('node:fs',); fs.openSync(secret, 'w');"],
+  ['dynamic promises import with options', "const fsp = await import('node:fs/promises', { with: {} }); await fsp.rename(source, secret);"],
+  ['require with extra argument', "const fs = require('fs', 1); fs.linkSync(source, secret);"],
   ['unknown future fs capability', "import { futureMutation } from 'node:fs'; futureMutation(secret);"],
   ...['fs', 'node:fs', 'fs/promises', 'node:fs/promises'].flatMap(module => [
     [`mkdir alias from ${module}`, `import {mkdir as make} from '${module}'; make(secret);`],
