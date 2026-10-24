@@ -225,7 +225,7 @@ export async function runFetch(step, ctx) {
 /* ──────────────────────────── llm-call ──────────────────────────── */
 
 /** One model call. No canned fallback — see runLlmCall on why a mock is poison here. */
-export async function chatOnce({ apiKey, provider = "openrouter", providers, keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", secretSource = "env", workspaceId, model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, reasoning }) {
+export async function chatOnce({ apiKey, provider = "openrouter", providers, keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", secretSource = "env", workspaceId, workspaceRef, model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, reasoning }) {
   insist(["openrouter", "anthropic"].includes(provider), "Unknown API provider; no fallback is allowed");
   // `apiKey` is the legacy/default alias supplied by the CLI. A step-level
   // alias must resolve its own environment entry; silently reusing the default
@@ -235,7 +235,7 @@ export async function chatOnce({ apiKey, provider = "openrouter", providers, key
   registerPersistenceSecret(selectedKey);
   const request = { model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, ...(reasoning === undefined ? {} : { reasoning }) };
   const result = provider === "anthropic"
-    ? await (providers?.anthropic ?? anthropic)({ ...request, workspaceId })
+    ? await (providers?.anthropic ?? anthropic)({ ...request, workspaceId, workspaceRef })
     : await openRouter(request, {env:{[keyRef]:selectedKey}});
   return { ...result, usage:{...result.usage, model:result.provider.model ?? model} };
 }
@@ -304,6 +304,7 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
       provider,
       providers: ctx.providers,
       workspaceId: str(step.config, "workspaceId"),
+      workspaceRef: str(step.config, "workspaceRef"),
       keyRef,
       secretSource,
       model,

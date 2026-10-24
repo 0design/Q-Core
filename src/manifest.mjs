@@ -154,6 +154,10 @@ function validateStep(raw, path, seenIds) {
     throw new ManifestError('"workspaceId" requires provider: anthropic and a bounded workspace identifier', `${path}.config.workspaceId`);
   }
   if (["llm-call", "approval-gate"].includes(kind)) {
+    if (config.workspaceRef != null && (kind !== "llm-call" || config.provider !== "anthropic"
+        || config.workspaceRef.length > 128 || !/^[A-Z_][A-Z0-9_]*$/.test(config.workspaceRef))) {
+      throw new ManifestError('"workspaceRef" requires provider: anthropic and an uppercase environment/keychain alias', `${path}.config.workspaceRef`);
+    }
     if (config.secretSource != null && !["env", "keychain"].includes(config.secretSource)) {
       throw new ManifestError('"secretSource" must be "env" or "keychain"', `${path}.config.secretSource`);
     }
