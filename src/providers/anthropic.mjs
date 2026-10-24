@@ -201,8 +201,9 @@ async function readResponse(res, { signal } = {}) {
   }
 }
 
-// Inspect only a bounded 400 envelope and retain a boolean. No upstream text or
-// metadata crosses this classification boundary, even for malformed bodies.
+// Read a bounded error envelope once and return the parsed JSON (null when oversized or
+// malformed). Callers keep only the workspace flag and a validated error type from it;
+// no upstream free text crosses into diagnostics.
 async function readErrorJson(res, signal) {
   let reader;
   try {
