@@ -14,6 +14,7 @@ import { worstCaseAnthropicCallUsd } from '../src/cost.mjs';
 const KEY = 'fixture-only-native-agent-gate-credential';
 const MODEL = 'claude-sonnet-5-5';
 const API = 'https://api.anthropic.com/v1/messages';
+const INVALID_VERDICT = 'Invalid agent verdict — expected one unambiguous JSON object with a boolean pass.';
 const unicode = value => [...value].map(char => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`).join('');
 beforeEach(t => t.mock.method(globalThis, 'fetch', async () => {
   assert.fail('Agent-gate tests must never dispatch a real network request');
@@ -125,6 +126,179 @@ test('Anthropic agent gate refusal fails but retains the machine-check bill', as
   assert.equal(p.calls.length, 1);
   await assertSafeReceipt(done);
 });
+
+const ambiguousVerdicts = [
+  ['contradictory prose with a passing example', 'FAIL: source missing. Example: {"pass":true,"reason":"verified"}'],
+  ['prose before the object', 'The source is verified. {"pass":true,"reason":"verified"}'],
+  ['prose after the object', '{"pass":true,"reason":"verified"} Source is missing; FAIL.'],
+  ['array wrapper', '[{"pass":true,"reason":"verified"}]'],
+  ['nested array wrapper', '[[{"pass":true,"reason":"verified"}]]'],
+  ['two top-level objects', '{"pass":false,"reason":"missing"} {"pass":true,"reason":"verified"}'],
+  ['two code fences', '```json\n{"pass":false}\n```\n```json\n{"pass":true}\n```'],
+  ['prose before a code fence', 'FAIL: source missing.\n```json\n{"pass":true,"reason":"verified"}\n```'],
+  ['prose after a code fence', '```json\n{"pass":true,"reason":"verified"}\n```\nFAIL: source missing.'],
+  ['an object after a code fence', '```json\n{"pass":true}\n```\n{"pass":true}'],
+  ['duplicate pass, last value true', '{"pass":false,"pass":true,"reason":"verified"}'],
+  ['duplicate pass, last value false', '{"pass":true,"pass":false,"reason":"missing"}'],
+  ['Unicode-equivalent duplicate pass', '{"pass":false,"p\\u0061ss":true,"reason":"verified"}'],
+  ['duplicate reason', '{"pass":true,"reason":"missing","reason":"verified"}'],
+  ['Unicode-equivalent duplicate reason', '{"pass":true,"reason":"missing","rea\\u0073on":"verified"}'],
+  ['duplicate unrelated key', '{"pass":true,"evidence":false,"evidence":true}'],
+  ['duplicate nested key', '{"pass":true,"reason":"verified","evidence":{"source":false,"source":true}}'],
+  ['Unicode-equivalent duplicate nested key', '{"pass":true,"reason":"verified","evidence":{"source":false,"sou\\u0072ce":true}}'],
+  ['duplicate key inside an array object', '{"pass":true,"reason":"verified","evidence":[{"source":false,"source":true}]}'],
+  ['string pass', '{"pass":"true","reason":"verified"}'],
+  ['number pass', '{"pass":1,"reason":"verified"}'],
+  ['null pass', '{"pass":null,"reason":"verified"}'],
+  ['array pass', '{"pass":[true],"reason":"verified"}'],
+  ['object pass', '{"pass":{"value":true},"reason":"verified"}'],
+  ['missing pass', '{"reason":"verified"}'],
+  ['a nested pass only', '{"verdict":{"pass":true,"reason":"verified"}}'],
+  ['JSON null', 'null'],
+  ['JSON boolean', 'true'],
+  ['JSON string', '"verified"'],
+  ['trailing comma', '{"pass":true,"reason":"verified",}'],
+  ['JSON comment', '{"pass":true,/* verified */"reason":"verified"}'],
+  ['truncated object', '{"pass":true,"reason":"verified"'],
+  ['invalid string escape', '{"pass":true,"reason":"\\q"}'],
+  ['unclosed code fence', '```json\n{"pass":true,"reason":"verified"}'],
+];
+
+for (const [name, text] of ambiguousVerdicts) {
+  test(`Anthropic agent gate rejects an invalid verdict: ${name}`, async () => {
+    const p = probe({ reply: () => completion({ text }) });
+    const done = await run(manifest([gate()]), p);
+    assert.equal(done.status, 'waiting_human', done.summary);
+    assert.deepEqual(done.steps[0].output.verdict, { pass: false, reason: INVALID_VERDICT });
+    assert.equal(done.steps[0].output.escalated, true);
+    assert.equal(done.steps[0].costUsd, 0.003, 'a rejected verdict still incurred a native model bill');
+    assert.equal(done.steps[0].costSource, 'provider');
+    assert.deepEqual([done.steps[0].tokensIn, done.steps[0].tokensOut], [1000, 100]);
+    assert.equal(done.costUsd, 0.003);
+    assert.equal(p.calls.length, 1);
+  });
+}
+
+const validVerdicts = [
+  ['plain object', '{"pass":true,"reason":"Source verified."}', true, 'Source verified.'],
+  ['objection object', '{"pass":false,"reason":"Source missing."}', false, 'Source missing.'],
+  ['JSON code fence', '```json\n{"pass":true,"reason":"Source verified."}\n```', true, 'Source verified.'],
+  ['uppercase JSON code fence with CRLF', '```JSON\r\n{"pass":true,"reason":"Source verified."}\r\n```', true, 'Source verified.'],
+  ['unlabelled code fence', '```\n{"pass":false,"reason":"Source missing."}\n```', false, 'Source missing.'],
+  ['outer whitespace', ' \t\n {"pass":true,"reason":"Source verified."} \r\n', true, 'Source verified.'],
+  ['an escaped pass key', '{"p\\u0061ss":true,"reason":"Source verified."}', true, 'Source verified.'],
+  ['JSON punctuation in strings', JSON.stringify({ pass: true, reason: 'Quoted "pass": false, {braces}, [arrays], slash \\ and ```json are evidence text.' }), true,
+    'Quoted "pass": false, {braces}, [arrays], slash \\ and ```json are evidence text.'],
+  ['nested objects and arrays with distinct key scopes', JSON.stringify({ pass: true, reason: 'Source verified.',
+    evidence: [{ source: { id: 'first', pass: false } }, { source: { id: 'second', pass: true } }],
+    metadata: { reason: 'A separate scope', empty: {}, values: [null, true, false, 0, -1.2e3] } }), true, 'Source verified.'],
+];
+
+for (const [name, text, pass, reason] of validVerdicts) {
+  test(`Anthropic agent gate accepts one unambiguous verdict: ${name}`, async () => {
+    const p = probe({ reply: () => completion({ text }) });
+    const done = await run(manifest([gate()]), p);
+    assert.equal(done.status, pass ? 'success' : 'waiting_human', done.summary);
+    assert.deepEqual(done.steps[0].output.verdict, { pass, reason });
+    assert.equal(done.steps[0].costUsd, 0.003);
+    assert.equal(p.calls.length, 1);
+  });
+}
+
+for (const [reasonKind, reasonField] of [
+  ['absent', ''],
+  ['non-string', `,"reason":{"private":"${unicode(KEY)}"}`],
+]) {
+  for (const [pass, escalateOn, status] of [[true, 'objection', 'success'],
+    [false, 'objection', 'waiting_human'], [false, 'refuse', 'failed']]) {
+    test(`Anthropic valid verdict with ${reasonKind} reason uses a safe fallback for ${status}`, async () => {
+      const text = `{"pass":${pass}${reasonField},"evidence":"untrusted-reason-fallback-marker ${unicode(KEY)}"}`;
+      const p = probe({ reply: () => completion({ text }) });
+      const done = await run(manifest([gate('review', { escalateOn })]), p);
+      assert.equal(done.status, status, done.summary);
+      if (status === 'failed') {
+        assert.equal(done.steps[0].output, null);
+        assert.ok(done.steps[0].errorText.endsWith('No reason provided.'));
+      } else {
+        assert.deepEqual(done.steps[0].output.verdict, { pass, reason: 'No reason provided.' });
+        assert.equal(done.steps[0].output.escalated, pass ? undefined : true);
+      }
+      const receipt = JSON.stringify(done);
+      assert.equal(receipt.includes('untrusted-reason-fallback-marker'), false);
+      assert.equal(receipt.includes(KEY), false);
+      assert.equal(receipt.includes(unicode(KEY)), false);
+      assert.equal(done.steps[0].costUsd, 0.003);
+      assert.equal(p.calls.length, 1);
+    });
+  }
+}
+
+for (const escalateOn of ['objection', 'refuse']) {
+  for (const [name, modelText] of [
+    ['malformed JSON', `{"pass":true,"reason":"untrusted-invalid-verdict-marker ${KEY} ${unicode(KEY)}"`],
+    ['contradictory envelope', `FAIL: untrusted-invalid-verdict-marker ${KEY} ${unicode(KEY)}. Example: {"pass":true,"reason":"verified"}`],
+  ]) {
+    test(`Anthropic invalid verdict ${name} uses a fixed safe diagnostic for ${escalateOn}`, async t => {
+      const store = await disk(t);
+      const p = probe({ reply: () => completion({ text: modelText }) });
+      const done = await run(manifest([gate('review', { escalateOn })]), p, { store });
+      assert.equal(done.status, escalateOn === 'objection' ? 'waiting_human' : 'failed', done.summary);
+      if (escalateOn === 'objection') {
+        assert.deepEqual(done.steps[0].output.verdict, { pass: false, reason: INVALID_VERDICT });
+        assert.equal(done.steps[0].output.escalated, true);
+      } else {
+        assert.equal(done.steps[0].output, null);
+        assert.match(done.steps[0].errorText, /Agent-Gate did not pass/);
+        assert.ok(done.steps[0].errorText.endsWith(INVALID_VERDICT));
+      }
+      assert.equal(done.steps[0].costUsd, 0.003);
+      assert.equal(done.steps[0].costSource, 'provider');
+      assert.deepEqual([done.steps[0].tokensIn, done.steps[0].tokensOut], [1000, 100]);
+      assert.equal(done.costUsd, 0.003);
+      assert.equal(p.calls.length, 1);
+      for (const receipt of [JSON.stringify(done), await readFile(store.runFile(done.runId), 'utf8')]) {
+        assert.equal(receipt.includes('untrusted-invalid-verdict-marker'), false, 'model content never becomes a diagnostic');
+        assert.equal(receipt.includes(KEY), false, 'the resolved fixture key is absent');
+        assert.equal(receipt.includes(unicode(KEY)), false, 'the Unicode-escaped fixture key is absent');
+      }
+      await assertSafeReceipt(done, store);
+    });
+  }
+}
+
+const openRouterFalsePassAttacks = ambiguousVerdicts.filter(([name]) => [
+  'contradictory prose with a passing example', 'array wrapper', 'duplicate pass, last value true',
+].includes(name));
+
+async function openRouterVerdict(t, content) {
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async url => {
+    calls++;
+    assert.equal(url, 'https://openrouter.ai/api/v1/chat/completions');
+    return Response.json({ id: 'openrouter-verdict-fixture', model: 'test/model',
+      choices: [{ message: { content }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 1000, completion_tokens: 100, cost: 0.003 } });
+  });
+  const done = await run(manifest([gate('review', { provider: 'openrouter', model: 'test/model' })]), { providers: {} });
+  assert.equal(calls, 1);
+  return done;
+}
+
+for (const [name, content] of openRouterFalsePassAttacks) {
+  test(`OpenRouter compatibility: existing permissive verdict remains unchanged for ${name}`, async t => {
+    const done = await openRouterVerdict(t, content);
+    assert.equal(done.status, 'success');
+    assert.equal(done.steps[0].output.verdict.pass, true);
+  });
+  test(`OpenRouter known risk: reject the false-PASS attack ${name}`, {
+    skip: 'Known risk: OpenRouter still uses permissive JSON extraction; hardening its verdict parser is outside this Anthropic-only branch.',
+  }, async t => {
+    const done = await openRouterVerdict(t, content);
+    assert.equal(done.status, 'waiting_human');
+    assert.deepEqual(done.steps[0].output.verdict, { pass: false, reason: INVALID_VERDICT });
+    assert.equal(done.steps[0].output.escalated, true);
+  });
+}
 
 for (const status of [400, 401, 403, 429, 500, 503]) {
   test(`Anthropic agent gate HTTP ${status} stays a typed provider failure with bounded retries`, async t => {

@@ -252,6 +252,44 @@ export function parseJsonObject(content) {
   }
 }
 
+/** Anthropic gates accept only a complete JSON verdict, optionally fenced. */
+function parseAgentVerdict(content) {
+  if (typeof content !== "string") return null;
+  let json = content.trim();
+  if (json.startsWith("```")) {
+    const fence = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i.exec(json);
+    if (!fence) return null;
+    json = fence[1];
+  }
+  try {
+    const verdict = JSON.parse(json);
+    if (!verdict || Array.isArray(verdict) || typeof verdict !== "object"
+      || !Object.hasOwn(verdict, "pass") || typeof verdict.pass !== "boolean") return null;
+
+    // JSON.parse validates the grammar but silently overwrites duplicate keys.
+    // Scan complete string/structure tokens in the original JSON so escaped
+    // spellings of the same key are also rejected, at every object depth.
+    const tokens = json.match(/"(?:\\[\s\S]|[^"\\])*"|[{}[\]:,]/g) ?? [];
+    const scopes = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (token === "{") scopes.push(new Set());
+      else if (token === "[") scopes.push(null);
+      else if (token === "}" || token === "]") scopes.pop();
+      else if (token.startsWith('"') && tokens[i + 1] === ":") {
+        const key = JSON.parse(token), keys = scopes.at(-1);
+        if (keys.has(key)) return null;
+        keys.add(key);
+      }
+    }
+    return verdict;
+  } catch {
+    return null;
+  }
+}
+
+const INVALID_AGENT_VERDICT = "Invalid agent verdict — expected one unambiguous JSON object with a boolean pass.";
+
 export async function runLlmCall(step, ctx, model, maxTokens) {
   const label = stepLabel(step);
   const instructions = resolveTemplate(requireStr(step.config, "instructions", label), tctx(ctx));
@@ -451,9 +489,12 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
   }
   const { content, usage } = reply;
 
-  const verdict = parseJsonObject(content);
+  // Keep the legacy OpenRouter envelope behavior unchanged in this branch.
+  const verdict = provider === "anthropic" ? parseAgentVerdict(content) : parseJsonObject(content);
   const pass = verdict?.pass === true;
-  const rawReason = typeof verdict?.reason === "string" ? verdict.reason : content.slice(0, 300);
+  const rawReason = provider === "anthropic"
+    ? verdict ? (typeof verdict.reason === "string" ? verdict.reason : "No reason provided.") : INVALID_AGENT_VERDICT
+    : typeof verdict?.reason === "string" ? verdict.reason : content.slice(0, 300);
   const reason = provider === "anthropic" && reply[ANTHROPIC_SANITIZE_OUTPUT]
     ? reply[ANTHROPIC_SANITIZE_OUTPUT](rawReason) : rawReason;
   const tokens = { tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, ...llmCost(usage, model, provider),
