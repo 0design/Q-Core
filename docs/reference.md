@@ -269,8 +269,14 @@ key is sent as `x-api-key`, never persisted in run state or included in errors.
 A missing environment key fails with `AUTH_REQUIRED`; keychain failures retain
 their typed secret-store errors. Requests go to
 `https://api.anthropic.com/v1/messages`, with `anthropic-version: 2023-06-01`.
-Optional `workspaceId` (or `ANTHROPIC_WORKSPACE_ID`) sets
-`anthropic-workspace-id`. The adapter requires an explicit `payerScope` of
+Optional `workspaceRef` defaults to `ANTHROPIC_WORKSPACE_ID` and resolves through
+the same `secretSource` as `keyRef`. A present value sets `anthropic-workspace-id`;
+a missing value omits the header. Store only the alias in workflow config. The
+resolved workspace ID is protected like the API key in output and persistence,
+including state, receipts, logs and errors. A workspace-related
+`400 invalid_request_error` returns `ANTHROPIC_WORKSPACE_REQUIRED` with a static
+hint to set `workspaceRef`, never the response text. The legacy adapter argument
+`workspaceId` remains supported. The adapter requires an explicit `payerScope` of
 `local-byok` or `site-funded`; the label does not establish a separate quota.
 
 Supported models and first-party prices in USD per million tokens:

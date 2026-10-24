@@ -359,13 +359,16 @@ export function guardedStreamWrite(stream, data) {
 
 /** Capture configured references before even the first run snapshot is saved. */
 export function persistenceEnvironment(config, env = process.env) {
-  const names = new Set(Object.keys(env).filter(name => credentialName.test(name)));
+  const names = new Set(["ANTHROPIC_WORKSPACE_ID", ...Object.keys(env).filter(name => credentialName.test(name))]);
   const visit = value => {
     if (typeof value === 'string') {
       for (const match of value.matchAll(/\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)/g)) names.add(match[1]);
     } else if (value && typeof value === 'object') {
       for (const [key, child] of Object.entries(value)) {
-        if (/(?:keyRef|tokenRef|secretRef|authRef)$/i.test(key) && typeof child === 'string') names.add(child);
+        if (/(?:keyRef|tokenRef|secretRef|authRef|workspaceRef)$/i.test(key) && typeof child === 'string') names.add(child);
+        // Legacy literal workspace config must be protected before the first
+        // run snapshot, as well as when the provider resolves it.
+        if (key === 'workspaceId' && typeof child === 'string') registerPersistenceSecret(child);
         visit(child);
       }
     }

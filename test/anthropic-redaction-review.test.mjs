@@ -47,6 +47,10 @@ for (const source of ["env", "resolver"]) {
           env: source === "env" ? { ANTHROPIC_API_KEY: PADDED_KEY } : {},
           ...(source === "resolver" ? { secretResolver: async args => {
             assert.equal(args.secretSource, "keychain");
+            if (args.optional) {
+              assert.equal(args.keyRef, "ANTHROPIC_WORKSPACE_ID");
+              return undefined;
+            }
             assert.equal(args.keyRef, "OWNER_ANTHROPIC_KEY");
             return PADDED_KEY;
           } } : {}),
@@ -91,7 +95,7 @@ test("Anthropic redaction: normalized credentials are removed from plain text an
 
 test("Anthropic redaction: safe JSON remains intact and subsequent steps receive sanitized decoded output", async () => {
   let calls = 0;
-  const native = args => anthropic(args, { env: {}, secretResolver: async () => KEY,
+  const native = args => anthropic(args, { env: {}, secretResolver: async args => args.optional ? undefined : KEY,
     fetcher: async (_url, init) => {
       calls++;
       assert.equal(init.body.includes(KEY), false, "decoded secrets must not feed the next request");
