@@ -539,3 +539,10 @@ test('Anthropic agent gate answering model with unknown price never borrows the 
   assert.equal(done.steps[1].gateReason, 'budget');
   assert.equal(p.calls.length, 1);
 });
+
+test('an Agent-Gate provider must be exact: padded or mis-cased values cannot skip budget reservation', () => {
+  for (const provider of [' anthropic ', 'anthropic ', 'Anthropic', ' openrouter', 'ANTHROPIC']) {
+    assert.throws(() => manifest([gate('review', { provider })], 0.000001), /exactly "openrouter" or "anthropic"/, JSON.stringify(provider));
+  }
+  for (const provider of ['anthropic', 'openrouter']) assert.doesNotThrow(() => manifest([gate('review', { provider })]));
+});
