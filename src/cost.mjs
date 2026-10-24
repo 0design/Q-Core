@@ -90,6 +90,11 @@ const ANTHROPIC_MODELS = Object.freeze({
   "claude-sonnet-5": Object.freeze({ id: "claude-sonnet-5",
     in: 2, out: 10, cacheWrite5m: 2.50, cacheWrite1h: 4, cacheRead: 0.20,
     sampling: false, canDisable: true }),
+  // Standard $2/$10 rates supplied for Sonnet 5.5; Anthropic cache multipliers
+  // are 1.25x for 5m writes, 2x for 1h writes, and 0.1x for reads.
+  "claude-sonnet-5-5": Object.freeze({ id: "claude-sonnet-5-5",
+    in: 2, out: 10, cacheWrite5m: 2.50, cacheWrite1h: 4, cacheRead: 0.20,
+    sampling: false, canDisable: true }),
   "claude-opus-5-5": Object.freeze({ id: "claude-opus-5-5",
     in: 4, out: 20, cacheWrite5m: 5, cacheWrite1h: 8, cacheRead: 0.20,
     sampling: false, canDisable: false }),
@@ -100,6 +105,7 @@ const ANTHROPIC_MODELS = Object.freeze({
 const ANTHROPIC_ALIASES = Object.freeze({
   "anthropic/claude-haiku-5.5": "claude-haiku-5-5",
   "anthropic/claude-sonnet-5": "claude-sonnet-5",
+  "anthropic/claude-sonnet-5.5": "claude-sonnet-5-5",
   "anthropic/claude-opus-5.5": "claude-opus-5-5",
   "anthropic/claude-haiku-4.5": "claude-haiku-4-5",
 });
