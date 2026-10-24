@@ -192,6 +192,35 @@ export function inspectPersistenceSource(source, file) {
     }
     return !expectValue ? result : null;
   }
+  // A string-literal specifier only: no identifier or constant lookup (scope-blind resolution could be fooled).
+  function literal(start, end) {
+    while (value(start) === '(' && pairs.get(start) === end - 1) { start++; end--; }
+    let result = '', expectValue = true;
+    for (let index = start; index < end; index++) {
+      const token = tokens[index];
+      if (expectValue && token.type === 'string') { result += token.value; expectValue = false; }
+      else if (!expectValue && token.value === '+') expectValue = true;
+      else return null;
+    }
+    return !expectValue ? result : null;
+  }
+  let pathToFileURLTrust;
+  function trustedPathToFileURL() {
+    if (pathToFileURLTrust !== undefined) return pathToFileURLTrust;
+    const importNames = new Set();
+    for (let index = 0; index < tokens.length; index++) {
+      if (value(index) !== 'import' || value(index + 1) !== '{') continue;
+      const close = pairs.get(index + 1);
+      if (value(close + 1) !== 'from' || tokens[close + 2]?.type !== 'string' || !['node:url', 'url'].includes(value(close + 2))) continue;
+      for (let name = index + 2; name < close; name++) {
+        if (value(name) === 'pathToFileURL' && value(name - 1) !== 'as' && value(name + 1) !== 'as') importNames.add(name);
+      }
+    }
+    pathToFileURLTrust = importNames.size === 1 && tokens.every((token, index) => token.value !== 'pathToFileURL'
+      || importNames.has(index)
+      || (value(index + 1) === '(' && !['.', '?.', 'function', 'const', 'let', 'var', 'class'].includes(value(index - 1))));
+    return pathToFileURLTrust;
+  }
   function reference(start, limit = tokens.length) {
     let index = start, parts;
     if (value(index) === '(') {
@@ -376,13 +405,18 @@ export function inspectPersistenceSource(source, file) {
         specifierEnd++;
       }
       const module = constant(ref.end + 1, specifierEnd);
-      // An unresolved specifier (spread, interpolated template, computed value) could name a filesystem module:
-      // fail closed rather than chase each spelling. call/apply/bind keep their own argument inspection below.
-      // pathToFileURL(...) always yields a file: URL, never a builtin specifier such as node:fs.
+      // Fail closed: a direct loader call must name its module with a string literal. Identifiers, spreads,
+      // interpolated templates and computed values are unresolved, because scope and reassignment are not
+      // tracked here. call/apply/bind keep their own argument inspection below.
+      // The one exception is the real node:url pathToFileURL(...) or pathToFileURL(...).href: it always yields a
+      // file: URL, never a builtin specifier such as node:fs. "Real" means imported by that name from node:url
+      // and never declared, reassigned, passed or destructured anywhere else in the file.
       const directCall = !(loader[0] === 'require' && loader.length > 1);
-      const fileUrl = value(ref.end + 1) === 'pathToFileURL' && value(ref.end + 2) === '(' && pairs.get(ref.end + 2) + 1 === specifierEnd
-        || value(ref.end + 1) === 'pathToFileURL' && value(ref.end + 2) === '(' && value(pairs.get(ref.end + 2) + 1) === '.' && value(pairs.get(ref.end + 2) + 2) === 'href' && pairs.get(ref.end + 2) + 3 === specifierEnd;
-      let unsafeModule = FS_MODULES.has(module) || LOADER_MODULES.has(module) || (directCall && module === null && !fileUrl);
+      const callEnd = value(ref.end + 1) === 'pathToFileURL' && value(ref.end + 2) === '(' ? pairs.get(ref.end + 2) + 1 : -1;
+      const fileUrl = callEnd > 0 && trustedPathToFileURL()
+        && (callEnd === specifierEnd || (value(callEnd) === '.' && value(callEnd + 1) === 'href' && callEnd + 2 === specifierEnd));
+      let unsafeModule = FS_MODULES.has(module) || LOADER_MODULES.has(module)
+        || (directCall && literal(ref.end + 1, specifierEnd) === null && !fileUrl);
       // call/apply/bind retain the filesystem-loading capability. Inspect their
       // argument expressions (including apply's array) instead of matching one
       // spelling of require('fs').

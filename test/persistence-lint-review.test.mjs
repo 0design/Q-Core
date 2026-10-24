@@ -35,6 +35,11 @@ const rejected = [
   ['import with interpolated template specifier', "const fs = await import(`node:${'fs'}`, {}); fs.mkdirSync(secret);"],
   ['import with computed specifier', "const name = pick(); const fs = await import(name); fs.mkdirSync(secret);"],
   ['file URL helper does not hide a builtin', "const fs = await import(pathToFileURL(x).href + ''); fs.mkdirSync(secret);"],
+  ['shadowed pathToFileURL returning a builtin', "const pathToFileURL = () => ({ href: 'node:fs' }); const fs = await import(pathToFileURL('x').href); fs.mkdirSync(secret);"],
+  ['shadowed pathToFileURL direct call', "import { pathToFileURL } from 'node:url'; function f(pathToFileURL) { return import(pathToFileURL('x')); }"],
+  ['aliased pathToFileURL import', "import { fileURLToPath as pathToFileURL } from 'node:url'; const fs = await import(pathToFileURL('x').href); fs.mkdirSync(secret);"],
+  ['scope-shadowed constant specifier', "const name = 'node:path'; async function load(name) { const fs = await import(name); fs.mkdirSync(secret); } load('node:fs');"],
+  ['reassigned let specifier', "let name = 'node:path'; [name] = ['node:fs']; const fs = await import(name); fs.mkdirSync(secret);"],
   ['unknown future fs capability', "import { futureMutation } from 'node:fs'; futureMutation(secret);"],
   ...['fs', 'node:fs', 'fs/promises', 'node:fs/promises'].flatMap(module => [
     [`mkdir alias from ${module}`, `import {mkdir as make} from '${module}'; make(secret);`],
