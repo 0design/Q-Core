@@ -566,12 +566,17 @@ test('Anthropic agent gate reserves every configured attempt before secret resol
   assert.equal(p.calls.length, 0);
 });
 
-test('Anthropic agent gate bound uses its actual 300-token completion cap', async () => {
+test('Anthropic agent gate bound uses its configured completion cap', async () => {
   const p = probe();
-  const done = await run(manifest([gate('review', { maxTokens: '32000' })], 0.02), p);
+  const done = await run(manifest([gate('review', { maxTokens: '800' })], 0.02), p);
   assert.equal(done.status, 'success', done.summary);
-  assert.equal(p.requests[0].maxTokens, 300);
-  assert.equal(p.calls[0].body.max_tokens, 300);
+  assert.equal(p.requests[0].maxTokens, 800);
+  assert.equal(p.calls[0].body.max_tokens, 800);
+  const refused = probe();
+  const over = await run(manifest([gate('review', { maxTokens: '32000' })], 0.02), refused);
+  assert.equal(over.status, 'failed');
+  assert.match(over.summary, /reserve Anthropic worst-case/);
+  assert.equal(refused.calls.length, 0);
 });
 
 test('Anthropic agent gate releases its reservation to actual usage before the next paid check', async () => {
@@ -617,12 +622,14 @@ test('Anthropic agent gate reservations include its resolved candidate bytes and
 test('Anthropic agent gate answering model with unknown price never borrows the requested model rate', async () => {
   const p = probe({ reply: () => completion({ model: 'claude-unpriced-answer' }) });
   const done = await run(manifest([gate('first'), gate('second')]), p);
-  assert.equal(done.steps[0].status, 'success');
+  assert.equal(done.steps[0].status, 'failed');
+  assert.equal(done.steps[0].gateReason, 'budget');
+  assert.match(done.steps[0].errorText, /budget cannot be checked: spend is unknown/);
   assert.equal(done.steps[0].costUsd, null);
   assert.equal(done.steps[0].costSource, 'unknown');
   assert.equal(done.steps[0].provider.model, 'claude-unpriced-answer');
   assert.equal(done.status, 'failed');
-  assert.equal(done.steps[1].gateReason, 'budget');
+  assert.equal(done.steps[1].status, 'pending', 'the unknown-cost verdict stops before the next gate');
   assert.equal(p.calls.length, 1);
 });
 

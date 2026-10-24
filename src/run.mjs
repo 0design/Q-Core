@@ -39,6 +39,8 @@ import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mj
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
 export const DEFAULT_RUN_BUDGET_USD = 1;
 export const DEFAULT_MAX_TOKENS = 1200;
+/** An agent gate's answer budget unless its config sets `maxTokens`: room for a verdict with a few sentences of reasons. */
+export const DEFAULT_GATE_MAX_TOKENS = 1024;
 export const MAX_EXPANDED_RUN_ROWS = 10_000;
 
 const ENGINE_KINDS = new Set(["fetch", "llm-call", "api-request", "approval-gate", "parse-web", "deduplicate", "verify-sources", "workspace-read", "specification", "workspace-apply", "verify-artifact", "determined"]);
@@ -129,6 +131,21 @@ function reserveAnthropicCost(run, id, rootKnobs, worstCaseUsd) {
   }
 }
 
+/* After a paid call: the run and every enclosing child budget, with that call's spend recorded. Over a
+   ceiling, or of unknown spend under one, the result is not handed on. */
+function postCallBudgetFailure(run, id, rootKnobs) {
+  const budgets = [{ name: 'Run', cap: rootKnobs.budgetUsd, rows: run.steps }];
+  for (const frameId of ancestry(run, id).filter(value => value !== 'root'))
+    budgets.push({ name: `Child ${run.invocations[frameId].key}`, cap: resolveKnobs(run.invocations[frameId].settings).budgetUsd, rows: invocationRows(run, frameId) });
+  for (const { name, cap, rows } of budgets) {
+    if (cap === null) continue;
+    if (rows.some(row => row.costUsd === null)) return `${name} budget cannot be checked: spend is unknown against the $${cap.toFixed(4)} ceiling`;
+    const spent = rows.reduce((sum, row) => sum + (row.costUsd ?? 0), 0);
+    if (spent > cap) return `${name} budget exceeded: spent $${spent.toFixed(4)} of the $${cap.toFixed(4)} ceiling (the workflow's "budgetUsd" knob)`;
+  }
+  return null;
+}
+
 function expandCall(run, row, context, dryRun) {
   const parent = row.invocationId ?? 'root';
   if (ancestry(run, parent).length > MAX_CALL_DEPTH) throw new Error(`workflow-call depth exceeds ${MAX_CALL_DEPTH}`);
@@ -202,10 +219,28 @@ function isSddClarification(run, step, output) {
 
 function materialId(run, row) { return run.materialGraph?.[run.invocations?.[row.invocationId ?? 'root']?.key]?.manifest.id ?? run.workflowId; }
 
+// The output a step goes on from is the last successful one before it in execution order (seq), never
+// by the order of step IDs as object keys (integer-like IDs such as "0" sort first). One selector serves
+// a delivery without a body, an agent gate's candidate, and a gate's subject and hash.
+const isAgentGate = row => row.kind === 'approval-gate' && row.config?.reviewer === 'agent';
+function lastOutputRow(run, step, { passOverAgentGates = false } = {}) {
+  return run.steps.filter(row => row.seq < step.seq && (row.invocationId ?? 'root') === (step.invocationId ?? 'root') &&
+    row.kind !== 'workflow-return' && !(passOverAgentGates && isAgentGate(row)) && row.status === 'success' && row.output != null).at(-1);
+}
+// A human gate's subject is the content it guards: agent-gate verdicts directly before it are passed
+// over (they are shown beside the subject), unless the gate keeps the legacy `subject: previous` (the
+// output of the step directly before it, whatever its kind). An agent gate judges the previous output, as before.
+function currentSubjectRow(run, gate) {
+  return lastOutputRow(run, gate, { passOverAgentGates: (gate.config?.reviewer ?? 'human') === 'human' && gate.config?.subject !== 'previous' });
+}
 function gateSubjectRow(run, gate) {
-  return gate.boundSubjectRowId
-    ? run.steps.find(row => row.rowId === gate.boundSubjectRowId)
-    : run.steps.filter(row => row.seq < gate.seq && (row.invocationId ?? 'root') === (gate.invocationId ?? 'root') && row.kind !== 'workflow-return' && row.status === 'success' && row.output != null).at(-1);
+  return gate.boundSubjectRowId ? run.steps.find(row => row.rowId === gate.boundSubjectRowId) : currentSubjectRow(run, gate);
+}
+/** The agent verdicts given on a human gate's subject, shown beside it; never part of the subject or its hash. */
+function gateReviews(run, gate, subjectRow) {
+  return run.steps.filter(row => row.seq > (subjectRow?.seq ?? -1) && row.seq < gate.seq && (row.invocationId ?? 'root') === (gate.invocationId ?? 'root') &&
+    isAgentGate(row) && row.status === 'success' && row.output?.verdict)
+    .map(row => ({ step: row.stepId, verdict: row.output.verdict, ...(row.output.escalated ? { escalated: true } : {}) }));
 }
 
 // Expanded rows contain only the taken control paths. Gates keep governing later writes across
@@ -547,6 +582,7 @@ async function driveRunScoped(run, opts) {
     }
 
     /* ── 2. EXECUTE ─────────────────────────────────────────────────────── */
+    const gateSubjectAt = next.kind === 'approval-gate' ? currentSubjectRow(run, next) : null;
     const ctx = {
       runId: run.runId,
       templateId: materialId(run, next),
@@ -566,8 +602,11 @@ async function driveRunScoped(run, opts) {
       fileSink: store ? (body) => store.writeSink(run.runId, body) : null,
       signal: opts.signal,
       runStore: store,
+      lastOutput: lastOutputRow(run, next)?.output ?? null,
       workspacePolicy: run.workspacePolicy,
       workspaceApprovalGates: next.kind === 'workspace-apply' ? workspaceApprovalGates(run, next) : [],
+      ...(next.kind === 'approval-gate' ? { gateSubject: gateSubjectAt?.output ?? null,
+        gateReviews: gateReviews(run, next, gateSubjectAt) } : {}),
       repairSnapshot: run.repairSnapshot,
       repairAttempt: run.repairAttempt,
       ...(modelCall && next.config.provider === 'anthropic'
@@ -672,7 +711,7 @@ async function driveRunScoped(run, opts) {
       next.output = result.output;
       if (next.kind === 'approval-gate' && next.config.bind === 'sha256') {
         next.boundSubjectHash = result.output?.approvalHash;
-        next.boundSubjectRowId = gateSubjectRow(run, next)?.rowId ?? null;
+        next.boundSubjectRowId = gateSubjectAt?.rowId ?? null;
       }
       next.tokensIn = result.tokensIn ?? 0;
       next.tokensOut = result.tokensOut ?? 0;
@@ -688,6 +727,22 @@ async function driveRunScoped(run, opts) {
       run.tokensIn = run.tokensIn === null || next.tokensIn === null ? null : run.tokensIn + next.tokensIn;
       run.tokensOut = run.tokensOut === null || next.tokensOut === null ? null : run.tokensOut + next.tokensOut;
       run.costUsd = run.costUsd === null || next.costUsd === null ? null : roundUsd(run.costUsd + next.costUsd);
+
+      // Every agent verdict must fit the budgets, including a pass. Check after recording its bill,
+      // before persisting or reporting success, handing it to a person, or running any later step.
+      const overBudget = next.kind === 'approval-gate' && modelCall ? postCallBudgetFailure(run, invocationId, knobs) : null;
+      if (overBudget) {
+        next.status = "failed";
+        next.gateReason = "budget";
+        next.errorText = `${overBudget}; the gate result was not handed on.`;
+        next.finishedAt = new Date().toISOString();
+        run.status = "failed";
+        run.summary = next.errorText;
+        run.finishedAt = next.finishedAt;
+        persist();
+        onStep(next);
+        return run;
+      }
       persist();
       onStep(next);
 
@@ -723,6 +778,11 @@ async function driveRunScoped(run, opts) {
       next.errorText = e instanceof Error ? e.message : String(e);
       next.finishedAt = new Date().toISOString();
       recordSpend(run, next, e?.spend);
+      const overBudget = next.kind === 'approval-gate' && modelCall ? postCallBudgetFailure(run, invocationId, knobs) : null;
+      if (overBudget) {
+        next.gateReason = 'budget';
+        next.errorText = `${overBudget}; the gate result was not handed on.`;
+      }
       run.status = "failed";
       run.summary = next.errorText;
       run.finishedAt = new Date().toISOString();
@@ -769,7 +829,7 @@ async function dispatch(step, ctx, knobs) {
     case "api-request":
       return runApiRequest(step, ctx);
     case "approval-gate":
-      return runApprovalGate(step, ctx, stepModel(step, knobs), stepMaxTokens(step));
+      return runApprovalGate(step, ctx, stepModel(step, knobs), num(step.config, "maxTokens") ?? DEFAULT_GATE_MAX_TOKENS);
     default:
       throw new Error(`Step kind "${step.kind}" is not executed by the runner.`);
   }
@@ -1036,7 +1096,7 @@ export function waitingGate(run, approvalHash) {
   const gate = run.steps.find((s) => s.status === "waiting_human");
   if (!gate) throw new Error(`Run ${run.runId} is not waiting on anyone (status: ${run.status}).`);
   if (gate.config.bind === 'sha256') {
-    const subject = run.steps.filter(s => s.seq < gate.seq && (s.invocationId ?? 'root') === (gate.invocationId ?? 'root') && s.status === 'success' && s.output != null).at(-1)?.output ?? null;
+    const subject = gateSubjectRow(run, gate)?.output ?? null;
     insist(approvalHash === gate.output.approvalHash && (!gate.boundSubjectHash || gate.boundSubjectHash === approvalHash) && hash(subject) === approvalHash && hash(gate.output.subject) === approvalHash, 'Approval does not match the current exact subject', 'STALE_APPROVAL');
   }
   return gate;

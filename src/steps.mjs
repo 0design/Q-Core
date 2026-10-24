@@ -103,6 +103,8 @@ export function stepLabel(step) {
 
 /** The last successful output — what a gate shows and what api-request sends by default. */
 function lastOutput(ctx) {
+  // The runner passes the last output in execution order; a direct caller without it gets the last value.
+  if (ctx.lastOutput !== undefined) return ctx.lastOutput;
   const vals = Object.values(ctx.priorOutputs);
   return vals.length ? vals[vals.length - 1] : null;
 }
@@ -335,7 +337,7 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     ctx.reserveAnthropicCost(worstCaseAnthropicCallUsd({ model, messagesBytes, maxTokens, attempts: policy.retries + 1 }));
   }
 
-  let reply;
+  let reply, cutOff = null;
   try {
     reply = await chatOnce({
       apiKey: ctx.apiKey,
@@ -396,13 +398,16 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
   const reviewer = oneOf(step.config, "reviewer", ["human", "agent"]) ?? "human";
   const anchor = str(step.config, "anchor") ?? null;
 
+  // The runner passes the subject it binds (for a human gate, the content past any earlier gate);
+  // a direct caller without it gets the last output.
+  const subject = ctx.gateSubject !== undefined ? ctx.gateSubject : lastOutput(ctx);
+  const bound = () => ({ subject, ...(step.config.bind === 'sha256' ? { approvalHash: hash(subject) } : {}) });
   if (reviewer === "human") {
-    const subject = lastOutput(ctx);
     return {
       output: {
         gate: { reviewer: "human", anchor, mode: str(step.config, "mode") ?? "approve" },
-        subject,
-        ...(step.config.bind === 'sha256' ? { approvalHash: hash(subject) } : {}),
+        ...bound(),
+        ...(ctx.gateReviews?.length ? { reviews: ctx.gateReviews } : {}),
       },
       waitingHuman: true,
     };
@@ -427,6 +432,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
       verdict: null,
       escalated: true,
       reason: "No Anthropic key — the machine check did not run. The gate was handed to a human, not waved through.",
+      ...bound(),
     },
     waitingHuman: true,
   });
@@ -438,6 +444,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
           verdict: null,
           escalated: true,
           reason: "No OpenRouter key — the machine check did not run. The gate was handed to a human, not waved through.",
+          ...bound(),
         },
         waitingHuman: true,
       };
@@ -454,14 +461,14 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     "You are a strict validation gate in an autonomous factory. Judge the CANDIDATE against the RUBRIC. " +
     'Return ONLY one JSON object: {"pass": true|false, "reason": "one sentence"}. ' +
     "Default to pass=false when the rubric is not clearly satisfied.";
-  const user = JSON.stringify({ rubric, candidate: lastOutput(ctx) }, null, 2).slice(0, 60_000);
-  const gateMaxTokens = Math.min(maxTokens, 300);
+  const user = JSON.stringify({ rubric, candidate: subject }, null, 2).slice(0, 60_000);
+  const gateMaxTokens = maxTokens;
   if (provider === "anthropic" && ctx.reserveAnthropicCost) {
     const messagesBytes = Buffer.byteLength(JSON.stringify([{ role: "system", content: system }, { role: "user", content: user }]));
     ctx.reserveAnthropicCost(worstCaseAnthropicCallUsd({ model, messagesBytes, maxTokens: gateMaxTokens, attempts: policy.retries + 1 }));
   }
 
-  let reply;
+  let reply, cutOff = null;
   try {
     reply = await chatOnce({
     apiKey: ctx.apiKey,
@@ -486,19 +493,27 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     // A rejected HTTP request (including 401/403) remains a provider failure.
     if (provider === "anthropic" && error?.status === undefined && !error?.usage
       && ["AUTH_REQUIRED", "SECRET_MISSING"].includes(error?.code)) return missingAnthropicKey();
-    throw withSpend(error, model, provider);
+    // An answer cut off at maxTokens is no verdict, the same as an unreadable one: it goes the way
+    // of a failed check (to a person by default), with its billed usage kept. Other failures stay failures.
+    // A cut-off answer is checked against the per-call cost cap first (the providers report the cut-off
+    // before the cap): over it, or of unknown cost under a cap, it still fails.
+    const cost = error?.usage?.costUsd;
+    if (error?.code !== "OUTPUT_LIMIT" || !error.usage || (policy.maxCallCostUsd !== undefined
+      && (!Number.isFinite(cost) || cost > policy.maxCallCostUsd))) throw withSpend(error, model, provider);
+    cutOff = { content: null, usage: { ...error.usage, model: error.model ?? model } };
   }
-  const { content, usage } = reply;
+  const { content, usage } = cutOff ?? reply;
 
-  const verdict = parseAgentVerdict(content);
+  const verdict = cutOff ? null : parseAgentVerdict(content);
   const pass = verdict?.pass === true;
-  const rawReason = !verdict ? INVALID_AGENT_VERDICT
+  const rawReason = cutOff ? `The agent's answer was cut off at maxTokens ${gateMaxTokens} — no verdict. Raise maxTokens on the gate if this repeats.`
+    : !verdict ? INVALID_AGENT_VERDICT
     : typeof verdict.reason === "string" ? verdict.reason
     : provider === "anthropic" ? "No reason provided." : content.slice(0, 300);
-  const reason = provider === "anthropic" && reply[ANTHROPIC_SANITIZE_OUTPUT]
+  const reason = provider === "anthropic" && reply?.[ANTHROPIC_SANITIZE_OUTPUT]
     ? reply[ANTHROPIC_SANITIZE_OUTPUT](rawReason) : rawReason;
   const tokens = { tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, ...llmCost(usage, model, provider),
-    ...(provider === "anthropic" ? { provider: reply.provider } : {}) };
+    ...(provider === "anthropic" && !cutOff ? { provider: reply.provider } : {}) };
 
   if (pass) {
     return { output: { gate: { reviewer: "agent", anchor, rubric }, verdict: { pass: true, reason } }, ...tokens };
@@ -506,7 +521,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
   const escalate = (str(step.config, "escalateOn") ?? "objection") === "objection";
   if (escalate) {
     return {
-      output: { gate: { reviewer: "agent", anchor, rubric }, verdict: { pass: false, reason }, escalated: true },
+      output: { gate: { reviewer: "agent", anchor, rubric }, verdict: { pass: false, reason }, escalated: true, ...bound() },
       waitingHuman: true,
       ...tokens,
     };

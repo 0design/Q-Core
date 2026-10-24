@@ -487,6 +487,9 @@ async function cmdApprove(args, flags, opts) {
         ...(gate.output?.approvalHash ? [`approval hash ${gate.output.approvalHash}`] : []),
         "subject:",
         ...subjectPreview(gate.output?.subject).map((l) => `  ${l}`),
+        ...(gate.output?.reviews ?? []).map((r) => `agent gate "${r.step}": ${r.verdict?.pass ? "pass" : "fail"} — ${r.verdict?.reason ?? ""}`),
+        ...(gate.output?.verdict ? [`agent verdict: ${gate.output.verdict.pass ? "pass" : "fail"} — ${gate.output.verdict.reason ?? ""}`]
+          : gate.output?.reason ? [`agent gate: ${gate.output.reason}`] : []),
       ],
     });
   } catch (e) {

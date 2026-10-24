@@ -180,6 +180,17 @@ function validateStep(raw, path, seenIds) {
         `${path}.config`,
       );
     }
+    if (config.subject != null && (reviewer !== "human" || config.subject !== "previous")) {
+      throw new ManifestError(
+        '"subject" is only "previous", on a human gate: it keeps the legacy subject (the output directly before the gate, ' +
+          "even an agent verdict). Without it a human gate approves the content past any agent gates",
+        `${path}.config.subject`,
+      );
+    }
+    if (reviewer === "agent" && config.maxTokens != null &&
+        (!/^\d+$/.test(String(config.maxTokens)) || Number(config.maxTokens) < 1 || Number(config.maxTokens) > 32000)) {
+      throw new ManifestError('an Agent-Gate "maxTokens" must be an integer from 1 to 32000', `${path}.config.maxTokens`);
+    }
     if (config.mode === "check") {
       throw new ManifestError(
         'mode: check (a real, non-LLM checker) is RESERVED and not implemented — today an Agent-Gate is an LLM judge. ' +
