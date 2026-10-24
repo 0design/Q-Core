@@ -155,7 +155,7 @@ test('combinatorial decoding expansion exhausts proportional work and fails befo
 });
 
 test('2 MiB synthetic record decoding scales linearly and stays well inside an interactive bound', t => {
-  // The property is linear work: time for 2 MiB must stay within a small multiple of 8 x the 256 KiB time.
+  // The property is linear work: 2 MiB is ~5.1x the 400 KiB fixture, so its time must stay within a small multiple of that.
   // The absolute ceiling is generous because shared CI runners are several times slower than a laptop.
   const time = size => {
     const body = envelope(feeds.get(size));
@@ -163,10 +163,10 @@ test('2 MiB synthetic record decoding scales linearly and stays well inside an i
     assertNoDecodedSecrets(body, decoded => decoded.includes(key));
     return performance.now() - start;
   };
-  time(256 * 1024); // warm-up
-  const small = Math.max(time(256 * 1024), 1);
+  time(400 * 1024); // warm-up
+  const small = Math.max(time(400 * 1024), 1);
   const large = time(2 * 1024 * 1024);
-  t.diagnostic(`256 KiB ${small.toFixed(1)} ms, 2 MiB ${large.toFixed(1)} ms, ratio ${(large / small).toFixed(1)}`);
-  assert.ok(large / small < 24, `2 MiB took ${(large / small).toFixed(1)}x the 256 KiB time (linear would be ~8x; limit 24x)`);
+  t.diagnostic(`400 KiB ${small.toFixed(1)} ms, 2 MiB ${large.toFixed(1)} ms, ratio ${(large / small).toFixed(1)}`);
+  assert.ok(large / small < 15, `2 MiB took ${(large / small).toFixed(1)}x the 400 KiB time (linear would be ~5x; limit 15x)`);
   assert.ok(large < 10000, `2 MiB decoding took ${large.toFixed(1)} ms (limit 10000 ms)`);
 });
