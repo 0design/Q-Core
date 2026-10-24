@@ -103,6 +103,8 @@ export function stepLabel(step) {
 
 /** The last successful output — what a gate shows and what api-request sends by default. */
 function lastOutput(ctx) {
+  // The runner passes the last output in execution order; a direct caller without it gets the last value.
+  if (ctx.lastOutput !== undefined) return ctx.lastOutput;
   const vals = Object.values(ctx.priorOutputs);
   return vals.length ? vals[vals.length - 1] : null;
 }
@@ -459,7 +461,7 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
     "You are a strict validation gate in an autonomous factory. Judge the CANDIDATE against the RUBRIC. " +
     'Return ONLY one JSON object: {"pass": true|false, "reason": "one sentence"}. ' +
     "Default to pass=false when the rubric is not clearly satisfied.";
-  const user = JSON.stringify({ rubric, candidate: lastOutput(ctx) }, null, 2).slice(0, 60_000);
+  const user = JSON.stringify({ rubric, candidate: subject }, null, 2).slice(0, 60_000);
   const gateMaxTokens = maxTokens;
   if (provider === "anthropic" && ctx.reserveAnthropicCost) {
     const messagesBytes = Buffer.byteLength(JSON.stringify([{ role: "system", content: system }, { role: "user", content: user }]));

@@ -1,9 +1,15 @@
 import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { anthropic } from '../src/providers/anthropic.mjs';
-import { createRun, driveRun, waitingGate } from '../src/run.mjs';
+import { createRun, driveRun, resumeRun, waitingGate } from '../src/run.mjs';
+import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { validateManifest } from '../src/manifest.mjs';
-import { approvalSubjectWarnings } from '../src/workflow-policy.mjs';
+import { approvalSubjectWarnings, loadWorkflow } from '../src/workflow-policy.mjs';
+import { digest } from '../src/material-graph.mjs';
 import { hash } from '../src/contracts.mjs';
 
 // Synthetic markers only: a fake secret resolver and transport; real fetch is forbidden.
@@ -147,4 +153,114 @@ test('GATE_SUBJECT_PARTIAL judges a human gate after an agent gate against the c
   assert.equal(warning?.subject, 'b');
   assert.deepEqual(warning.uncovered, ['a']);
   assert.deepEqual(approvalSubjectWarnings([write('a'), write('b'), agent(), human({ subject: 'previous' }), send]), []);
+});
+
+/* ── What a person approves is what goes on: one subject for the hash and the delivery, whatever the step IDs ── */
+
+// Two writers answer different texts; the approved one must be the one delivered.
+const writer = (id, text) => ({ id, kind: 'llm-call', config: { provider: 'anthropic', model: MODEL, retries: '0', format: 'text',
+  instructions: `Write ${text}.` } });
+function textProbe() {
+  const judged = [];
+  return { judged, providers: { anthropic: args => anthropic({ ...args, delaysMs: [0] }, {
+    env: {}, secretResolver: async () => KEY,
+    fetcher: async (url, init) => {
+      const body = JSON.stringify(JSON.parse(init.body));
+      if (body.includes('validation gate')) { judged.push(body); return completion(); }
+      return completion({ text: body.includes('Write text B') ? 'text B' : 'text A' });
+    },
+  }) } };
+}
+async function approvedDelivery(ids, t) {
+  for (const name of AGENT_SESSION_ENV) if (process.env[name] !== undefined) {
+    const value = process.env[name]; delete process.env[name]; t.after(() => { process.env[name] = value; });
+  }
+  const dir = mkdtempSync(join(tmpdir(), 'q-gate-subject-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const out = join(dir, 'sent.jsonl');
+  const m = manifest([writer(ids.a, 'text A'), writer(ids.b, 'text B'), agent({ maxTokens: '200' }), human(),
+    { id: ids.send, kind: 'api-request', config: { url: pathToFileURL(out).href } }]
+    .map((step, i) => i === 2 ? { ...step, id: ids.agent } : i === 3 ? { ...step, id: ids.human } : step));
+  const p = textProbe();
+  const parked = await run(m, p);
+  assert.equal(parked.status, 'waiting_human', parked.summary);
+  const gate = parked.steps.find(row => row.stepId === ids.human);
+  assert.deepEqual(gate.output.subject, { text: 'text B', model: MODEL }, 'the person sees the output directly before the agent gate');
+  const done = await resumeRun(parked, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'test' },
+    settings: m.settings, providers: p.providers });
+  assert.equal(done.status, 'success', done.summary);
+  const [line, ...rest] = readFileSync(out, 'utf8').trim().split('\n');
+  assert.equal(rest.length, 0);
+  // The agent gate judged the same text the person approves.
+  assert.equal(p.judged.length, 1);
+  assert.ok(p.judged[0].includes('text B') && !p.judged[0].includes('text A'), 'the agent gate judges the subject');
+  return { sent: JSON.parse(line), gate };
+}
+
+for (const [label, ids] of [
+  ['numeric IDs', { a: 'alpha', b: '0', agent: '2', human: '1', send: '3' }],
+  ['string IDs', { a: 'draft-a', b: 'draft-b', agent: 'rules', human: 'approve', send: 'send' }],
+  ['a gate with a smaller numeric ID than the content', { a: '7', b: '9', agent: '5', human: '1', send: '0' }],
+]) test(`the approved subject is what the delivery sends (${label})`, async t => {
+  const { sent, gate } = await approvedDelivery(ids, t);
+  // Without a body the delivery sends the output before it: the approved gate, which carries the subject.
+  assert.equal(sent.payload.approvalHash, gate.output.approvalHash);
+  assert.deepEqual(sent.payload.subject, { text: 'text B', model: MODEL });
+  assert.equal(hash(sent.payload.subject), gate.output.approvalHash);
+  assert.ok(!JSON.stringify(sent).includes('text A'), 'the unapproved text is not sent');
+});
+
+/* ── The run budget stops a run before it is handed to a person ── */
+
+// Writer: 1000 in + 100 out = $0.003. Gate: 20000 in + 100 out = $0.041 at $2/$10 per Mtok,
+// billed after a reservation that fits (the reservation counts the request bytes, not the billed input).
+const OVER = { input_tokens: 20000, output_tokens: 100 };
+const budgeted = (budgetUsd, steps) => validateManifest({ manifest: 'q-core.workflow/v1', id: 'gate-budget', settings: { budgetUsd }, steps });
+for (const [label, reply] of [
+  ['a cut-off answer', () => completion({ stop: 'max_tokens', usage: OVER })],
+  ['an objection', () => completion({ text: JSON.stringify({ pass: false, reason: 'Too vague.' }), usage: OVER })],
+  ['an unreadable answer', () => completion({ text: 'Looks fine to me.', usage: OVER })],
+]) test(`${label} over the run budget stops the run, it is not handed to a person`, async () => {
+  const m = budgeted(0.03, [draft, agent({ maxTokens: '100' }), human()]);
+  const p = probe(reply), seen = [];
+  const done = await driveRun(createRun(m), { settings: m.settings, providers: p.providers,
+    onStep: row => seen.push({ stepId: row.stepId, status: row.status }) });
+  assert.equal(p.calls.length, 1, 'the call was made and billed, not refused at reservation');
+  // Not even for a moment: no observer ever sees the gate parked for a person.
+  assert.ok(!seen.some(event => event.status === 'waiting_human'), JSON.stringify(seen));
+  assert.equal(done.status, 'failed', done.summary);
+  const row = done.steps[1];
+  assert.equal(row.status, 'failed');
+  assert.equal(row.gateReason, 'budget');
+  assert.match(row.errorText, /budget/i);
+  assert.ok(!done.steps.some(s => s.status === 'waiting_human'));
+  assert.equal(done.costUsd, 0.044, 'the writer and the gate, counted once');
+});
+
+test('a cut-off answer within the run budget is still handed to a person', async () => {
+  const m = budgeted(0.05, [draft, agent({ maxTokens: '100' }), human()]);
+  const done = await driveRun(createRun(m), { settings: m.settings,
+    providers: probe(() => completion({ stop: 'max_tokens', usage: OVER })).providers });
+  assert.equal(done.status, 'waiting_human', done.summary);
+  assert.equal(done.steps[1].status, 'waiting_human');
+});
+
+test('an escalation over an enclosing child workflow budget stops the run, it is not handed to a person', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'q-gate-child-budget-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const yaml = doc => Object.entries(doc).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n') + '\n';
+  const childBytes = yaml({ manifest: 'q-core.workflow/v1', id: 'reviewed', version: '1.0.0', settings: { budgetUsd: 0.03 },
+    outputs: {}, steps: [draft, agent({ maxTokens: '100' }), human()] });
+  writeFileSync(join(dir, 'reviewed.yaml'), childBytes);
+  writeFileSync(join(dir, 'parent.yaml'), yaml({ manifest: 'q-core.workflow/v1', id: 'parent', version: '1.0.0', settings: { budgetUsd: 1 },
+    dependencies: { reviewed: { kind: 'workflow', id: 'reviewed', version: '1.0.0', path: 'reviewed.yaml', sha256: digest(childBytes) } },
+    outputs: {}, steps: [{ id: 'call', kind: 'workflow-call', config: { ref: 'reviewed' } }] }));
+  const m = loadWorkflow(join(dir, 'parent.yaml'));
+  const p = probe(() => completion({ stop: 'max_tokens', usage: OVER })), seen = [];
+  const done = await driveRun(createRun(m), { settings: m.settings, providers: p.providers, onStep: row => seen.push(row.status) });
+  assert.equal(p.calls.length, 1);
+  assert.equal(done.status, 'failed', done.summary);
+  const row = done.steps.find(s => s.stepId === 'rules');
+  assert.equal(row.gateReason, 'budget');
+  assert.match(row.errorText, /Child reviewed(\.yaml)? budget exceeded/);
+  assert.ok(!seen.includes('waiting_human'));
+  assert.ok(!done.steps.some(s => s.status === 'waiting_human'));
 });

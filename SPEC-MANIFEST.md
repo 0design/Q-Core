@@ -267,7 +267,7 @@ travel down the chain and out through the next request as if it were real.
 | `expect` | `2xx` \| `any` | default `2xx` |
 | `timeoutSec` | | default 30 |
 
-Without `body`, the last successful output is sent in an envelope
+Without `body`, the last successful output (in execution order, whatever the step IDs) is sent in an envelope
 `{runId, templateId, payload}` — a receiver has to know which run and which workflow
 sent a thing.
 
@@ -290,7 +290,10 @@ One kind, two modes; they differ only in *who* decides.
 **`reviewer: agent`** returns `{pass, reason}`. An answer that is not one readable
 verdict — unparseable, or cut off at `maxTokens` — counts as a failed check: with
 `escalateOn: objection` it goes to a person, with its billed usage recorded; it does
-not fail the run. An escalated agent gate shows the candidate it judged as `subject`.
+not fail the run. A cut-off answer over the call's `maxCallCostUsd` (or of unknown cost
+under it) still fails. No escalation is handed to a person once the call takes the run,
+or an enclosing child workflow, over its `budgetUsd` (or leaves its spend unknown under
+one): the run stops by budget instead. An escalated agent gate shows the candidate it judged as `subject`.
 
 **`reviewer: human`** parks the run as `waiting_human`. `q-core approve` continues it,
 `--reject` fails it. Approval is an optional component placed by the workflow
@@ -304,7 +307,7 @@ Human gates retain their existing pause and decision requirements. The separate
 policy for created workflows that send data remains below.
 
 **The subject of a human gate is one output:** that of the last successful step before
-it in the same material, passing over agent gates directly before it — the person
+it in the same material (in execution order, whatever the step IDs), passing over agent gates directly before it — the person
 approves the content those gates judged, which is what goes on to delivery. Their
 verdicts are shown beside it (`reviews`) and are not part of the subject or its hash.
 `subject: previous` keeps the earlier rule (the output directly before the gate, even

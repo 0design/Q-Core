@@ -12,7 +12,15 @@
 - An agent gate's answer budget is its `maxTokens` (1 to 32000, default 1024)
   instead of a fixed 300. An answer cut off at that budget is no verdict: like
   an unreadable verdict it follows `escalateOn` (to a person by default) and
-  keeps its billed usage, instead of failing the run.
+  keeps its billed usage, instead of failing the run. It still fails over the
+  call's `maxCallCostUsd`.
+- An agent gate whose call takes the run (or an enclosing child workflow) over
+  its `budgetUsd`, or leaves its spend unknown under one, stops the run by
+  budget instead of handing the escalation to a person.
+- The output a step goes on from (a delivery without `body`, an agent gate's
+  candidate, a human gate's subject) is the last one in execution order. With
+  integer-like step IDs such as `"0"` it used to follow the order of the IDs, so
+  a delivery could send an output other than the one a person approved.
 
 ## 0.2.0-q-core.51 — 2026-10-23
 

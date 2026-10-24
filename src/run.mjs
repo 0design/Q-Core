@@ -131,6 +131,21 @@ function reserveAnthropicCost(run, id, rootKnobs, worstCaseUsd) {
   }
 }
 
+/* After a paid call: the run and every enclosing child budget, with that call's spend recorded. Over a
+   ceiling, or of unknown spend under one, the result is not handed on. */
+function handoffBudgetFailure(run, id, rootKnobs) {
+  const budgets = [{ name: 'Run', cap: rootKnobs.budgetUsd, rows: run.steps }];
+  for (const frameId of ancestry(run, id).filter(value => value !== 'root'))
+    budgets.push({ name: `Child ${run.invocations[frameId].key}`, cap: resolveKnobs(run.invocations[frameId].settings).budgetUsd, rows: invocationRows(run, frameId) });
+  for (const { name, cap, rows } of budgets) {
+    if (cap === null) continue;
+    if (rows.some(row => row.costUsd === null)) return `${name} budget cannot be checked: spend is unknown against the $${cap.toFixed(4)} ceiling`;
+    const spent = rows.reduce((sum, row) => sum + (row.costUsd ?? 0), 0);
+    if (spent > cap) return `${name} budget exceeded: spent $${spent.toFixed(4)} of the $${cap.toFixed(4)} ceiling (the workflow's "budgetUsd" knob)`;
+  }
+  return null;
+}
+
 function expandCall(run, row, context, dryRun) {
   const parent = row.invocationId ?? 'root';
   if (ancestry(run, parent).length > MAX_CALL_DEPTH) throw new Error(`workflow-call depth exceeds ${MAX_CALL_DEPTH}`);
@@ -204,14 +219,19 @@ function isSddClarification(run, step, output) {
 
 function materialId(run, row) { return run.materialGraph?.[run.invocations?.[row.invocationId ?? 'root']?.key]?.manifest.id ?? run.workflowId; }
 
+// The output a step goes on from is the last successful one before it in execution order (seq), never
+// by the order of step IDs as object keys (integer-like IDs such as "0" sort first). One selector serves
+// a delivery without a body, an agent gate's candidate, and a gate's subject and hash.
+const isAgentGate = row => row.kind === 'approval-gate' && row.config?.reviewer === 'agent';
+function lastOutputRow(run, step, { passOverAgentGates = false } = {}) {
+  return run.steps.filter(row => row.seq < step.seq && (row.invocationId ?? 'root') === (step.invocationId ?? 'root') &&
+    row.kind !== 'workflow-return' && !(passOverAgentGates && isAgentGate(row)) && row.status === 'success' && row.output != null).at(-1);
+}
 // A human gate's subject is the content it guards: agent-gate verdicts directly before it are passed
 // over (they are shown beside the subject), unless the gate keeps the legacy `subject: previous` (the
 // output of the step directly before it, whatever its kind). An agent gate judges the previous output, as before.
-const isAgentGate = row => row.kind === 'approval-gate' && row.config?.reviewer === 'agent';
 function currentSubjectRow(run, gate) {
-  const content = (gate.config?.reviewer ?? 'human') === 'human' && gate.config?.subject !== 'previous';
-  return run.steps.filter(row => row.seq < gate.seq && (row.invocationId ?? 'root') === (gate.invocationId ?? 'root') &&
-    row.kind !== 'workflow-return' && !(content && isAgentGate(row)) && row.status === 'success' && row.output != null).at(-1);
+  return lastOutputRow(run, gate, { passOverAgentGates: (gate.config?.reviewer ?? 'human') === 'human' && gate.config?.subject !== 'previous' });
 }
 function gateSubjectRow(run, gate) {
   return gate.boundSubjectRowId ? run.steps.find(row => row.rowId === gate.boundSubjectRowId) : currentSubjectRow(run, gate);
@@ -582,6 +602,7 @@ async function driveRunScoped(run, opts) {
       fileSink: store ? (body) => store.writeSink(run.runId, body) : null,
       signal: opts.signal,
       runStore: store,
+      lastOutput: lastOutputRow(run, next)?.output ?? null,
       workspacePolicy: run.workspacePolicy,
       workspaceApprovalGates: next.kind === 'workspace-apply' ? workspaceApprovalGates(run, next) : [],
       ...(next.kind === 'approval-gate' ? { gateSubject: gateSubjectAt?.output ?? null,
@@ -706,6 +727,22 @@ async function driveRunScoped(run, opts) {
       run.tokensIn = run.tokensIn === null || next.tokensIn === null ? null : run.tokensIn + next.tokensIn;
       run.tokensOut = run.tokensOut === null || next.tokensOut === null ? null : run.tokensOut + next.tokensOut;
       run.costUsd = run.costUsd === null || next.costUsd === null ? null : roundUsd(run.costUsd + next.costUsd);
+
+      // A model call that went over a budget is not handed to a person: the ceiling stops the run first.
+      // Checked before the row is persisted or reported, so no waiting_human state is ever written for it.
+      const overBudget = result.waitingHuman && modelCall ? handoffBudgetFailure(run, invocationId, knobs) : null;
+      if (overBudget) {
+        next.status = "failed";
+        next.gateReason = "budget";
+        next.errorText = `${overBudget}; the gate was not handed to a person.`;
+        next.finishedAt = new Date().toISOString();
+        run.status = "failed";
+        run.summary = next.errorText;
+        run.finishedAt = next.finishedAt;
+        persist();
+        onStep(next);
+        return run;
+      }
       persist();
       onStep(next);
 

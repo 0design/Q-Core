@@ -3862,9 +3862,9 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 17,
     "artifact": "vendor/q-core-0.2.0-q-core.51.tgz",
-    "artifactSha256": "0d40c463ced8d222f663d08bd703bb52550c51e37e53deb59fbcaba507c45407",
-    "integrity": "sha512-NLitFCDhzypfx5dWplG/AtlC9a8Pk8o2pysHPLfxFg2tAd3bmS31+AT4mOcZWWfCFssA/7Uop1hOszR90Zx+mw==",
-    "schemaSha256": "28cfb13b06e2749d8e765a9d2fb80c8744c3d960140498033d59a6c538b615dc",
+    "artifactSha256": "4829427d5d867166bc8f666c5ef7f9d41ec11b67c9985bc981818544c5f97be2",
+    "integrity": "sha512-lYHBP2dWUAG0IoyYKDPm7ZaWwKP/A/WdG/mOFAlTdN1fMZVvBzPA63mEhyeV2QD4IZ4XhYAqPACEosvhstt/Kg==",
+    "schemaSha256": "70c24772b26957f83fa799b9e2ead6f8ca2921c4be987a747adf1138775f6eda",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "local-candidate-artifact",
     "source": "Core.51 local candidate: llm-call steps support native Anthropic Messages API requests with environment or Keychain credentials, bounded streaming retries, first-party usage pricing and existing call/run budgets. OpenRouter remains unchanged. Artifact hashes bind the exact locally packaged candidate; this is not release or owner acceptance.",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "7987dbe0680d0187a2cc308b369ab2e45161c964b28d91c82b680d02c7840ab5"
+  "releaseSha256": "1758aee4dc0dd1ed624171c5bc7726edb11355c6bb0908b1ccfdd391039c350e"
 }
