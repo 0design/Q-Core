@@ -146,6 +146,13 @@ function validateStep(raw, path, seenIds) {
   if (kind === "llm-call" && !config.instructions) {
     throw new ManifestError('an llm-call step needs "config.instructions"', `${path}.config`);
   }
+  if (kind === "llm-call" && config.provider != null && !["openrouter", "anthropic", "cli"].includes(config.provider)) {
+    throw new ManifestError('"provider" must be "openrouter", "anthropic" or "cli"', `${path}.config.provider`);
+  }
+  if (kind === "llm-call" && config.workspaceId != null &&
+      (config.provider !== "anthropic" || !/^[A-Za-z0-9_-]{1,200}$/.test(config.workspaceId))) {
+    throw new ManifestError('"workspaceId" requires provider: anthropic and a bounded workspace identifier', `${path}.config.workspaceId`);
+  }
   if (["llm-call", "approval-gate"].includes(kind)) {
     if (config.secretSource != null && !["env", "keychain"].includes(config.secretSource)) {
       throw new ManifestError('"secretSource" must be "env" or "keychain"', `${path}.config.secretSource`);

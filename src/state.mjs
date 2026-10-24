@@ -1,3 +1,4 @@
+import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync } from './persistence.mjs';
 /**
  * Run state — plain files under `.qf/`, next to the manifest. No database.
  *
@@ -15,7 +16,7 @@
  * half-written JSON that the next `q-core status` then refuses to parse — that turns
  * one failed run into a permanently broken directory.
  */
-import { mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync, existsSync, lstatSync, unlinkSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, lstatSync } from "node:fs";
 import { hash, insist } from './contracts.mjs';
 import { dirname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -31,16 +32,22 @@ export function stateDirFor(manifestFile) {
 function ensureIgnored(dir) {
   const ignore = join(dir, ".gitignore");
   try {
-    if (dir.endsWith(`/${STATE_DIR_NAME}`) && !existsSync(ignore)) writeFileSync(ignore, "*\n", { flag: "wx" });
+    if (dir.endsWith(`/${STATE_DIR_NAME}`) && !existsSync(ignore)) guardedWriteFileSync(ignore, "*\n", { flag: "wx" });
   } catch { /* best effort: another process created it, or the directory is read-only */ }
 }
 
-function writeJsonAtomic(file, value) {
-  mkdirSync(dirname(file), { recursive: true });
-  for (let dir = dirname(file); dir !== dirname(dir); dir = dirname(dir)) if (dir.endsWith(`/${STATE_DIR_NAME}`)) { ensureIgnored(dir); break; }
+function writeJsonAtomic(file, value, { failOnRedaction = false } = {}) {
   const tmp = `${file}.${process.pid}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  renameSync(tmp, file);
+  assertPersistencePath(file);
+  assertPersistencePath(tmp);
+  assertPersistencePath(dirname(file));
+  guardedMkdirSync(dirname(file), { recursive: true });
+  for (let dir = dirname(file); dir !== dirname(dir); dir = dirname(dir)) if (dir.endsWith(`/${STATE_DIR_NAME}`)) { ensureIgnored(dir); break; }
+  const result = guardedWriteFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", receipt: value, failOnRedaction });
+  assertPersistencePath(tmp);
+  assertPersistencePath(file);
+  guardedRenameSync(tmp, file);
+  return result;
 }
 
 function readJson(file) {
@@ -68,24 +75,31 @@ export class RunStore {
   }
 
   save(run) {
-    writeJsonAtomic(this.runFile(run.runId), run);
+    return withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run },
+      () => writeJsonAtomic(this.runFile(run.runId), run));
   }
 
   recordSpecification(identity, value) {
-    mkdirSync(this.dir, { recursive: true, mode: 0o700 });
+    const file = join(this.dir, `spec-${hash(identity)}.json`), lock = `${file}.lock`;
+    assertPersistencePath(this.dir);
+    assertPersistencePath(file);
+    assertPersistencePath(lock);
+    guardedMkdirSync(this.dir, { recursive: true, mode: 0o700 });
     ensureIgnored(this.dir);
     insist(!lstatSync(this.dir).isSymbolicLink(), 'Unsafe specification directory');
-    const file = join(this.dir, `spec-${hash(identity)}.json`), lock = `${file}.lock`;
-    writeFileSync(lock, '', { flag: 'wx', mode: 0o600 });
+    guardedWriteFileSync(lock, '', { flag: 'wx', mode: 0o600 });
     try {
       if (existsSync(file)) insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe specification file');
       const previous = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { revision: 0, history: [] };
       const contentHash = hash(value);
       if (previous.contentHash === contentHash) return { revision: previous.revision, hash: previous.hash };
       const revision = previous.revision + 1, approvalHash = hash({ identity, value, revision });
-      writeJsonAtomic(file, { revision, hash: approvalHash, contentHash, history: [...previous.history, { revision, hash: approvalHash, value }] });
+      // Approval hashes bind the original specification. Refuse credential-
+      // bearing content instead of storing a redacted subject under its hash.
+      withPersistenceSecrets({ env: persistenceEnvironment({ identity, value }) },
+        () => writeJsonAtomic(file, { revision, hash: approvalHash, contentHash, history: [...previous.history, { revision, hash: approvalHash, value }] }, { failOnRedaction: true }));
       return { revision, hash: approvalHash };
-    } finally { unlinkSync(lock); }
+    } finally { guardedUnlinkSync(lock); }
   }
 
   load(runId) {
@@ -98,19 +112,21 @@ export class RunStore {
    * one, so the reason is written down even when — especially when — it failed.
    */
   saveLastRun(run) {
-    const failed = run.steps.find((s) => s.status === "failed");
-    const waiting = run.steps.find((s) => s.status === "waiting_human");
-    writeJsonAtomic(join(this.dir, "last-run.json"), {
-      runId: run.runId,
-      workflowId: run.workflowId,
-      status: run.status,
-      summary: run.summary,
-      reason: failed?.errorText ?? (waiting ? `waiting on a human at step "${waiting.name}"` : null),
-      failedStep: failed ? { id: failed.stepId, name: failed.name, kind: failed.kind } : null,
-      startedAt: run.startedAt,
-      finishedAt: run.finishedAt,
-      costUsd: run.costUsd === null ? null : Number(run.costUsd ?? 0),
-      exitCode: run.status === "success" ? 0 : run.status === "waiting_human" ? 2 : run.status === "cancelled" ? 130 : 1,
+    return withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run }, () => {
+      const failed = run.steps.find((s) => s.status === "failed");
+      const waiting = run.steps.find((s) => s.status === "waiting_human");
+      writeJsonAtomic(join(this.dir, "last-run.json"), {
+        runId: run.runId,
+        workflowId: run.workflowId,
+        status: run.status,
+        summary: run.summary,
+        reason: failed?.errorText ?? (waiting ? `waiting on a human at step "${waiting.name}"` : null),
+        failedStep: failed ? { id: failed.stepId, name: failed.name, kind: failed.kind } : null,
+        startedAt: run.startedAt,
+        finishedAt: run.finishedAt,
+        costUsd: run.costUsd === null ? null : Number(run.costUsd ?? 0),
+        exitCode: run.status === "success" ? 0 : run.status === "waiting_human" ? 2 : run.status === "cancelled" ? 130 : 1,
+      });
     });
   }
 
@@ -132,10 +148,12 @@ export class RunStore {
   /** Write one file-sink delivery and return its path. */
   writeSink(runId, body) {
     this.runFile(runId); // validate caller-provided identity before constructing an output path
-    mkdirSync(this.outDir, { recursive: true });
-    ensureIgnored(this.dir);
     const file = join(this.outDir, `${runId}.txt`);
-    writeFileSync(file, body, "utf8");
+    assertPersistencePath(file);
+    assertPersistencePath(this.outDir);
+    guardedMkdirSync(this.outDir, { recursive: true });
+    ensureIgnored(this.dir);
+    guardedWriteFileSync(file, body, "utf8");
     return file;
   }
 }

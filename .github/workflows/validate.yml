@@ -47,12 +47,16 @@ jobs:
       - name: public surface allowlist and private markers
         run: node scripts/check-public-surface.mjs
 
+      - name: all persistence uses the guarded writer
+        run: npm run check:persistence-writes
+
       # The standalone Registry builder validates every manifest, metadata and
       # generated catalog without executing contributed workflows or using secrets.
       - name: Registry manifests and generated catalog
         run: |
           mkdir -p /tmp/core-package
           npm pack --ignore-scripts --pack-destination /tmp/core-package >/dev/null
+          npm run check:artifact-secrets -- --archive /tmp/core-package/q-core-$(node -p "require('./package.json').version").tgz
           node scripts/build-registry.mjs --check --core-artifact /tmp/core-package/q-core-$(node -p "require('./package.json').version").tgz
 
       # A manifest is meant to reference secrets, never to contain them.

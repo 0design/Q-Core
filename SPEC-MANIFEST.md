@@ -88,8 +88,11 @@ settings:
 ### 4.1 Model (knob 2)
 
 Precedence, strongest first: a step's own `config.model` → `settings.model` →
-`OPENROUTER_MODEL`. No model is selected implicitly. A model-backed YAML step
-requires an explicit OpenRouter model; it does not use CLI caller inference.
+`OPENROUTER_MODEL` for OpenRouter, or `ANTHROPIC_MODEL` for Anthropic. No model is
+selected implicitly. A model-backed YAML step
+requires an explicit model for its selected API provider; it does not use CLI
+caller inference. Native Anthropic model IDs and accepted OpenRouter aliases
+are listed in §5.2.
 `q-core validate` reports the selected model or an unconfigured value.
 
 ### 4.2 Budget (knob 3)
@@ -176,13 +179,15 @@ The RSS reader is regex-based, not an XML parser. It handles CDATA, `<item>` and
 | field | | |
 |---|---|---|
 | `instructions` | REQUIRED | templated |
+| `provider` | `openrouter` \| `anthropic` \| `cli` | default `openrouter` |
 | `format` | `text` \| `json` | default `text` |
 | `maxTokens` | | default 1200 |
 | `temperature` | | default 0.3 |
 | `role` | prepended as "You are the ⟨role⟩ agent…" | |
 | `model` | overrides the workflow's model | |
 | `secretSource` | `env` \| `keychain` | default `env` |
-| `keyRef` | uppercase secret alias | default `OPENROUTER_API_KEY` |
+| `keyRef` | uppercase secret alias | default `ANTHROPIC_API_KEY` for Anthropic; `OPENROUTER_API_KEY` for OpenRouter |
+| `workspaceId` | optional Anthropic workspace ID | `ANTHROPIC_WORKSPACE_ID` when omitted |
 | `retries` | 0..5, at most `retries + 1` billable attempts | default 2 |
 | `timeoutSec` | 1..600, per attempt | default 90 |
 | `maxCallCostUsd` | per-call money cap, (0, 100] | none |
@@ -194,6 +199,49 @@ reports them; an out-of-range value fails the step, it is never clamped.
 `maxCallCostUsd` refuses a call whose worst case (prompt bytes + `maxTokens`, every
 attempt) exceeds the cap at the model's listed price, and refuses a model with no
 listed price rather than guessing (`COST_UNKNOWN`).
+
+With `provider: anthropic`, the step calls the Anthropic Messages API directly,
+using the owner's API key; it needs no OpenRouter request or external shim.
+Workflow calls use the existing `local-byok` payer scope.
+`secretSource: env` resolves the `keyRef` environment variable;
+`secretSource: keychain` uses the existing provider secret resolver instead. The
+key is sent only in the `x-api-key` header, is redacted from errors, and is never
+stored in run state. A missing environment key is the typed `AUTH_REQUIRED`
+error; keychain failures retain their typed secret-store errors. The
+endpoint is `https://api.anthropic.com/v1/messages`, with
+`anthropic-version: 2023-06-01`; optional `workspaceId` supplies the
+`anthropic-workspace-id` header.
+
+Supported native models are `claude-sonnet-5`, `claude-haiku-5-5`,
+`claude-opus-5-5` and legacy `claude-haiku-4-5`. Their corresponding aliases
+`anthropic/claude-sonnet-5`, `anthropic/claude-haiku-5.5`,
+`anthropic/claude-opus-5.5` and `anthropic/claude-haiku-4.5` are also accepted.
+First-party input/output prices per million tokens are respectively $2/$10,
+$0.10/$0.50, $4/$20 and $1/$5. For Haiku 5.5 above 100,000 input tokens, both
+rates become $0.50/$2.50. This table is independent of OpenRouter's rates.
+The response snapshot `claude-haiku-4-5-20251001` is mapped explicitly to Haiku
+4.5; unknown snapshot IDs remain unpriced. A pinned snapshot request keeps its ID.
+
+`maxTokens` bounds the Messages API `max_tokens`. `reasoning: low | medium | high`
+maps to `output_config.effort`; omitted reasoning or `off` disables thinking on
+Sonnet 5 and Haiku 5.5, and selects `low` effort on Opus 5.5. Legacy Haiku 4.5
+receives neither effort nor thinking. `temperature` is sent only to the legacy
+model. The streamed answer is read to completion inside each attempt's timeout;
+only proven connection-establishment/DNS failures and rejected 429/5xx responses
+before body consumption may retry. Accepted-stream failures, timeouts and
+ambiguous transport errors stop without replay, with billing unknown. Ordinary
+4xx fail immediately. A `max_tokens` stop fails as `OUTPUT_LIMIT`.
+
+Ordinary input, cache reads and cache writes are priced separately by the
+direct-provider table. Cache reads cost 0.1x base input, five-minute writes 1.25x
+and one-hour writes 2x; total input selects the context tier. Missing/inconsistent
+cache duration counts leave the cost unknown. A billed answer that fails,
+including truncation, retains its cost. Unreadable accepted usage leaves cost
+unknown without replay. Before dispatch, the full worst-case cost of all allowed
+attempts (including the highest cache-write rate) must fit the remaining root and
+every ancestor budget, even when `maxCallCostUsd` is absent. The serial runner
+releases each reservation to actual spend before the next call. The next paid
+step is refused when spend is unknown under a finite budget, as in §4.2.
 
 The step's **input is every prior successful output**, as JSON, capped at 60 000
 characters. Inside a fan-out lane, its own item comes first. With `input` set to one
@@ -683,7 +731,8 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   caps sentences per item; a sentence ends at `.` `!` `?` `…` before a space and an uppercase letter or
   an opening quote, not inside a decimal or after an abbreviation such as «млн.» or «U.S.». Digest 0.6
   and later set compact links, 1 sentence, 32 words per case and 20 per theme.
-- `llm-call` (OpenRouter) may set `reasoning: off | low | medium | high`. It is sent as the
+- `llm-call` (OpenRouter or Anthropic) may set `reasoning: off | low | medium | high`.
+  Anthropic mapping is specified in §5.2. For OpenRouter, it is sent as the
   OpenRouter `reasoning` parameter (`off` disables reasoning, the others bound its effort); without it
   nothing is sent. A completion that spends `maxTokens` before any content fails as `OUTPUT_LIMIT`.
 - `llm-call` with `provider: cli` may set `input` to one step-output reference to

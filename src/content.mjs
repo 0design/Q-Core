@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, lstatSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
 import { hash, insist, resultEnvelope, CoreError } from "./contracts.mjs";
 import { lockWorkspace, atomicJson } from "./workspace.mjs";
 import { recoveryAction } from "./recovery.mjs";
@@ -9,7 +10,11 @@ import { askHumanToApprove, approvalFieldRefused, humanDecisionFor } from "./hum
 /** Reusable editorial pipeline. Caller supplies explicit provider, checker and
  * receiver adapters. Receipt storage is durable; ambiguous sends are never retried.
  * Callbacks are trusted host capabilities, never executable manifest strings. */
-export async function runContent(
+export async function runContent(request, options = {}) {
+  return withPersistenceSecrets({ env: persistenceEnvironment(request) }, () => runContentScoped(request, options));
+}
+
+async function runContentScoped(
   {
     workspace,
     requestId,

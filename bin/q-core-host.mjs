@@ -1,15 +1,16 @@
 #!/usr/bin/env node
+import { guardedStreamWrite } from "../src/persistence.mjs";
 import { readFileSync } from 'node:fs';
 import { createLocalHost } from '../src/host.mjs';
 const [mode,file,eventId]=process.argv.slice(2);
 try {
   if(!['manual','schedule','webhook'].includes(mode)||!file) throw Error('Usage: q-core-host <manual|schedule|webhook> <config.json> [manual-event-id]');
   const host=createLocalHost(JSON.parse(readFileSync(file,'utf8')));
-  const report=result=>{if(result)process.stdout.write(JSON.stringify(result)+'\n');};
+  const report=result=>{if(result)guardedStreamWrite(process.stdout, JSON.stringify(result)+'\n');};
   if(mode==='manual') report(await host.dispatch(mode,eventId));
   if(mode==='schedule') {
     let running=false;
-    const tick=async()=>{if(running)return;running=true;try{report(await host.tick());}catch(e){process.stderr.write(e.message+'\n');}finally{running=false;}};
+    const tick=async()=>{if(running)return;running=true;try{report(await host.tick());}catch(e){guardedStreamWrite(process.stderr, e.message+'\n');}finally{running=false;}};
     await tick();const timer=setInterval(tick,1000);
     for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>clearInterval(timer));
   }
@@ -20,4 +21,4 @@ try {
     server.listen(port,'127.0.0.1',()=>report({listening:`http://127.0.0.1:${server.address().port}/trigger`}));
     for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close());
   }
-} catch(e){process.stderr.write(e.message+'\n');process.exitCode=1;}
+} catch(e){guardedStreamWrite(process.stderr, e.message+'\n');process.exitCode=1;}

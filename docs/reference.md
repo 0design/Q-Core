@@ -17,6 +17,77 @@ started, see the [README](../README.md).
   unsigned run state. Use an OS sandbox or container for that isolation, and use trusted
   workspaces and verifiers. The hosted runtime will run Q-Core in a container.
 
+## Persistence trust model
+
+The primary protection for provider failures is structural: unrestricted error
+bodies, headers, status text, request IDs and thrown diagnostics from Anthropic
+and OpenRouter never enter persisted errors or logs. Rejected HTTP bodies are
+discarded without reading them. JSON/SSE error envelopes become fixed local
+messages and allowlisted codes, validated numeric status and usage fields; the
+provider's free text and nested objects are dropped before the persistence
+boundary. Successful model content is intended workflow output and may be
+saved through that boundary; this rule does not discard successful answers.
+
+The persistence guard is defence in depth, not a guarantee for **any encoding**
+of a credential. It checks registered environment/resolver credentials in file
+bytes, pathnames and stdout/stderr (which a shell can redirect to logs). Known
+literal/JSON/percent spellings can be redacted; other detected encoded secrets
+and decoding-budget exhaustion refuse the operation before writing. Detection
+decodes only temporary in-memory candidates and never emits decoded data.
+Covered representations are:
+
+- Literal text, JSON Unicode and short escapes, and escaped backslashes.
+- Percent-encoded UTF-8, hexadecimal bytes, base64 and base64url, including
+  prefixed alignments and whitespace-wrapped base64.
+- HTML decimal/hexadecimal numeric entities (with or without semicolons) and
+  HTML5 named entities, including their legacy semicolonless aliases.
+- JSON byte arrays containing only integer byte values from 0 through 255,
+  interpreted as UTF-8.
+- JavaScript `\xHH`, `\uHHHH` and `\u{…}` escapes.
+
+These transformations can compose within bounded decoding: at most 12 levels
+and an 8 MiB UTF-8 record. For an input of n bytes the work budget is 128n +
+64 KiB of total distinct candidate bytes and 4n + 1,024 distinct candidates.
+Every candidate is inspected; repeated encoded tokens share decoding work.
+The fixed depth and proportional work budgets bound total decoding to O(n).
+JSON wrapping and independent escapes in ordinary pages consume levels too;
+the depth allowance includes those steps rather than only nested tokens.
+Excessive record size, pathological nesting or expansion fail closed before
+writing, with `PERSISTENCE_SECRET_DECODE_LIMIT` and a fixed explanation of the
+limit. A detected unredactable credential retains `PERSISTENCE_SECRET_UNSAFE`.
+Append and redirected-stream checks retain the most recent 1,048,576 UTF-16 code
+units of text for continuity (or read a 1 MiB suffix of an existing file), shared
+across stdout/stderr when they use the same destination. An encoded value split
+across more history than that window is outside the
+continuation guarantee (for example, byte arrays with extreme whitespace or
+entities with extreme leading-zero padding).
+Independent file/FIFO/socket stream queues keep one destination owner until all
+write callbacks finish. After a write error, a regular file can recover only
+after those callbacks settle: a readable descriptor must recheck the physical
+bytes since the owner's last verified boundary, including up to 1 MiB of prior
+overlap, within the existing 8 MiB whole-record limit. Recovery requires complete,
+stable reads and valid UTF-8; the submitted buffers are never treated as proof
+of what reached disk. An unreadable, changing or unverifiable file, or a failed
+FIFO/socket/other non-regular destination, refuses further output with
+`PERSISTENCE_DESTINATION_QUARANTINED`. A regular file may retry verification with
+a readable descriptor; a non-regular destination needs a new generation.
+Unknown transforms, encryption and arbitrary application-specific encodings
+are outside this guard's coverage. The offline release scan uses the same
+decoder against known credential shapes in package paths/contents, example
+outputs and supplied decompressed archives; it cannot identify every arbitrary
+runtime credential. Archive scanning checks every non-NUL byte run with the same
+budgets: literal NUL bytes delimit all covered transports and credential shapes,
+so unrelated tar headers and payloads do not multiply whole-archive branches.
+
+Runtime pathname mutations go through guarded wrappers in
+`src/persistence.mjs`, which check relevant path arguments before creating,
+opening, renaming or removing filesystem entries. The bypass lint checks
+`src/` and `bin/`, rejecting direct filesystem mutation capabilities (including
+write-mode opens, links, copies and metadata changes) outside that module.
+Read-only operations do not grant write capability. This is an enforced source
+boundary for Q-Core's runtime, not an OS sandbox for hostile same-user processes,
+external tools or arbitrary executable workflow code.
+
 ## Hosted MCP
 
 `https://qfactory.io/api/mcp` (Streamable HTTP, no key) exposes read-only tools
@@ -183,9 +254,81 @@ In a workflow, a model step records the provider's reported cost, else the liste
 price of the model that answered, else `null`; the run budget treats `null` as
 unknown, not zero (see SPEC-MANIFEST.md §4.2 and §5.2).
 
+### Native Anthropic
+
+Use `provider: anthropic` on an `llm-call` step to spend the owner's Anthropic API
+credit directly. No OpenRouter account, BYOK forwarding or external fetch shim is
+involved. The reusable adapter is also exported:
+
+```js
+import { anthropic } from 'q-core';
+const result = await anthropic({
+  messages: [{ role: 'user', content: 'Summarize this synthetic input.' }],
+  model: 'claude-sonnet-5', keyRef: 'ANTHROPIC_API_KEY',
+  payerScope: 'local-byok', maxTokens: 256, timeoutMs: 30000, retries: 2,
+});
+```
+
+Workflow model precedence is `config.model` → `settings.model` →
+`ANTHROPIC_MODEL`; there is no default model or provider fallback. Workflow calls
+use the existing `local-byok` payer scope.
+
+`keyRef` defaults to `ANTHROPIC_API_KEY`; `secretSource: env | keychain` uses the
+same secret resolver as OpenRouter. Only the alias belongs in a manifest. The
+key is sent as `x-api-key`, never persisted in run state or included in errors.
+A missing environment key fails with `AUTH_REQUIRED`; keychain failures retain
+their typed secret-store errors. Requests go to
+`https://api.anthropic.com/v1/messages`, with `anthropic-version: 2023-06-01`.
+Optional `workspaceId` (or `ANTHROPIC_WORKSPACE_ID`) sets
+`anthropic-workspace-id`. The adapter requires an explicit `payerScope` of
+`local-byok` or `site-funded`; the label does not establish a separate quota.
+
+Supported models and first-party prices in USD per million tokens:
+
+| Anthropic model | Accepted OpenRouter alias | Input | Output |
+|---|---|---:|---:|
+| `claude-sonnet-5` | `anthropic/claude-sonnet-5` | 2.00 | 10.00 |
+| `claude-haiku-5-5` | `anthropic/claude-haiku-5.5` | 0.10 | 0.50 |
+| `claude-opus-5-5` | `anthropic/claude-opus-5.5` | 4.00 | 20.00 |
+| `claude-haiku-4-5` | `anthropic/claude-haiku-4.5` | 1.00 | 5.00 |
+
+For Haiku 5.5, input above 100,000 tokens changes both rates to 0.50 input and
+2.50 output. These are the pinned direct-provider rates, separate from
+OpenRouter's table. The documented response snapshot
+`claude-haiku-4-5-20251001` maps explicitly to Haiku 4.5 pricing; unknown snapshot
+IDs remain unpriced. Explicit snapshot requests retain their pinned model ID.
+Total input (ordinary, cache-read and cache-creation tokens) selects the context
+tier. Ordinary input costs the base rate, cache reads 0.1 times that rate,
+five-minute writes 1.25 times and one-hour writes 2 times. Cache writes with
+missing or inconsistent duration counts remain unpriced.
+
+`maxTokens` becomes Messages API `max_tokens`. `reasoning: low | medium | high`
+maps to `output_config.effort`. With reasoning omitted or `off`, Sonnet 5 and
+Haiku 5.5 disable thinking; Opus 5.5 uses `low` effort because its thinking cannot
+be disabled. Legacy Haiku 4.5 runs without thinking or an effort parameter. Only
+legacy Haiku accepts `temperature`; sampling is omitted for the other models.
+
+The adapter requests streaming and reads the complete answer within each
+attempt's timeout. Only proven connection-establishment/DNS failures and rejected
+429/5xx responses before body consumption may retry. Dropped/incomplete accepted
+streams, body timeouts and ambiguous transport failures stop immediately with
+unknown billing; ordinary 4xx fail immediately.
+`stop_reason: max_tokens` fails as `OUTPUT_LIMIT`, preserving billed usage.
+Usage-based cost enters the existing step/run budget accounting; per-call
+`maxCallCostUsd` checks the worst case of all permitted attempts before sending.
+Every native workflow call also reserves that bound against the remaining root
+and all ancestor budgets, even without a per-call cap. The bound uses the highest
+cache-write rate and applicable context tier. Sequential calls release the
+reservation to actual spend after completion. Unreadable accepted usage may have
+been billed: its cost remains unknown and the request is never replayed.
+
+### HTTP retry policy
+
 HTTP transport retries network/timeout/429/5xx failures with bounded backoff;
 ordinary 4xx fail fast. Caller cancellation stops request/backoff without retry.
-Response body parsing errors are not retried. Internal policy allows 0–10 retries,
+OpenRouter response body parsing errors are not retried. Anthropic reads and
+validates its stream within the attempt deadline, with the narrower safe-retry
+policy described above. Internal policy allows 0–10 retries,
 positive timeouts and nonnegative delays; invalid policy fails before requests.
 Retries of outgoing requests can duplicate writes: use receipt-aware content APIs
 for publication. Retry is never exactly-once delivery.

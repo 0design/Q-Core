@@ -1,3 +1,4 @@
+import { assertPersistencePath, guardedWriteFileSync, guardedMkdirSync } from './persistence.mjs';
 /**
  * Update channel.
  *
@@ -21,7 +22,7 @@
  * NO text about accounts, sign-in or licences: none of that has been decided,
  * and a CLI is a bad place to learn about it from a message somebody guessed at.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -45,8 +46,10 @@ function readCache() {
 function writeCache(value) {
   try {
     const f = cacheFile();
-    mkdirSync(dirname(f), { recursive: true });
-    writeFileSync(f, JSON.stringify(value), "utf8");
+    assertPersistencePath(f);
+    assertPersistencePath(dirname(f));
+    guardedMkdirSync(dirname(f), { recursive: true });
+    guardedWriteFileSync(f, JSON.stringify(value), "utf8");
   } catch {
     /* A cache we cannot write is a cache we do without. */
   }

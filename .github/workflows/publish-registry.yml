@@ -2,7 +2,7 @@ name: Publish Registry
 on:
   push:
     branches: [main]
-    paths: ['registry/**', 'src/**', 'contracts/**', 'package.json', 'scripts/*registry*', '.github/workflows/publish-registry.yml']
+    paths: ['registry/**', 'src/**', 'contracts/**', 'package.json', 'scripts/*registry*', 'scripts/check-no-secrets-in-artifacts.mjs', 'scripts/check-persistence-writes.mjs', 'test/artifact-secrets.test.mjs', 'test/persistence.test.mjs', '.github/workflows/publish-registry.yml']
   workflow_dispatch:
     inputs:
       action:
@@ -57,9 +57,10 @@ jobs:
           npm test
           mkdir -p /tmp/core-package
           # prepack guards run explicitly; their stdout must not mix with the pack JSON.
-          npm run check:public-surface && npm run check:product-names
+          npm run check:public-surface && npm run check:product-names && npm run check:persistence-writes
           npm pack --ignore-scripts --pack-destination /tmp/core-package --json > /tmp/core-package/pack.json
           CORE_ARCHIVE=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/core-package/pack.json'))[0].filename")
+          npm run check:artifact-secrets -- --archive "/tmp/core-package/$CORE_ARCHIVE"
           # Committed catalog and SHA256SUMS must equal a fresh build with the reproducible Core archive.
           node scripts/build-registry.mjs --check --core-artifact "/tmp/core-package/$CORE_ARCHIVE"
           node scripts/build-registry.mjs --export /tmp/registry --core-artifact "/tmp/core-package/$CORE_ARCHIVE"

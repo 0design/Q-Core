@@ -23,10 +23,11 @@ function validatePolicy(timeoutMs, retries, delaysMs) {
   }
 }
 
-/** Returns headers; callers must consume the final body. Retries replay the
+/** Returns headers unless readResponse consumes a successful body within the
+ * attempt's deadline. Retries replay the
  * request, so side-effecting callers must supply their own idempotency policy. */
 export async function fetchWithRetry(url, init = {}, {
-  timeoutMs = 30_000, retries = 2, delaysMs = RETRY_DELAYS_MS, onAttemptError,
+  timeoutMs = 30_000, retries = 2, delaysMs = RETRY_DELAYS_MS, onAttemptError, readResponse,
 } = {}) {
   validatePolicy(timeoutMs, retries, delaysMs);
   const callerSignal = init.signal;
@@ -37,6 +38,7 @@ export async function fetchWithRetry(url, init = {}, {
     let response;
     try {
       response = await fetch(url, { ...init, signal });
+      if (response.ok && readResponse) await readResponse(response, { signal });
     } catch (error) {
       // An attempt that ended without a response (timeout, dropped connection,
       // cancellation) may still have been processed — and billed — upstream.
@@ -44,6 +46,8 @@ export async function fetchWithRetry(url, init = {}, {
       // A caller's cancellation is final, even if its reason resembles a timeout.
       callerSignal?.throwIfAborted();
       if (!isRetryableNetwork(error) || attempt === retries) throw error;
+      await response?.body?.cancel().catch(() => {});
+      response = undefined;
     }
     if (response) {
       const retryable = response.status === 429

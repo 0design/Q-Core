@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync, lstatSync, existsSync, mkdirSync, realpathSync } from "node:fs";
+import { assertPersistencePath, guardedWriteFileSync, guardedMkdirSync } from './persistence.mjs';
+import { readFileSync, lstatSync, existsSync, realpathSync } from "node:fs";
 import { resolve, join, isAbsolute, dirname, basename, posix } from "node:path";
 import { hash, insist, CoreError } from "./contracts.mjs";
 import { parseYaml } from "./yaml.mjs";
@@ -234,6 +235,8 @@ export async function installPinned({
     heights.set(path, count); return count;
   };
   insist(height(entryPath) <= MAX_CALL_DEPTH, 'Nested material depth exceeded');
+  assertPersistencePath(resolve(destination));
+  assertPersistencePath(resolve(destination + '.lock.json'));
   const installRoot = realpathSync(dirname(resolve(destination)));
   const targets = new Map([[join(installRoot, basename(destination)), bytes]]);
   const collected = new Set();
@@ -252,12 +255,20 @@ export async function installPinned({
   };
   collect(entryPath);
   for (const target of targets.keys()) {
+    assertPersistencePath(target);
+    assertPersistencePath(dirname(target));
     insist(!existsSync(target), 'Dependency destination exists; refusing overwrite');
     let current = dirname(target);
     while (current !== installRoot) { if (existsSync(current)) insist(lstatSync(current).isDirectory() && !lstatSync(current).isSymbolicLink(), 'Unsafe dependency destination directory'); current = dirname(current); }
   }
-  for (const [target, body] of targets) { mkdirSync(dirname(target), { recursive: true }); writeFileSync(target, body, { flag: 'wx', mode: 0o600 }); }
-  writeFileSync(
+  // Pinned material and its lock must preserve the bytes verified above.
+  for (const [target, body] of targets) {
+    assertPersistencePath(target);
+    assertPersistencePath(dirname(target));
+    guardedMkdirSync(dirname(target), { recursive: true });
+    guardedWriteFileSync(target, body, { flag: 'wx', mode: 0o600, failOnRedaction: true });
+  }
+  guardedWriteFileSync(
     destination + ".lock.json",
     JSON.stringify(
       {
@@ -272,7 +283,7 @@ export async function installPinned({
       null,
       2,
     ) + "\n",
-    { flag: "wx", mode: 0o600 },
+    { flag: "wx", mode: 0o600, failOnRedaction: true },
   );
   return {
     id,

@@ -19,7 +19,8 @@ import { resolveTemplate, resolveTemplateDeep, resolveTemplateValue, resolveUrlT
 import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
-import { constants as fsConstants, closeSync, existsSync, fstatSync, lstatSync, openSync, realpathSync, statSync, writeSync } from "node:fs";
+import { constants as fsConstants, closeSync, existsSync, fstatSync, lstatSync, realpathSync, statSync } from "node:fs";
+import { assertPersistencePath, guardedWriteSync, registerPersistenceSecret, guardedOpenSync } from './persistence.mjs';
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 export { fetchWithRetry } from "./http.mjs";
@@ -37,9 +38,10 @@ function boundedTimeoutSec(config, label) {
 }
 
 import { openRouter } from "./providers/openrouter.mjs";
-import { stepCostUsd } from "./cost.mjs";
+import { anthropic, ANTHROPIC_SANITIZE_OUTPUT } from "./providers/anthropic.mjs";
+import { stepCostUsd, worstCaseAnthropicCallUsd } from "./cost.mjs";
 
-/* OpenRouter call policy for a model-backed step. Every paid attempt is a
+/* API call policy for a model-backed step. Every paid attempt is a
    decision of the workflow author, so the bounds are explicit and checked
    before anything is resolved or sent:
      retries         0..5, default 2 (at most retries + 1 billable attempts)
@@ -75,16 +77,20 @@ export function llmCallPolicy(config, label) {
 
 /* What a finished (or billed-then-failed) OpenRouter call cost: the provider's
    figure, else the table price of the model that answered, else null. */
-function llmCost(usage, requestedModel) {
+function llmCost(usage, requestedModel, provider = "openrouter") {
   // An earlier attempt of this call may have been billed without an answer: the total is unknown.
   if (usage?.billingUnknown) return { costUsd: null, costSource: "unknown" };
+  // Native Anthropic has its own first-party rates. An unpriced response must
+  // never acquire an OpenRouter fallback price through a compatible model alias.
+  if (provider === "anthropic") return Number.isFinite(usage?.costUsd) && usage.costUsd >= 0
+    ? { costUsd: usage.costUsd, costSource: "provider" } : { costUsd: null, costSource: "unknown" };
   return stepCostUsd({ providerCostUsd: usage?.costUsd, model: usage?.model ?? requestedModel, tokensIn: usage?.tokensIn, tokensOut: usage?.tokensOut });
 }
 
 /* A billed call that failed afterwards keeps its spend on the thrown error. */
-function withSpend(error, requestedModel) {
+function withSpend(error, requestedModel, provider = "openrouter") {
   if (error && typeof error === "object" && error.usage) {
-    const { costUsd, costSource } = llmCost({ ...error.usage, model: error.model ?? requestedModel }, requestedModel);
+    const { costUsd, costSource } = llmCost({ ...error.usage, model: error.model ?? requestedModel }, requestedModel, provider);
     error.spend = { costUsd, costSource, tokensIn: error.usage.tokensIn ?? null, tokensOut: error.usage.tokensOut ?? null };
   }
   return error;
@@ -219,13 +225,18 @@ export async function runFetch(step, ctx) {
 /* ──────────────────────────── llm-call ──────────────────────────── */
 
 /** One model call. No canned fallback — see runLlmCall on why a mock is poison here. */
-export async function chatOnce({ apiKey, keyRef = "OPENROUTER_API_KEY", secretSource = "env", model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, reasoning }) {
+export async function chatOnce({ apiKey, provider = "openrouter", providers, keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", secretSource = "env", workspaceId, model, system, user, maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, reasoning }) {
+  insist(["openrouter", "anthropic"].includes(provider), "Unknown API provider; no fallback is allowed");
   // `apiKey` is the legacy/default alias supplied by the CLI. A step-level
   // alias must resolve its own environment entry; silently reusing the default
   // key would charge/send as the wrong credential. Keychain resolution ignores
   // this env value and remains explicitly selected by secretSource.
   const selectedKey = keyRef === "OPENROUTER_API_KEY" ? apiKey : process.env[keyRef];
-  const result = await openRouter({ model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, ...(reasoning === undefined ? {} : { reasoning }) }, {env:{[keyRef]:selectedKey}});
+  registerPersistenceSecret(selectedKey);
+  const request = { model, messages: [{role:'system',content:system},{role:'user',content:user}], keyRef, secretSource, payerScope:'local-byok', maxTokens, temperature, timeoutMs, retries, delaysMs, signal, maxCallCostUsd, ...(reasoning === undefined ? {} : { reasoning }) };
+  const result = provider === "anthropic"
+    ? await (providers?.anthropic ?? anthropic)({ ...request, workspaceId })
+    : await openRouter(request, {env:{[keyRef]:selectedKey}});
   return { ...result, usage:{...result.usage, model:result.provider.model ?? model} };
 }
 
@@ -247,10 +258,12 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
   const role = str(step.config, "role");
 
   const policy = llmCallPolicy(step.config, label);
-  const keyRef = str(step.config, "keyRef") ?? "OPENROUTER_API_KEY";
+  const provider = str(step.config, "provider") ?? "openrouter";
+  insist(["openrouter", "anthropic"].includes(provider), "Unknown API provider; no fallback is allowed");
+  const keyRef = str(step.config, "keyRef") ?? (provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY");
   const secretSource = str(step.config, "secretSource") ?? "env";
   const envSecret = keyRef === "OPENROUTER_API_KEY" ? ctx.apiKey : process.env[keyRef];
-  if (secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
+  if (provider === "openrouter" && secretSource === "env" && (typeof envSecret !== "string" || !envSecret.trim())) {
     /* NOT a mock. This output feeds the next step and possibly an outside API,
        where no "this was invented" label survives. So: failure. */
     throw new CoreError(
@@ -260,7 +273,7 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     );
   }
 
-  if (!model) throw new Error("OpenRouter model is not configured; set OPENROUTER_MODEL or an explicit model override. This YAML route is not CLI caller inference.");
+  if (!model) throw new Error(`${provider === "anthropic" ? "Anthropic" : "OpenRouter"} model is not configured; set ${provider === "anthropic" ? "ANTHROPIC_MODEL" : "OPENROUTER_MODEL"} or an explicit model override. This YAML route is not CLI caller inference.`);
 
   const system =
     (role ? `You are the ${role} agent in an autonomous factory. ` : "") +
@@ -279,10 +292,18 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
   }
   const user = JSON.stringify(payload, null, 2).slice(0, 60_000);
 
+  if (provider === 'anthropic' && ctx.reserveAnthropicCost) {
+    const messagesBytes = Buffer.byteLength(JSON.stringify([{ role: 'system', content: system }, { role: 'user', content: user }]));
+    ctx.reserveAnthropicCost(worstCaseAnthropicCallUsd({ model, messagesBytes, maxTokens, attempts: policy.retries + 1 }));
+  }
+
   let reply;
   try {
     reply = await chatOnce({
       apiKey: ctx.apiKey,
+      provider,
+      providers: ctx.providers,
+      workspaceId: str(step.config, "workspaceId"),
       keyRef,
       secretSource,
       model,
@@ -297,10 +318,10 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
       maxCallCostUsd: policy.maxCallCostUsd,
     });
   } catch (error) {
-    throw withSpend(error, model);
+    throw withSpend(error, model, provider);
   }
   const { content, usage } = reply;
-  const { costUsd, costSource } = llmCost(usage, model);
+  const { costUsd, costSource } = llmCost(usage, model, provider);
 
   const wantJson = (oneOf(step.config, "format", ["text", "json"]) ?? "text") === "json";
   const parsed = wantJson ? parseJsonObject(content) : null;
@@ -309,7 +330,13 @@ export async function runLlmCall(step, ctx, model, maxTokens) {
     error.spend = { costUsd, costSource, tokensIn: usage.tokensIn, tokensOut: usage.tokensOut };
     throw error;
   }
-  return { output: parsed ?? { text: content, model }, tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, costUsd, costSource };
+  // JSON.parse can turn Unicode escapes back into a credential, including in
+  // object keys. Sanitize the decoded native output before it reaches state or
+  // a later step; the provider keeps its normalized credential in the closure.
+  const output = parsed ?? { text: content, model };
+  return { output: provider === "anthropic" && reply[ANTHROPIC_SANITIZE_OUTPUT]
+    ? reply[ANTHROPIC_SANITIZE_OUTPUT](output) : output,
+    tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, costUsd, costSource, ...(provider === "anthropic" ? { provider: reply.provider } : {}) };
 }
 
 /* ────────────────────── approval-gate (human | agent) ────────────────────── */
@@ -496,13 +523,15 @@ export async function runApiRequest(step, ctx) {
      duplicate rules as HTTP; the folder must exist and must not be reached through a symlink. */
   if (/^file:/i.test(url)) {
     const path = checkFileDestination(url);
+    assertPersistencePath(path);
     const payload = buildBody(step, ctx, t);
     const line = JSON.stringify(payload);
     const sendFile = async () => {
-      const fd = openSync(path, fsConstants.O_WRONLY | fsConstants.O_APPEND | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW, 0o600);
+      assertPersistencePath(path);
+      const fd = guardedOpenSync(path, fsConstants.O_RDWR | fsConstants.O_APPEND | fsConstants.O_CREAT | fsConstants.O_NOFOLLOW, 0o600);
       try {
         insist(fstatSync(fd).isFile(), `"${label}": the file destination must be a regular file`);
-        writeSync(fd, `${line}\n`);
+        guardedWriteSync(fd, `${line}\n`);
       } finally { closeSync(fd); }
       return { output: { dispatched: true, sink: "file", url: pathToFileURL(path).href, file: path } };
     };

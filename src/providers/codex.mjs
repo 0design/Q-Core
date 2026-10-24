@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { guardedMkdtemp, guardedRm } from "../persistence.mjs";
 import { tmpdir } from "node:os";
 import { join, isAbsolute } from "node:path";
 import { subprocess, scopedEnvironment } from "../subprocess.mjs";
@@ -234,7 +234,7 @@ export async function codex(
     return ms;
   };
   // Outside the caller workspace: no project config, documents or file context.
-  const cwd = await mkdtemp(join(tmpdir(), "q-core-codex-"));
+  const cwd = await guardedMkdtemp(join(tmpdir(), "q-core-codex-"));
   try {
     const probe = await launch(executable, ["--version"], {
       cwd,
@@ -274,6 +274,6 @@ export async function codex(
       probedVersion,
     );
   } finally {
-    await rm(cwd, { recursive: true, force: true });
+    await guardedRm(cwd, { recursive: true, force: true });
   }
 }

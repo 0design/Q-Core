@@ -278,7 +278,9 @@ test("OpenRouter actual model, unknown usage, malformed and missing auth", async
   });
   await assert.rejects(
     openRouter(r, {
-      env: { OPENROUTER_API_KEY: "x" },
+      // Credentials remain registered for this process. A one-byte key also
+      // matches decoded random workspace/run names in unrelated later tests.
+      env: { OPENROUTER_API_KEY: "invalid-response-fixture-credential" },
       fetcher: async () => new Response("oops"),
     }),
     { code: "INVALID_RESPONSE" },

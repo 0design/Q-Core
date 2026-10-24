@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { access } from "node:fs/promises";
 import { subprocess, scopedEnvironment } from "./subprocess.mjs";
 import { CoreError, insist } from "./contracts.mjs";
+import { registerPersistenceSecret } from './persistence.mjs';
 
 const SECURITY = "/usr/bin/security";
 const SERVICE = "com.qfactory.q-core.openrouter";
@@ -19,8 +20,8 @@ function ensureKeychain(platform = process.platform) {
     );
 }
 
-export function keychainIdentity(provider, keyRef = "OPENROUTER_API_KEY") {
-  insist(provider === "openrouter", "Only the OpenRouter secret store is supported");
+export function keychainIdentity(provider, keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY") {
+  insist(["openrouter", "anthropic"].includes(provider), "Unsupported provider secret store");
   insist(
     typeof keyRef === "string" &&
       Buffer.byteLength(keyRef) <= MAX_KEY_REF_LENGTH &&
@@ -28,8 +29,8 @@ export function keychainIdentity(provider, keyRef = "OPENROUTER_API_KEY") {
     "Invalid secret keyRef",
   );
   return Object.freeze({
-    service: SERVICE,
-    account: `openrouter:${keyRef}`,
+    service: provider === "openrouter" ? SERVICE : "com.qfactory.q-core.anthropic",
+    account: `${provider}:${keyRef}`,
   });
 }
 
@@ -79,17 +80,17 @@ function cleanSecret(stdout) {
 }
 
 export async function getKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   options = {},
 ) {
   ensureKeychain(platform);
   const result = await runSecurity(argsFor("get", keychainIdentity(provider, keyRef)), options);
   if (result.code !== 0) throw storeError("retrieval", result);
-  return cleanSecret(result.stdout);
+  return registerPersistenceSecret(cleanSecret(result.stdout));
 }
 
 export async function hasKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   options = {},
 ) {
   ensureKeychain(platform);
@@ -100,7 +101,7 @@ export async function hasKeychainSecret(
 }
 
 export async function removeKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   options = {},
 ) {
   ensureKeychain(platform);
@@ -114,7 +115,7 @@ export async function removeKeychainSecret(
  * and stdin is inherited so its protected prompt handles entry and echo.
  */
 export async function setKeychainSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
   { interactive = runInteractiveSecurity, isInteractive = () => process.stdin.isTTY && process.stdout.isTTY } = {},
 ) {
   ensureKeychain(platform);
@@ -208,7 +209,7 @@ async function runInteractiveSecurity(args, { timeoutMs = 120000 } = {}) {
 }
 
 export async function resolveProviderSecret(
-  { provider = "openrouter", keyRef = "OPENROUTER_API_KEY", secretSource = "env", env = process.env, platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", secretSource = "env", env = process.env, platform = process.platform } = {},
   options = {},
 ) {
   insist(SECRET_STORE_MODES.includes(secretSource), "Invalid secretSource");
@@ -219,7 +220,7 @@ export async function resolveProviderSecret(
     throw new CoreError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
   if (Buffer.byteLength(value) > MAX_SECRET_BYTES)
     throw new CoreError("AUTH_REQUIRED", "Configured secret is too large");
-  return value;
+  return registerPersistenceSecret(value);
 }
 
 export const SECRET_STORE = Object.freeze({

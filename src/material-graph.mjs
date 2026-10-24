@@ -1,7 +1,8 @@
+import { assertPersistencePath, guardedWriteFileSync, guardedMkdirSync, guardedRenameSync, guardedRmSync } from './persistence.mjs';
 /** Resolve exact local material bytes before execution; export the same closure. */
-import { readFileSync, realpathSync, statSync, lstatSync, mkdirSync, writeFileSync, existsSync, mkdtempSync, renameSync, rmSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync, lstatSync, existsSync } from 'node:fs';
 import { resolve, dirname, relative, join, sep, basename } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { validateManifest, ManifestError } from './manifest.mjs';
 import { parseYaml } from './yaml.mjs';
 import { bindInputs, assertType } from './material-io.mjs';
@@ -140,14 +141,42 @@ function assertPortableNames(paths) {
 
 /* Written into a new sibling directory and renamed into place, so a failed export leaves no partial folder. */
 function writeExport(target, entries) {
-  mkdirSync(dirname(target), { recursive: true });
-  const temporary = mkdtempSync(join(dirname(target), `.${basename(target)}.export-`));
+  // Check the complete closure before the first mkdir. In particular,
+  // a forbidden child name must not survive as a directory after a later write
+  // rejects its body, and descriptor-backed writers cannot check names later.
+  assertPersistencePath(target);
+  assertPersistencePath(dirname(target));
+  const prefix = join(dirname(target), `.${basename(target)}.export-`);
+  const temporary = `${prefix}${randomUUID()}`;
+  assertPersistencePath(prefix);
+  assertPersistencePath(temporary);
+  for (const [path] of entries) {
+    assertPersistencePath(join(target, path));
+    assertPersistencePath(join(temporary, path));
+  }
+  assertPersistencePath(dirname(target));
+  guardedMkdirSync(dirname(target), { recursive: true });
+  assertPersistencePath(temporary);
+  // Exclusive mkdir preserves mkdtemp's refusal to reuse an existing path,
+  // while making the entire randomized name available for pre-creation checks.
+  guardedMkdirSync(temporary, { mode: 0o700 });
   try {
-    for (const [path, body] of entries) { const output = join(temporary, path); mkdirSync(dirname(output), { recursive: true }); writeFileSync(output, body, { flag: 'wx' }); }
+    assertPersistencePath(temporary);
+    // Export hashes identify exact reviewed bytes. A credential-bearing bundle
+    // cannot be changed safely without invalidating its integrity metadata.
+    for (const [path, body] of entries) {
+      const output = join(temporary, path);
+      assertPersistencePath(output);
+      assertPersistencePath(dirname(output));
+      guardedMkdirSync(dirname(output), { recursive: true });
+      guardedWriteFileSync(output, body, { flag: 'wx', failOnRedaction: true });
+    }
     if (existsSync(target)) throw new ManifestError('export destination already exists; choose a new directory');
-    renameSync(temporary, target);
+    assertPersistencePath(temporary);
+    assertPersistencePath(target);
+    guardedRenameSync(temporary, target);
   } catch (error) {
-    rmSync(temporary, { recursive: true, force: true });
+    guardedRmSync(temporary, { recursive: true, force: true });
     throw error;
   }
 }

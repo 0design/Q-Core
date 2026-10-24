@@ -8,6 +8,8 @@
  */
 
 /** A step exactly as the product engine stores it for a workflow. */
+export type LlmCallProvider = 'openrouter' | 'anthropic' | 'cli';
+
 export interface WorkflowManifestStep {
   id: string;
   kind: string;

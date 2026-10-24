@@ -1,5 +1,6 @@
+import { assertPersistencePath, guardedWriteFileSync, registerPersistenceSecret, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync } from './persistence.mjs';
 /** Explicit local host for installed workflows. No daemon installation or remote shell. */
-import { readFileSync, writeFileSync, mkdirSync, lstatSync, existsSync, renameSync, unlinkSync } from 'node:fs';
+import { readFileSync, lstatSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
@@ -28,7 +29,13 @@ export function cronMatches(expression, date) {
   return matches[0] && matches[1] && matches[3] && day;
 }
 
-function atomic(file, data) { const tmp = file + '.tmp'; writeFileSync(tmp, JSON.stringify(data), {mode:0o600}); renameSync(tmp,file); }
+function atomic(file, data) {
+  const tmp = file + '.tmp';
+  assertPersistencePath(file); assertPersistencePath(tmp);
+  guardedWriteFileSync(tmp, JSON.stringify(data), {mode:0o600, receipt:data});
+  assertPersistencePath(tmp); assertPersistencePath(file);
+  guardedRenameSync(tmp,file);
+}
 function safeJson(file) { insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe host state'); return JSON.parse(readFileSync(file,'utf8')); }
 export function createLocalHost(config) {
   insist(config && Object.keys(config).every(k=>['manifest','manifestSha256','callerProvider','workspacePolicy'].includes(k)), 'Unsupported host configuration');
@@ -42,9 +49,10 @@ export function createLocalHost(config) {
   }
   const policy = config.workspacePolicy ? validateWorkspacePolicy(config.workspacePolicy) : null;
   const store = new RunStore(file), dir = join(store.dir,'host',hash(file));
-  mkdirSync(dir,{recursive:true,mode:0o700});
-  for(const path of [store.dir,join(store.dir,'host'),dir]) insist(!lstatSync(path).isSymbolicLink(),'Unsafe host directory');
   const lock = join(dir,'lock'), active = join(dir,'active.json');
+  for (const path of [dir, lock, active, active + '.tmp']) assertPersistencePath(path);
+  guardedMkdirSync(dir,{recursive:true,mode:0o700});
+  for(const path of [store.dir,join(store.dir,'host'),dir]) insist(!lstatSync(path).isSymbolicLink(),'Unsafe host directory');
   async function dispatch(kind,eventId) {
     insist(['manual','schedule','webhook'].includes(kind),'Unsupported host trigger');
     insist(typeof eventId === 'string' && /^[a-zA-Z0-9_.:-]{1,128}$/.test(eventId),'Bounded event ID required');
@@ -52,7 +60,8 @@ export function createLocalHost(config) {
     insist(manifest.enabled,'Workflow is disabled');
     insist(manifest.triggers.some(t=>t.kind===kind),'Trigger is not declared by this workflow');
     const receipt=join(dir,hash({kind,eventId})+'.json');
-    writeFileSync(lock,'',{flag:'wx',mode:0o600});
+    for (const path of [receipt, receipt + '.tmp', active, active + '.tmp', lock]) assertPersistencePath(path);
+    guardedWriteFileSync(lock,'',{flag:'wx',mode:0o600});
     try {
       if(existsSync(receipt)) { const prior=safeJson(receipt); insist(prior.phase==='completed','Prior trigger outcome is uncertain; reconcile before retry'); return {...prior,duplicate:true}; }
       if(existsSync(active)) { const prior=safeJson(active), run=store.load(prior.runId); insist(run && ['success','failed','cancelled','needs_human'].includes(run.status),'Previous run is still active or waiting; resume it before starting another'); }
@@ -68,7 +77,7 @@ export function createLocalHost(config) {
       const output={phase:'completed',runId:run.runId,kind,eventId,status:result.status};
       atomic(receipt,output);
       return output;
-    } finally { unlinkSync(lock); }
+    } finally { guardedUnlinkSync(lock); }
   }
   async function tick(date=new Date()) {
     const manifest=verify();
@@ -77,6 +86,7 @@ export function createLocalHost(config) {
   }
   function webhookServer(token) {
     insist(typeof token==='string' && token.length>=32 && token.length<=512,'Webhook token must contain 32–512 characters');
+    registerPersistenceSecret(token);
     return createServer(async(req,res)=>{
       const send=(status,body)=>{res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(body));};
       if(req.method!=='POST' || req.url!=='/trigger') {req.resume();return send(404,{error:'Not found'});}

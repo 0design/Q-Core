@@ -23,7 +23,8 @@
  * nothing today" must not look the same to whatever is watching. A run parked at
  * a gate exits 2 — not a failure, not a success, and worth telling apart.
  */
-import { copyFileSync, existsSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { guardedWriteFileSync, guardedStreamWrite, guardedUnlinkSync } from "../src/persistence.mjs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -84,11 +85,15 @@ Options
   --quiet       only errors
 
 Environment
-  OPENROUTER_API_KEY   only for llm-call steps that use OpenRouter (provider is not
-                       cli) and for an Agent-Gate; caller inference (provider: cli)
+  OPENROUTER_API_KEY   only for OpenRouter llm-call steps and an Agent-Gate;
+                       caller inference (provider: cli)
                        needs no key. With secretSource: keychain it is read from
                        the macOS Keychain instead (q-core auth set openrouter)
   OPENROUTER_MODEL     default model when the manifest does not set one
+  ANTHROPIC_API_KEY    for llm-call steps with provider: anthropic; secretSource:
+                       keychain uses q-core auth set anthropic instead
+  ANTHROPIC_MODEL      default Anthropic model when the manifest does not set one
+  ANTHROPIC_WORKSPACE_ID optional Anthropic workspace header (workspaceId overrides)
   QCORE_WEBHOOK_URL    where catalogue workflows send their result
   TELEGRAM_BOT_TOKEN   used by workflows that publish to Telegram
   TELEGRAM_CHAT_ID     the chat those workflows publish to
@@ -126,7 +131,7 @@ function shortPath(p) {
 
 function fail(message, code = EXIT_FAILED) {
   /* Set exitCode and throw to stop control flow while Node flushes streams. */
-  process.stderr.write(`${message}\n`);
+  guardedStreamWrite(process.stderr, `${message}\n`);
   process.exitCode = code;
   throw new ExitSignal();
 }
@@ -211,7 +216,7 @@ async function cmdValidate(args, flags) {
   if (!file) fail("q-core validate <manifest>", EXIT_USAGE);
   if (file.endsWith('.json')) {
     const component = loadComponentDescriptor(file);
-    process.stdout.write(flags.has('json') ? JSON.stringify({ kind: 'component', format: 'descriptor', executable: false, component }, null, 2) + '\n' : `✓ ${shortPath(file)} is a valid component descriptor; metadata only, not executable\n`);
+    guardedStreamWrite(process.stdout, flags.has('json') ? JSON.stringify({ kind: 'component', format: 'descriptor', executable: false, component }, null, 2) + '\n' : `✓ ${shortPath(file)} is a valid component descriptor; metadata only, not executable\n`);
     return EXIT_OK;
   }
   const manifest = loadManifest(file);
@@ -224,15 +229,15 @@ async function cmdValidate(args, flags) {
     const out = flags.has("graph")
       ? { ...manifest, file }
       : { id, name, version, description, owner, enabled, triggers, settings, steps, file };
-    process.stdout.write(`${JSON.stringify(warnings.length ? { ...out, warnings } : out, null, 2)}\n`);
+    guardedStreamWrite(process.stdout, `${JSON.stringify(warnings.length ? { ...out, warnings } : out, null, 2)}\n`);
     return EXIT_OK;
   }
-  process.stdout.write(`✓ ${shortPath(file)} is a valid ${manifest.manifest} manifest (${Object.keys(manifest.materialGraph).length} pinned material(s))\n\n`);
-  process.stdout.write(`${describePlan(manifest)}\n`);
+  guardedStreamWrite(process.stdout, `✓ ${shortPath(file)} is a valid ${manifest.manifest} manifest (${Object.keys(manifest.materialGraph).length} pinned material(s))\n\n`);
+  guardedStreamWrite(process.stdout, `${describePlan(manifest)}\n`);
   for (const w of warnings)
-    process.stdout.write(`\n  ⚠ ${w.code}${w.materialPath ? ` in ${w.materialPath}` : ""} at ${w.path}: ${w.message}\n`);
+    guardedStreamWrite(process.stdout, `\n  ⚠ ${w.code}${w.materialPath ? ` in ${w.materialPath}` : ""} at ${w.path}: ${w.message}\n`);
   if (manifest.settings.sensitivity) {
-    process.stdout.write(
+    guardedStreamWrite(process.stdout,
       "\n  NOTE: settings.sensitivity is part of the format but not implemented by this runner.\n" +
         "  `q-core run` will refuse this manifest rather than ignore the profile.\n",
     );
@@ -247,15 +252,15 @@ function printStep(s, quiet) {
   const mark = { success: "✓", planned: "·", failed: "✗", waiting_human: "⏸" }[s.status] ?? " ";
   const cost = s.costUsd ? ` $${Number(s.costUsd).toFixed(4)}` : "";
   const lane = s.itemIndex != null ? c.dim(` [item ${s.itemIndex}]`) : "";
-  process.stdout.write(`  ${mark} ${s.kind.padEnd(14)} ${s.name}${lane}${c.dim(cost)}\n`);
-  if (s.status === "failed" && s.errorText) process.stdout.write(`      ${s.errorText}\n`);
+  guardedStreamWrite(process.stdout, `  ${mark} ${s.kind.padEnd(14)} ${s.name}${lane}${c.dim(cost)}\n`);
+  if (s.status === "failed" && s.errorText) guardedStreamWrite(process.stdout, `      ${s.errorText}\n`);
   /* A digest that went to a file instead of Telegram is not a delivered digest.
      The run did its work, so this is not a failure — but it must never be quiet,
      or tomorrow nobody remembers why the channel is empty. */
   if (s.output?.sink === "file" && s.output.dispatched !== false) {
-    process.stdout.write(`      → delivered to ${s.output.file}\n`);
+    guardedStreamWrite(process.stdout, `      → delivered to ${s.output.file}\n`);
   } else if (s.output?.sink === "file") {
-    process.stdout.write(
+    guardedStreamWrite(process.stdout,
       `      ⚠ NOT SENT — ${(s.output.missingEnv ?? []).join(", ")} not set in the environment.\n` +
         `        Written to ${s.output.file} instead.\n`,
     );
@@ -270,7 +275,7 @@ async function cmdRun(args, flags, opts) {
   const manifest = loadManifest(file);
 
   if (!manifest.enabled) {
-    process.stdout.write(`${manifest.id} is disabled (enabled: false) — nothing to do.\n`);
+    guardedStreamWrite(process.stdout, `${manifest.id} is disabled (enabled: false) — nothing to do.\n`);
     return EXIT_OK;
   }
 
@@ -296,7 +301,7 @@ async function cmdRun(args, flags, opts) {
   }
 
   if (!quiet) {
-    process.stdout.write(`${c.bold(manifest.name)} ${c.dim(`· run ${run.runId}`)}${dryRun ? c.dim(" · DRY RUN, no side effects") : ""}\n`);
+    guardedStreamWrite(process.stdout, `${c.bold(manifest.name)} ${c.dim(`· run ${run.runId}`)}${dryRun ? c.dim(" · DRY RUN, no side effects") : ""}\n`);
   }
 
   let result;
@@ -326,15 +331,15 @@ async function cmdRun(args, flags, opts) {
   if (!dryRun) store.saveLastRun(result);
 
   if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify(withHumanAction(file, result), null, 2)}\n`);
+    guardedStreamWrite(process.stdout, `${JSON.stringify(withHumanAction(file, result), null, 2)}\n`);
   } else if (!quiet) {
-    process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
-    if (result.costUsd) process.stdout.write(`  cost $${Number(result.costUsd).toFixed(4)} · ${result.tokensIn}+${result.tokensOut} tokens\n`);
-    if (!dryRun) process.stdout.write(c.dim(`  state ${shortPath(join(store.dir, "runs", `${result.runId}.json`))}\n`));
-    if (result.status === 'waiting_inference') process.stdout.write(`\n  Continue with: q-core reply ${file} ${result.runId} <reply.json>\n`);
+    guardedStreamWrite(process.stdout, `\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
+    if (result.costUsd) guardedStreamWrite(process.stdout, `  cost $${Number(result.costUsd).toFixed(4)} · ${result.tokensIn}+${result.tokensOut} tokens\n`);
+    if (!dryRun) guardedStreamWrite(process.stdout, c.dim(`  state ${shortPath(join(store.dir, "runs", `${result.runId}.json`))}\n`));
+    if (result.status === 'waiting_inference') guardedStreamWrite(process.stdout, `\n  Continue with: q-core reply ${file} ${result.runId} <reply.json>\n`);
     if (result.status === "waiting_human") {
-      if (result.pendingClarification) process.stdout.write(`\n  Continue with: q-core clarify ${file} ${result.runId} <answers.json>\n`);
-      else process.stdout.write(`\n  Waiting for a person. Only a person can decide this gate, in their own terminal:\n    ${humanNextAction(file, result)?.command}\n  (it asks for a one-time code there; an agent must not run it)\n`);
+      if (result.pendingClarification) guardedStreamWrite(process.stdout, `\n  Continue with: q-core clarify ${file} ${result.runId} <answers.json>\n`);
+      else guardedStreamWrite(process.stdout, `\n  Waiting for a person. Only a person can decide this gate, in their own terminal:\n    ${humanNextAction(file, result)?.command}\n  (it asks for a one-time code there; an agent must not run it)\n`);
     }
   }
 
@@ -357,7 +362,7 @@ async function cmdReply(args) {
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
   store.saveLastRun(result);
-  process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
+  guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -369,7 +374,7 @@ async function cmdClarify(args) {
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, clarification: readBoundedJson(answersFile) });
   store.saveLastRun(result);
-  process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
+  guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -380,7 +385,7 @@ async function cmdPaused(args, action) {
   if (!run) fail('Unknown run');
   const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
   const result = action === 'cancel' ? cancelWaitingRun(run, opts) : await resumeCancelledRun(run, opts);
-  store.saveLastRun(result); process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
+  store.saveLastRun(result); guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'cancelled' ? 130 : result.status === 'success' ? 0 : 2;
 }
 
@@ -394,23 +399,23 @@ async function cmdStatus(args, flags) {
   const runs = store.listRuns(10);
 
   if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify({ last, runs, ...(last?.status === "waiting_human" && last.runId ? { nextAction: humanNextAction(file, store.load(last.runId) ?? last) } : {}) }, null, 2)}\n`);
+    guardedStreamWrite(process.stdout, `${JSON.stringify({ last, runs, ...(last?.status === "waiting_human" && last.runId ? { nextAction: humanNextAction(file, store.load(last.runId) ?? last) } : {}) }, null, 2)}\n`);
     return last?.status === "success" || last == null ? EXIT_OK : last?.status === "cancelled" ? 130 : EXIT_FAILED;
   }
 
   if (!runs.length) {
-    process.stdout.write(`no runs recorded in ${shortPath(store.dir)}\n`);
+    guardedStreamWrite(process.stdout, `no runs recorded in ${shortPath(store.dir)}\n`);
     return EXIT_OK;
   }
-  process.stdout.write(`${c.bold("last runs")} ${c.dim(shortPath(store.dir))}\n\n`);
+  guardedStreamWrite(process.stdout, `${c.bold("last runs")} ${c.dim(shortPath(store.dir))}\n\n`);
   for (const r of runs) {
     const mark = { success: "✓", failed: "✗", cancelled: "■", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
     const when = String(r.startedAt).replace("T", " ").slice(0, 19);
-    process.stdout.write(`  ${mark} ${when}  ${r.status.padEnd(14)} ${r.summary ?? ""}\n`);
-    if (r.status === "waiting_human") process.stdout.write(c.dim(`      a person runs in their own terminal: q-core approve ${file} ${r.runId}\n`));
+    guardedStreamWrite(process.stdout, `  ${mark} ${when}  ${r.status.padEnd(14)} ${r.summary ?? ""}\n`);
+    if (r.status === "waiting_human") guardedStreamWrite(process.stdout, c.dim(`      a person runs in their own terminal: q-core approve ${file} ${r.runId}\n`));
   }
   if (last?.status === "failed") {
-    process.stdout.write(`\n  ${c.bold("last run FAILED")}: ${last.reason ?? last.summary}\n`);
+    guardedStreamWrite(process.stdout, `\n  ${c.bold("last run FAILED")}: ${last.reason ?? last.summary}\n`);
   }
   return last?.status === "cancelled" ? 130 : last?.status === "failed" ? EXIT_FAILED : EXIT_OK;
 }
@@ -488,7 +493,7 @@ async function cmdApprove(args, flags, opts) {
     if (!(e instanceof HumanConfirmationError)) throw e;
     const command = humanApproveCommand(file, run, gate) + (decision === "reject" ? " --reject" : "");
     if (flags.has("json"))
-      process.stdout.write(JSON.stringify({ runId: run.runId, status: run.status, error: { code: e.code, reason: e.reason, message: e.message }, nextAction: { ...humanNextAction(file, run), command } }, null, 2) + "\n");
+      guardedStreamWrite(process.stdout, JSON.stringify({ runId: run.runId, status: run.status, error: { code: e.code, reason: e.reason, message: e.message }, nextAction: { ...humanNextAction(file, run), command } }, null, 2) + "\n");
     fail(
       `HUMAN_CONFIRMATION_REQUIRED: ${e.message}\n` +
         `q-core approve takes a decision only from a person typing a one-time code at their own terminal.\n` +
@@ -509,8 +514,8 @@ async function cmdApprove(args, flags, opts) {
     onStep: (s) => printStep(s, flags.has("quiet") || flags.has("json")),
   });
   store.saveLastRun(result);
-  if (flags.has('json')) process.stdout.write(JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
-  else process.stdout.write(`\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
+  if (flags.has('json')) guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
+  else guardedStreamWrite(process.stdout, `\n  ${result.status.toUpperCase()}: ${result.summary}\n`);
   return result.status === "success" ? EXIT_OK : ["waiting_human", "waiting_inference"].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
 }
 
@@ -524,45 +529,45 @@ const EXAMPLES_DIR = join(HERE, "..", "examples");
 const CATALOG_SECTIONS = new Set(["workflows", "components", "demos"]);
 
 function printWorkflows(workflows) {
-  process.stdout.write(`${c.bold(`${workflows.length} workflows ship with q-core ${PKG.version}`)}\n\n`);
+  guardedStreamWrite(process.stdout, `${c.bold(`${workflows.length} workflows ship with q-core ${PKG.version}`)}\n\n`);
   for (const l of workflows) {
     const cost = !l.measured ? "not measured yet" : l.measured.costUsd === null ? "cost unknown" : `$${l.measured.costUsd.toFixed(4)}/run`;
     const shape = l.fansOut ? `${l.steps} steps, a lane per item (max ${l.maxItems})` : `${l.steps} steps`;
-    process.stdout.write(`  ${c.bold(l.id)} ${c.dim(`· ${shape} · ${cost}`)}\n`);
-    process.stdout.write(`    ${l.description}\n`);
+    guardedStreamWrite(process.stdout, `  ${c.bold(l.id)} ${c.dim(`· ${shape} · ${cost}`)}\n`);
+    guardedStreamWrite(process.stdout, `    ${l.description}\n`);
     const needs = l.needsEnv.length ? l.needsEnv.join(", ") : "nothing";
-    process.stdout.write(c.dim(`    needs: ${needs}${l.humanGate ? " · stops for you" : " · runs on its own"}\n\n`));
+    guardedStreamWrite(process.stdout, c.dim(`    needs: ${needs}${l.humanGate ? " · stops for you" : " · runs on its own"}\n\n`));
   }
 }
 
 function printComponents(components) {
-  process.stdout.write(`${c.bold(`${components.length} components`)}\n\n`);
+  guardedStreamWrite(process.stdout, `${c.bold(`${components.length} components`)}\n\n`);
   for (const comp of components) {
     if (comp.status === "planned" && comp.launch === "forbidden") {
-      process.stdout.write(`  ${c.bold(comp.id)} ${c.dim("· planned · launch forbidden")}\n`);
-      process.stdout.write(`    ${comp.description}\n`);
-      process.stdout.write(c.dim(`    unavailable: ${comp.reason}\n\n`));
+      guardedStreamWrite(process.stdout, `  ${c.bold(comp.id)} ${c.dim("· planned · launch forbidden")}\n`);
+      guardedStreamWrite(process.stdout, `    ${comp.description}\n`);
+      guardedStreamWrite(process.stdout, c.dim(`    unavailable: ${comp.reason}\n\n`));
       continue;
     }
     const used = comp.usedBy?.length ? `used by ${comp.usedBy.length} workflow(s)` : "used by none yet";
-    process.stdout.write(`  ${c.bold(comp.id)} ${c.dim(`· ${comp.kind} · ${used}`)}\n`);
-    process.stdout.write(`    ${comp.description}\n\n`);
+    guardedStreamWrite(process.stdout, `  ${c.bold(comp.id)} ${c.dim(`· ${comp.kind} · ${used}`)}\n`);
+    guardedStreamWrite(process.stdout, `    ${comp.description}\n\n`);
   }
 }
 
 function printDemos(demos) {
-  process.stdout.write(`${c.bold(`${demos.length} demos`)}\n\n`);
+  guardedStreamWrite(process.stdout, `${c.bold(`${demos.length} demos`)}\n\n`);
   for (const d of demos) {
     if (d.status === "planned" && d.launch === "forbidden") {
-      process.stdout.write(`  ${c.bold(d.id)} ${c.dim("· planned · launch forbidden")}\n`);
-      process.stdout.write(`    ${d.description}\n`);
-      process.stdout.write(c.dim(`    unavailable: ${d.reason}\n\n`));
+      guardedStreamWrite(process.stdout, `  ${c.bold(d.id)} ${c.dim("· planned · launch forbidden")}\n`);
+      guardedStreamWrite(process.stdout, `    ${d.description}\n`);
+      guardedStreamWrite(process.stdout, c.dim(`    unavailable: ${d.reason}\n\n`));
       continue;
     }
     const live = d.live ? "live" : "not live";
     const proof = d.proof ? `proof ${d.proof}` : "no proof";
-    process.stdout.write(`  ${c.bold(d.id)} ${c.dim(`· ${d.name} · ${proof} · ${live}`)}\n`);
-    process.stdout.write(`    ${d.description}\n\n`);
+    guardedStreamWrite(process.stdout, `  ${c.bold(d.id)} ${c.dim(`· ${d.name} · ${proof} · ${live}`)}\n`);
+    guardedStreamWrite(process.stdout, `    ${d.description}\n\n`);
   }
 }
 
@@ -577,7 +582,7 @@ async function cmdCatalog(args, flags, opts = {}) {
     const extra = r.workflows.filter((l) => !local.workflows.some((k) => k.id === l.id));
     cat = { ...r, workflows: r.workflows };
     if (!flags.has("json")) {
-      process.stdout.write(c.dim(`published catalogue · ${extra.length} workflow(s) newer than this build\n\n`));
+      guardedStreamWrite(process.stdout, c.dim(`published catalogue · ${extra.length} workflow(s) newer than this build\n\n`));
     }
   }
   const section = opts.section;
@@ -590,14 +595,14 @@ async function cmdCatalog(args, flags, opts = {}) {
   }
   if (flags.has("json")) {
     const payload = section ? { catalogVersion: cat.catalogVersion, [section]: cat[section] ?? [] } : cat;
-    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+    guardedStreamWrite(process.stdout, `${JSON.stringify(payload, null, 2)}\n`);
     return EXIT_OK;
   }
   const show = (name) => !section || section === name;
   if (show("workflows")) printWorkflows(cat.workflows ?? []);
   if (show("components")) printComponents(cat.components ?? []);
   if (show("demos")) printDemos(cat.demos ?? []);
-  if (show("workflows")) process.stdout.write(c.dim(`  q-core init <id>   copies one here\n`));
+  if (show("workflows")) guardedStreamWrite(process.stdout, c.dim(`  q-core init <id>   copies one here\n`));
   return EXIT_OK;
 }
 
@@ -652,40 +657,43 @@ async function cmdInit(args, flags) {
   /* Never overwrite. The file being copied over is, by definition, the one the
      person already edited — the manifest IS their work, not scaffolding. */
   if (existsSync(dest)) fail(`${shortPath(dest)} already exists — not overwriting it.`);
-  if (remote) writeFileSync(dest, remote.text, "utf8");
-  else copyFileSync(join(WORKFLOWS_DIR, basename(entry.file)), dest);
+  if (remote) guardedWriteFileSync(dest, remote.text, { encoding: "utf8", failOnRedaction: true });
+  else {
+    const source = join(WORKFLOWS_DIR, basename(entry.file));
+    guardedWriteFileSync(dest, readFileSync(source), { mode: statSync(source).mode & 0o777, failOnRedaction: true });
+  }
   /* Record that these bytes are the reviewed Registry workflow, so the copy runs with its
      published shape. Editing the copy changes its SHA-256 and makes it a created workflow again. */
   {
     const copied = readFileSync(dest), doc = parseYaml(copied.toString("utf8"));
     const version = doc.version == null ? "0" : String(doc.version);
-    writeFileSync(`${dest}.lock.json`, JSON.stringify({ protocolVersion: "qf.registry-lock/v1", source: remote ? remote.url : "q-core init (package snapshot)", id: doc.id, version, resolved: [{ key: `workflows/${doc.id}@${version}`, sha256: createHash("sha256").update(copied).digest("hex") }] }, null, 2) + "\n"); // replaces a stale lock of an earlier, deleted copy
+    guardedWriteFileSync(`${dest}.lock.json`, JSON.stringify({ protocolVersion: "qf.registry-lock/v1", source: remote ? remote.url : "q-core init (package snapshot)", id: doc.id, version, resolved: [{ key: `workflows/${doc.id}@${version}`, sha256: createHash("sha256").update(copied).digest("hex") }] }, null, 2) + "\n", { failOnRedaction: true }); // replaces a stale lock of an earlier, deleted copy
   }
 
-  process.stdout.write(`${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);
+  guardedStreamWrite(process.stdout, `${c.bold(entry.name)}\n  → ${shortPath(dest)}\n`);
   if (remote) {
     /* Where a file came from is not a detail when the file will spend money. */
-    process.stdout.write(c.dim(`  downloaded from ${remote.url}\n  read it before you run it — a workflow makes requests and calls models on your key.\n`));
+    guardedStreamWrite(process.stdout, c.dim(`  downloaded from ${remote.url}\n  read it before you run it — a workflow makes requests and calls models on your key.\n`));
   }
-  process.stdout.write("\n");
+  guardedStreamWrite(process.stdout, "\n");
   if (entry.needsEnv.length) {
     const missing = entry.needsEnv.filter((v) => !process.env[v]);
-    process.stdout.write(`  needs: ${entry.needsEnv.join(", ")}\n`);
+    guardedStreamWrite(process.stdout, `  needs: ${entry.needsEnv.join(", ")}\n`);
     if (missing.length) {
-      process.stdout.write(`  ${c.bold("not set here:")} ${missing.join(", ")}\n`);
+      guardedStreamWrite(process.stdout, `  ${c.bold("not set here:")} ${missing.join(", ")}\n`);
       /* Two different consequences, and conflating them would be a lie: without a
          model key the step FAILS; without a receiver the result is still produced
          and lands in .qf/out/. */
       if (missing.includes("OPENROUTER_API_KEY")) {
-        process.stdout.write(c.dim(`  Without OPENROUTER_API_KEY the model step fails — it will not invent text.\n`));
+        guardedStreamWrite(process.stdout, c.dim(`  Without OPENROUTER_API_KEY the model step fails — it will not invent text.\n`));
       }
       const sinks = missing.filter((v) => v !== "OPENROUTER_API_KEY");
       if (sinks.length) {
-        process.stdout.write(c.dim(`  Without ${sinks.join(", ")} the workflow still runs; the result goes to .qf/out/ and says so.\n`));
+        guardedStreamWrite(process.stdout, c.dim(`  Without ${sinks.join(", ")} the workflow still runs; the result goes to .qf/out/ and says so.\n`));
       }
     }
   }
-  process.stdout.write(`\n  Next:  q-core run ${shortPath(dest)} --dry-run\n`);
+  guardedStreamWrite(process.stdout, `\n  Next:  q-core run ${shortPath(dest)} --dry-run\n`);
   return EXIT_OK;
 }
 
@@ -724,8 +732,8 @@ async function cmdDoctor(args, flags) {
 
   try {
     const probe = join(process.cwd(), `.q-core-write-probe-${process.pid}`);
-    writeFileSync(probe, "");
-    unlinkSync(probe);
+    guardedWriteFileSync(probe, "");
+    guardedUnlinkSync(probe);
     add("ok", "write access here", process.cwd());
   } catch {
     add("fail", "write access here", `cannot write in ${process.cwd()} — .qf/ state has nowhere to go`);
@@ -742,16 +750,16 @@ async function cmdDoctor(args, flags) {
   }
 
   if (flags.has("json")) {
-    process.stdout.write(`${JSON.stringify(checks, null, 2)}\n`);
+    guardedStreamWrite(process.stdout, `${JSON.stringify(checks, null, 2)}\n`);
   } else {
-    process.stdout.write(`${c.bold("q-core doctor")}\n\n`);
+    guardedStreamWrite(process.stdout, `${c.bold("q-core doctor")}\n\n`);
     for (const ch of checks) {
       const mark = { ok: "✓", warn: "·", fail: "✗" }[ch.level];
-      process.stdout.write(`  ${mark} ${ch.label}${ch.detail ? c.dim(`  ${ch.detail}`) : ""}\n`);
+      guardedStreamWrite(process.stdout, `  ${mark} ${ch.label}${ch.detail ? c.dim(`  ${ch.detail}`) : ""}\n`);
     }
     const bad = checks.filter((ch) => ch.level === "fail");
     const warn = checks.filter((ch) => ch.level === "warn");
-    process.stdout.write(
+    guardedStreamWrite(process.stdout,
       bad.length
         ? `\n  ${bad.length} thing(s) in the way.\n`
         : `\n  Nothing in the way.${warn.length ? c.dim(` ${warn.length} optional thing(s) not set — see the dots.`) : ""}\n`,
@@ -772,7 +780,7 @@ const commands = {
     if (args.length !== 2) fail('q-core export <manifest> <new-directory>', EXIT_USAGE);
     if (!args[0].endsWith('.json')) loadManifest(args[0]); // identical human policy and graph checks as validate/run
     const bundle = exportMaterialBundle(args[0], args[1]);
-    process.stdout.write(flags.has('json') ? JSON.stringify(bundle, null, 2) + '\n' : `Exported ${bundle.files.length} pinned material(s); entry ${bundle.entry}\n`);
+    guardedStreamWrite(process.stdout, flags.has('json') ? JSON.stringify(bundle, null, 2) + '\n' : `Exported ${bundle.files.length} pinned material(s); entry ${bundle.entry}\n`);
     return EXIT_OK;
   },
   run: cmdRun,
@@ -788,12 +796,12 @@ const commands = {
 /** Keep dispatch inside main so help/version return before command lookup. */
 async function main() {
   if (flags.has("version")) {
-    process.stdout.write(`${PKG.version}\n`);
+    guardedStreamWrite(process.stdout, `${PKG.version}\n`);
     return EXIT_OK;
   }
   /* Explicit help succeeds; a missing command is a usage error. */
   if (!command || flags.has("help") || command === "help") {
-    process.stdout.write(USAGE);
+    guardedStreamWrite(process.stdout, USAGE);
     return flags.has("help") || command === "help" ? EXIT_OK : EXIT_USAGE;
   }
 
@@ -805,7 +813,7 @@ async function main() {
      --quiet or --json run whose output something else is parsing. */
   if (!flags.has("quiet") && !flags.has("json")) {
     const notice = updateNotice(await checkForUpdate(PKG.version));
-    if (notice) process.stdout.write(c.dim(notice));
+    if (notice) guardedStreamWrite(process.stdout, c.dim(notice));
   }
   return code;
 }
@@ -817,10 +825,10 @@ try {
   if (e instanceof ExitSignal) {
     /* fail() has already reported the error and set the exit code. */
   } else if (e instanceof ManifestError) {
-    process.stderr.write(`✗ ${e.message}\n`);
+    guardedStreamWrite(process.stderr, `✗ ${e.message}\n`);
     process.exitCode = EXIT_FAILED;
   } else {
-    process.stderr.write(`✗ ${e instanceof Error ? e.message : String(e)}\n`);
+    guardedStreamWrite(process.stderr, `✗ ${e instanceof Error ? e.message : String(e)}\n`);
     process.exitCode = EXIT_FAILED;
   }
 }

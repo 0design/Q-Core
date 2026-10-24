@@ -78,6 +78,8 @@ export interface DriveOptions {
   knobs?: Knobs;
   settings?: WorkflowManifestSettings;
   apiKey?: string | null;
+  /** Runtime provider injection; never persisted in run state. */
+  providers?: { anthropic?: (request: Record<string, unknown>) => Promise<{ content: string; usage: { tokensIn: number | null; tokensOut: number | null; costUsd: number | null; billingUnknown?: boolean }; provider: { kind: string; model?: string | null } }> };
   callerProvider?: { kind: 'caller'; agent: 'codex' | 'claude'; model: string; payerScope: 'local-cli' };
   inferenceReply?: { jobId: string; hash: string; output: { text: string } };
   clarification?: { hash: string; answers: Array<{ id: string; answer: string }> };
