@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- A human `approval-gate` directly after agent gates now shows and binds the
+  content those gates judged (the step output that goes on to delivery), not the
+  agent verdict. The verdicts are listed beside the subject (`reviews`) and are
+  not part of its SHA-256. `subject: previous` keeps the earlier behaviour for
+  existing descriptions; runs already waiting keep their recorded subject.
+- An escalated agent gate shows the candidate it judged as its `subject`
+  (bound under `bind: sha256`).
+- An agent gate's answer budget is its `maxTokens` (1 to 32000, default 1024)
+  instead of a fixed 300. An answer cut off at that budget is no verdict: like
+  an unreadable verdict it follows `escalateOn` (to a person by default) and
+  keeps its billed usage, instead of failing the run.
+
 ## 0.2.0-q-core.51 — 2026-10-23
 
 - YAML `llm-call` steps can use `provider: anthropic` to call the Messages API

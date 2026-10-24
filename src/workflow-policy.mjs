@@ -38,6 +38,7 @@ export function sideEffectOf(step) {
 }
 
 const isHumanGate = (step) => step.kind === "approval-gate" && (step.config?.reviewer ?? "human") === "human";
+const isAgentGate = (step) => step.kind === "approval-gate" && step.config?.reviewer === "agent";
 
 /** Track possible latest local gates separately from inherited caller gates. A later local gate
  * can approve a new subject, but a child cannot drop its parent's binding. At control joins and
@@ -179,11 +180,14 @@ export function approvalSubjectWarnings(steps, { graph, key = null } = {}) {
       if (step.default) walk(step.default, `${at}.default`);
       for (const [name, branch] of Object.entries(step.cases ?? {})) walk(branch, `${at}.cases.${name}`);
       if (!isHumanGate(step) || i === 0) return;
-      const subject = list[i - 1];
+      // The runtime subject passes over agent gates directly before the gate, unless `subject: previous`.
+      let at0 = i - 1;
+      if (step.config?.subject !== "previous") while (at0 > 0 && isAgentGate(list[at0])) at0--;
+      const subject = list[at0];
       if (UNJUDGED_SUBJECT_KINDS.has(subject.kind) || subject.kind === "approval-gate") return;
       const subjectNames = new Set(stepNames(subject));
       const earlier = new Map();
-      list.slice(0, i - 1).forEach((s) => stepNames(s).forEach((n) => earlier.set(n, s)));
+      list.slice(0, at0).forEach((s) => stepNames(s).forEach((n) => earlier.set(n, s)));
       const uncovered = new Map();
       for (const effect of effectsAfter(list, i + 1, graph, key)) {
         for (const ref of referencedSteps(sentConfig(effect.config))) {
