@@ -252,7 +252,7 @@ export function parseJsonObject(content) {
   }
 }
 
-/** Anthropic gates accept only a complete JSON verdict, optionally fenced. */
+/** Agent gates accept only a complete JSON verdict, optionally fenced. */
 function parseAgentVerdict(content) {
   if (typeof content !== "string") return null;
   let json = content.trim();
@@ -489,12 +489,11 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
   }
   const { content, usage } = reply;
 
-  // Keep the legacy OpenRouter envelope behavior unchanged in this branch.
-  const verdict = provider === "anthropic" ? parseAgentVerdict(content) : parseJsonObject(content);
+  const verdict = parseAgentVerdict(content);
   const pass = verdict?.pass === true;
-  const rawReason = provider === "anthropic"
-    ? verdict ? (typeof verdict.reason === "string" ? verdict.reason : "No reason provided.") : INVALID_AGENT_VERDICT
-    : typeof verdict?.reason === "string" ? verdict.reason : content.slice(0, 300);
+  const rawReason = !verdict ? INVALID_AGENT_VERDICT
+    : typeof verdict.reason === "string" ? verdict.reason
+    : provider === "anthropic" ? "No reason provided." : content.slice(0, 300);
   const reason = provider === "anthropic" && reply[ANTHROPIC_SANITIZE_OUTPUT]
     ? reply[ANTHROPIC_SANITIZE_OUTPUT](rawReason) : rawReason;
   const tokens = { tokensIn: usage.tokensIn ?? 0, tokensOut: usage.tokensOut ?? 0, ...llmCost(usage, model, provider),

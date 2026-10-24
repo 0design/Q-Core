@@ -270,34 +270,120 @@ const openRouterFalsePassAttacks = ambiguousVerdicts.filter(([name]) => [
   'contradictory prose with a passing example', 'array wrapper', 'duplicate pass, last value true',
 ].includes(name));
 
-async function openRouterVerdict(t, content) {
+async function openRouterVerdict(t, content, config = {}, extra = {}) {
   let calls = 0;
-  t.mock.method(globalThis, 'fetch', async url => {
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
     calls++;
     assert.equal(url, 'https://openrouter.ai/api/v1/chat/completions');
+    assert.equal(init.headers.Authorization, `Bearer ${KEY}`);
     return Response.json({ id: 'openrouter-verdict-fixture', model: 'test/model',
       choices: [{ message: { content }, finish_reason: 'stop' }],
       usage: { prompt_tokens: 1000, completion_tokens: 100, cost: 0.003 } });
   });
-  const done = await run(manifest([gate('review', { provider: 'openrouter', model: 'test/model' })]), { providers: {} });
+  const done = await run(manifest([gate('review', { provider: 'openrouter', model: 'test/model', ...config })]),
+    { providers: {} }, { apiKey: KEY, ...extra });
   assert.equal(calls, 1);
   return done;
 }
 
 for (const [name, content] of openRouterFalsePassAttacks) {
-  test(`OpenRouter compatibility: existing permissive verdict remains unchanged for ${name}`, async t => {
-    const done = await openRouterVerdict(t, content);
-    assert.equal(done.status, 'success');
-    assert.equal(done.steps[0].output.verdict.pass, true);
-  });
-  test(`OpenRouter known risk: reject the false-PASS attack ${name}`, {
-    skip: 'Known risk: OpenRouter still uses permissive JSON extraction; hardening its verdict parser is outside this Anthropic-only branch.',
-  }, async t => {
+  test(`OpenRouter known risk: reject the false-PASS attack ${name}`, async t => {
     const done = await openRouterVerdict(t, content);
     assert.equal(done.status, 'waiting_human');
     assert.deepEqual(done.steps[0].output.verdict, { pass: false, reason: INVALID_VERDICT });
     assert.equal(done.steps[0].output.escalated, true);
   });
+}
+
+for (const [name, content] of ambiguousVerdicts.filter(([name]) =>
+  !openRouterFalsePassAttacks.some(([attack]) => attack === name))) {
+  test(`OpenRouter agent gate rejects an invalid verdict: ${name}`, async t => {
+    const done = await openRouterVerdict(t, content);
+    assert.equal(done.status, 'waiting_human', done.summary);
+    assert.deepEqual(done.steps[0].output.verdict, { pass: false, reason: INVALID_VERDICT });
+    assert.equal(done.steps[0].output.escalated, true);
+    assert.equal(done.steps[0].costUsd, 0.003, 'a rejected verdict retains the actual provider bill');
+    assert.equal(done.steps[0].costSource, 'provider');
+    assert.deepEqual([done.steps[0].tokensIn, done.steps[0].tokensOut], [1000, 100]);
+    assert.equal(done.costUsd, 0.003);
+  });
+}
+
+for (const [name, content, pass, reason] of validVerdicts) {
+  test(`OpenRouter compatibility: accepts one unambiguous verdict: ${name}`, async t => {
+    const done = await openRouterVerdict(t, content);
+    assert.equal(done.status, pass ? 'success' : 'waiting_human', done.summary);
+    assert.deepEqual(done.steps[0].output.verdict, { pass, reason });
+    assert.equal(done.steps[0].output.escalated, pass ? undefined : true);
+    assert.equal(done.steps[0].costUsd, 0.003);
+    assert.equal(done.steps[0].costSource, 'provider');
+  });
+}
+
+for (const pass of [true, false]) {
+  test(`OpenRouter compatibility: a valid ${pass ? 'passing' : 'failing'} verdict preserves its reason with refusal policy`, async t => {
+    const reason = pass ? 'Source verified.' : 'Source is missing.';
+    const done = await openRouterVerdict(t, JSON.stringify({ pass, reason }), { escalateOn: 'refuse' });
+    assert.equal(done.status, pass ? 'success' : 'failed', done.summary);
+    if (pass) assert.deepEqual(done.steps[0].output.verdict, { pass, reason });
+    else {
+      assert.equal(done.steps[0].output, null);
+      assert.ok(done.steps[0].errorText.endsWith(reason));
+    }
+    assert.equal(done.steps[0].costUsd, 0.003);
+    assert.equal(done.steps[0].costSource, 'provider');
+  });
+}
+
+for (const [reasonKind, reasonField] of [['absent', {}], ['non-string', { reason: { source: 'missing' } }]]) {
+  for (const [pass, escalateOn, status] of [[true, 'objection', 'success'],
+    [false, 'objection', 'waiting_human'], [false, 'refuse', 'failed']]) {
+    test(`OpenRouter compatibility: valid verdict with ${reasonKind} reason preserves its bounded fallback for ${status}`, async t => {
+      const content = JSON.stringify({ pass, ...reasonField, evidence: 'Fixture evidence for the original reason fallback. '.repeat(10) });
+      const reason = content.slice(0, 300);
+      const done = await openRouterVerdict(t, content, { escalateOn });
+      assert.equal(done.status, status, done.summary);
+      if (status === 'failed') {
+        assert.equal(done.steps[0].output, null);
+        assert.ok(done.steps[0].errorText.endsWith(reason));
+      } else {
+        assert.deepEqual(done.steps[0].output.verdict, { pass, reason });
+        assert.equal(done.steps[0].output.escalated, pass ? undefined : true);
+      }
+      assert.equal(done.steps[0].costUsd, 0.003);
+    });
+  }
+}
+
+for (const escalateOn of ['objection', 'refuse']) {
+  for (const [name, content] of [
+    ['malformed JSON', `{"pass":true,"reason":"untrusted-invalid-verdict-marker ${KEY} ${unicode(KEY)}"`],
+    ['contradictory envelope', `FAIL: untrusted-invalid-verdict-marker ${KEY} ${unicode(KEY)}. Example: {"pass":true,"reason":"verified"}`],
+  ]) {
+    test(`OpenRouter invalid verdict ${name} uses a fixed safe diagnostic for ${escalateOn}`, async t => {
+      const store = await disk(t);
+      const done = await openRouterVerdict(t, content, { escalateOn }, { store });
+      assert.equal(done.status, escalateOn === 'objection' ? 'waiting_human' : 'failed', done.summary);
+      if (escalateOn === 'objection') {
+        assert.deepEqual(done.steps[0].output.verdict, { pass: false, reason: INVALID_VERDICT });
+        assert.equal(done.steps[0].output.escalated, true);
+      } else {
+        assert.equal(done.steps[0].output, null);
+        assert.match(done.steps[0].errorText, /Agent-Gate did not pass/);
+        assert.ok(done.steps[0].errorText.endsWith(INVALID_VERDICT));
+      }
+      assert.equal(done.steps[0].costUsd, 0.003);
+      assert.equal(done.steps[0].costSource, 'provider');
+      assert.deepEqual([done.steps[0].tokensIn, done.steps[0].tokensOut], [1000, 100]);
+      assert.equal(done.costUsd, 0.003);
+      for (const receipt of [JSON.stringify(done), await readFile(store.runFile(done.runId), 'utf8')]) {
+        assert.equal(receipt.includes('untrusted-invalid-verdict-marker'), false, 'model content never becomes a diagnostic');
+        assert.equal(receipt.includes(KEY), false, 'the fixture key is absent');
+        assert.equal(receipt.includes(unicode(KEY)), false, 'the Unicode-escaped fixture key is absent');
+      }
+      await assertSafeReceipt(done, store);
+    });
+  }
 }
 
 for (const status of [400, 401, 403, 429, 500, 503]) {
