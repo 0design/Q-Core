@@ -87,6 +87,30 @@ test("Secret resolver supports explicit env and keychain sources without fallbac
   }), { code: "SECRET_STORE_UNSUPPORTED" });
 });
 
+test("Optional provider references skip only missing or blank values in the selected store", async () => {
+  const request = { provider: "anthropic", keyRef: "ANTHROPIC_WORKSPACE_ID", optional: true };
+  for (const value of [undefined, "", " \t\n"]) {
+    assert.equal(await resolveProviderSecret({ ...request, env: { ANTHROPIC_WORKSPACE_ID: value } }), undefined);
+  }
+  assert.equal(await resolveProviderSecret({ ...request, secretSource: "keychain", platform: "darwin",
+    env: { ANTHROPIC_WORKSPACE_ID: "must-not-fall-back" } }, {
+    launch: async () => ({ code: 44, stdout: "", stderr: "" }),
+  }), undefined);
+  assert.equal(await resolveProviderSecret({ ...request, secretSource: "keychain", platform: "darwin" }, {
+    launch: async () => ({ code: 0, stdout: " \n", stderr: "" }),
+  }), undefined);
+  await assert.rejects(resolveProviderSecret({ ...request, secretSource: "keychain", platform: "darwin" }, {
+    launch: async () => ({ code: 36, stdout: "", stderr: "private failure" }),
+  }), { code: "SECRET_STORE_DENIED" });
+  await assert.rejects(resolveProviderSecret({ ...request, secretSource: "keychain", platform: "linux" }),
+    { code: "SECRET_STORE_UNSUPPORTED" });
+  await assert.rejects(resolveProviderSecret({ ...request, env: { ANTHROPIC_WORKSPACE_ID: "x".repeat(8193) } }),
+    { code: "AUTH_REQUIRED" });
+  await assert.rejects(resolveProviderSecret({ ...request, secretSource: "keychain", platform: "darwin" }, {
+    launch: async () => ({ code: 0, stdout: "x".repeat(8193), stderr: "" }),
+  }), { code: "SECRET_MISSING" });
+});
+
 test("OpenRouter consumes a resolved provider secret without putting it in result metadata", async () => {
   let authorization;
   let resolved;

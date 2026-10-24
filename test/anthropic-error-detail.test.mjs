@@ -4,7 +4,7 @@ import { anthropic } from "../src/providers/anthropic.mjs";
 
 // Synthetic fixtures only; every response and fetcher is injected.
 const KEY = "sk-ant-error-detail-fixture";
-const WORKSPACE = "workspace-error-detail-fixture";
+const WORKSPACE = "wrk-error-detail-fixture"; // no word "workspace": a 400 naming a workspace now means "workspace required" (PR 61)
 const request = overrides => ({
   model: "claude-sonnet-5-5", payerScope: "local-byok", maxTokens: 100,
   timeoutMs: 1000, retries: 0, workspaceId: ` ${WORKSPACE} `,
@@ -219,3 +219,12 @@ for (const [index, errorValue] of [null, undefined, {}, KEY, [WORKSPACE]].entrie
     });
   });
 }
+
+test("Anthropic error detail: a 400 asking for a workspace raises the workspace error, and its message never enters diagnostics", async () => {
+  await assert.rejects(call(Response.json({ type: "error", error: { type: "invalid_request_error", message: `This key needs a workspace: ${KEY} ${WORKSPACE}` } }, { status: 400 })), error => {
+    assert.equal(error.code, "ANTHROPIC_WORKSPACE_REQUIRED");
+    assert.equal(error.message.includes("needs a workspace"), false);
+    assertPrivate(error);
+    return true;
+  });
+});

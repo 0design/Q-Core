@@ -80,12 +80,15 @@ function cleanSecret(stdout) {
 }
 
 export async function getKeychainSecret(
-  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", platform = process.platform, optional = false } = {},
   options = {},
 ) {
   ensureKeychain(platform);
   const result = await runSecurity(argsFor("get", keychainIdentity(provider, keyRef)), options);
+  if (optional && result.code === 44) return undefined;
   if (result.code !== 0) throw storeError("retrieval", result);
+  if (optional && Buffer.byteLength(String(result.stdout ?? "")) <= MAX_SECRET_BYTES
+      && !String(result.stdout ?? "").trim()) return undefined;
   return registerPersistenceSecret(cleanSecret(result.stdout));
 }
 
@@ -209,15 +212,18 @@ async function runInteractiveSecurity(args, { timeoutMs = 120000 } = {}) {
 }
 
 export async function resolveProviderSecret(
-  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", secretSource = "env", env = process.env, platform = process.platform } = {},
+  { provider = "openrouter", keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", secretSource = "env", env = process.env, platform = process.platform, optional = false } = {},
   options = {},
 ) {
   insist(SECRET_STORE_MODES.includes(secretSource), "Invalid secretSource");
   keychainIdentity(provider, keyRef);
-  if (secretSource === "keychain") return getKeychainSecret({ provider, keyRef, platform }, options);
+  if (secretSource === "keychain") return getKeychainSecret({ provider, keyRef, platform, optional }, options);
   const value = env?.[keyRef];
-  if (typeof value !== "string" || !value.trim())
+  if (value === undefined || (typeof value === "string" && !value.trim())) {
+    if (optional) return undefined;
     throw new CoreError("AUTH_REQUIRED", `Missing secret reference ${keyRef}`);
+  }
+  if (typeof value !== "string") throw new CoreError("AUTH_REQUIRED", "Configured secret is invalid");
   if (Buffer.byteLength(value) > MAX_SECRET_BYTES)
     throw new CoreError("AUTH_REQUIRED", "Configured secret is too large");
   return registerPersistenceSecret(value);
