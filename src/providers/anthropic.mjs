@@ -109,9 +109,15 @@ const workspaceError = (json) => json?.error?.type === "invalid_request_error"
 
 /** Only the API's error type is surfaced: a fixed-vocabulary token such as invalid_request_error, and only from a JSON
  *  answer. The free-text message can echo request content or credential fragments, so it never enters diagnostics. */
-function errorType(res, json) {
-  const mediaType = (res.headers?.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
-  if (!/^application\/(?:[\w.-]+\+)?json$/.test(mediaType)) return null;
+function jsonAnswer(res) {
+  try {
+    const mediaType = (res.headers?.get("content-type") ?? "").split(";", 1)[0].trim().toLowerCase();
+    return /^application\/(?:[\w.-]+\+)?json$/.test(mediaType);
+  } catch {
+    return false; // unreadable headers: no detail, and the body stays unread
+  }
+}
+function errorType(json) {
   const type = json?.error?.type;
   return typeof type === "string" && /^[a-z][a-z_]{0,63}$/.test(type) ? type : null;
 }
@@ -365,9 +371,11 @@ export async function anthropic({
         if (!response.ok) {
           if (!rejected || attempt === retries) {
             // One bounded read of the error body serves both: the workspace hint (400) and the safe error type.
-            const body = await readErrorJson(response, attemptSignal);
+            // The body is read only when something needs it: the workspace hint (400) or a JSON answer's type.
+            const json = jsonAnswer(response);
+            const body = response.status === 400 || json ? await readErrorJson(response, attemptSignal) : null;
             if (response.status === 400) workspaceRequired = workspaceError(body);
-            errorDetail = errorType(response, body);
+            errorDetail = json ? errorType(body) : null;
           }
           // Cancellation is transport work too: injected bodies may hang,
           // reject, throw synchronously, or return no promise. Keep disposal
