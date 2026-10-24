@@ -133,7 +133,7 @@ function reserveAnthropicCost(run, id, rootKnobs, worstCaseUsd) {
 
 /* After a paid call: the run and every enclosing child budget, with that call's spend recorded. Over a
    ceiling, or of unknown spend under one, the result is not handed on. */
-function handoffBudgetFailure(run, id, rootKnobs) {
+function postCallBudgetFailure(run, id, rootKnobs) {
   const budgets = [{ name: 'Run', cap: rootKnobs.budgetUsd, rows: run.steps }];
   for (const frameId of ancestry(run, id).filter(value => value !== 'root'))
     budgets.push({ name: `Child ${run.invocations[frameId].key}`, cap: resolveKnobs(run.invocations[frameId].settings).budgetUsd, rows: invocationRows(run, frameId) });
@@ -728,13 +728,13 @@ async function driveRunScoped(run, opts) {
       run.tokensOut = run.tokensOut === null || next.tokensOut === null ? null : run.tokensOut + next.tokensOut;
       run.costUsd = run.costUsd === null || next.costUsd === null ? null : roundUsd(run.costUsd + next.costUsd);
 
-      // A model call that went over a budget is not handed to a person: the ceiling stops the run first.
-      // Checked before the row is persisted or reported, so no waiting_human state is ever written for it.
-      const overBudget = result.waitingHuman && modelCall ? handoffBudgetFailure(run, invocationId, knobs) : null;
+      // Every agent verdict must fit the budgets, including a pass. Check after recording its bill,
+      // before persisting or reporting success, handing it to a person, or running any later step.
+      const overBudget = next.kind === 'approval-gate' && modelCall ? postCallBudgetFailure(run, invocationId, knobs) : null;
       if (overBudget) {
         next.status = "failed";
         next.gateReason = "budget";
-        next.errorText = `${overBudget}; the gate was not handed to a person.`;
+        next.errorText = `${overBudget}; the gate result was not handed on.`;
         next.finishedAt = new Date().toISOString();
         run.status = "failed";
         run.summary = next.errorText;
@@ -778,6 +778,11 @@ async function driveRunScoped(run, opts) {
       next.errorText = e instanceof Error ? e.message : String(e);
       next.finishedAt = new Date().toISOString();
       recordSpend(run, next, e?.spend);
+      const overBudget = next.kind === 'approval-gate' && modelCall ? postCallBudgetFailure(run, invocationId, knobs) : null;
+      if (overBudget) {
+        next.gateReason = 'budget';
+        next.errorText = `${overBudget}; the gate result was not handed on.`;
+      }
       run.status = "failed";
       run.summary = next.errorText;
       run.finishedAt = new Date().toISOString();

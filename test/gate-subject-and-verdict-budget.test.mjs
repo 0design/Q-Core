@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { anthropic } from '../src/providers/anthropic.mjs';
 import { createRun, driveRun, resumeRun, waitingGate } from '../src/run.mjs';
 import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validateManifest } from '../src/manifest.mjs';
 import { approvalSubjectWarnings, loadWorkflow } from '../src/workflow-policy.mjs';
-import { digest } from '../src/material-graph.mjs';
+import { digest, loadManifestGraph } from '../src/material-graph.mjs';
 import { hash } from '../src/contracts.mjs';
 
 // Synthetic markers only: a fake secret resolver and transport; real fetch is forbidden.
@@ -27,8 +27,8 @@ const agent = (config = {}) => ({ id: 'rules', kind: 'approval-gate', config: {
   reviewer: 'agent', provider: 'anthropic', model: MODEL, rubric: 'The draft names what is sent.', retries: '0', ...config } });
 const human = (config = {}) => ({ id: 'approve', kind: 'approval-gate', config: { reviewer: 'human', bind: 'sha256', ...config } });
 const manifest = steps => validateManifest({ manifest: 'q-core.workflow/v1', id: 'gate-subject', settings: { budgetUsd: 1 }, steps });
-function completion({ text = JSON.stringify({ pass: true, reason: 'Names it.' }), stop = 'end_turn', usage } = {}) {
-  return Response.json({ id: 'msg-gate-subject-fixture', model: MODEL, stop_reason: stop,
+function completion({ text = JSON.stringify({ pass: true, reason: 'Names it.' }), stop = 'end_turn', usage, model = MODEL } = {}) {
+  return Response.json({ id: 'msg-gate-subject-fixture', model, stop_reason: stop,
     content: [{ type: 'text', text }], usage: usage ?? { input_tokens: 1000, output_tokens: 100 } });
 }
 // The writer always answers DRAFT; `reply` answers the agent gate, whose calls alone are recorded.
@@ -263,4 +263,85 @@ test('an escalation over an enclosing child workflow budget stops the run, it is
   assert.match(row.errorText, /Child reviewed(\.yaml)? budget exceeded/);
   assert.ok(!seen.includes('waiting_human'));
   assert.ok(!done.steps.some(s => s.status === 'waiting_human'));
+});
+
+async function verdictBudgetRun(t, { scope, reply, laterHuman, budgetUsd = 0.03, gateConfig = {} }) {
+  const dir = mkdtempSync(join(tmpdir(), 'q-gate-verdict-budget-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const out = join(dir, 'sent.jsonl');
+  const steps = [draft, agent({ maxTokens: '100', ...gateConfig }), ...(laterHuman ? [human()] : []),
+    { id: 'deliver', kind: 'api-request', config: { url: pathToFileURL(out).href } }];
+  let m = budgeted(budgetUsd, steps);
+  if (scope === 'child') {
+    const yaml = doc => Object.entries(doc).map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join('\n') + '\n';
+    const bytes = yaml({ manifest: 'q-core.workflow/v1', id: 'reviewed', version: '1.0.0', settings: { budgetUsd }, outputs: {}, steps });
+    writeFileSync(join(dir, 'reviewed.yaml'), bytes);
+    writeFileSync(join(dir, 'parent.yaml'), yaml({ manifest: 'q-core.workflow/v1', id: 'parent', version: '1.0.0',
+      settings: { budgetUsd: null }, outputs: {},
+      dependencies: { reviewed: { kind: 'workflow', id: 'reviewed', version: '1.0.0', path: 'reviewed.yaml', sha256: digest(bytes) } },
+      steps: [{ id: 'call', kind: 'workflow-call', config: { ref: 'reviewed' } }] }));
+    // Exercise the driver directly, like budgeted() above, including workflows without a human gate.
+    m = loadManifestGraph(join(dir, 'parent.yaml'));
+  }
+  const p = probe(reply), saved = [], seen = [];
+  const done = await driveRun(createRun(m), { settings: m.settings, providers: p.providers,
+    store: { save: record => saved.push(structuredClone(record)) },
+    onStep: row => seen.push(structuredClone(row)) });
+  return { done, out, saved, seen, calls: p.calls, scope };
+}
+
+function assertBudgetStopped({ done, out, saved, seen, calls, scope }, expectedCost) {
+  assert.equal(calls.length, 1, 'the gate was called and billed, not refused at reservation');
+  const row = done.steps.find(s => s.stepId === 'rules');
+  assert.equal(done.status, 'failed', done.summary);
+  assert.equal(row.status, 'failed');
+  assert.equal(row.gateReason, 'budget');
+  assert.match(row.errorText, /budget.*(?:exceeded|unknown)/i);
+  assert.match(row.errorText, scope === 'child' ? /^Child reviewed(\.yaml)? budget/ : /^Run budget/);
+  assert.equal(done.costUsd, expectedCost, 'the writer and the gate are counted once, or remain unknown');
+  assert.equal(done.steps.find(s => s.stepId === 'deliver').status, 'pending');
+  assert.equal(existsSync(out), false, 'no delivery happened');
+  assert.ok(!saved.some(record => record.status === 'success' || record.steps.some(s =>
+    s.status === 'waiting_human' || (s.stepId === 'rules' && s.status === 'success'))), 'no success or human handoff was saved');
+  assert.ok(!seen.some(s => s.status === 'waiting_human' || (s.stepId === 'rules' && s.status === 'success')),
+    'no success or human handoff was reported');
+  const humanRow = done.steps.find(s => s.stepId === 'approve');
+  if (humanRow) assert.equal(humanRow.status, 'pending', 'the later human gate never starts');
+}
+
+for (const scope of ['run', 'child']) {
+  for (const laterHuman of [false, true]) {
+    const tail = laterHuman ? 'a later human gate' : 'delivery';
+    test(`a passing agent verdict over the ${scope} budget stops before ${tail} or a saved success`, async t => {
+      const result = await verdictBudgetRun(t, { scope, laterHuman, reply: () => completion({ usage: OVER }) });
+      assertBudgetStopped(result, 0.044);
+      assert.equal(result.done.steps.find(s => s.stepId === 'rules').output.verdict.pass, true);
+    });
+    test(`a passing agent verdict with unknown cost under the ${scope} budget stops before ${tail}`, async t => {
+      const result = await verdictBudgetRun(t, { scope, laterHuman, reply: () => completion({ model: 'claude-unpriced-answer' }) });
+      assertBudgetStopped(result, null);
+      assert.equal(result.done.steps.find(s => s.stepId === 'rules').costSource, 'unknown');
+    });
+    test(`a passing agent verdict within the ${scope} budget still reaches ${tail}`, async t => {
+      const { done, out } = await verdictBudgetRun(t, { scope, laterHuman, budgetUsd: 0.05, reply: () => completion({ usage: OVER }) });
+      assert.equal(done.status, laterHuman ? 'waiting_human' : 'success', done.summary);
+      assert.equal(done.steps.find(s => s.stepId === 'rules').status, 'success');
+      assert.equal(done.costUsd, 0.044);
+      assert.equal(existsSync(out), !laterHuman);
+    });
+  }
+  for (const unknown of [false, true]) test(`a refused agent verdict ${unknown ? 'with unknown cost' : 'over budget'} stops on the ${scope} budget`, async t => {
+    const result = await verdictBudgetRun(t, { scope, laterHuman: true, gateConfig: { escalateOn: 'refuse' },
+      reply: () => completion({ text: JSON.stringify({ pass: false, reason: 'Too vague.' }),
+        ...(unknown ? { model: 'claude-unpriced-answer' } : { usage: OVER }) }) });
+    assertBudgetStopped(result, unknown ? null : 0.044);
+  });
+}
+
+test('a passing agent verdict with unknown cost still delivers when the budget is explicitly lifted', async t => {
+  const { done, out } = await verdictBudgetRun(t, { scope: 'child', laterHuman: false, budgetUsd: null,
+    reply: () => completion({ model: 'claude-unpriced-answer' }) });
+  assert.equal(done.status, 'success', done.summary);
+  assert.equal(done.costUsd, null);
+  assert.equal(existsSync(out), true);
 });

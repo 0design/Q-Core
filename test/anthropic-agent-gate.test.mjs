@@ -622,12 +622,14 @@ test('Anthropic agent gate reservations include its resolved candidate bytes and
 test('Anthropic agent gate answering model with unknown price never borrows the requested model rate', async () => {
   const p = probe({ reply: () => completion({ model: 'claude-unpriced-answer' }) });
   const done = await run(manifest([gate('first'), gate('second')]), p);
-  assert.equal(done.steps[0].status, 'success');
+  assert.equal(done.steps[0].status, 'failed');
+  assert.equal(done.steps[0].gateReason, 'budget');
+  assert.match(done.steps[0].errorText, /budget cannot be checked: spend is unknown/);
   assert.equal(done.steps[0].costUsd, null);
   assert.equal(done.steps[0].costSource, 'unknown');
   assert.equal(done.steps[0].provider.model, 'claude-unpriced-answer');
   assert.equal(done.status, 'failed');
-  assert.equal(done.steps[1].gateReason, 'budget');
+  assert.equal(done.steps[1].status, 'pending', 'the unknown-cost verdict stops before the next gate');
   assert.equal(p.calls.length, 1);
 });
 
