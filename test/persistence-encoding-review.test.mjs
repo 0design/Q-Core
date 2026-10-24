@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { guardedStreamWrite, guardedWriteFileSync, registerPersistenceSecret } from '../src/persistence.mjs';
-import { assertNoDecodedSecrets } from '../src/secret-decoding.mjs';
+import { assertNoDecodedSecrets, MAX_SECRET_RECORD_BYTES } from '../src/secret-decoding.mjs';
 import { assertNoSecretShapes } from '../scripts/check-no-secrets-in-artifacts.mjs';
 
 const key = ['sk', 'ant', 'round3', 'synthetic', 'q7_'.repeat(16)].join('-');
@@ -57,10 +57,10 @@ for (const [label, encode] of Object.entries(encodings)) {
 test('bounded decoding fails closed on depth and total byte budgets', t => {
   const root = directory(t), file = join(root, 'refused.txt');
   let excessive = '%41';
-  for (let level = 0; level < 8; level++) excessive = excessive.replaceAll('%', '%25');
+  for (let level = 0; level < 13; level++) excessive = excessive.replaceAll('%', '%25');
   assert.throws(() => assertNoDecodedSecrets(excessive, () => false), { code: 'SECRET_DECODE_BUDGET' });
-  assert.throws(() => assertNoDecodedSecrets('!'.repeat(64 * 1024 * 1024 + 1), () => false), { code: 'SECRET_DECODE_BUDGET' });
-  assert.throws(() => guardedWriteFileSync(file, excessive), { code: 'PERSISTENCE_SECRET_UNSAFE' });
+  assert.throws(() => assertNoDecodedSecrets('!'.repeat(MAX_SECRET_RECORD_BYTES + 1), () => false), { code: 'SECRET_DECODE_BUDGET' });
+  assert.throws(() => guardedWriteFileSync(file, excessive), { code: 'PERSISTENCE_SECRET_DECODE_LIMIT' });
   assert.equal(existsSync(file), false);
   assert.throws(() => assertNoSecretShapes(Buffer.from(excessive)), /Cannot safely scan/);
 });
@@ -114,13 +114,13 @@ for (const [label, encode] of Object.entries(encodings).filter(([label]) => /HTM
 }
 
 test('new decoding forms are subject to the shared nesting budget', () => {
-  const html = '&' + 'amp;'.repeat(8) + 'lowbar;';
+  const html = '&' + 'amp;'.repeat(13) + 'lowbar;';
   assert.throws(() => assertNoDecodedSecrets(html, () => false), { code: 'SECRET_DECODE_BUDGET' });
   let javascript = String.raw`\x41`;
-  for (let level = 0; level < 8; level++) javascript = javascript.replaceAll('\\', String.raw`\x5c`);
+  for (let level = 0; level < 13; level++) javascript = javascript.replaceAll('\\', String.raw`\x5c`);
   assert.throws(() => assertNoDecodedSecrets(javascript, () => false), { code: 'SECRET_DECODE_BUDGET' });
-  let bytes = 'ordinary';
-  for (let level = 0; level < 8; level++) bytes = JSON.stringify([...Buffer.from(bytes)]);
+  let bytes = '';
+  for (let level = 0; level < 13; level++) bytes = JSON.stringify([...Buffer.from(bytes)]);
   assert.throws(() => assertNoDecodedSecrets(bytes, () => false), { code: 'SECRET_DECODE_BUDGET' });
 });
 

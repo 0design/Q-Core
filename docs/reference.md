@@ -45,8 +45,16 @@ Covered representations are:
   interpreted as UTF-8.
 - JavaScript `\xHH`, `\uHHHH` and `\u{…}` escapes.
 
-These transformations can compose within bounded decoding: at most six levels,
-131,072 distinct candidates and 64 MiB of total candidate bytes per check.
+These transformations can compose within bounded decoding: at most 12 levels
+and an 8 MiB UTF-8 record. For an input of n bytes the work budget is 128n +
+64 KiB of total distinct candidate bytes and 4n + 1,024 distinct candidates.
+Every candidate is inspected; repeated encoded tokens share decoding work.
+The fixed depth and proportional work budgets bound total decoding to O(n).
+JSON wrapping and independent escapes in ordinary pages consume levels too;
+the depth allowance includes those steps rather than only nested tokens.
+Excessive record size, pathological nesting or expansion fail closed before
+writing, with `PERSISTENCE_SECRET_DECODE_LIMIT` and a fixed explanation of the
+limit. A detected unredactable credential retains `PERSISTENCE_SECRET_UNSAFE`.
 Append and redirected-stream checks retain the most recent 1,048,576 UTF-16 code
 units of text for continuity (or read a 1 MiB suffix of an existing file), shared
 across stdout/stderr when they use the same destination. An encoded value split

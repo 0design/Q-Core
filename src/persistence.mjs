@@ -95,7 +95,12 @@ function redact(bytes, failOnRedaction) {
       const secrets = [...knownSecrets];
       const minSecretBytes = Math.min(12, ...secrets.map(secret => Buffer.byteLength(secret)));
       assertNoDecodedSecrets(text, decoded => secrets.some(secret => decoded.includes(secret)), { minSecretBytes });
-    } catch { throw unsafe(); }
+    } catch (error) {
+      if (error?.code === 'SECRET_DECODE_BUDGET') {
+        throw new CoreError('PERSISTENCE_SECRET_DECODE_LIMIT', `Persistence refused: ${error.message}`);
+      }
+      throw unsafe();
+    }
   }
   if (redactedSecrets) {
     try {
