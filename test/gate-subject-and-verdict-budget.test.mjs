@@ -111,9 +111,18 @@ test('a cut-off answer follows escalateOn like a failed check; other provider fa
   const refused = await run(manifest([draft, agent({ escalateOn: 'refuse' })]), cut);
   assert.equal(refused.status, 'failed');
   assert.match(refused.steps[1].errorText, /cut off at maxTokens/);
-  const costly = probe(() => completion({ usage: { input_tokens: 1000, output_tokens: 100 } }));
-  const overCap = await run(manifest([draft, agent({ maxCallCostUsd: '0.000001' })]), costly);
+  // The writer is uncapped; the gate's cap sits between its reservation and the reported bill.
+  const capped = { maxCallCostUsd: '0.025', maxTokens: '100' };
+  const costly = probe(() => completion({ usage: { input_tokens: 20000, output_tokens: 100 } }));
+  const overCap = await run(manifest([draft, agent(capped)]), costly);
+  assert.equal(costly.calls.length, 1);
   assert.equal(overCap.status, 'failed');
+  assert.match(overCap.steps[1].errorText, /maxCallCostUsd/);
+  const cutAndCostly = probe(() => completion({ stop: 'max_tokens', usage: { input_tokens: 20000, output_tokens: 100 } }));
+  const both = await run(manifest([draft, agent(capped)]), cutAndCostly);
+  assert.equal(cutAndCostly.calls.length, 1);
+  assert.equal(both.status, 'failed', 'a cut-off answer over the cost cap is not handed on');
+  assert.notEqual(both.steps[1].status, 'waiting_human');
 });
 
 test('an unreadable verdict escalates to a person, it does not fail the run', async () => {

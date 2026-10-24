@@ -493,7 +493,11 @@ export async function runApprovalGate(step, ctx, model, maxTokens) {
       && ["AUTH_REQUIRED", "SECRET_MISSING"].includes(error?.code)) return missingAnthropicKey();
     // An answer cut off at maxTokens is no verdict, the same as an unreadable one: it goes the way
     // of a failed check (to a person by default), with its billed usage kept. Other failures stay failures.
-    if (error?.code !== "OUTPUT_LIMIT" || !error.usage) throw withSpend(error, model, provider);
+    // A cut-off answer is checked against the per-call cost cap first (the providers report the cut-off
+    // before the cap): over it, or of unknown cost under a cap, it still fails.
+    const cost = error?.usage?.costUsd;
+    if (error?.code !== "OUTPUT_LIMIT" || !error.usage || (policy.maxCallCostUsd !== undefined
+      && (!Number.isFinite(cost) || cost > policy.maxCallCostUsd))) throw withSpend(error, model, provider);
     cutOff = { content: null, usage: { ...error.usage, model: error.model ?? model } };
   }
   const { content, usage } = cutOff ?? reply;
