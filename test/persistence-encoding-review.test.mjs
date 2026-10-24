@@ -177,3 +177,21 @@ test('short registered credentials also receive hex decoding protection', t => {
   assert.throws(() => guardedWriteFileSync(file, Buffer.from(credential).toString('hex')), { code: 'PERSISTENCE_SECRET_UNSAFE' });
   assert.equal(existsSync(file), false);
 });
+
+test('one-byte credentials remain protected in decoded Linux tmp paths', () => {
+  // Isolate the process-wide credential registry: this intentionally tiny key
+  // must not become an unrelated later test's credential. No filesystem writes.
+  const script = `
+    import assert from 'node:assert/strict';
+    import { assertPersistencePath, registerPersistenceSecret } from ${JSON.stringify(new URL('../src/persistence.mjs', import.meta.url).href)};
+    import { assertNoDecodedSecrets } from ${JSON.stringify(new URL('../src/secret-decoding.mjs', import.meta.url).href)};
+    const path = '/tmp/q-core-core-ABC123/.qf/agent-980a6891-4ea0-43a2-b301-e69d414568f7.json';
+    registerPersistenceSecret('invalid-response-fixture-credential');
+    assert.doesNotThrow(() => assertPersistencePath(path));
+    assert.equal(path.includes('x'), false);
+    assert.throws(() => assertNoDecodedSecrets(path, text => text.includes('x'), { minSecretBytes: 1 }), { code: 'SECRET_DECODE_MATCH' });
+    registerPersistenceSecret('x');
+    assert.throws(() => assertPersistencePath(path), { code: 'PERSISTENCE_SECRET_UNSAFE' });
+  `;
+  execFileSync(process.execPath, ['--input-type=module', '-e', script], { env: {} });
+});

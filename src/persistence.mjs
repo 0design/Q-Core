@@ -145,22 +145,32 @@ function prepare(data, options = {}) {
 
 function fileIdentity(target) {
   try {
-    const stat = typeof target === 'number' ? fstatSync(target) : statSync(target);
-    return { key: `${stat.dev}:${stat.ino}`, stat };
+    const stat = typeof target === 'number' ? fstatSync(target, { bigint: true }) : statSync(target, { bigint: true });
+    // Linux can recycle an inode immediately after unlink. An inode alone is
+    // therefore not a durable identity for a cached log/FIFO continuation.
+    const generation = `${stat.mode & 0o170000n}:${stat.birthtimeNs}`;
+    // Pipe/FIFO timestamps and apparent sizes can change on each write, even
+    // between the stdout/stderr aliases of one destination.
+    const version = stat.isFile() ? `${generation}:${stat.ctimeNs}:${stat.mtimeNs}:${stat.size}` : generation;
+    return { key: `${stat.dev}:${stat.ino}`, generation, version, stat };
   } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 }
 
 function previousTail(target, identity) {
-  if (!identity?.stat.isFile() || !identity.stat.size) return '';
+  if (!identity?.stat.isFile()) return '';
   const previous = tails.get(identity.key);
-  if (previous?.size === identity.stat.size) return previous.text;
+  if (previous?.unsafe && previous.generation === identity.generation) throw unsafe();
+  if (!identity.stat.size) return '';
+  if (previous?.version === identity.version) return previous.text;
   // Inspect existing append targets too, using positional reads so the caller's
   // file offset does not move. Unreadable existing targets fail closed.
   const fd = typeof target === 'number' ? target : openSync(target, 'r');
   try {
-    const length = Math.min(identity.stat.size, TAIL_BYTES);
+    const size = Number(identity.stat.size);
+    if (!Number.isSafeInteger(size)) throw unsafe();
+    const length = Math.min(size, TAIL_BYTES);
     const bytes = Buffer.alloc(length);
-    const count = readSync(fd, bytes, 0, length, identity.stat.size - length);
+    const count = readSync(fd, bytes, 0, length, size - length);
     return bytes.subarray(0, count).toString('utf8');
   } catch { throw unsafe(); }
   finally { if (typeof target !== 'number') closeSync(fd); }
@@ -172,12 +182,13 @@ function checkedContinuation(previous, output) {
   return (previous + text).slice(-TAIL_BYTES);
 }
 
-function remember(target, text) {
+function remember(target, text, previous) {
   const identity = fileIdentity(target);
   if (identity?.stat.isFile()) {
-    if (streamFileTails.has(identity.key)) streamFileTails.set(identity.key, text);
+    previous ??= { generation: identity.generation, version: identity.version, text };
+    if (streamFileTails.has(identity.key)) streamFileTails.set(identity.key, previous);
     tails.delete(identity.key);
-    tails.set(identity.key, { size: identity.stat.size, text });
+    tails.set(identity.key, previous);
     if (tails.size > 64) tails.delete(tails.keys().next().value);
   }
 }
@@ -272,13 +283,45 @@ export function guardedStreamWrite(stream, data) {
   // destination rather than the JavaScript stream identity in that case.
   const sharedDestination = identity && (identity.stat.isFile() || identity.stat.isFIFO() || identity.stat.isSocket());
   if (sharedDestination && !streamFileTails.has(identity.key) && streamFileTails.size >= 64) throw unsafe();
+  const cached = sharedDestination ? streamFileTails.get(identity.key) : null;
+  if (cached?.unsafe && cached.generation === identity.generation) throw unsafe();
   const previous = sharedDestination
-    ? (streamFileTails.get(identity.key) ?? previousTail(stream.fd, identity))
+    ? (cached?.version === identity.version || (cached?.pending && cached.generation === identity.generation)
+      ? cached.text : previousTail(stream.fd, identity))
     : streamTails.get(stream);
   const tail = checkedContinuation(previous ?? '', output);
-  const accepted = stream.write(output);
-  if (sharedDestination) { streamFileTails.set(identity.key, tail); remember(stream.fd, tail); }
-  else streamTails.set(stream, tail);
+  if (!sharedDestination) {
+    const accepted = stream.write(output);
+    streamTails.set(stream, tail);
+    return accepted;
+  }
+  const next = { generation: identity.generation, version: identity.version, text: tail, pending: true };
+  streamFileTails.set(identity.key, next);
+  const refresh = (error, completed = false) => {
+    // Writable streams may flush after .write returns. Only the latest queued
+    // continuation can refresh its snapshot; an older callback must not erase
+    // a newer tail. Synchronous wrappers are covered by the immediate refresh.
+    if (streamFileTails.get(identity.key) !== next || next.unsafe) return;
+    try {
+      if (error) throw error;
+      const written = fileIdentity(stream.fd);
+      if (!written || written.key !== identity.key || written.generation !== identity.generation) throw unsafe();
+      next.version = written.version;
+      next.pending = !completed && stream.writableLength > 0;
+      remember(stream.fd, tail, next);
+    } catch {
+      // A failed flush may still have emitted a credential prefix. Keep that
+      // destination closed until its generation changes; forgetting its tail
+      // would allow a later write to complete the credential.
+      next.unsafe = true;
+      next.pending = false;
+      if (identity.stat.isFile()) tails.set(identity.key, next);
+    }
+  };
+  let accepted;
+  try { accepted = stream.write(output, error => refresh(error, true)); }
+  catch (error) { refresh(error); throw error; }
+  refresh();
   return accepted;
 }
 
