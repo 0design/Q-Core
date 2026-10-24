@@ -566,12 +566,17 @@ test('Anthropic agent gate reserves every configured attempt before secret resol
   assert.equal(p.calls.length, 0);
 });
 
-test('Anthropic agent gate bound uses its actual 300-token completion cap', async () => {
+test('Anthropic agent gate bound uses its configured completion cap', async () => {
   const p = probe();
-  const done = await run(manifest([gate('review', { maxTokens: '32000' })], 0.02), p);
+  const done = await run(manifest([gate('review', { maxTokens: '800' })], 0.02), p);
   assert.equal(done.status, 'success', done.summary);
-  assert.equal(p.requests[0].maxTokens, 300);
-  assert.equal(p.calls[0].body.max_tokens, 300);
+  assert.equal(p.requests[0].maxTokens, 800);
+  assert.equal(p.calls[0].body.max_tokens, 800);
+  const refused = probe();
+  const over = await run(manifest([gate('review', { maxTokens: '32000' })], 0.02), refused);
+  assert.equal(over.status, 'failed');
+  assert.match(over.summary, /reserve Anthropic worst-case/);
+  assert.equal(refused.calls.length, 0);
 });
 
 test('Anthropic agent gate releases its reservation to actual usage before the next paid check', async () => {

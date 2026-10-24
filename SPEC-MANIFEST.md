@@ -283,7 +283,14 @@ One kind, two modes; they differ only in *who* decides.
 | `anchor` | what is being decided about | |
 | `rubric` | REQUIRED when `reviewer: agent` | |
 | `escalateOn` | `objection` hands a failed check to a person | default `objection` |
+| `maxTokens` | `reviewer: agent` — answer budget, integer 1–32000 | default `1024` |
+| `subject` | `reviewer: human` — `previous` keeps the legacy subject (see below) | |
 | `mode` | `check` is `RESERVED` — refused | |
+
+**`reviewer: agent`** returns `{pass, reason}`. An answer that is not one readable
+verdict — unparseable, or cut off at `maxTokens` — counts as a failed check: with
+`escalateOn: objection` it goes to a person, with its billed usage recorded; it does
+not fail the run. An escalated agent gate shows the candidate it judged as `subject`.
 
 **`reviewer: human`** parks the run as `waiting_human`. `q-core approve` continues it,
 `--reject` fails it. Approval is an optional component placed by the workflow
@@ -297,13 +304,17 @@ Human gates retain their existing pause and decision requirements. The separate
 policy for created workflows that send data remains below.
 
 **The subject of a human gate is one output:** that of the last successful step before
-it in the same material. When a side effect after the gate (until the next human gate)
+it in the same material, passing over agent gates directly before it — the person
+approves the content those gates judged, which is what goes on to delivery. Their
+verdicts are shown beside it (`reviews`) and are not part of the subject or its hash.
+`subject: previous` keeps the earlier rule (the output directly before the gate, even
+an agent verdict) for existing descriptions. When a side effect after the gate (until the next human gate)
 also sends the output of an earlier step, `q-core validate` prints the warning
 `GATE_SUBJECT_PARTIAL` (and adds `warnings` to `--json`): the person would approve less
 than is sent. It does not refuse the manifest. Return everything that is sent from one
 step or child workflow directly before the gate. Fields that stay local (`name`,
 `receiptKey`, `expect`, `timeoutSec`, `method`) are not judged, and a gate
-directly after a control-flow step, `fan-out` or another gate is not judged.
+directly after a control-flow step, `fan-out` or another human gate (or an agent gate under `subject: previous`) is not judged.
 This warning does not relax the mandatory subject binding for a governed
 `workspace-apply` described below.
 
