@@ -3862,8 +3862,8 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 17,
     "artifact": "vendor/q-core-0.2.0-q-core.51.tgz",
-    "artifactSha256": "516b8a56792e3b2985ca9e34fb5762ade7f6aa443a59a5a769f29b1888c82897",
-    "integrity": "sha512-VVTjkPq+zLThy1ig+wNzJVuzMyA2/ApiRH8cTSILkvnFvr2nGtGs6BWlRZOJDgwkj7T4aS9fg9iFrIaxrgg3rA==",
+    "artifactSha256": "3ad68748c4ab56d3951cf962267e9590ba26550e840008b02d60cb954c8fc92b",
+    "integrity": "sha512-5FdnWHwFChxabBS/X1kWpirpYLziT37PckFiKglsbbBVD0qrD/Cm76Wk33+qCK9lI5NbsjDTYVY4qAD/9X1LJw==",
     "schemaSha256": "9c5385a1de2c085d326916799a7504257d795e0ec257e7b1b3cb260cd96f4ab2",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "local-candidate-artifact",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "f610b4cfe4b789e906364d7c196386d3ae95520b93c9d23f571a65e7cf60c230"
+  "releaseSha256": "e4244489f319f89120a6e8e347e4268730e976df813cc2fc11deb65422de3aad"
 }

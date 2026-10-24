@@ -166,6 +166,10 @@ function validateStep(raw, path, seenIds) {
     if (!["human", "agent"].includes(reviewer)) {
       throw new ManifestError(`"reviewer" must be "human" or "agent", got "${reviewer}"`, `${path}.config`);
     }
+    // The driver compares the raw value when it reserves budget; a padded or mis-cased provider must not validate.
+    if (reviewer === "agent" && config.provider != null && !["openrouter", "anthropic"].includes(config.provider)) {
+      throw new ManifestError('an Agent-Gate "provider" must be exactly "openrouter" or "anthropic"', `${path}.config.provider`);
+    }
     if (reviewer === "agent" && !config.rubric) {
       throw new ManifestError(
         'an Agent-Gate with no "rubric" has nothing to check against — set the criterion, or switch reviewer to human',
