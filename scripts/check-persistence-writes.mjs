@@ -376,7 +376,13 @@ export function inspectPersistenceSource(source, file) {
         specifierEnd++;
       }
       const module = constant(ref.end + 1, specifierEnd);
-      let unsafeModule = FS_MODULES.has(module) || LOADER_MODULES.has(module);
+      // An unresolved specifier (spread, interpolated template, computed value) could name a filesystem module:
+      // fail closed rather than chase each spelling. call/apply/bind keep their own argument inspection below.
+      // pathToFileURL(...) always yields a file: URL, never a builtin specifier such as node:fs.
+      const directCall = !(loader[0] === 'require' && loader.length > 1);
+      const fileUrl = value(ref.end + 1) === 'pathToFileURL' && value(ref.end + 2) === '(' && pairs.get(ref.end + 2) + 1 === specifierEnd
+        || value(ref.end + 1) === 'pathToFileURL' && value(ref.end + 2) === '(' && value(pairs.get(ref.end + 2) + 1) === '.' && value(pairs.get(ref.end + 2) + 2) === 'href' && pairs.get(ref.end + 2) + 3 === specifierEnd;
+      let unsafeModule = FS_MODULES.has(module) || LOADER_MODULES.has(module) || (directCall && module === null && !fileUrl);
       // call/apply/bind retain the filesystem-loading capability. Inspect their
       // argument expressions (including apply's array) instead of matching one
       // spelling of require('fs').

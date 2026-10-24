@@ -31,6 +31,10 @@ const rejected = [
   ['dynamic import with trailing comma', "const fs = await import('node:fs',); fs.openSync(secret, 'w');"],
   ['dynamic promises import with options', "const fsp = await import('node:fs/promises', { with: {} }); await fsp.rename(source, secret);"],
   ['require with extra argument', "const fs = require('fs', 1); fs.linkSync(source, secret);"],
+  ['require with spread specifier', "const fs = require(...['node:fs']); fs.mkdirSync(secret);"],
+  ['import with interpolated template specifier', "const fs = await import(`node:${'fs'}`, {}); fs.mkdirSync(secret);"],
+  ['import with computed specifier', "const name = pick(); const fs = await import(name); fs.mkdirSync(secret);"],
+  ['file URL helper does not hide a builtin', "const fs = await import(pathToFileURL(x).href + ''); fs.mkdirSync(secret);"],
   ['unknown future fs capability', "import { futureMutation } from 'node:fs'; futureMutation(secret);"],
   ...['fs', 'node:fs', 'fs/promises', 'node:fs/promises'].flatMap(module => [
     [`mkdir alias from ${module}`, `import {mkdir as make} from '${module}'; make(secret);`],
