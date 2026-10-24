@@ -387,6 +387,15 @@ export function inspectPersistenceSource(source, file) {
     }
     if (!changed) break;
   }
+  // Q-Core runtime is ESM and loads modules only through static imports and literal import(). Every
+  // CommonJS/builtin loader capability is rejected wherever it appears (call, alias, comma expression,
+  // Reflect.apply, bind/call, module.require), instead of matching each spelling of a call.
+  const BANNED_LOADERS = new Set(['require', 'createRequire', 'getBuiltinModule']);
+  for (let index = 0; index < tokens.length; index++) {
+    if (tokens[index].type === 'identifier' && BANNED_LOADERS.has(tokens[index].value)) {
+      report(index, 'CommonJS/builtin module loaders can bypass persistence; use static imports or a literal import()');
+    }
+  }
   for (let index = 0; index < tokens.length; index++) {
     if (['.', '?.'].includes(value(index - 1))) continue;
     const ref = reference(index);
@@ -396,15 +405,17 @@ export function inspectPersistenceSource(source, file) {
     if (aliases.has(value(index)) && ref.parts.length > 1) memberFinding(ref.parts, index, ref.end);
     const loader = ref.parts[0] === 'globalThis' ? ref.parts.slice(1) : ref.parts;
     const builtinLoader = loader.join('.') === 'process.getBuiltinModule';
-    if ((value(index) === 'import' || loader[0] === 'require' || builtinLoader) && value(ref.end) === '(') {
-      const end = pairs.get(ref.end);
+    // A loader call may be optional: process.getBuiltinModule?.('fs') and require?.('fs') load the same module.
+    const open = value(ref.end) === '(' ? ref.end : value(ref.end) === '?.' && value(ref.end + 1) === '(' ? ref.end + 1 : -1;
+    if ((value(index) === 'import' || loader[0] === 'require' || builtinLoader) && open >= 0) {
+      const end = pairs.get(open);
       // The specifier is the first argument only: import('node:fs', {}) and a trailing comma must not hide it.
-      let specifierEnd = ref.end + 1;
+      let specifierEnd = open + 1;
       while (specifierEnd < end && value(specifierEnd) !== ',') {
         if (['(', '[', '{'].includes(value(specifierEnd))) specifierEnd = pairs.get(specifierEnd);
         specifierEnd++;
       }
-      const module = constant(ref.end + 1, specifierEnd);
+      const module = constant(open + 1, specifierEnd);
       // Fail closed: a direct loader call must name its module with a string literal. Identifiers, spreads,
       // interpolated templates and computed values are unresolved, because scope and reassignment are not
       // tracked here. call/apply/bind keep their own argument inspection below.
@@ -412,16 +423,16 @@ export function inspectPersistenceSource(source, file) {
       // file: URL, never a builtin specifier such as node:fs. "Real" means imported by that name from node:url
       // and never declared, reassigned, passed or destructured anywhere else in the file.
       const directCall = !(loader[0] === 'require' && loader.length > 1);
-      const callEnd = value(ref.end + 1) === 'pathToFileURL' && value(ref.end + 2) === '(' ? pairs.get(ref.end + 2) + 1 : -1;
+      const callEnd = value(open + 1) === 'pathToFileURL' && value(open + 2) === '(' ? pairs.get(open + 2) + 1 : -1;
       const fileUrl = callEnd > 0 && trustedPathToFileURL()
         && (callEnd === specifierEnd || (value(callEnd) === '.' && value(callEnd + 1) === 'href' && callEnd + 2 === specifierEnd));
       let unsafeModule = FS_MODULES.has(module) || LOADER_MODULES.has(module)
-        || (directCall && literal(ref.end + 1, specifierEnd) === null && !fileUrl);
+        || (directCall && literal(open + 1, specifierEnd) === null && !fileUrl);
       // call/apply/bind retain the filesystem-loading capability. Inspect their
       // argument expressions (including apply's array) instead of matching one
       // spelling of require('fs').
       if (loader[0] === 'require' && loader.length > 1) {
-        for (let argument = ref.end + 1; argument < end; argument++) {
+        for (let argument = open + 1; argument < end; argument++) {
           let argumentEnd = argument;
           while (argumentEnd < end && value(argumentEnd) !== ',') {
             if (['(', '[', '{'].includes(value(argumentEnd))) argumentEnd = pairs.get(argumentEnd);
