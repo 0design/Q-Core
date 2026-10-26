@@ -18,6 +18,7 @@
  * that ends in `api-request` is a complete workflow.
  */
 import { agentSessionMarker } from './human-confirmation.mjs';
+import { consumeElicitationConfirmation, hasElicitationConfirmation } from './elicitation-confirmation.mjs';
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination, llmCallPolicy } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
@@ -1102,6 +1103,19 @@ export function waitingGate(run, approvalHash) {
   return gate;
 }
 
+/** Resolve one pending approval row without confusing clarification with a gate. */
+export function pendingApprovalGate(run, gateId) {
+  insist(run?.status === 'waiting_human' && !run.pendingClarification, 'Run is not waiting for an approval.', 'STALE_APPROVAL');
+  const matches = run.steps.filter(row => row.rowId === gateId || row.stepId === gateId);
+  insist(matches.length === 1, 'gate_id must identify one gate; use its rowId for repeated steps.', 'INVALID_GATE');
+  const gate = matches[0];
+  insist(gate.kind === 'approval-gate' && gate.status === 'waiting_human', 'This gate is not waiting for approval.', 'STALE_APPROVAL');
+  insist(waitingGate(run, gate.output?.approvalHash) === gate &&
+    hash(gateSubjectRow(run, gate)?.output ?? null) === hash(gate.output?.subject ?? null),
+  'Approval does not match the current exact subject.', 'STALE_APPROVAL');
+  return gate;
+}
+
 /**
  * Continue a run that is parked at a human gate.
  *
@@ -1110,18 +1124,36 @@ export function waitingGate(run, approvalHash) {
  * (src/human-confirmation.mjs); an embedding host passes its own record
  * ({ channel, ... }) and is responsible for having asked a person. There is no
  * default: a caller that has no human decision cannot continue the gate. Inside an
- * agent session no record is accepted (q-core approve has already refused there).
+ * agent session only an opaque receipt from client elicitation is accepted.
  */
 export async function resumeRun(run, { decision, approvalHash, confirmation, ...opts }) {
   insist(['approve', 'reject'].includes(decision), 'Decision must be approve or reject');
   insist(confirmation && typeof confirmation.channel === 'string' && confirmation.channel.trim() && (confirmation.decision ?? decision) === decision,
     'A human gate continues only with a human confirmation record (q-core approve asks at the terminal)', 'HUMAN_CONFIRMATION_REQUIRED');
   const marker = agentSessionMarker(process.env);
-  insist(!marker, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal`, 'HUMAN_CONFIRMATION_REQUIRED');
+  const elicited = confirmation.channel === 'mcp-elicitation';
+  insist(!elicited || hasElicitationConfirmation(confirmation), 'A human gate requires a direct client elicitation response.', 'HUMAN_CONFIRMATION_REQUIRED');
+  insist(!marker || elicited, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal`, 'HUMAN_CONFIRMATION_REQUIRED');
+  const applyDecision = () => resumeConfirmedRun(run, { decision, approvalHash, confirmation, elicited, ...opts });
+  return opts.store?.withRunLock ? opts.store.withRunLock(run.runId, applyDecision) : applyDecision();
+}
+
+async function resumeConfirmedRun(run, { decision, approvalHash, confirmation, elicited, ...opts }) {
+  if (opts.store) {
+    const current = opts.store.load(run.runId);
+    const savedGate = current?.steps.find(row => row.status === 'waiting_human');
+    const originalGate = run.steps.find(row => row.status === 'waiting_human');
+    insist(current?.status === 'waiting_human' && savedGate && originalGate &&
+      savedGate.seq === originalGate.seq && savedGate.rowId === originalGate.rowId &&
+      savedGate.output?.approvalHash === originalGate.output?.approvalHash &&
+      (!elicited || hash(current) === hash(run)), 'Approval does not match the current persisted run.', 'STALE_APPROVAL');
+  }
   const gate = waitingGate(run, approvalHash);
+  insist(run.status === 'waiting_human' && gate.kind === 'approval-gate', 'Run is not waiting for an approval.', 'STALE_APPROVAL');
+  const binding = elicited ? consumeElicitationConfirmation(confirmation, run, gate, decision) : null;
   gate.decision = decision;
   if (decision === 'approve' && gate.config.bind === 'sha256') gate.approvedSubjectHash = approvalHash;
-  gate.confirmation = { channel: confirmation.channel, confirmedAt: confirmation.confirmedAt ?? new Date().toISOString() };
+  gate.confirmation = { channel: confirmation.channel, confirmedAt: confirmation.confirmedAt ?? new Date().toISOString(), ...(binding ?? {}) };
   if (decision === "reject") {
     gate.status = "failed";
     gate.errorText = "Rejected at the gate by a human.";
@@ -1137,6 +1169,8 @@ export async function resumeRun(run, { decision, approvalHash, confirmation, ...
   gate.finishedAt = new Date().toISOString();
   run.status = "running";
   run.finishedAt = null;
+  // Consume and persist the gate before any downstream delivery or model call.
+  opts.store?.save(run);
   return driveRun(run, opts);
 }
 

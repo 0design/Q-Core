@@ -56,6 +56,25 @@ Have an idea for a workflow? [Open an issue](https://github.com/0design/Q-Core/i
 2. Write `Use qfactory.io`, or copy a template's start prompt from the table above.
 3. The agent connects QFactory, explains what it will do and waits for your "ok" before installing anything.
 
+### Approving from your agent chat
+
+Connect the local approval server to an MCP client that supports form elicitation:
+
+```json
+{
+  "mcpServers": {
+    "q-core-approval": {
+      "command": "node",
+      "args": ["/absolute/path/to/q-core/bin/q-core-mcp.mjs", "/absolute/path/to/workflow.yaml"]
+    }
+  }
+}
+```
+
+When a workflow reaches `waiting_human`, ask your agent to call `request_approval` with `run_id` and `gate_id` (the gate's `rowId`, or its unique `stepId`). The client shows the full subject, available delivery bodies and destinations, and their SHA-256. Choose **approve** or **reject** in that form. Your answer travels directly from the client to the server; approval is never a tool argument. Approval continues the run; rejection fails the gate.
+
+Content must be ready before the gate: if a later step still needs to generate delivery content, the server refuses. Changed content requires a fresh request. Decisions are single-use; closing or declining the form leaves the run waiting. Clients without form elicitation receive an error. The existing `q-core approve` terminal command and its one-time code remain available. This local server is separate from the hosted, read-only Registry MCP.
+
 ### Without an agent
 
 You need Node.js 20.3 or newer. In an empty folder this installs Q-Core and the SDD pipeline and shows its steps without running them. On Linux, use `sha256sum` instead of `shasum -a 256`.

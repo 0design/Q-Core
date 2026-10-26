@@ -321,6 +321,11 @@ export function guardedWriteSync(fd, data, ...args) {
   return written;
 }
 
+/** Exact human previews must refuse rather than display redacted content under its original hash. */
+export function assertUnredactedOutput(data) {
+  if (prepare(data).output !== data) throw new CoreError('PERSISTENCE_SECRET_UNSAFE', 'Exact delivery preview contains credentials and cannot be shown in a form.');
+}
+
 /** stdout/stderr may be redirected to a production log, so guard those bytes too. */
 export function guardedStreamWrite(stream, data) {
   const { output } = prepare(data);
