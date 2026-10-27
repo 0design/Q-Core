@@ -147,7 +147,9 @@ try {
           assert.equal(readFileSync(runFile, 'utf8'), paused); assert.equal(existsSync(sink), false); probes += 3;
         } else {
           for (const bad of [{ ...reply, jobId: randomUUID() }, { ...reply, hash: 'f'.repeat(64) },
-            { ...reply, extra: true }, { ...reply, output: null }]) {
+            { ...reply, extra: true }, { ...reply, output: null }, { ...reply, output: { text: 17 } },
+            { ...reply, output: { text: ' ' } }, { ...reply, output: {} },
+            { ...reply, output: { text: 'fixture', extra: true } }]) {
             await assert.rejects(resume({ inferenceReply: bad }));
             assert.equal(readFileSync(runFile, 'utf8'), paused); assert.equal(existsSync(sink), false); probes += 3;
           }

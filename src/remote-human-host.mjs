@@ -9,7 +9,7 @@ import { agentSessionMarker, confirmHumanDecision } from './human-confirmation.m
 import { acquireWorkflowLease } from './workflow-lease.mjs';
 import { RunStore } from './state.mjs';
 import { createRun, waitingGate, resolveKnobs, driveRun } from './run.mjs';
-import { assertInferenceReply, validateCallerInput } from './caller-inference.mjs';
+import { assertInferenceReply, assertInferenceOutput, validateCallerInput } from './caller-inference.mjs';
 import { loadWorkflow } from './workflow-policy.mjs';
 import { guardedDurableReplaceSync, guardedMkdirSync, guardedSyncDirectorySync,
   persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
@@ -243,6 +243,7 @@ export async function resumeRemoteHumanWorkflow(file, runId, { clock = Date.now,
       insist(run.status === 'waiting_inference' && run.pendingInference, 'Native run is not waiting for this inference reply', 'STALE_INFERENCE');
       validateCallerInput({ provider: run.callerProvider, inferenceReply });
       assertInferenceReply(run, inferenceReply);
+      assertInferenceOutput(run.pendingInference.outputKind, inferenceReply.output);
     } else if (['success','failed','cancelled','needs_human','waiting_inference','waiting_human'].includes(run.status)) return report(false);
     insist((run.status === 'running' || (run.status === 'waiting_inference' && inferenceReply !== undefined)) &&
       state.evidence.decision === 'approve', 'Native workflow is not resumable', 'REMOTE_APPROVAL_INVALID');

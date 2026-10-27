@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-q-core.52 candidate — 2026-10-27
+
+- Add terminal-enrolled remote human request/receipt verification and durable
+  single-run gate consumption; agent-origin approval remains refused.
+- Continue through a shared workflow lease, current signed decision and durable
+  checkpoints. Recheck authority after awaited preflight; ordinary continuations
+  refuse native-owned runs. Post-gate caller replies validate output before saving.
+- Hold interrupted nonstructural steps for reconciliation. Provider transport,
+  stale-process lease recovery and platform publication remain integration work.
+- Pin a separate Registry candidate to the exact Core archive; no public pointer
+  promotion or installed-runtime upgrade is performed by this source change.
+
 ## Unreleased
 
 - A human `approval-gate` directly after agent gates now shows and binds the

@@ -34,6 +34,15 @@ export function assertInferenceReply(state, reply) {
   insist(Date.now()<=job.expiresAt, 'Inference job expired; review the request', 'INFERENCE_EXPIRED');
 }
 
+/** Shared caller output shape check; native hosts use it before checkpointing. */
+export function assertInferenceOutput(outputKind, output) {
+  insist(output && typeof output === 'object' && !Array.isArray(output), 'Unexpected inference output fields', 'INVALID_RESPONSE');
+  const keys=Object.keys(output).sort().join(',');
+  insist(outputKind==='specification' ? ['criteria,plan,summary','questions'].includes(keys) : outputKind==='files' ? keys==='files' :
+    outputKind==='text' && keys==='text' && typeof output.text==='string' && output.text.trim().length>0,
+    'Unexpected inference output fields','INVALID_RESPONSE');
+}
+
 export function invalidateInference(state) {
   if (!state?.pendingInference) return;
   state.inferenceHistory??=[];
@@ -59,8 +68,8 @@ export function callerInference(state,{messages,phase,outputKind,binding,provide
     error.nextAction={type:'provide_inference',job:structuredClone(job)};
     throw error;
   }
-  const output=structuredClone(reply.output),keys=Object.keys(output).sort().join(',');
-  insist(outputKind==='specification' ? ['criteria,plan,summary','questions'].includes(keys) : outputKind==='files' ? keys==='files' : keys==='text' && typeof output.text==='string' && output.text.trim().length>0,'Unexpected inference output fields','INVALID_RESPONSE');
+  const output=structuredClone(reply.output);
+  assertInferenceOutput(outputKind, output);
   state.inferenceHistory??=[];
   state.inferenceHistory.push({jobId:job.jobId,hash:job.hash,status:'consumed',outputHash:hash(output)});
   delete state.pendingInference;
