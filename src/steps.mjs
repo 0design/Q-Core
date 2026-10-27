@@ -548,6 +548,24 @@ function buildBody(step, ctx, t) {
   }
 }
 
+/** Read-only preview using the same body builder as delivery. */
+export function previewApiRequest(step, ctx) {
+  const t = tctx(ctx), rawUrl = requireStr(step.config, 'url', stepLabel(step));
+  const missing = missingEnvRefs(rawUrl);
+  insist(!missing.length || !str(step.config, 'receiptKey'), 'Idempotent delivery requires an explicit destination; no file fallback');
+  const url = missing.length ? rawUrl : urlOf(rawUrl, t, stepLabel(step));
+  const payload = buildBody(step, ctx, t);
+  const file = /^file:/i.test(url);
+  const method = file ? 'APPEND' : (oneOf(step.config, 'method', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']) ?? 'POST');
+  return {
+    destination: missing.length ? ctx.sinkFile : file ? pathToFileURL(checkFileDestination(url)).href : url,
+    method: missing.length ? 'WRITE' : method,
+    body: missing.length ? (typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2))
+      : method === 'GET' ? null : file ? JSON.stringify(payload) + '\n'
+        : typeof payload === 'string' ? payload : JSON.stringify(payload),
+  };
+}
+
 /** A safe local delivery file: absolute file:/// URL, .jsonl name, an existing folder, and not an existing
  *  directory or symlink. Returns the canonical path (used for duplicate receipts). */
 export function checkFileDestination(url) {

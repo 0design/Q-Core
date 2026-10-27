@@ -73,13 +73,13 @@ test('child waiting_human persists and resumes its snapshot; agent and stale app
   const priorMarker = process.env.AI_AGENT; process.env.AI_AGENT = 'synthetic-test-agent';
   await assert.rejects(resumeRun(snapshot, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'synthetic-test' } }), /agent session/);
   if (priorMarker === undefined) delete process.env.AI_AGENT; else process.env.AI_AGENT = priorMarker;
-  // Explicit synthetic embedding-host fixture, following existing Core35 tests.
+  // Explicit synthetic terminal fixture, following existing Core35 tests.
   // It performs only local deterministic deduplication, never real publication.
   const markers = Object.fromEntries(AGENT_SESSION_ENV.map(key => [key, process.env[key]]));
   try {
     for (const key of AGENT_SESSION_ENV) delete process.env[key];
     writeFileSync(join(dir, 'clean.yaml'), 'changed after pause');
-    const result = await resumeRun(snapshot, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'synthetic-test-human' }, store });
+    const result = await resumeRun(snapshot, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'tty-code' }, store });
     assert.equal(result.status, 'success', result.summary);
     assert.deepEqual(result.output, { removed: 1 });
   } finally { for (const [key, value] of Object.entries(markers)) if (value === undefined) delete process.env[key]; else process.env[key] = value; }

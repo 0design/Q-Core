@@ -10,6 +10,6 @@ export function personDecides(kind, workspace, pending, decision = "approve") {
     runId: pending.runId,
     approvalHash: pending.nextAction.approvalHash,
     decision,
-    confirmation: { channel: "test-human" },
+    confirmation: { channel: "tty-code" },
   });
 }

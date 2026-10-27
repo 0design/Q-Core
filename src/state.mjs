@@ -106,6 +106,18 @@ export class RunStore {
     return readJson(this.runFile(runId));
   }
 
+  /** Serialize decisions across local server and terminal processes. */
+  async withRunLock(runId, callback) {
+    const lock = `${this.runFile(runId)}.approval.lock`;
+    try { guardedWriteFileSync(lock, '', { flag: 'wx', mode: 0o600 }); }
+    catch (error) {
+      if (error.code === 'EEXIST') insist(false, 'Another decision is being processed for this run. Retry after it finishes.', 'APPROVAL_BUSY');
+      throw error;
+    }
+    try { return await callback(); }
+    finally { guardedUnlinkSync(lock); }
+  }
+
   /**
    * The outcome pointer. This is the failure notification: a monitor that only
    * ever sees "nothing arrived today" cannot tell a broken workflow from a quiet

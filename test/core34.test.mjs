@@ -10,7 +10,7 @@ import { loadManifest, validateManifest } from '../src/manifest.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
 import { runParseWeb, runDeduplicate, runVerifySources } from '../src/registry-data-steps.mjs';
 import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
-// These tests exercise gate mechanics with an embedding-host record; an agent session would refuse it.
+// These tests exercise gate mechanics with a synthetic terminal record; an agent session would refuse it.
 for (const name of AGENT_SESSION_ENV) delete process.env[name];
 
 const HEADER = date => `**Штучно-інтелектуальний дайджест під суботню каву на [ХУЇКС](https://t.me/xyiikc)і by [QFactory.io](https://QFactory.io) 🧋${date}**`;
@@ -288,15 +288,15 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
       assert.deepEqual(step('approval').output.subject.factCheck, step('checks').output.factCheck, 'the gate binds the checked text and its verdicts');
     }
     const approvalHash = step('approval').output.approvalHash;
-    await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: '0'.repeat(64) }), /Approval/);
-    await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash });
+    await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'tty-code' }, approvalHash: '0'.repeat(64) }), /Approval/);
+    await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'tty-code' }, approvalHash });
     assert.equal(run.status, 'success', run.summary);
     const lines = readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n');
     assert.equal(lines.length, 1);
     assert.match(lines[0], /Штучно-інтелектуальний дайджест/);
     const repeat = createRun(manifest);
     await driveRun(repeat, opts);
-    await resumeRun(repeat, { ...opts, decision: 'approve', confirmation: { channel: 'test-human' }, approvalHash: repeat.steps.find(s => s.stepId === 'approval').output.approvalHash });
+    await resumeRun(repeat, { ...opts, decision: 'approve', confirmation: { channel: 'tty-code' }, approvalHash: repeat.steps.find(s => s.stepId === 'approval').output.approvalHash });
     assert.equal(repeat.status, 'success');
     assert.equal(repeat.steps.at(-1).output.duplicatePrevented, true);
     assert.equal(readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n').length, 1);

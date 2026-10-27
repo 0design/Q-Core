@@ -5,6 +5,7 @@
     "bin/agent.mjs",
     "bin/content.mjs",
     "bin/q-core-host.mjs",
+    "bin/q-core-mcp.mjs",
     "bin/q-core.mjs",
     "bin/q-workflow.mjs",
     "contracts/v1/caller-inference.md",
@@ -70,6 +71,11 @@
     "README.md",
     "SPEC-MANIFEST.md",
     "src/agent.mjs",
+    "src/approval-anchor.d.mts",
+    "src/approval-anchor.mjs",
+    "src/approval-delivery.mjs",
+    "src/approver-setup.mjs",
+    "src/approver-write-boundary.mjs",
     "src/caller-inference.mjs",
     "src/capabilities.mjs",
     "src/catalog.mjs",
@@ -82,6 +88,7 @@
     "src/cost.mjs",
     "src/delivery-receipts.mjs",
     "src/determined.mjs",
+    "src/elicitation-confirmation.mjs",
     "src/flatten.mjs",
     "src/host.mjs",
     "src/http.mjs",
@@ -93,6 +100,8 @@
     "src/material-graph.d.mts",
     "src/material-graph.mjs",
     "src/material-io.mjs",
+    "src/mcp-approval.mjs",
+    "src/mcp.mjs",
     "src/persistence.mjs",
     "src/providers/anthropic.mjs",
     "src/providers/claude.mjs",
@@ -120,7 +129,9 @@
     "src/upstream-adapters.mjs",
     "src/workflow-policy.mjs",
     "src/workspace.mjs",
-    "src/yaml.mjs"
+    "src/yaml.mjs",
+    "tools/touchid-approve/main.swift",
+    "tools/touchid-approve/README.md"
   ],
   "registryRelease": {
     "objects": [

@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { CoreError } from './contracts.mjs';
 import { assertNoDecodedSecrets, MAX_SECRET_RECORD_BYTES } from './secret-decoding.mjs';
+import { assertApproverWriteAllowed } from './approver-write-boundary.mjs';
 
 // Credentials stay in memory. All persistent bytes, including temporary files,
 // pass this boundary; provider response filtering is an independent first layer.
@@ -240,6 +241,7 @@ function recoverStreamDestination(fd, identity, writes) {
 }
 
 export function assertPersistencePath(file) {
+  assertApproverWriteAllowed(file);
   if (typeof file !== 'number') redact(Buffer.from(file instanceof URL ? file.href : file), true);
 }
 
@@ -257,22 +259,27 @@ export function guardedOpenSync(path, flags, mode) {
 }
 
 export function guardedRenameSync(source, destination) {
+  assertApproverWriteAllowed(source, { recursive: true });
+  assertApproverWriteAllowed(destination, { recursive: true });
   assertPersistencePath(source);
   assertPersistencePath(destination);
   return renameSync(source, destination);
 }
 
 export function guardedUnlinkSync(path) {
+  assertApproverWriteAllowed(path, { recursive: true });
   assertPersistencePath(path);
   return unlinkSync(path);
 }
 
 export function guardedRmSync(path, options) {
+  assertApproverWriteAllowed(path, { recursive: true });
   assertPersistencePath(path);
   return rmSync(path, options);
 }
 
 export function guardedRm(path, options) {
+  assertApproverWriteAllowed(path, { recursive: true });
   assertPersistencePath(path);
   return rm(path, options);
 }
@@ -304,6 +311,7 @@ export function guardedWriteFileSync(file, data, options) {
 
 /** The sole fd writer (append logs and already-open, symlink-safe file sinks). */
 export function guardedWriteSync(fd, data, ...args) {
+  assertApproverWriteAllowed(fd);
   if (typeof data === 'string') {
     const [position = null, encoding = 'utf8'] = args;
     const { output } = prepare(data, { encoding });
@@ -321,8 +329,18 @@ export function guardedWriteSync(fd, data, ...args) {
   return written;
 }
 
+/** Exact human previews must refuse rather than display redacted content under its original hash. */
+export function assertUnredactedOutput(data) {
+  if (prepare(data).output !== data) throw new CoreError('PERSISTENCE_SECRET_UNSAFE', 'Exact delivery preview contains credentials and cannot be shown in a form.');
+}
+
 /** stdout/stderr may be redirected to a production log, so guard those bytes too. */
+/** Close a writable after its bytes have passed guardedStreamWrite. */
+export function guardedStreamEnd(stream) { stream.end(); }
+
 export function guardedStreamWrite(stream, data) {
+  if (typeof stream.fd === 'number') assertApproverWriteAllowed(stream.fd);
+  if (typeof stream.path === 'string' || Buffer.isBuffer(stream.path) || stream.path instanceof URL) assertApproverWriteAllowed(stream.path);
   const { output } = prepare(data);
   const identity = typeof stream.fd === 'number' ? fileIdentity(stream.fd) : null;
   // stdout and stderr can share one log inode after `2>&1`; use the physical

@@ -1,6 +1,17 @@
 #!/usr/bin/env node
 import { guardedStreamWrite } from "../src/persistence.mjs";
-if (process.argv[2] === "auth") {
+if (process.argv[2] === "approver") {
+  try {
+    const args = process.argv.slice(3);
+    if (args.length !== 2 || !['add', 'remove'].includes(args[0]) || args[1] !== 'touchid')
+      throw new Error('Usage: q-core approver add touchid | q-core approver remove touchid');
+    const { addTouchIdApprover, removeTouchIdApprover } = await import('../src/approver-setup.mjs');
+    guardedStreamWrite(process.stdout, JSON.stringify(args[0] === 'add' ? addTouchIdApprover() : removeTouchIdApprover()) + '\n');
+  } catch (error) {
+    guardedStreamWrite(process.stderr, `${error?.code ?? 'APPROVER_SETUP_FAILED'}: ${error.message}\n`);
+    process.exitCode = 1;
+  }
+} else if (process.argv[2] === "auth") {
   try {
     const { hasKeychainSecret, removeKeychainSecret, setKeychainSecret } = await import("../src/secrets.mjs");
     const [operation, provider, keyRef = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENROUTER_API_KEY", ...extra] = process.argv.slice(3);

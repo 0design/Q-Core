@@ -56,6 +56,37 @@ Have an idea for a workflow? [Open an issue](https://github.com/0design/Q-Core/i
 2. Write `Use qfactory.io`, or copy a template's start prompt from the table above.
 3. The agent connects QFactory, explains what it will do and waits for your "ok" before installing anything.
 
+### Approving from your agent chat
+
+On a Mac with Touch ID and the Swift compiler, register your local approver once:
+
+```sh
+q-core approver add touchid
+```
+
+Setup builds the bundled Swift helper and creates a P-256 private key in the Secure Enclave, restricted to the currently enrolled biometrics. Node stores only the public key in `~/.q-core/approvers/touchid.json`. The native helper retains an opaque, hardware-wrapped key representation in `~/Library/Application Support/q-core-touchid-approve/`; only the issuing Secure Enclave can use it, subject to the biometric access control. There is no software signing fallback. Changing enrolled fingerprints invalidates the key; re-enrollment requires explicitly removing the old helper enrollment and public-key registration before setup.
+
+Connect the local approval server to an MCP client that supports form elicitation:
+
+```json
+{
+  "mcpServers": {
+    "q-core-approval": {
+      "command": "node",
+      "args": ["/absolute/path/to/q-core/bin/q-core-mcp.mjs", "/absolute/path/to/workflow.yaml"]
+    }
+  }
+}
+```
+
+When a workflow reaches `waiting_human`, ask your agent to call `request_approval` with `run_id` and `gate_id` (the gate's `rowId`, or its unique `stepId`). The client shows the full subject, available delivery bodies and destinations, and their SHA-256. Choose **approve** or **reject** in that preview, then confirm that decision with the macOS Touch ID prompt. The form alone cannot approve. Touch ID signs the run, gate, exact content hash, decision, single-use nonce and issue time. A verified approval continues the run; a verified rejection fails the gate. Approval is never a tool argument.
+
+Content must be ready before the gate: if a later step still needs to generate delivery content, the server refuses. Changed content requires a fresh request. Nonces expire after two minutes and cannot be reused; an expired nonce, changed hash or wrong key is refused. Closing or declining the form leaves the run waiting. Clients without form elicitation or a registered approver receive an error. The existing `q-core approve` terminal command and its one-time code remain available. This local server is separate from the hosted, read-only Registry MCP.
+
+The `ApprovalAnchor` interface verifies signed decisions through a registered anchor; an arbitrary callback returning `true` is not registration. A phone confirmation through a Telegram button is **coming**: its adapter will require server-verified signatures or callbacks. Telegram is not implemented yet. Protect the installed helper, Q-Core code and approver registration from modification: signature verification assumes those local files remain trustworthy. Plaintext private key material never leaves the Secure Enclave.
+
+**What this protects, and what it does not.** Touch ID makes sure an agent cannot get a gate approved through Q-Core's own interfaces (MCP tools, CLI commands, tool arguments, the chat form, replays) without your finger on the sensor. It guards against an agent that approves by mistake, hallucinates an approval, or follows injected instructions. It is not a boundary against code that already runs with your user rights and is willing to modify Q-Core, `~/.q-core`, or the helper — such code could also deliver content without Q-Core at all. Protection against that needs the irreversible step to run outside your machine, with credentials and the approver key held by a server.
+
 ### Without an agent
 
 You need Node.js 20.3 or newer. In an empty folder this installs Q-Core and the SDD pipeline and shows its steps without running them. On Linux, use `sha256sum` instead of `shasum -a 256`.
