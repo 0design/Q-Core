@@ -39,7 +39,7 @@ export function assertInferenceOutput(outputKind, output) {
   insist(output && typeof output === 'object' && !Array.isArray(output), 'Unexpected inference output fields', 'INVALID_RESPONSE');
   const keys=Object.keys(output).sort().join(',');
   insist(outputKind==='specification' ? ['criteria,plan,summary','questions'].includes(keys) : outputKind==='files' ? keys==='files' :
-    outputKind==='text' && keys==='text' && typeof output.text==='string' && output.text.trim().length>0,
+    keys==='text' && typeof output.text==='string' && output.text.trim().length>0,
     'Unexpected inference output fields','INVALID_RESPONSE');
 }
 

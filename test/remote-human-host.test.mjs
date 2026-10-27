@@ -2,6 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { assertInferenceOutput } from '../src/caller-inference.mjs';
+
+test('shared caller output shape preserves content and text compatibility', () => {
+  for (const kind of ['content','text']) {
+    assert.doesNotThrow(() => assertInferenceOutput(kind, { text: 'Synthetic caller output.' }));
+    for (const output of [{ text: 17 }, { text: ' ' }, {}, { text: 'fixture', extra: true }, null, []])
+      assert.throws(() => assertInferenceOutput(kind, output), error => error.code === 'INVALID_RESPONSE');
+  }
+  assert.doesNotThrow(() => assertInferenceOutput('specification', { summary: 'fixture', criteria: ['fixture'], plan: ['fixture'] }));
+  assert.doesNotThrow(() => assertInferenceOutput('specification', { questions: ['fixture'] }));
+  assert.doesNotThrow(() => assertInferenceOutput('files', { files: [] }));
+});
 
 // Only disposable fixtures are run with this explicit simulation environment.
 // The parent agent session is not modified; no existing run can be passed in.
