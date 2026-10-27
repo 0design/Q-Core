@@ -101,6 +101,7 @@
     "src/quality.mjs",
     "src/recovery.mjs",
     "src/registry-cli-step.mjs",
+    "src/registry-codex-step.mjs",
     "src/registry-data-steps.mjs",
     "src/registry-release.mjs",
     "src/registry-workspace-steps.mjs",

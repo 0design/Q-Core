@@ -15,3 +15,14 @@ Supply a local provider JSON file containing only `kind: caller`, `agent: codex`
 Replies are bound to the stored job and input context. Replay, altered context, oversized output and expiry fail. Execution configuration is persisted; editing the manifest is not a way to change an in-flight run. A human gate still needs explicit approval. Job completion and its next state transition are persisted together.
 
 The state folder can contain source material and model output. Treat it as local working data. Do not publish it or store API keys in it. OpenRouter steps remain explicitly separate; do not use them as a fallback for a CLI step.
+
+## Independent operator Codex route
+
+`provider: codex` in a workflow is distinct from the current-agent caller above.
+It invokes the native isolated Codex adapter using the exact operator identity
+passed with `--operator-codex-provider`; it creates no caller job and cannot
+consume one. See SPEC-MANIFEST section 5.2 for strict fields, null USD budget,
+durable unknown-cost reservation, agent-host refusal and no-retry behavior.
+This capability is a source candidate; it does not create an accepted Registry
+component or activate a scheduler. Human approval and external dispatch stay
+separate requirements.

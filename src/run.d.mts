@@ -30,7 +30,7 @@ export interface RunStep {
   tokensOut: number | null;
   costUsd: number | null;
   /** Where a model step's cost came from; absent on steps that call no model. */
-  costSource?: "provider" | "rate-table" | "unknown";
+  costSource?: "provider" | "rate-table" | "unknown" | "subscription-usage-unknown";
   item?: unknown;
   itemIndex: number | null;
   startedAt: string | null;
@@ -58,6 +58,7 @@ export interface Run {
   clarificationContext?: { hash: string; questions: Array<{ id: string; question: string }>; answers: Array<{ id: string; answer: string }> };
   clarificationHistory?: Array<{ hash: string; questions: Array<{ id: string; question: string }>; seq: number; stepId: string; inferenceJobId: string; answers: Array<{ id: string; answer: string }>; answerHash: string; answeredAt: string }>;
   callerProvider?: DriveOptions['callerProvider'];
+  operatorCodexProvider?: DriveOptions['operatorCodexProvider'];
   executionKnobs?: Knobs;
   workspacePolicy?: { workspace: string; allowedPaths: string[]; intent: string; verifier: { command: string; args: string[]; timeoutMs: number }; maxRepairAttempts?: number; specification?: { summary: string; criteria: string[]; plan: string[] } };
   repairAttempt?: number;
@@ -81,6 +82,7 @@ export interface DriveOptions {
   /** Runtime provider injection; never persisted in run state. */
   providers?: { anthropic?: (request: Record<string, unknown>) => Promise<{ content: string; usage: { tokensIn: number | null; tokensOut: number | null; costUsd: number | null; billingUnknown?: boolean }; provider: { kind: string; model?: string | null } }> };
   callerProvider?: { kind: 'caller'; agent: 'codex' | 'claude'; model: string; payerScope: 'local-cli' };
+  operatorCodexProvider?: { kind: 'codex'; executable: string; model: string; payerScope: 'local-cli' };
   inferenceReply?: { jobId: string; hash: string; output: { text: string } };
   clarification?: { hash: string; answers: Array<{ id: string; answer: string }> };
   maxInferenceJobs?: number;

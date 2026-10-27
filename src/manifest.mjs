@@ -146,8 +146,14 @@ function validateStep(raw, path, seenIds) {
   if (kind === "llm-call" && !config.instructions) {
     throw new ManifestError('an llm-call step needs "config.instructions"', `${path}.config`);
   }
-  if (kind === "llm-call" && config.provider != null && !["openrouter", "anthropic", "cli"].includes(config.provider)) {
-    throw new ManifestError('"provider" must be "openrouter", "anthropic" or "cli"', `${path}.config.provider`);
+  if (kind === "llm-call" && config.provider != null && !["openrouter", "anthropic", "cli", "codex"].includes(config.provider)) {
+    throw new ManifestError('"provider" must be "openrouter", "anthropic", "cli" or "codex"', `${path}.config.provider`);
+  }
+  if (kind === "llm-call" && config.provider === "codex") {
+    if (Object.keys(config).some(k => !['provider','instructions','input','format','retries','timeoutSec'].includes(k)) ||
+        config.retries !== '0' || !/^[1-9][0-9]{0,2}$/.test(config.timeoutSec ?? '') ||
+        Number(config.timeoutSec) > 300 || !['text','json'].includes(config.format ?? 'text'))
+      throw new ManifestError('operator Codex requires explicit retries: 0 and timeoutSec: 1..300; only input, instructions and format are otherwise configurable', `${path}.config`);
   }
   if (kind === "llm-call" && config.workspaceId != null &&
       (config.provider !== "anthropic" || !/^[A-Za-z0-9_-]{1,200}$/.test(config.workspaceId))) {

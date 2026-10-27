@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0-q-core.53 candidate — 2026-10-27
+
+- Add an explicit independent-operator Codex provider for YAML model steps,
+  separate from the unchanged current-agent caller route. Reuse the isolated
+  native CLI adapter and persist its credential-free provider identity.
+- Require a null USD budget on every ancestor, zero retries and a bounded
+  deadline. Persist unknown-cost reservation before executable probes; hold
+  interrupted attempts and never retry them automatically.
+- Refuse agent-origin execution, tool activity and unsupported configuration.
+  Model output cannot decide a human gate or authorize external publication.
+- This is a source/artifact candidate, not an accepted Registry component,
+  runtime installation, scheduler activation or live integration proof.
+
 ## 0.2.0-q-core.52 candidate — 2026-10-27
 
 - Add terminal-enrolled remote human request/receipt verification and durable

@@ -21,6 +21,7 @@ import { agentSessionMarker } from './human-confirmation.mjs';
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination, llmCallPolicy } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
+import { registryCodexStep, operatorCodexPolicy } from './registry-codex-step.mjs';
 import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-steps.mjs";
 import { runWorkspaceRead, runSpecification, runWorkspaceApply, runVerifyArtifact, runDetermined, assertFreshWorkspaceArtifact } from "./registry-workspace-steps.mjs";
 import { snapshot, contextFiles } from './workspace.mjs';
@@ -667,9 +668,21 @@ async function driveRunScoped(run, opts) {
     }
 
     try {
-      if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter", "anthropic"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
+      if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter", "anthropic", "codex"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
       let result;
-      if (cliStep) {
+      if (next.kind === 'llm-call' && next.config.provider === 'codex') {
+        if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('Operator Codex subscription cost is unknown; set budgetUsd to null on every ancestor.');
+        const input = next.config.input ? resolveTemplateValue(next.config.input, { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }) : priorOutputs;
+        if (next.config.input && input === undefined) throw new Error('Operator Codex input reference did not resolve');
+        result = await registryCodexStep(run, {
+          config: next.config,
+          instructions: resolveTemplate(str(next.config, 'instructions') ?? '', {priorOutputs,priorStepNames,inputs,item:next.item,index:next.itemIndex}),
+          input,
+          provider: opts.operatorCodexProvider ?? run.operatorCodexProvider,
+          signal: opts.signal,
+          reserve: () => { next.costUsd=null; run.costUsd=null; persist(); },
+        });
+      } else if (cliStep) {
         if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => id !== 'root' && resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null on every ancestor and use bounded inference jobs.');
         const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }) : undefined;
         if (step.config.input && explicitInput === undefined) throw new Error('CLI input reference did not resolve');
@@ -863,6 +876,7 @@ async function dispatch(step, ctx, knobs) {
 function plannedOutput(step, ctx, knobs) {
   const label = stepLabel(step);
   if (step.kind === "llm-call") {
+    if (step.config.provider === 'codex') { const policy=operatorCodexPolicy(step.config); return {planned:true,step:label,provider:'operator-codex',model:'explicit_operator_provider',timeoutSec:policy.timeoutMs/1000,retries:0,costUsd:null}; }
     if (step.config.provider === "cli") return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step) };
     const { retries, timeoutMs, maxCallCostUsd } = llmCallPolicy(step.config, label);
     return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step), retries, maxAttempts: retries + 1, timeoutSec: timeoutMs / 1000, maxCallCostUsd: maxCallCostUsd ?? null };
