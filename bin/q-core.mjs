@@ -20,6 +20,14 @@ if (process.argv[2] === "auth") {
     guardedStreamWrite(process.stderr, `${e?.code ?? "AUTH_FAILED"}: ${e?.message ?? "Protected secret operation failed"}\n`);
     process.exitCode = 1;
   }
+} else if (process.argv[2] === "remote-human") {
+  try {
+    const { remoteHumanCli } = await import('../src/remote-human-host.mjs');
+    guardedStreamWrite(process.stdout, JSON.stringify(remoteHumanCli(process.argv.slice(3))) + '\n');
+  } catch (error) {
+    guardedStreamWrite(process.stderr, `${error.code ?? 'REMOTE_APPROVAL_INVALID'}: ${error.message}\n`);
+    process.exitCode = 1;
+  }
 } else if (["agent", "content"].includes(process.argv[2]) && process.argv[3] === "approve") {
   // A person records the decision for a waiting JSON-protocol run.
   const { humanApproveCli } = await import("../src/human-decision.mjs");

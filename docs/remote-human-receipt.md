@@ -63,3 +63,53 @@ integration.
 cryptographic fixtures. These are not real people, enrolled production keys,
 Telegram callbacks, live approvals or delivery receipts. No external account
 or service is contacted.
+# Native enrollment and durable consumption candidate
+
+`src/remote-human-host.mjs` adds a **separate, unpublished native candidate** on
+top of the stateless verifier. It does not change `q-core approve`, remove agent
+markers, upgrade installed Cores, or register an accepted Registry component.
+
+- A person in their own terminal can use `q-core remote-human enroll <manifest>
+  <policy-file>`. The policy contains only `publicKey` (public Ed25519 PEM),
+  `endpoint` (canonical HTTPS, no credentials/query/fragment), literal Telegram
+  `reviewerId` and `chatId`, and the exact current `manifestHash`. The existing
+  one-time-code terminal confirmation displays these bindings. No private key or
+  Telegram token is generated, accepted or stored by Core.
+- `q-core remote-human request <manifest> <runId>` persists a challenge before
+  any notification. It requires an enabled, flat host-created workflow with one
+  sha256 human gate, matching enrolled manifest bytes and runtime step/settings
+  snapshots. Nested/control-flow workflows and other approval formats are
+  refused in this first candidate. Repeating a current request returns the same
+  challenge without rewriting it; expiry creates a new challenge.
+- `consumeRemoteHumanDecision(manifest, runId, receiptJson)` is a native library
+  entry point for a separately operated human host. It refuses agent sessions.
+  Under the workspace lock it reloads enrollment/run, verifies the exact current
+  run snapshot and signed receipt, and replaces **one run file** containing both
+  the terminal challenge and gate transition. Consumption is by challenge state,
+  so another valid receipt ID for that challenge is also refused after restart.
+  It returns `authorizationApplied: true, effectExecuted: false` after commit.
+  It never calls `driveRun`, performs a network request or publishes.
+
+Authority persistence refuses secret redaction, uses an exclusive private temp,
+flushes the file, renames it and flushes its parent directory. Unsupported flushes
+fail closed. A failure after rename can mean the transaction is already visible:
+the future host must reload and reconcile, never assume rollback or execute from
+an in-memory modified run. Stale workspace locks require inspection; this module
+does not remove them. Existing ordinary `RunStore` persistence is unchanged.
+
+Remaining integration: authenticated Telegram delivery/card callback and signing
+provider, a human-host execution lease and poll/recovery loop, approval-service
+adapter, current-source/STOP preflight at the effect boundary, compatible Registry
+release and live account E2Es. The enrolled public key delegates callback identity
+verification to its provider; a signature alone does not prove a particular chat
+message was seen or approved. The current receipt protocol does not itself attest
+a Telegram card ID or transport delivery. Unsigned local state is not protected
+against a deliberately malicious process with the same OS user privileges.
+
+Tests create new temporary workflows and ephemeral signing keys, use a simulated
+terminal in an explicitly isolated fixture process, and send only to loopback or a
+temporary local receipt file. They verify gate consumption, reject, replay with
+two receipt IDs, source/config/provider changes, expiry, agent refusal, symlinks,
+locks, persistence refusal and file/directory flush failure boundaries. An explicit
+fixture driver after commit produces one local receipt and no duplicate on reload.
+These are controlled tests, not the user's enrollment, decision or a live host.
