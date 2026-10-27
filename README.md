@@ -85,6 +85,8 @@ Content must be ready before the gate: if a later step still needs to generate d
 
 The `ApprovalAnchor` interface verifies signed decisions through a registered anchor; an arbitrary callback returning `true` is not registration. A phone confirmation through a Telegram button is **coming**: its adapter will require server-verified signatures or callbacks. Telegram is not implemented yet. Protect the installed helper, Q-Core code and approver registration from modification: signature verification assumes those local files remain trustworthy. Plaintext private key material never leaves the Secure Enclave.
 
+**What this protects, and what it does not.** Touch ID makes sure an agent cannot get a gate approved through Q-Core's own interfaces (MCP tools, CLI commands, tool arguments, the chat form, replays) without your finger on the sensor. It guards against an agent that approves by mistake, hallucinates an approval, or follows injected instructions. It is not a boundary against code that already runs with your user rights and is willing to modify Q-Core, `~/.q-core`, or the helper — such code could also deliver content without Q-Core at all. Protection against that needs the irreversible step to run outside your machine, with credentials and the approver key held by a server.
+
 ### Without an agent
 
 You need Node.js 20.3 or newer. In an empty folder this installs Q-Core and the SDD pipeline and shows its steps without running them. On Linux, use `sha256sum` instead of `shasum -a 256`.
