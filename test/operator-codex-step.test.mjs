@@ -80,11 +80,32 @@ test('dry-run validates call limits without executing operator CLI',t=>{
   assert.equal(r.status,0,r.stderr+r.stdout);const run=JSON.parse(r.stdout);assert.equal(run.steps[0].status,'planned');assert.equal(run.steps[0].output.retries,0);assert.equal(existsSync(f.trace),false);
 });
 
-test('failed durable reservation prevents executable probes',t=>{
+test('missing concrete store refuses before executable probes',t=>{
   const f=fresh(t);
-  const script=`import assert from 'node:assert/strict';import {loadManifest} from ${JSON.stringify(new URL('../src/manifest.mjs',import.meta.url).href)};import {createRun,driveRun,resolveKnobs} from ${JSON.stringify(new URL('../src/run.mjs',import.meta.url).href)};import {readFileSync,existsSync} from 'node:fs';const [manifest,provider,trace]=process.argv.slice(1);const m=loadManifest(manifest),run=createRun(m);const store={save(r){if(r.steps[0].costUsd===null)throw Error('fixture-durable-reservation-failed');}};await assert.rejects(driveRun(run,{store,knobs:resolveKnobs(m.settings),operatorCodexProvider:JSON.parse(readFileSync(provider))}),/fixture-durable-reservation-failed/);assert.equal(existsSync(trace),false);console.log('reservation-pass');`;
+  const script=`import assert from 'node:assert/strict';import {loadManifest} from ${JSON.stringify(new URL('../src/manifest.mjs',import.meta.url).href)};import {createRun,driveRun,resolveKnobs} from ${JSON.stringify(new URL('../src/run.mjs',import.meta.url).href)};import {readFileSync,existsSync} from 'node:fs';const [manifest,provider,trace]=process.argv.slice(1);const m=loadManifest(manifest),run=createRun(m);const result=await driveRun(run,{knobs:resolveKnobs(m.settings),operatorCodexProvider:JSON.parse(readFileSync(provider))});assert.equal(result.status,'failed');assert.match(result.summary,/concrete durable RunStore/);assert.equal(existsSync(trace),false);console.log('missing-store-pass');`;
   const r=spawnSync(process.execPath,['--input-type=module','-e',script,f.manifest,f.provider,f.trace],{env:{PATH:process.env.PATH},cwd:f.dir,encoding:'utf8',timeout:15000});
-  assert.equal(r.status,0,r.stderr+r.stdout);assert.equal(r.stdout.trim(),'reservation-pass');
+  assert.equal(r.status,0,r.stderr+r.stdout);assert.equal(r.stdout.trim(),'missing-store-pass');
+});
+
+for(const faultAt of [1,2,3,4])test(`actual RunStore fsync failure ${faultAt} stops before executable probes`,t=>{
+  const f=fresh(t);
+  const script=`import assert from 'node:assert/strict';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';let calls=0;const original=fs.fsyncSync;fs.fsyncSync=fd=>{calls++;if(calls===${faultAt})throw Object.assign(Error('new-fixture-fsync-EIO'),{code:'EIO'});return original(fd);};syncBuiltinESMExports();const {loadManifest}=await import(${JSON.stringify(new URL('../src/manifest.mjs',import.meta.url).href)});const {createRun,driveRun,resolveKnobs,RunStore}=await import(${JSON.stringify(new URL('../src/run.mjs',import.meta.url).href)});const [manifest,provider,trace]=process.argv.slice(1);const m=loadManifest(manifest),run=createRun(m),store=new RunStore(manifest);const result=await driveRun(run,{store,knobs:resolveKnobs(m.settings),operatorCodexProvider:JSON.parse(fs.readFileSync(provider))});assert.equal(result.status,'failed');assert.equal(fs.existsSync(trace),false);assert.ok(calls>=${faultAt});assert.equal(result.costUsd,null);console.log('fsync-fault-pass');`;
+  const r=spawnSync(process.execPath,['--input-type=module','-e',script,f.manifest,f.provider,f.trace],{env:{PATH:process.env.PATH},cwd:f.dir,encoding:'utf8',timeout:15000});
+  assert.equal(r.status,0,r.stderr+r.stdout);assert.equal(r.stdout.trim(),'fsync-fault-pass');
+});
+
+test('persisted provider cannot be replaced by options',t=>{
+  const f=fresh(t);
+  const script=`import assert from 'node:assert/strict';import {loadManifest} from ${JSON.stringify(new URL('../src/manifest.mjs',import.meta.url).href)};import {createRun,driveRun,resolveKnobs,RunStore} from ${JSON.stringify(new URL('../src/run.mjs',import.meta.url).href)};import {readFileSync,existsSync} from 'node:fs';const [manifest,provider,trace]=process.argv.slice(1);const m=loadManifest(manifest),run=createRun(m),store=new RunStore(manifest),identity=JSON.parse(readFileSync(provider));run.operatorCodexProvider=identity;store.save(run);const result=await driveRun(store.load(run.runId),{store,knobs:resolveKnobs(m.settings),operatorCodexProvider:{...identity,model:'inspect'}});assert.equal(result.status,'failed');assert.match(result.summary,/identity changed/);assert.equal(existsSync(trace),false);assert.deepEqual(store.load(run.runId).operatorCodexProvider,identity);console.log('provider-binding-pass');`;
+  const r=spawnSync(process.execPath,['--input-type=module','-e',script,f.manifest,f.provider,f.trace],{env:{PATH:process.env.PATH},cwd:f.dir,encoding:'utf8',timeout:15000});
+  assert.equal(r.status,0,r.stderr+r.stdout);assert.equal(r.stdout.trim(),'provider-binding-pass');
+});
+
+test('library invocation binds provider once and flushes file plus directories before success',t=>{
+  const f=fresh(t);
+  const script=`import assert from 'node:assert/strict';import fs from 'node:fs';import {syncBuiltinESMExports} from 'node:module';let flushes=0;const original=fs.fsyncSync;fs.fsyncSync=fd=>{flushes++;return original(fd);};syncBuiltinESMExports();const {loadManifest}=await import(${JSON.stringify(new URL('../src/manifest.mjs',import.meta.url).href)});const {createRun,driveRun,resolveKnobs,RunStore}=await import(${JSON.stringify(new URL('../src/run.mjs',import.meta.url).href)});const [manifest,provider,trace]=process.argv.slice(1);const m=loadManifest(manifest),run=createRun(m),store=new RunStore(manifest),identity=JSON.parse(fs.readFileSync(provider));const result=await driveRun(run,{store,knobs:resolveKnobs(m.settings),operatorCodexProvider:identity});assert.equal(result.status,'success');assert.deepEqual(store.load(run.runId).operatorCodexProvider,identity);assert.ok(flushes>=4);assert.equal(result.steps[0].provider.requestedModel,identity.model);console.log('durable-identity-pass');`;
+  const r=spawnSync(process.execPath,['--input-type=module','-e',script,f.manifest,f.provider,f.trace],{env:{PATH:process.env.PATH},cwd:f.dir,encoding:'utf8',timeout:15000});
+  assert.equal(r.status,0,r.stderr+r.stdout);assert.equal(r.stdout.trim(),'durable-identity-pass');
 });
 
 test('interrupted native model row holds without repeating inference',t=>{

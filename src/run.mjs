@@ -678,9 +678,13 @@ async function driveRunScoped(run, opts) {
           config: next.config,
           instructions: resolveTemplate(str(next.config, 'instructions') ?? '', {priorOutputs,priorStepNames,inputs,item:next.item,index:next.itemIndex}),
           input,
-          provider: opts.operatorCodexProvider ?? run.operatorCodexProvider,
+          provider: opts.operatorCodexProvider,
           signal: opts.signal,
-          reserve: () => { next.costUsd=null; run.costUsd=null; persist(); },
+          reserve: () => {
+            insist(store instanceof RunStore, 'Operator Codex requires a concrete durable RunStore');
+            next.costUsd=null; run.costUsd=null; updateInvocationStates(run);
+            RunStore.prototype.saveDurable.call(store,run);
+          },
         });
       } else if (cliStep) {
         if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => id !== 'root' && resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null on every ancestor and use bounded inference jobs.');

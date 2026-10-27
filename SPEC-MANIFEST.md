@@ -204,8 +204,8 @@ listed price rather than guessing (`COST_UNKNOWN`).
 answer or replace `provider: cli` caller jobs. Use an explicit
 `--operator-codex-provider provider.json` containing exactly `kind: codex`, an
 absolute `executable`, an explicit `model`, and `payerScope: local-cli`.
-This identity is persisted in the run, without credentials. Only an independent
-operator host may execute it; known agent sessions refuse before provider access.
+This identity is copied once into the run, without credentials; a later override
+refuses before executable probes. Only an independent operator host may execute it; known agent sessions refuse before provider access.
 Configuration permits only `provider`, `instructions`, `input`, `format`,
 `retries: 0` and an explicit `timeoutSec: 1..300`. API keys, YAML model overrides,
 `maxTokens`, temperature and other unused settings refuse rather than being
@@ -216,9 +216,10 @@ The native Codex adapter uses its reviewed CLI/version and ChatGPT-login checks,
 an empty temporary directory, read-only sandbox, disabled tools/integrations and
 strict JSONL parsing. A tool request, malformed result, timeout or unknown failure
 holds/fails with no provider fallback or automatic retry. Before executable probes,
-a durable unknown-cost attempt reservation is saved; a failed save prevents the
-call. An interrupted running row remains held for reconciliation. A text/json
-result may continue the workflow but never decides a human gate or grants sending
+a concrete RunStore is required. Its unknown-cost attempt reservation flushes
+the exact file and containing directory entries to disk; a missing store or any
+failed file/directory fsync prevents the call. An interrupted running row remains
+held for reconciliation. A text/json result may continue the workflow but never decides a human gate or grants sending
 permission. This source capability is separate from Registry component acceptance;
 no accepted `llm-call-cli` status is inherited by the native operator route.
 
