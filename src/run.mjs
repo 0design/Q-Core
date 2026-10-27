@@ -21,6 +21,7 @@ import { agentSessionMarker } from './human-confirmation.mjs';
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
 import { runFetch, runLlmCall, runApiRequest, runApprovalGate, stepLabel, checkFileDestination, llmCallPolicy } from "./steps.mjs";
 import { registryCliStep } from "./registry-cli-step.mjs";
+import { registryCodexStep, operatorCodexPolicy } from './registry-codex-step.mjs';
 import { runParseWeb, runDeduplicate, runVerifySources } from "./registry-data-steps.mjs";
 import { runWorkspaceRead, runSpecification, runWorkspaceApply, runVerifyArtifact, runDetermined, assertFreshWorkspaceArtifact } from "./registry-workspace-steps.mjs";
 import { snapshot, contextFiles } from './workspace.mjs';
@@ -231,9 +232,19 @@ function lastOutputRow(run, step, { passOverAgentGates = false } = {}) {
 // over (they are shown beside the subject), unless the gate keeps the legacy `subject: previous` (the
 // output of the step directly before it, whatever its kind). An agent gate judges the previous output, as before.
 function currentSubjectRow(run, gate) {
+  if (gate.config?.source != null) {
+    // The manifest pins a required object input. Its contents remain data:
+    // no template substitution or model echo is performed on the input value.
+    const match = /^\{\{inputs\.([A-Za-z_][A-Za-z0-9_-]*)\}\}$/.exec(gate.config.source);
+    insist(match && gate.config.bind === 'sha256' && (gate.config.reviewer ?? 'human') === 'human', 'Invalid gate input source');
+    const inputs = run.invocations?.[gate.invocationId ?? 'root']?.inputs ?? run.inputs ?? {};
+    insist(Object.hasOwn(inputs, match[1]) && inputs[match[1]] && typeof inputs[match[1]] === 'object' && !Array.isArray(inputs[match[1]]), 'Gate object input is missing');
+    return { rowId: `input:${gate.rowId}`, seq: gate.seq, output: structuredClone(inputs[match[1]]) };
+  }
   return lastOutputRow(run, gate, { passOverAgentGates: (gate.config?.reviewer ?? 'human') === 'human' && gate.config?.subject !== 'previous' });
 }
 function gateSubjectRow(run, gate) {
+  if (gate.config?.source != null) return currentSubjectRow(run, gate);
   return gate.boundSubjectRowId ? run.steps.find(row => row.rowId === gate.boundSubjectRowId) : currentSubjectRow(run, gate);
 }
 /** The agent verdicts given on a human gate's subject, shown beside it; never part of the subject or its hash. */
@@ -389,6 +400,17 @@ export async function driveRun(run, opts = {}) {
 
 async function driveRunScoped(run, opts) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
+  // A saved running row has an uncertain outcome. Skipping it and selecting a
+  // later pending row can lose an effect/readback or falsely report success.
+  // Fresh executions enter with pending rows; interrupted executions reconcile.
+  if (run.steps.some(step => step.status === 'running' && !(step.kind === 'workflow-call' &&
+    typeof step.childInvocationId === 'string' && Object.hasOwn(run.invocations ?? {}, step.childInvocationId)))) {
+    run.status = 'needs_human';
+    run.summary = 'Interrupted step outcome is unknown; reconcile it before continuing.';
+    run.finishedAt = new Date().toISOString();
+    store?.save(run);
+    return run;
+  }
   let inferenceReply = opts.inferenceReply;
   if (opts.clarification !== undefined) {
     insist(inferenceReply === undefined, 'Submit clarification separately from a caller inference reply', 'INVALID_CLARIFICATION');
@@ -613,6 +635,9 @@ async function driveRunScoped(run, opts) {
         ? { reserveAnthropicCost: worst => reserveAnthropicCost(run, invocationId, knobs, worst) } : {}),
     };
 
+    // Trusted embedding-host hook, never a manifest/model instruction. Refusal
+    // occurs before the outgoing step's running claim or any external action.
+    if (!dryRun && opts.beforeStep) await opts.beforeStep(next, run);
     next.status = "running";
     next.startedAt = new Date().toISOString();
     persist();
@@ -643,9 +668,25 @@ async function driveRunScoped(run, opts) {
     }
 
     try {
-      if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter", "anthropic"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
+      if (next.kind === "llm-call" && next.config.provider && !["cli", "openrouter", "anthropic", "codex"].includes(next.config.provider)) throw new Error("Unknown inference provider; no fallback is allowed");
       let result;
-      if (cliStep) {
+      if (next.kind === 'llm-call' && next.config.provider === 'codex') {
+        if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('Operator Codex subscription cost is unknown; set budgetUsd to null on every ancestor.');
+        const input = next.config.input ? resolveTemplateValue(next.config.input, { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }) : priorOutputs;
+        if (next.config.input && input === undefined) throw new Error('Operator Codex input reference did not resolve');
+        result = await registryCodexStep(run, {
+          config: next.config,
+          instructions: resolveTemplate(str(next.config, 'instructions') ?? '', {priorOutputs,priorStepNames,inputs,item:next.item,index:next.itemIndex}),
+          input,
+          provider: opts.operatorCodexProvider,
+          signal: opts.signal,
+          reserve: () => {
+            insist(store instanceof RunStore, 'Operator Codex requires a concrete durable RunStore');
+            next.costUsd=null; run.costUsd=null; updateInvocationStates(run);
+            RunStore.prototype.saveDurable.call(store,run);
+          },
+        });
+      } else if (cliStep) {
         if (knobs.budgetUsd !== null || ancestry(run, invocationId).some(id => id !== 'root' && resolveKnobs(run.invocations[id].settings).budgetUsd !== null)) throw new Error('CLI usage cost is unknown; explicitly set budgetUsd to null on every ancestor and use bounded inference jobs.');
         const explicitInput = step.config.input ? resolveTemplateValue(step.config.input, { priorOutputs, priorStepNames, inputs, item: next.item, index: next.itemIndex }) : undefined;
         if (step.config.input && explicitInput === undefined) throw new Error('CLI input reference did not resolve');
@@ -839,6 +880,7 @@ async function dispatch(step, ctx, knobs) {
 function plannedOutput(step, ctx, knobs) {
   const label = stepLabel(step);
   if (step.kind === "llm-call") {
+    if (step.config.provider === 'codex') { const policy=operatorCodexPolicy(step.config); return {planned:true,step:label,provider:'operator-codex',model:'explicit_operator_provider',timeoutSec:policy.timeoutMs/1000,retries:0,costUsd:null}; }
     if (step.config.provider === "cli") return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step) };
     const { retries, timeoutMs, maxCallCostUsd } = llmCallPolicy(step.config, label);
     return { planned: true, step: label, model: stepModel(step, knobs), maxTokens: stepMaxTokens(step), retries, maxAttempts: retries + 1, timeoutSec: timeoutMs / 1000, maxCallCostUsd: maxCallCostUsd ?? null };

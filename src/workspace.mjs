@@ -211,9 +211,10 @@ export function atomicJson(file, value) {
   guardedRenameSync(tmp, file);
   return result;
 }
-export function lockWorkspace(workspace) {
+export function lockWorkspace(workspace, lockName = 'agent.lock') {
+  insist(['agent.lock', 'workflow.lock'].includes(lockName), 'Unknown workspace lock', 'SCOPE_DENIED');
   const dir = join(realpathSync(workspace), ".qf");
-  const lock = join(dir, "agent.lock");
+  const lock = join(dir, lockName);
   assertPersistencePath(dir);
   assertPersistencePath(lock);
   if (existsSync(dir))

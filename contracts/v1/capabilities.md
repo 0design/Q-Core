@@ -16,6 +16,7 @@ The returned object has this execution contract:
 | `componentProtocol`, `bundleProtocol`, `nestedWorkflowCalls` | Executable component and portable bundle namespaces; support for pinned local child calls. |
 | `contractRevision` | Revision from the single machine-readable contract metadata file. |
 | `providerKinds` | Provider kinds accepted by Core request validation. |
+| `workflowModelProviders` | Explicit YAML model-provider selectors. `cli` is current-agent caller inference; `codex` is independent-operator native CLI inference. This list is capability support, not Registry acceptance or configured access. |
 | `reviewedCliVersions` | Reviewed local CLI versions keyed by provider. |
 | `secretStore.platforms`, `secretStore.modes` | Supported protected-store platforms and secret source modes. |
 

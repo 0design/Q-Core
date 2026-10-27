@@ -179,7 +179,7 @@ The RSS reader is regex-based, not an XML parser. It handles CDATA, `<item>` and
 | field | | |
 |---|---|---|
 | `instructions` | REQUIRED | templated |
-| `provider` | `openrouter` \| `anthropic` \| `cli` | default `openrouter` |
+| `provider` | `openrouter` \| `anthropic` \| `cli` \| `codex` | default `openrouter` |
 | `format` | `text` \| `json` | default `text` |
 | `maxTokens` | | default 1200 |
 | `temperature` | | default 0.3 |
@@ -199,6 +199,29 @@ reports them; an out-of-range value fails the step, it is never clamped.
 `maxCallCostUsd` refuses a call whose worst case (prompt bytes + `maxTokens`, every
 attempt) exceeds the cap at the model's listed price, and refuses a model with no
 listed price rather than guessing (`COST_UNKNOWN`).
+
+`provider: codex` is a separate operator-owned native CLI route. It does not
+answer or replace `provider: cli` caller jobs. Use an explicit
+`--operator-codex-provider provider.json` containing exactly `kind: codex`, an
+absolute `executable`, an explicit `model`, and `payerScope: local-cli`.
+This identity is copied once into the run, without credentials; a later override
+refuses before executable probes. Only an independent operator host may execute it; known agent sessions refuse before provider access.
+Configuration permits only `provider`, `instructions`, `input`, `format`,
+`retries: 0` and an explicit `timeoutSec: 1..300`. API keys, YAML model overrides,
+`maxTokens`, temperature and other unused settings refuse rather than being
+silently ignored. Set `budgetUsd: null` on every ancestor: subscription USD usage
+is unknown, not zero. Known token counts are retained when available.
+
+The native Codex adapter uses its reviewed CLI/version and ChatGPT-login checks,
+an empty temporary directory, read-only sandbox, disabled tools/integrations and
+strict JSONL parsing. A tool request, malformed result, timeout or unknown failure
+holds/fails with no provider fallback or automatic retry. Before executable probes,
+a concrete RunStore is required. Its unknown-cost attempt reservation flushes
+the exact file and containing directory entries to disk; a missing store or any
+failed file/directory fsync prevents the call. An interrupted running row remains
+held for reconciliation. A text/json result may continue the workflow but never decides a human gate or grants sending
+permission. This source capability is separate from Registry component acceptance;
+no accepted `llm-call-cli` status is inherited by the native operator route.
 
 With `provider: anthropic`, the step calls the Anthropic Messages API directly,
 using the owner's API key; it needs no OpenRouter request or external shim.
@@ -285,6 +308,7 @@ One kind, two modes; they differ only in *who* decides.
 | `escalateOn` | `objection` hands a failed check to a person | default `objection` |
 | `maxTokens` | `reviewer: agent` — answer budget, integer 1–32000 | default `1024` |
 | `subject` | `reviewer: human` — `previous` keeps the legacy subject (see below) | |
+| `source` | Candidate: one whole `{{inputs.name}}` reference to a required object input; human + `bind: sha256` only; cannot combine with `subject` | |
 | `mode` | `check` is `RESERVED` — refused | |
 
 **`reviewer: agent`** returns `{pass, reason}`. An answer that is not one readable
@@ -306,7 +330,7 @@ again at apply time, even if the apply tries to omit its approval reference.
 Human gates retain their existing pause and decision requirements. The separate
 policy for created workflows that send data remains below.
 
-**The subject of a human gate is one output:** that of the last successful step before
+**Without `source`, the subject of a human gate is one output:** that of the last successful step before
 it in the same material (in execution order, whatever the step IDs), passing over agent gates directly before it — the person
 approves the content those gates judged, which is what goes on to delivery. Their
 verdicts are shown beside it (`reviews`) and are not part of the subject or its hash.
@@ -320,6 +344,12 @@ step or child workflow directly before the gate. Fields that stay local (`name`,
 directly after a control-flow step, `fan-out` or another human gate (or an agent gate under `subject: previous`) is not judged.
 This warning does not relax the mandatory subject binding for a governed
 `workspace-apply` described below.
+
+A human gate with `bind: sha256` may instead set `source: "{{inputs.subject}}"`,
+where `subject` is a declared required object input (another safe input name is
+allowed). It binds that entire input object literally, including any text that
+looks like a template. It does not fetch data or ask a model to reproduce the
+object. `source` cannot be combined with `subject: previous`.
 
 **Only a person decides a human gate.** `q-core approve` (and `--reject`)
 asks on the controlling terminal: it prints the subject and a fresh one-time code to

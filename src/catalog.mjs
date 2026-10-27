@@ -78,7 +78,7 @@ export function describeWorkflow(file, { examplesDir } = {}) {
   const needsModel = kinds.includes("llm-call") || gates.some((g) => g.config?.reviewer === "agent");
   const env = envRefsOf(m);
   const providerEnv = [];
-  if (all.some(s => s.kind === "llm-call" && s.config?.provider !== "anthropic")
+  if (all.some(s => s.kind === "llm-call" && !["anthropic", "cli", "codex"].includes(s.config?.provider))
     || gates.some(g => g.config?.reviewer === "agent" && g.config?.provider !== "anthropic"))
     providerEnv.push("OPENROUTER_API_KEY");
   for (const step of all.filter(s => (s.kind === "llm-call" || (s.kind === "approval-gate" && s.config?.reviewer === "agent"))

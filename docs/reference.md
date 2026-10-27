@@ -469,3 +469,90 @@ Explicit current-agent inference for SDD and Content: [caller protocol](../contr
 Local manual, UTC schedule, and authenticated loopback webhook triggers use `q-core-host`; see [host contract](../contracts/v1/host.md). The host does not install a daemon or supply model inference.
 
 `runSkill` enforces the explicit criteria of a pinned authored skill bundle with independent Node verifiers and version-bound human review. See [skill contract](../contracts/v1/skill.md) and `examples/skill-caller.mjs`; arbitrary prose is not automatically machine-verifiable.
+
+### Read-only native execution observation
+
+The unreleased native candidate exports `inspectRemoteHumanExecution(manifest, runId)`
+from `src/remote-human-host.mjs`. A separately authenticated operator adapter can
+observe an exact currently running post-gate step after a valid signed decision
+has been consumed. It rereads enrollment, manifest, signed checkpoint and the live
+workflow lease; waiting, unconsumed, expired, changed and completed runs refuse.
+The API is person-host-only and read-only, including missing state directories.
+It does not approve, consume, drive, publish, acquire/remove a lease or reconcile
+an uncertain effect. Its observation is not publication permission by itself:
+application account/source/STOP/evidence/endpoint checks and durable delivery
+claims still belong to the adapter. Same OS user deliberate state/code/key
+changes remain outside this local trust boundary.
+
+
+### Human STOP after an interrupted native run
+
+The unreleased native candidate supports one bounded recovery path for a known
+run with an enrolled exact human gate, a completed original host dispatch and a
+well-formed workflow lease whose process is verified gone. The manifest path
+must be canonical. It does not evict leases by age, kill a process, repair an
+incomplete start, approve a gate, retry a request or decide whether a platform
+published anything.
+
+A person, in their own terminal outside an agent session, first runs:
+
+```text
+q-core remote-human recovery-plan <manifest> <runId>
+```
+
+The read-only plan returns an exact snapshot hash and the former process ID.
+After inspecting that plan, the person runs:
+
+```text
+q-core remote-human recovery-stop <manifest> <runId> <snapshotHash>
+```
+
+Core requires a fresh terminal code and rechecks the snapshot. It preserves the
+original native gate, receipt, steps and uncertain effect information; durably
+records a human STOP and cancelled run; then releases the dead owner's lease.
+The external effect outcome remains `unknown`. The run cannot be consumed or
+resumed again. A different event may subsequently start, but replaying the old
+host event only returns its existing run. Applications must retain their own
+uncertain delivery claim and prevent recreating that publication as a fresh
+run until separate platform readback/reconciliation.
+
+`inspectStoppedRemoteHumanRun(manifest, runId)` validates the whole permitted
+stop delta read-only, including the original signed decision when present. Its
+`qf.remote-human-stopped/v1` result is not evidence of delivery or non-delivery,
+and is not the existing pristine-waiting cancellation protocol used by edits.
+
+Live/reused/unverifiable PIDs, missing or malformed leases, changed inputs and
+incomplete host dispatch refuse. All ordinary workflow writers also respect
+active recovery claims. The STOP prepares its complete private claim before
+atomic publication. If it is interrupted after publication, a person can inspect
+that claim without releasing it:
+
+```text
+q-core remote-human recovery-finalize-plan <manifest> <runId>
+```
+
+This read-only plan requires the recovery owner's process to be verified gone.
+It pins the current claim, original context, checkpoint and remaining original
+lease. A person can then finish this exact STOP with a new terminal code:
+
+```text
+q-core remote-human recovery-finalize <manifest> <runId> <snapshotHash>
+```
+
+Finalization durably commits the original STOP, releases only the verified old
+lease when it remains, and atomically archives the whole claim in private
+recovery history. A cancelled checkpoint is preserved byte-for-byte. Concurrent
+finalizers cannot adopt a newer live owner; another interruption requires a new
+plan after that owner is verified gone. No publication is retried or reconciled.
+
+If completion was not acknowledged, inspect its saved history read-only:
+
+```text
+q-core remote-human recovery-finalized <manifest> <runId>
+```
+
+Its result validates the stopped checkpoint and cleanup history. It does not
+prove delivery, or promise that another unrelated run has no current lease.
+Legacy fixed-file claims, malformed claims and incomplete starts remain held
+for separate investigation. Do not delete locks or alter saved claims to retry.
+Same OS user deliberate state/code/key changes remain outside the local boundary.

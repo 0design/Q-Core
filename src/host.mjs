@@ -11,6 +11,30 @@ import { RunStore } from './state.mjs';
 import { hash, insist } from './contracts.mjs';
 import { validateCallerInput } from './caller-inference.mjs';
 import { validateWorkspacePolicy } from './registry-workspace-steps.mjs';
+import { withWorkflowLease } from './workflow-lease.mjs';
+import { bindInputs } from './material-io.mjs';
+
+function jsonInputs(value) {
+  let nodes = 0;
+  const visit = (v, depth = 0) => {
+    insist(++nodes <= 50000 && depth <= 20, 'Host inputs exceed JSON bounds');
+    if (v === null || typeof v === 'string' || typeof v === 'boolean') return v;
+    if (typeof v === 'number') { insist(Number.isFinite(v), 'Host inputs require finite JSON numbers'); return v; }
+    insist(v && typeof v === 'object' && (Array.isArray(v) || [Object.prototype, null].includes(Object.getPrototypeOf(v))), 'Host inputs must be JSON data');
+    insist(!Object.getOwnPropertySymbols(v).length, 'Host inputs cannot contain symbol fields');
+    const keys = Object.keys(v), result = Array.isArray(v) ? [] : Object.create(null);
+    if (Array.isArray(v)) insist(keys.length === v.length && keys.every((k, i) => k === String(i)), 'Host input arrays must be dense JSON arrays');
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(v, key);
+      insist(descriptor && Object.hasOwn(descriptor, 'value'), 'Host inputs cannot contain getters');
+      result[key] = visit(descriptor.value, depth + 1);
+    }
+    return result;
+  };
+  const body = JSON.stringify(visit(value));
+  insist(Buffer.byteLength(body) <= 1048576, 'Host inputs exceed one MiB');
+  return JSON.parse(body);
+}
 
 export function cronMatches(expression, date) {
   assertCron(expression);
@@ -53,28 +77,38 @@ export function createLocalHost(config) {
   for (const path of [dir, lock, active, active + '.tmp']) assertPersistencePath(path);
   guardedMkdirSync(dir,{recursive:true,mode:0o700});
   for(const path of [store.dir,join(store.dir,'host'),dir]) insist(!lstatSync(path).isSymbolicLink(),'Unsafe host directory');
-  async function dispatch(kind,eventId) {
+  async function dispatch(kind,eventId,inputs = {}) {
+    const snapshot = jsonInputs(inputs);
+    return withWorkflowLease(file, () => dispatchLeased(kind,eventId,snapshot));
+  }
+  async function dispatchLeased(kind,eventId,inputs) {
     insist(['manual','schedule','webhook'].includes(kind),'Unsupported host trigger');
     insist(typeof eventId === 'string' && /^[a-zA-Z0-9_.:-]{1,128}$/.test(eventId),'Bounded event ID required');
     const manifest=verify();
     insist(manifest.enabled,'Workflow is disabled');
     insist(manifest.triggers.some(t=>t.kind===kind),'Trigger is not declared by this workflow');
+    const boundInputs = bindInputs(manifest.inputs, inputs), inputsHash = hash(boundInputs);
     const receipt=join(dir,hash({kind,eventId})+'.json');
     for (const path of [receipt, receipt + '.tmp', active, active + '.tmp', lock]) assertPersistencePath(path);
     guardedWriteFileSync(lock,'',{flag:'wx',mode:0o600});
     try {
-      if(existsSync(receipt)) { const prior=safeJson(receipt); insist(prior.phase==='completed','Prior trigger outcome is uncertain; reconcile before retry'); return {...prior,duplicate:true}; }
+      if(existsSync(receipt)) {
+        const prior=safeJson(receipt);
+        insist(prior.inputsHash === inputsHash || (!Object.hasOwn(prior,'inputsHash') && !Object.keys(boundInputs).length && !Object.keys(manifest.inputs).length), 'Host event inputs changed; use a new event ID');
+        insist(prior.phase==='completed','Prior trigger outcome is uncertain; reconcile before retry'); return {...prior,duplicate:true};
+      }
       if(existsSync(active)) { const prior=safeJson(active), run=store.load(prior.runId); insist(run && ['success','failed','cancelled','needs_human'].includes(run.status),'Previous run is still active or waiting; resume it before starting another'); }
-      const run=createRun(manifest,{trigger:kind});
+      const run=createRun(manifest,{trigger:kind,inputs:boundInputs});
       run.hostEvent={id:eventId,manifestSha256:config.manifestSha256};
       run.executionKnobs=resolveKnobs(manifest.settings);
       if(config.callerProvider) run.callerProvider=config.callerProvider;
       if(policy) run.workspacePolicy=policy;
       store.save(run);
-      atomic(receipt,{phase:'claimed',runId:run.runId,kind,eventId});
+      insist(hash(store.load(run.runId).inputs) === inputsHash, 'Persisted host inputs changed');
+      atomic(receipt,{phase:'claimed',runId:run.runId,kind,eventId,inputsHash});
       atomic(active,{runId:run.runId});
       const result=await driveRun(run,{store,knobs:run.executionKnobs,callerProvider:run.callerProvider,apiKey:process.env.OPENROUTER_API_KEY??null});
-      const output={phase:'completed',runId:run.runId,kind,eventId,status:result.status};
+      const output={phase:'completed',runId:run.runId,kind,eventId,inputsHash,status:result.status};
       atomic(receipt,output);
       return output;
     } finally { guardedUnlinkSync(lock); }

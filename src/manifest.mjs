@@ -146,8 +146,14 @@ function validateStep(raw, path, seenIds) {
   if (kind === "llm-call" && !config.instructions) {
     throw new ManifestError('an llm-call step needs "config.instructions"', `${path}.config`);
   }
-  if (kind === "llm-call" && config.provider != null && !["openrouter", "anthropic", "cli"].includes(config.provider)) {
-    throw new ManifestError('"provider" must be "openrouter", "anthropic" or "cli"', `${path}.config.provider`);
+  if (kind === "llm-call" && config.provider != null && !["openrouter", "anthropic", "cli", "codex"].includes(config.provider)) {
+    throw new ManifestError('"provider" must be "openrouter", "anthropic", "cli" or "codex"', `${path}.config.provider`);
+  }
+  if (kind === "llm-call" && config.provider === "codex") {
+    if (Object.keys(config).some(k => !['provider','instructions','input','format','retries','timeoutSec'].includes(k)) ||
+        config.retries !== '0' || !/^[1-9][0-9]{0,2}$/.test(config.timeoutSec ?? '') ||
+        Number(config.timeoutSec) > 300 || !['text','json'].includes(config.format ?? 'text'))
+      throw new ManifestError('operator Codex requires explicit retries: 0 and timeoutSec: 1..300; only input, instructions and format are otherwise configurable', `${path}.config`);
   }
   if (kind === "llm-call" && config.workspaceId != null &&
       (config.provider !== "anthropic" || !/^[A-Za-z0-9_-]{1,200}$/.test(config.workspaceId))) {
@@ -167,6 +173,10 @@ function validateStep(raw, path, seenIds) {
   }
   if (kind === "approval-gate") {
     const reviewer = config.reviewer ?? "human";
+    if (config.source != null && (reviewer !== 'human' || config.bind !== 'sha256' || config.subject != null ||
+        !/^\{\{inputs\.[A-Za-z_][A-Za-z0-9_-]*\}\}$/.test(config.source))) {
+      throw new ManifestError('source requires a human sha256 gate and one whole declared object input reference; cannot combine with subject', `${path}.config.source`);
+    }
     if (!["human", "agent"].includes(reviewer)) {
       throw new ManifestError(`"reviewer" must be "human" or "agent", got "${reviewer}"`, `${path}.config`);
     }
@@ -381,6 +391,16 @@ export function validateManifest(doc) {
   let inputs, outputs;
   try { inputs = validatePorts(doc.inputs); outputs = validatePorts(doc.outputs, { output: true, path: 'outputs' }); }
   catch (error) { throw new ManifestError(error.message); }
+
+  const checkGateInputs = list => list.forEach(step => {
+    if (step.kind === 'approval-gate' && step.config.source != null) {
+      const name = step.config.source.slice(9, -2), port = inputs[name];
+      if (!port || port.type !== 'object' || port.required === false)
+        throw new ManifestError('source must name a required declared object input', `steps.${step.id}.config.source`);
+    }
+    for (const branch of [step.then, step.else, step.default, ...Object.values(step.cases ?? {})]) if (branch) checkGateInputs(branch);
+  });
+  checkGateInputs(steps);
 
   return {
     manifest: tag,

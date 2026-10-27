@@ -24,6 +24,7 @@ test("coreCapabilities exposes static contract and provider metadata", () => {
     contentProtocol: "qf.content-request/v1",
     contractRevision: contractMetadata.revision,
     providerKinds: ["claude", "codex", "openrouter", "caller"],
+    workflowModelProviders: ["openrouter", "anthropic", "cli", "codex"],
     reviewedCliVersions: {
       claude: ["2.1.156"],
       codex: ["0.153.4", "0.154.0-alpha.6.2"],
@@ -69,5 +70,6 @@ test("installed consumer can import capabilities without provider startup", () =
   assert.equal(installed.contractRevision, contractMetadata.revision);
   assert.equal(installed.schema, "qf.capabilities/v1");
   assert.deepEqual(installed.providerKinds, ["claude", "codex", "openrouter", "caller"]);
+  assert.deepEqual(installed.workflowModelProviders, ["openrouter", "anthropic", "cli", "codex"]);
   assert.deepEqual(installed.secretStore.modes, ["env", "keychain"]);
 });

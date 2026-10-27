@@ -34,3 +34,20 @@ fallback. Receipts do not guarantee exactly-once external effects after a crash.
 Success means an actual recorded Core run; waiting states remain waiting. The
 host never turns an unresolved run into success or silently retries uncertain
 side effects.
+
+## Prepared object inputs (unreleased candidate)
+
+The embedding API `createLocalHost(config).dispatch(kind, eventId, inputs)` accepts
+declared typed JSON inputs. Inputs are copied before waiting for the lease, bounded
+to one MiB/depth20/50,000 values, and validated against manifest ports. Getters,
+functions, sparse arrays, non-finite numbers and non-JSON objects refuse. The
+input hash is stored in the event receipt; the same event with different inputs
+refuses. Legacy receipts without a hash can repeat only an input-free manifest.
+The HTTP webhook body remains ignored, and the CLI is unchanged.
+
+A human sha256 gate can declare `source: "{{inputs.subject}}"` where `subject` is
+a required object port. It binds that entire object directly, including template
+strings as literal data, without a fetch or model echo. Missing/wrong types refuse;
+changed inputs invalidate the waiting decision. The normal person-only decision
+and native signed-consumption rules remain in force. No input is itself a decision.
+Only the existing default previous-content behavior applies when source is absent.

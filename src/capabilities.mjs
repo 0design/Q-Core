@@ -51,6 +51,7 @@ export function coreCapabilities() {
     contentProtocol: protocols.content,
     contractRevision: contractMetadata.revision,
     providerKinds: Object.freeze([...PROVIDER_KINDS]),
+    workflowModelProviders: Object.freeze(["openrouter", "anthropic", "cli", "codex"]),
     reviewedCliVersions: Object.freeze({
       claude: Object.freeze([...CLAUDE_VERSIONS]),
       codex: Object.freeze([...CODEX_VERSIONS]),

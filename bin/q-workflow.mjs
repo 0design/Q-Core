@@ -5,7 +5,9 @@
  *   q-core validate <manifest>          read it, check it, say what it would do
  *   q-core run <manifest>               one pass, for real
  *   q-core run <manifest> --dry-run     one pass with no side effects at all
- *   q-core run <manifest> --caller-provider <provider.json> --json
+ *   q-core run <manifest> --operator-codex-provider <provider.json> --json
+                                    explicit independent operator Codex provider
+  q-core run <manifest> --caller-provider <provider.json> --json
                                     start explicit CLI caller inference
   q-core reply <manifest> <runId> <reply.json> --json
                                     submit the exact pending job response
@@ -40,6 +42,7 @@ import { buildCatalog, fetchRemoteCatalog, fetchRemoteManifest, REMOTE_CATALOG_B
 import { parseYaml } from "../src/yaml.mjs";
 import { exportMaterialBundle } from '../src/material-graph.mjs';
 import { loadComponentDescriptor } from '../src/component-descriptor.mjs';
+import { withWorkflowLease } from '../src/workflow-lease.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(join(HERE, "..", "package.json"), "utf8"));
@@ -64,6 +67,8 @@ const USAGE = `q-core ${PKG.version} — run a QFactory workflow from a YAML man
   q-core export <manifest> <dir>     export exact bytes and all pinned local dependencies
   q-core run <manifest> [--dry-run]  execute one pass
                                     --inputs <inputs.json> binds typed root inputs
+  q-core run <manifest> --operator-codex-provider <provider.json> --json
+                                    explicit independent operator Codex provider
   q-core run <manifest> --caller-provider <provider.json> --json
                                     start explicit CLI caller inference
   q-core reply <manifest> <runId> <reply.json> --json
@@ -138,7 +143,7 @@ function fail(message, code = EXIT_FAILED) {
 /** Control-flow signal: the exit code has already been set. */
 class ExitSignal extends Error {}
 
-const VALUED_FLAGS = new Set(["section", "caller-provider", "approval-hash", "workspace-policy", "inputs"]);
+const VALUED_FLAGS = new Set(["section", "caller-provider", "operator-codex-provider", "approval-hash", "workspace-policy", "inputs"]);
 
 function parseArgs(argv) {
   const flags = new Set();
@@ -294,6 +299,10 @@ async function cmdRun(args, flags, opts) {
     validateCallerInput({ provider });
     run.callerProvider = provider;
   }
+  if (opts['operator-codex-provider']) {
+    const {validateOperatorCodexProvider}=await import('../src/registry-codex-step.mjs');
+    run.operatorCodexProvider=validateOperatorCodexProvider(readBoundedJson(opts['operator-codex-provider']));
+  }
   run.executionKnobs = knobs;
   if (opts['workspace-policy']) {
     const { validateWorkspacePolicy } = await import('../src/registry-workspace-steps.mjs');
@@ -309,7 +318,7 @@ async function cmdRun(args, flags, opts) {
     result = await driveRun(run, {
       store,
       knobs,
-      callerProvider: run.callerProvider,
+      callerProvider: run.callerProvider, operatorCodexProvider: run.operatorCodexProvider,
       dryRun,
       apiKey: process.env.OPENROUTER_API_KEY ?? null,
       signal: abort.signal,
@@ -353,14 +362,19 @@ function readBoundedJson(file) {
   if (statSync(file).size > 128000) fail('JSON input exceeds 128000 bytes');
   return JSON.parse(readFileSync(file, 'utf8'));
 }
+function refuseNativeContinuation(run) {
+  if (run && Object.hasOwn(run, 'remoteHuman'))
+    fail('Native-owned run requires its enrolled human host; ordinary continuation is refused');
+}
 async function cmdReply(args) {
   const [file, runId, replyFile] = args;
   if (!file || !runId || !replyFile) fail('q-core reply <manifest> <runId> <reply.json>', EXIT_USAGE);
   const store = new RunStore(file);
   const run = store.load(runId);
+  refuseNativeContinuation(run);
   if (!run || run.status !== 'waiting_inference' || !run.pendingInference) fail('Run is not waiting for CLI inference');
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
-  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
+  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, operatorCodexProvider: run.operatorCodexProvider, inferenceReply: readBoundedJson(replyFile) });
   store.saveLastRun(result);
   guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
@@ -370,9 +384,10 @@ async function cmdClarify(args) {
   const [file, runId, answersFile] = args;
   if (!file || !runId || !answersFile) fail('q-core clarify <manifest> <runId> <answers.json>', EXIT_USAGE);
   const store = new RunStore(file), run = store.load(runId);
+  refuseNativeContinuation(run);
   if (!run || run.status !== 'waiting_human' || !run.pendingClarification) fail('Run is not waiting for SDD clarification answers');
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
-  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, clarification: readBoundedJson(answersFile) });
+  const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, operatorCodexProvider: run.operatorCodexProvider, clarification: readBoundedJson(answersFile) });
   store.saveLastRun(result);
   guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'success' ? EXIT_OK : ['waiting_inference', 'waiting_human'].includes(result.status) ? EXIT_WAITING : EXIT_FAILED;
@@ -383,7 +398,8 @@ async function cmdPaused(args, action) {
   if (!file || !runId) fail(`q-core ${action} <manifest> <runId>`, EXIT_USAGE);
   const store = new RunStore(file), run = store.load(runId);
   if (!run) fail('Unknown run');
-  const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
+  if (action !== 'cancel') refuseNativeContinuation(run);
+  const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, operatorCodexProvider: run.operatorCodexProvider };
   const result = action === 'cancel' ? cancelWaitingRun(run, opts) : await resumeCancelledRun(run, opts);
   store.saveLastRun(result); guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
   return result.status === 'cancelled' ? 130 : result.status === 'success' ? 0 : 2;
@@ -473,6 +489,7 @@ async function cmdApprove(args, flags, opts) {
   if (!runId) fail("no run is waiting on a human here.");
   const run = store.load(runId);
   if (!run) fail(`run ${runId} not found under ${store.runsDir}`);
+  refuseNativeContinuation(run);
 
   const manifest = loadManifest(file);
   const decision = flags.has("reject") ? "reject" : "approve";
@@ -512,7 +529,7 @@ async function cmdApprove(args, flags, opts) {
     confirmation,
     store,
     knobs: run.executionKnobs ?? resolveKnobs(manifest.settings),
-    callerProvider: run.callerProvider,
+    callerProvider: run.callerProvider, operatorCodexProvider: run.operatorCodexProvider,
     apiKey: process.env.OPENROUTER_API_KEY ?? null,
     onStep: (s) => printStep(s, flags.has("quiet") || flags.has("json")),
   });
@@ -811,7 +828,10 @@ async function main() {
   const handler = commands[command];
   if (!handler) fail(`unknown command "${command}".\n\n${USAGE}`, EXIT_USAGE);
 
-  const code = await handler(args, flags, opts);
+  const writesRun = ['run', 'reply', 'clarify', 'cancel', 'resume', 'approve'].includes(command);
+  const code = writesRun && args[0]
+    ? await withWorkflowLease(args[0], () => handler(args, flags, opts))
+    : await handler(args, flags, opts);
   /* The version check runs AFTER the work, never before it, and never during a
      --quiet or --json run whose output something else is parsing. */
   if (!flags.has("quiet") && !flags.has("json")) {

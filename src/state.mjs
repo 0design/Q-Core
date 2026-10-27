@@ -1,4 +1,4 @@
-import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync, guardedDurableReplaceSync, guardedSyncDirectorySync } from './persistence.mjs';
 /**
  * Run state — plain files under `.qf/`, next to the manifest. No database.
  *
@@ -77,6 +77,20 @@ export class RunStore {
   save(run) {
     return withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run },
       () => writeJsonAtomic(this.runFile(run.runId), run));
+  }
+
+  /** Durable attempt boundary. Keep wrappers (native checkpoint ownership) in
+   * save(), then flush the exact guarded bytes and every newly created parent.
+   * Any error, including directory fsync after rename, prevents the attempt.
+   */
+  saveDurable(run) {
+    insist(this instanceof RunStore, 'A concrete RunStore is required for a durable attempt');
+    this.save(run);
+    return withPersistenceSecrets({env:persistenceEnvironment(run),receipt:run}, () => {
+      guardedDurableReplaceSync(this.runFile(run.runId), `${JSON.stringify(run,null,2)}\n`, {receipt:run});
+      guardedSyncDirectorySync(this.dir);
+      guardedSyncDirectorySync(dirname(this.dir));
+    });
   }
 
   recordSpecification(identity, value) {

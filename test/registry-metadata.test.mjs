@@ -29,5 +29,6 @@ test('metadata includes alternative branches and provider-specific access', () =
   assert.equal(metadata.steps, 5);
   assert.equal(metadata.humanGate, true);
   assert.deepEqual(metadata.needsEnv, ['SOURCE']);
+  assert.deepEqual(workflowMetadata({steps:[{kind:'llm-call',config:{provider:'codex'}}]}).needsEnv, []);
   assert.deepEqual(workflowMetadata({steps:[{kind:'llm-call'}]}).needsEnv, ['OPENROUTER_API_KEY']);
 });

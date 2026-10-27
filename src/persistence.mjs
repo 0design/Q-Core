@@ -1,4 +1,5 @@
-import { writeFileSync, writeSync, fstatSync, statSync, openSync, readSync, closeSync, mkdirSync, renameSync, unlinkSync, rmSync } from 'node:fs';
+import { writeFileSync, writeSync, fstatSync, statSync, lstatSync, openSync, readSync, closeSync, mkdirSync, renameSync, unlinkSync, rmSync, fsyncSync, constants } from 'node:fs';
+import { dirname, join, basename } from 'node:path';
 import { mkdir, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -260,6 +261,42 @@ export function guardedRenameSync(source, destination) {
   assertPersistencePath(source);
   assertPersistencePath(destination);
   return renameSync(source, destination);
+}
+
+/** Flush an existing directory entry. Unsupported filesystems fail closed. */
+export function guardedSyncDirectorySync(path) {
+  assertPersistencePath(path);
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_DIRECTORY);
+  try { fsyncSync(fd); } finally { closeSync(fd); }
+}
+
+/** Exact authority bytes: prepare before create, exclusive private temp, flush,
+ * rename, flush parent. Requires an existing, trusted parent directory. A failure
+ * after rename has an uncertain commit result: reread state; never infer rollback.
+ */
+export function guardedDurableReplaceSync(file, data, options = {}) {
+  assertPersistencePath(file);
+  const parent = dirname(file), tmp = join(parent, `.${basename(file)}.${randomUUID()}.tmp`);
+  assertPersistencePath(tmp);
+  const { output } = prepare(data, { ...options, failOnRedaction: true });
+  const dirfd = openSync(parent, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_DIRECTORY);
+  let fd, renamed = false;
+  try {
+    const before = fstatSync(dirfd), current = lstatSync(parent);
+    if (!current.isDirectory() || current.dev !== before.dev || current.ino !== before.ino) throw unsafe();
+    try { const target = lstatSync(file); if (!target.isFile() || target.isSymbolicLink() || target.nlink !== 1) throw unsafe(); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    fd = openSync(tmp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+    writeFileSync(fd, output); fsyncSync(fd); closeSync(fd); fd = undefined;
+    const after = lstatSync(parent);
+    if (after.dev !== before.dev || after.ino !== before.ino) throw unsafe();
+    renameSync(tmp, file); renamed = true; fsyncSync(dirfd);
+  } finally {
+    try {
+      if (fd !== undefined) closeSync(fd);
+      if (!renamed) try { unlinkSync(tmp); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    } finally { closeSync(dirfd); }
+  }
 }
 
 export function guardedUnlinkSync(path) {
