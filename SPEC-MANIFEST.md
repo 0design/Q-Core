@@ -307,7 +307,7 @@ again at apply time, even if the apply tries to omit its approval reference.
 Human gates retain their existing pause and decision requirements. The separate
 policy for created workflows that send data remains below.
 
-**The subject of a human gate is one output:** that of the last successful step before
+**Without `source`, the subject of a human gate is one output:** that of the last successful step before
 it in the same material (in execution order, whatever the step IDs), passing over agent gates directly before it — the person
 approves the content those gates judged, which is what goes on to delivery. Their
 verdicts are shown beside it (`reviews`) and are not part of the subject or its hash.
@@ -321,6 +321,12 @@ step or child workflow directly before the gate. Fields that stay local (`name`,
 directly after a control-flow step, `fan-out` or another human gate (or an agent gate under `subject: previous`) is not judged.
 This warning does not relax the mandatory subject binding for a governed
 `workspace-apply` described below.
+
+A human gate with `bind: sha256` may instead set `source: "{{inputs.subject}}"`,
+where `subject` is a declared required object input (another safe input name is
+allowed). It binds that entire input object literally, including any text that
+looks like a template. It does not fetch data or ask a model to reproduce the
+object. `source` cannot be combined with `subject: previous`.
 
 **Only a person decides a human gate.** `q-core approve` (and `--reject`)
 asks on the controlling terminal: it prints the subject and a fresh one-time code to
