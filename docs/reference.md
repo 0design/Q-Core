@@ -521,12 +521,38 @@ stop delta read-only, including the original signed decision when present. Its
 `qf.remote-human-stopped/v1` result is not evidence of delivery or non-delivery,
 and is not the existing pristine-waiting cancellation protocol used by edits.
 
-Live/reused/unverifiable PIDs, missing or malformed leases, changed inputs,
-incomplete host dispatch and an earlier interrupted repair refuse. All ordinary
-workflow writers also respect the recovery claim. A failure before final claim
-removal leaves it held for explicit investigation, even if the old lease was
-already removed. A final directory-flush failure can leave cleanup uncertain;
-the durable cancelled checkpoint still prevents repeating the stop or resuming
-the old effect. Do not remove either lock to force a retry. Handling an
-incomplete start or interrupted repair claim is a separate pending capability.
+Live/reused/unverifiable PIDs, missing or malformed leases, changed inputs and
+incomplete host dispatch refuse. All ordinary workflow writers also respect
+active recovery claims. The STOP prepares its complete private claim before
+atomic publication. If it is interrupted after publication, a person can inspect
+that claim without releasing it:
+
+```text
+q-core remote-human recovery-finalize-plan <manifest> <runId>
+```
+
+This read-only plan requires the recovery owner's process to be verified gone.
+It pins the current claim, original context, checkpoint and remaining original
+lease. A person can then finish this exact STOP with a new terminal code:
+
+```text
+q-core remote-human recovery-finalize <manifest> <runId> <snapshotHash>
+```
+
+Finalization durably commits the original STOP, releases only the verified old
+lease when it remains, and atomically archives the whole claim in private
+recovery history. A cancelled checkpoint is preserved byte-for-byte. Concurrent
+finalizers cannot adopt a newer live owner; another interruption requires a new
+plan after that owner is verified gone. No publication is retried or reconciled.
+
+If completion was not acknowledged, inspect its saved history read-only:
+
+```text
+q-core remote-human recovery-finalized <manifest> <runId>
+```
+
+Its result validates the stopped checkpoint and cleanup history. It does not
+prove delivery, or promise that another unrelated run has no current lease.
+Legacy fixed-file claims, malformed claims and incomplete starts remain held
+for separate investigation. Do not delete locks or alter saved claims to retry.
 Same OS user deliberate state/code/key changes remain outside the local boundary.

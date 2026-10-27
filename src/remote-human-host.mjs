@@ -1,18 +1,18 @@
 /** Candidate native enrollment, receipt consumption and leased continuation.
  * No provider transport, signing, service installation or platform adapter.
  */
-import { readFileSync, lstatSync, existsSync, realpathSync, closeSync } from 'node:fs';
+import { readFileSync, lstatSync, existsSync, realpathSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { hash, insist } from './contracts.mjs';
 import { agentSessionMarker, confirmHumanDecision } from './human-confirmation.mjs';
-import { acquireWorkflowLease } from './workflow-lease.mjs';
+import { acquireWorkflowLease, workflowRecoveryClaims, WORKFLOW_RECOVERY_PREFIX } from './workflow-lease.mjs';
 import { RunStore } from './state.mjs';
 import { createRun, waitingGate, resolveKnobs, driveRun } from './run.mjs';
 import { assertInferenceReply, assertInferenceOutput, validateCallerInput } from './caller-inference.mjs';
 import { loadWorkflow } from './workflow-policy.mjs';
 import { guardedDurableReplaceSync, guardedMkdirSync, guardedSyncDirectorySync,
-  guardedOpenSync, guardedUnlinkSync,
+  guardedRenameSync, guardedUnlinkSync,
   persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
 import { remoteApprovalKeyId, createRemoteApprovalRequest, assertRemoteApprovalRequest, verifyRemoteApprovalReceipt } from './remote-human-receipt.mjs';
 
@@ -282,7 +282,7 @@ function recoverySnapshot(ctx, runId) {
   const files = { manifest: hash(manifestRaw),
     enrollment: hash(policyRaw), run: hash(runRaw),
     active: hash(activeRaw), event: hash(eventRaw), lease: hash(lease.raw), leaseDev: lease.dev, leaseIno: lease.ino };
-  return { provider, run, lease, leaseFile, snapshotHash: hash(files) };
+  return { provider, run, lease, leaseFile, files, snapshotHash: hash(files) };
 }
 function stoppedRun(original, confirmation, snapshotHash) {
   const run = structuredClone(original);
@@ -306,7 +306,7 @@ function stoppedRun(original, confirmation, snapshotHash) {
 export function inspectRemoteHumanRecovery(file, runId) {
   personOnly();
   const ctx = context(file, { readOnly: true });
-  insist(!existsSync(join(ctx.store.dir, 'remote-human-recovery.lock')), 'An earlier repair needs investigation', 'WORKSPACE_LOCKED');
+  insist(workflowRecoveryClaims(ctx.root).length === 0, 'An earlier repair needs investigation', 'WORKSPACE_LOCKED');
   const value = recoverySnapshot(ctx, runId);
   return { protocol: 'qf.remote-human-recovery-plan/v1', runId, status: value.run.status,
     manifestHash: value.provider.manifestHash, snapshotHash: value.snapshotHash,
@@ -348,17 +348,15 @@ export function inspectStoppedRemoteHumanRun(file, runId) {
     snapshotHash: record.snapshotHash, effectOutcome: 'unknown', readOnly: true };
 }
 
-/** Human STOP only. No consume, resume, receipt, network or effect callback.
- * A durable stop precedes releasing the dead owner's lease. Failures before final claim removal
- * leave that claim held for explicit investigation rather than automatic retry.
- * A final directory-flush failure may leave cleanup uncertain; the durable
- * cancelled run still cannot be resumed or stopped a second time.
+/** Human STOP only. Authority is fully prepared in a private directory before
+ * atomic publication. Immutable owner names permit a later human to finish an
+ * interrupted STOP; they never permit a resend or a time-based lease eviction.
  */
 export function stopInterruptedRemoteHumanRun(file, runId, snapshotHash, io = {}) {
   personOnly();
   insist(typeof snapshotHash === 'string' && HEX.test(snapshotHash), 'Exact recovery snapshot required', 'REMOTE_RECOVERY_INVALID');
-  const ctx = context(file, { readOnly: true }), claimFile = join(ctx.store.dir, 'remote-human-recovery.lock');
-  insist(!existsSync(claimFile), 'An earlier repair needs investigation', 'WORKSPACE_LOCKED');
+  const ctx = context(file, { readOnly: true });
+  insist(workflowRecoveryClaims(ctx.root).length === 0, 'An earlier repair needs investigation', 'WORKSPACE_LOCKED');
   const initial = recoverySnapshot(ctx, runId);
   insist(initial.snapshotHash === snapshotHash, 'Recovery snapshot changed', 'REMOTE_RECOVERY_INVALID');
   const confirmation = confirmHumanDecision({ decision: 'reject', lines: [
@@ -369,29 +367,186 @@ export function stopInterruptedRemoteHumanRun(file, runId, snapshotHash, io = {}
   ] }, io);
   personOnly();
   insist(recoverySnapshot(ctx, runId).snapshotHash === snapshotHash, 'Recovery snapshot changed during confirmation', 'REMOTE_RECOVERY_INVALID');
-  let fd;
-  try {
-    fd = guardedOpenSync(claimFile, 'wx', 0o600);
-    closeSync(fd); fd = undefined;
-    // A crash even before this replacement leaves the exclusive empty claim
-    // held. Flush the complete claim with the existing guarded durable writer.
-    save(claimFile, { pid: process.pid, runId, snapshotHash });
-    const claimRaw = recoveryFile(claimFile, 16384), claimInfo = lstatSync(claimFile);
-    const current = recoverySnapshot(ctx, runId);
-    insist(current.snapshotHash === snapshotHash, 'Recovery snapshot changed before stop', 'REMOTE_RECOVERY_INVALID');
-    const run = stoppedRun(current.run, confirmation, snapshotHash);
-    withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run }, () => save(ctx.store.runFile(runId), run));
-    const observed = inspectStoppedRemoteHumanRun(file, runId);
-    const lease = deadLease(current.leaseFile);
-    insist(lease.raw === current.lease.raw && lease.dev === current.lease.dev && lease.ino === current.lease.ino,
-      'Workflow lease changed before release', 'REMOTE_RECOVERY_INVALID');
-    guardedUnlinkSync(current.leaseFile); guardedSyncDirectorySync(ctx.store.dir);
-    const finalClaim = lstatSync(claimFile);
-    insist(recoveryFile(claimFile, 16384) === claimRaw && finalClaim.dev === claimInfo.dev && finalClaim.ino === claimInfo.ino,
-      'Recovery claim changed before release', 'REMOTE_RECOVERY_INVALID');
-    guardedUnlinkSync(claimFile); guardedSyncDirectorySync(ctx.store.dir);
-    return { ...observed, readOnly: false, leaseReleased: true, executionResumed: false };
-  } finally { if (fd !== undefined) closeSync(fd); }
+  const claimId = randomUUID(), body = {
+    protocol: 'qf.remote-human-recovery-claim/v1', claimId, runId, snapshotHash,
+    beforeRunHash: hash(initial.run), files: initial.files,
+    lease: { pid: initial.lease.pid, dev: initial.lease.dev, ino: initial.lease.ino, sha256: hash(initial.lease.raw) }, confirmation
+  };
+  const owner = `owner-${process.pid}-${claimId}.lock`;
+  // A pre-publication crash leaves only a hidden draft. The original workflow
+  // lease still holds; a published claim is never empty or missing its owner.
+  const draft = join(ctx.store.dir, `.remote-human-recovery-draft-${claimId}`);
+  guardedMkdirSync(draft, { mode: 0o700 });
+  save(join(draft, 'claim.json'), body); save(join(draft, owner), {});
+  insist(workflowRecoveryClaims(ctx.root).length === 0 && recoverySnapshot(ctx, runId).snapshotHash === snapshotHash,
+    'Recovery changed before claim publication', 'REMOTE_RECOVERY_INVALID');
+  // The complete, nonempty destination serializes same-snapshot publishers.
+  guardedRenameSync(draft, join(ctx.store.dir, recoveryClaimName(body)));
+  guardedSyncDirectorySync(ctx.store.dir);
+  return finishOwnedRecovery(ctx, runId, owner, body, confirmation, snapshotHash, 'stop');
+}
+
+const OWNER_NAME = /^owner-([1-9][0-9]{0,9})-([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12})\.lock$/;
+const SNAPSHOT_KEYS = ['manifest','enrollment','run','active','event','lease','leaseDev','leaseIno'];
+const recoveryClaimName = body => `${WORKFLOW_RECOVERY_PREFIX}${body.runId}-${body.snapshotHash}`;
+function privateRecoveryDirectory(path) {
+  const info = lstatSync(path);
+  insist(info.isDirectory() && !info.isSymbolicLink() && (info.mode & 0o777) === 0o700 &&
+    (typeof process.getuid !== 'function' || info.uid === process.getuid()), 'Unsafe recovery directory', 'REMOTE_RECOVERY_INVALID');
+  return info;
+}
+function noProcess(pid) {
+  let absent = false;
+  try { process.kill(pid, 0); } catch (error) { absent = error.code === 'ESRCH'; }
+  insist(absent, 'Recovery owner is present or cannot be verified', 'WORKSPACE_LOCKED');
+}
+function stopConfirmation(value) {
+  return exactKeys(value, ['decision','channel','confirmedAt']) && value.decision === 'reject' && value.channel === 'tty-code' &&
+    typeof value.confirmedAt === 'string' && Number.isFinite(Date.parse(value.confirmedAt)) &&
+    new Date(value.confirmedAt).toISOString() === value.confirmedAt;
+}
+function readRecoveryClaim(dir) {
+  const info = privateRecoveryDirectory(dir), names = readdirSync(dir).sort();
+  insist(names.length >= 2 && names.length <= 16 && names.includes('claim.json'), 'Incomplete recovery claim', 'REMOTE_RECOVERY_INVALID');
+  const owners = names.filter(name => OWNER_NAME.test(name));
+  insist(owners.length === 1 && names.every(name => name === 'claim.json' || name === 'cleanup.json' ||
+    OWNER_NAME.test(name) || /^\.cleanup\.json\.[a-f0-9-]{36}\.tmp$/.test(name)),
+    'Ambiguous recovery claim', 'REMOTE_RECOVERY_INVALID');
+  const rows = names.map(name => {
+    const file = join(dir, name), raw = recoveryFile(file, 16384), entry = lstatSync(file);
+    insist((entry.mode & 0o777) === 0o600, 'Unsafe recovery claim file', 'REMOTE_RECOVERY_INVALID');
+    return { name, raw, dev: entry.dev, ino: entry.ino };
+  });
+  const bodyRaw = rows.find(row => row.name === 'claim.json').raw, body = JSON.parse(bodyRaw);
+  insist(exactKeys(body, ['protocol','claimId','runId','snapshotHash','beforeRunHash','files','lease','confirmation']) &&
+    body.protocol === 'qf.remote-human-recovery-claim/v1' && RECOVERY_RUN_ID.test(body.claimId) && RECOVERY_RUN_ID.test(body.runId) &&
+    HEX.test(body.snapshotHash) && HEX.test(body.beforeRunHash) && stopConfirmation(body.confirmation) &&
+    exactKeys(body.files, SNAPSHOT_KEYS) && ['manifest','enrollment','run','active','event','lease'].every(key => HEX.test(body.files[key])) &&
+    hash(body.files) === body.snapshotHash && exactKeys(body.lease, ['pid','dev','ino','sha256']) &&
+    Number.isSafeInteger(body.lease.pid) && body.lease.pid > 0 && HEX.test(body.lease.sha256) &&
+    body.lease.sha256 === body.files.lease && body.lease.dev === body.files.leaseDev && body.lease.ino === body.files.leaseIno,
+    'Invalid recovery claim', 'REMOTE_RECOVERY_INVALID');
+  insist(hash(JSON.parse(rows.find(row => row.name === owners[0]).raw)) === hash({}), 'Invalid recovery owner record', 'REMOTE_RECOVERY_INVALID');
+  insist(readdirSync(dir).sort().join(',') === names.join(',') && rows.every(row => recoveryFile(join(dir,row.name),16384) === row.raw),
+    'Recovery claim changed during inspection', 'REMOTE_RECOVERY_INVALID');
+  return { dir, body, bodyHash: hash(bodyRaw), owner: owners[0], ownerPid: Number(owners[0].match(OWNER_NAME)[1]),
+    directoryHash: hash({ dev: info.dev, ino: info.ino, rows }), directoryIdentity: { dev: info.dev, ino: info.ino } };
+}
+function recoveryRepairSnapshot(ctx, runId, ownedOwner) {
+  insist(typeof runId === 'string' && RECOVERY_RUN_ID.test(runId), 'Invalid recovery run ID', 'REMOTE_RECOVERY_INVALID');
+  const claims = workflowRecoveryClaims(ctx.root);
+  insist(claims.length === 1 && claims[0].startsWith(WORKFLOW_RECOVERY_PREFIX), 'Unknown or legacy repair claim needs investigation', 'REMOTE_RECOVERY_INVALID');
+  const claim = readRecoveryClaim(join(ctx.store.dir, claims[0]));
+  insist(claim.body.runId === runId && claims[0] === recoveryClaimName(claim.body), 'Recovery belongs to a different run', 'REMOTE_RECOVERY_INVALID');
+  if (ownedOwner === undefined) noProcess(claim.ownerPid);
+  else insist(claim.owner === ownedOwner && claim.ownerPid === process.pid, 'Recovery ownership changed', 'WORKSPACE_LOCKED');
+  const provider = enrollment(ctx), runRaw = recoveryFile(ctx.store.runFile(runId)), run = currentRun(ctx, runId, provider);
+  const host = join(ctx.store.dir, 'host', hash(ctx.manifestFile));
+  directory(join(ctx.store.dir, 'host'), false); directory(host, false);
+  insist(!existsSync(join(host, 'lock')), 'Incomplete dispatch is not a recovery-finalize operation', 'REMOTE_RECOVERY_INVALID');
+  const files = { manifest: hash(recoveryFile(ctx.manifestFile,1048576)), enrollment: hash(recoveryFile(ctx.policyFile,16384)),
+    active: hash(recoveryFile(join(host,'active.json'),16384)),
+    event: hash(recoveryFile(join(host,`${hash({kind:run.trigger,eventId:run.hostEvent?.id})}.json`),16384)) };
+  insist(Object.entries(files).every(([key,value]) => value === claim.body.files[key]) && hash(run) === hash(JSON.parse(runRaw)),
+    'Pinned recovery context changed', 'REMOTE_RECOVERY_INVALID');
+  const stopped = Object.hasOwn(run, 'humanRecovery');
+  if (stopped) {
+    inspectStoppedRemoteHumanRun(ctx.manifestFile, runId);
+    insist(run.humanRecovery.snapshotHash === claim.body.snapshotHash && run.humanRecovery.beforeRunHash === claim.body.beforeRunHash,
+      'Stopped checkpoint belongs to a different recovery', 'REMOTE_RECOVERY_INVALID');
+  } else {
+    insist(hash(run) === claim.body.beforeRunHash && hash(runRaw) === claim.body.files.run &&
+      recoverySnapshot(ctx,runId).snapshotHash === claim.body.snapshotHash, 'Original recovery checkpoint changed', 'REMOTE_RECOVERY_INVALID');
+  }
+  const leaseFile = join(ctx.store.dir,'workflow.lock');
+  let lease = null;
+  try { lstatSync(leaseFile); lease = deadLease(leaseFile); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (lease) insist(lease.pid === claim.body.lease.pid && lease.dev === claim.body.lease.dev && lease.ino === claim.body.lease.ino &&
+    hash(lease.raw) === claim.body.lease.sha256, 'Original workflow lease changed', 'REMOTE_RECOVERY_INVALID');
+  else insist(stopped, 'Uncommitted STOP has no verified workflow lease', 'REMOTE_RECOVERY_INVALID');
+  insist(recoveryFile(ctx.store.runFile(runId)) === runRaw && hash(enrollment(ctx)) === hash(provider),
+    'Recovery state changed during inspection', 'REMOTE_RECOVERY_INVALID');
+  const stateHash = hash({ files, run: hash(runRaw), lease: lease ? { raw:hash(lease.raw),dev:lease.dev,ino:lease.ino } : null });
+  return { ...claim, provider, run, stopped, leaseFile, lease, stateHash,
+    snapshotHash: hash({ claim:claim.directoryHash, name:claims[0], state:stateHash }) };
+}
+function finishOwnedRecovery(ctx, runId, owner, expectedBody, confirmation, planHash, kind) {
+  const current = recoveryRepairSnapshot(ctx, runId, owner);
+  insist(hash(current.body) === hash(expectedBody), 'Recovery claim changed after ownership', 'REMOTE_RECOVERY_INVALID');
+  save(join(current.dir,'cleanup.json'), { protocol:'qf.remote-human-recovery-cleanup/v1',kind,runId,
+    initialSnapshotHash:current.body.snapshotHash, confirmation, planHash, effectOutcome:'unknown' });
+  if (!current.stopped) {
+    const run = stoppedRun(current.run, current.body.confirmation, current.body.snapshotHash);
+    withPersistenceSecrets({env:persistenceEnvironment(run),receipt:run}, () => save(ctx.store.runFile(runId),run));
+  } else {
+    // The prior crash may have happened after rename but before directory flush.
+    // Commit the exact already-validated bytes before releasing any lock.
+    withPersistenceSecrets({env:persistenceEnvironment(current.run),receipt:current.run}, () =>
+      guardedDurableReplaceSync(ctx.store.runFile(runId),recoveryFile(ctx.store.runFile(runId)),{receipt:current.run}));
+  }
+  const observed = inspectStoppedRemoteHumanRun(ctx.manifestFile,runId);
+  const final = recoveryRepairSnapshot(ctx,runId,owner);
+  if (final.lease) guardedUnlinkSync(final.leaseFile);
+  guardedSyncDirectorySync(ctx.store.dir);
+  const history = join(ctx.store.dir,'remote-human-recovery-history');
+  if (!existsSync(history)) { guardedMkdirSync(history,{mode:0o700}); guardedSyncDirectorySync(ctx.store.dir); }
+  privateRecoveryDirectory(history);
+  // Whole directory retirement is atomic; no empty active claim can remain.
+  // Owner filenames are immutable, unique CAS sources for competing finalizers.
+  const destination = join(history,`${runId}-${current.body.claimId}`);
+  insist(!existsSync(destination), 'Recovery history already exists', 'REMOTE_RECOVERY_INVALID');
+  guardedRenameSync(current.dir,destination); guardedSyncDirectorySync(history); guardedSyncDirectorySync(ctx.store.dir);
+  return { ...observed, readOnly:false,leaseReleased:true,executionResumed:false,recoveryFinalized:true };
+}
+
+export function inspectInterruptedRemoteHumanRecovery(file,runId) {
+  personOnly();
+  const current = recoveryRepairSnapshot(context(file,{readOnly:true}),runId);
+  return { protocol:'qf.remote-human-recovery-finalize-plan/v1',runId,status:current.run.status,
+    snapshotHash:current.snapshotHash,initialSnapshotHash:current.body.snapshotHash,
+    recoveryOwnerPid:current.ownerPid,leasePresent:current.lease !== null,action:'finalize-stop',effectOutcome:'unknown' };
+}
+export function finalizeInterruptedRemoteHumanRecovery(file,runId,snapshotHash,io={}) {
+  personOnly();
+  insist(typeof snapshotHash === 'string' && HEX.test(snapshotHash),'Exact repair snapshot required','REMOTE_RECOVERY_INVALID');
+  const ctx = context(file,{readOnly:true}), initial = recoveryRepairSnapshot(ctx,runId);
+  insist(initial.snapshotHash === snapshotHash,'Repair snapshot changed','REMOTE_RECOVERY_INVALID');
+  const confirmation = confirmHumanDecision({decision:'reject',lines:[
+    'Finish this interrupted STOP. Do not retry or reconcile the external publication:',
+    `Manifest: ${ctx.manifestFile}`,`Run: ${runId}`,`Repair snapshot SHA256: ${snapshotHash}`,
+    `Former recovery PID: ${initial.ownerPid}`,'The external effect outcome remains unknown.'
+  ]},io);
+  personOnly();
+  const current = recoveryRepairSnapshot(ctx,runId);
+  insist(current.snapshotHash === snapshotHash,'Repair changed during confirmation','REMOTE_RECOVERY_INVALID');
+  const owner = `owner-${process.pid}-${randomUUID()}.lock`;
+  // The old owner filename is never recreated, including across a later claim.
+  // A competing finisher cannot rename a newer owner's live record by mistake.
+  guardedRenameSync(join(current.dir,current.owner),join(current.dir,owner)); guardedSyncDirectorySync(current.dir);
+  const adopted = recoveryRepairSnapshot(ctx,runId,owner);
+  insist(adopted.bodyHash === current.bodyHash && adopted.stateHash === current.stateHash &&
+    hash(adopted.directoryIdentity) === hash(current.directoryIdentity),'Repair changed during adoption','REMOTE_RECOVERY_INVALID');
+  return finishOwnedRecovery(ctx,runId,owner,current.body,confirmation,snapshotHash,'finalize');
+}
+
+export function inspectRemoteHumanRecoveryFinalization(file,runId) {
+  personOnly();
+  const ctx = context(file,{readOnly:true}), observed = inspectStoppedRemoteHumanRun(file,runId);
+  const history = join(ctx.store.dir,'remote-human-recovery-history'); privateRecoveryDirectory(history);
+  const run = currentRun(ctx,runId,enrollment(ctx));
+  const names = readdirSync(history).filter(name=>name.startsWith(`${runId}-`));
+  insist(names.length > 0 && names.length <= 32,'No bounded recovery history for this run','REMOTE_RECOVERY_INVALID');
+  const evidence = names.sort().map(name=>{
+    const claim = readRecoveryClaim(join(history,name)), cleanup = JSON.parse(recoveryFile(join(history,name,'cleanup.json'),16384));
+    insist(name === `${runId}-${claim.body.claimId}` && claim.body.runId === runId && claim.body.snapshotHash === observed.snapshotHash &&
+      claim.body.beforeRunHash === run.humanRecovery.beforeRunHash && exactKeys(cleanup,['protocol','kind','runId','initialSnapshotHash','confirmation','planHash','effectOutcome']) &&
+      cleanup.protocol === 'qf.remote-human-recovery-cleanup/v1' && ['stop','finalize'].includes(cleanup.kind) &&
+      cleanup.runId === runId && cleanup.initialSnapshotHash === observed.snapshotHash && stopConfirmation(cleanup.confirmation) &&
+      HEX.test(cleanup.planHash) && cleanup.effectOutcome === 'unknown','Invalid recovery history','REMOTE_RECOVERY_INVALID');
+    return claim.directoryHash;
+  });
+  return { ...observed,protocol:'qf.remote-human-recovery-finalized/v1',recoveryFinalized:true,historyHash:hash(evidence),readOnly:true };
 }
 
 /** Read-only observation for a separately authenticated effect adapter. A valid
@@ -493,11 +648,17 @@ export async function resumeRemoteHumanWorkflow(file, runId, { clock = Date.now,
 
 export function remoteHumanCli(argv) {
   const [operation, file, value, snapshotHash] = argv;
+  if (operation === 'recovery-finalize') {
+    insist(argv.length === 4 && file && value && snapshotHash, 'Usage: q-core remote-human recovery-finalize <manifest> <runId> <snapshotHash>');
+    return finalizeInterruptedRemoteHumanRecovery(file, value, snapshotHash);
+  }
   if (operation === 'recovery-stop') {
     insist(argv.length === 4 && file && value && snapshotHash, 'Usage: q-core remote-human recovery-stop <manifest> <runId> <snapshotHash>');
     return stopInterruptedRemoteHumanRun(file, value, snapshotHash);
   }
-  insist(argv.length === 3 && file && value, 'Usage: q-core remote-human <enroll|request|recovery-plan> <manifest> <policy-file|runId>');
+  insist(argv.length === 3 && file && value, 'Usage: q-core remote-human <enroll|request|recovery-plan|recovery-finalize-plan|recovery-finalized> <manifest> <policy-file|runId>');
+  if (operation === 'recovery-finalize-plan') return inspectInterruptedRemoteHumanRecovery(file, value);
+  if (operation === 'recovery-finalized') return inspectRemoteHumanRecoveryFinalization(file, value);
   if (operation === 'recovery-plan') return inspectRemoteHumanRecovery(file, value);
   if (operation === 'enroll') {
     personOnly();

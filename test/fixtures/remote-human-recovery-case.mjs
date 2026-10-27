@@ -10,11 +10,11 @@ import { createServer } from 'node:http';
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { canonical, hash } from '../../src/contracts.mjs';
 import { createLocalHost } from '../../src/host.mjs';
-import { acquireWorkflowLease } from '../../src/workflow-lease.mjs';
+import { acquireWorkflowLease, workflowRecoveryClaims } from '../../src/workflow-lease.mjs';
 import { RunStore } from '../../src/state.mjs';
 import { enrollRemoteHumanProvider, requestRemoteHumanDecision, consumeRemoteHumanDecision,
   resumeRemoteHumanWorkflow, inspectRemoteHumanRecovery, inspectStoppedRemoteHumanRun,
-  stopInterruptedRemoteHumanRun } from '../../src/remote-human-host.mjs';
+  stopInterruptedRemoteHumanRun, inspectRemoteHumanRecoveryFinalization } from '../../src/remote-human-host.mjs';
 const scenario = process.argv[2];
 const choices = ['requested','consumed','running','held','expired','guard','mutations','tty','faults','stopped-mutations'];
 assert.ok(choices.includes(scenario));
@@ -73,7 +73,7 @@ try {
         if(target===file)writeFileSync(target,original+'\n');
         else{const value=JSON.parse(original);if(target===leaseFile)value.pid=process.pid;else value.unexpected=true;writeFileSync(target,JSON.stringify(value));}
         assert.throws(()=>stopInterruptedRemoteHumanRun(file,runId,expected.snapshotHash,io));probes++;
-        assert.equal(existsSync(claimFile),false);probes++;
+        assert.equal(workflowRecoveryClaims(root).length,0);probes++;
         writeFileSync(target,original);
       }
       const original=readFileSync(leaseFile);
@@ -84,34 +84,34 @@ try {
       const event=readFileSync(eventFile);writeFileSync(eventFile,JSON.stringify({...JSON.parse(event),phase:'claimed'}));refuse(plan);writeFileSync(eventFile,event);
       writeFileSync(claimFile,'');refuse(plan);unlinkSync(claimFile);
       const race={...io,openTerminal:()=>({write(){},readLine(){writeFileSync(activeFile,JSON.stringify({runId:randomUUID()}));return 'ABC234';},close(){}})};
-      refuse(()=>stopInterruptedRemoteHumanRun(file,runId,expected.snapshotHash,race));assert.equal(existsSync(claimFile),false);probes++;
+      refuse(()=>stopInterruptedRemoteHumanRun(file,runId,expected.snapshotHash,race));assert.equal(workflowRecoveryClaims(root).length,0);probes++;
     } else if(scenario==='tty') {
       for(const terminal of [{...io,stdinIsTTY:false},{...io,stdoutIsTTY:false},{...io,env:{AI_AGENT:'fixture'}},
         {...io,openTerminal:()=>({write(){},readLine:()=> 'WRONG',close(){}})}]){
-        refuse(()=>stopInterruptedRemoteHumanRun(file,runId,expected.snapshotHash,terminal));assert.equal(existsSync(claimFile),false);probes++;
+        refuse(()=>stopInterruptedRemoteHumanRun(file,runId,expected.snapshotHash,terminal));assert.equal(workflowRecoveryClaims(root).length,0);probes++;
       }
     } else if(scenario==='faults') {
       // Fail each durable stage in a fresh snapshot; failed repairs retain their
       // claim. Explicit fixture reset below is NOT an operator recovery API.
-      for(const boundary of ['run-rename','run-dir-sync','lease-unlink','lease-dir-sync','claim-unlink','claim-dir-sync']){
+      for(const boundary of ['run-rename','run-dir-sync','lease-unlink','lease-dir-sync','history-rename','history-dir-sync']){
         const currentExpected=plan();
         const rename=fs.renameSync,sync=fs.fsyncSync,unlink=fs.unlinkSync;let runRenamed=false,leaseRemoved=false,claimRemoved=false;
-        fs.renameSync=(from,to)=>{if(to===runFile){if(boundary==='run-rename')throw Object.assign(Error('fixture EIO'),{code:'EIO'});runRenamed=true;}return rename(from,to);};
-        fs.fsyncSync=(fd)=>{if((boundary==='run-dir-sync'&&runRenamed)||(boundary==='lease-dir-sync'&&leaseRemoved)||(boundary==='claim-dir-sync'&&claimRemoved))throw Object.assign(Error('fixture EIO'),{code:'EIO'});return sync(fd);};
-        fs.unlinkSync=(target)=>{if((boundary==='lease-unlink'&&target===leaseFile)||(boundary==='claim-unlink'&&target===claimFile))throw Object.assign(Error('fixture EIO'),{code:'EIO'});const value=unlink(target);if(target===leaseFile)leaseRemoved=true;if(target===claimFile)claimRemoved=true;return value;};
+        fs.renameSync=(from,to)=>{if(String(to).includes('/remote-human-recovery-history/')){if(boundary==='history-rename')throw Object.assign(Error('fixture EIO'),{code:'EIO'});const value=rename(from,to);claimRemoved=true;return value;}if(to===runFile){if(boundary==='run-rename')throw Object.assign(Error('fixture EIO'),{code:'EIO'});runRenamed=true;}return rename(from,to);};
+        fs.fsyncSync=(fd)=>{if((boundary==='run-dir-sync'&&runRenamed)||(boundary==='lease-dir-sync'&&leaseRemoved)||(boundary==='history-dir-sync'&&claimRemoved))throw Object.assign(Error('fixture EIO'),{code:'EIO'});return sync(fd);};
+        fs.unlinkSync=(target)=>{if((boundary==='lease-unlink'&&target===leaseFile))throw Object.assign(Error('fixture EIO'),{code:'EIO'});const value=unlink(target);if(target===leaseFile)leaseRemoved=true;if(target===claimFile)claimRemoved=true;return value;};
         syncBuiltinESMExports();
         try { assert.throws(()=>stopInterruptedRemoteHumanRun(file,runId,currentExpected.snapshotHash,io));probes++; }
         finally {fs.renameSync=rename;fs.fsyncSync=sync;fs.unlinkSync=unlink;syncBuiltinESMExports();}
-        assert.equal(existsSync(claimFile),!claimRemoved);assert.equal(existsSync(leaseFile),!leaseRemoved);assert.equal(effects,effectBaseline);probes+=3;
+        assert.equal(workflowRecoveryClaims(root).length,claimRemoved?0:1);assert.equal(existsSync(leaseFile),!leaseRemoved);assert.equal(effects,effectBaseline);probes+=3;
         assert.throws(plan);probes++;
-        if(!claimRemoved){assert.throws(()=>acquireWorkflowLease(file),e=>e.code==='WORKSPACE_LOCKED');probes++;unlinkSync(claimFile);}
-        else {assert.equal(inspectStoppedRemoteHumanRun(file,runId).status,'cancelled');probes++;}
-        writeFileSync(runFile,baseline);if(leaseRemoved)writeFileSync(leaseFile,lease,{mode:0o600});
+        if(!claimRemoved){assert.throws(()=>acquireWorkflowLease(file),e=>e.code==='WORKSPACE_LOCKED');probes++;for(const name of workflowRecoveryClaims(root))rmSync(join(store.dir,name),{recursive:true,force:true});}
+        else {assert.equal(inspectRemoteHumanRecoveryFinalization(file,runId).recoveryFinalized,true);probes++;}
+        rmSync(join(store.dir,'remote-human-recovery-history'),{recursive:true,force:true});writeFileSync(runFile,baseline);if(leaseRemoved)writeFileSync(leaseFile,lease,{mode:0o600});
       }
     } else {
       const stopped=stopInterruptedRemoteHumanRun(file,runId,expected.snapshotHash,io);
       assert.equal(stopped.status,'cancelled');assert.equal(stopped.effectOutcome,'unknown');assert.equal(stopped.executionResumed,false);
-      assert.equal(existsSync(leaseFile),false);assert.equal(existsSync(claimFile),false);assert.equal(effects,effectBaseline);probes+=6;
+      assert.equal(existsSync(leaseFile),false);assert.equal(workflowRecoveryClaims(root).length,0);assert.equal(effects,effectBaseline);probes+=6;
       const current=readFileSync(runFile);const observed=inspectStoppedRemoteHumanRun(file,runId);
       assert.equal(observed.readOnly,true);assert.equal(observed.requestId,request.requestId);assert.deepEqual(readFileSync(runFile),current);probes+=3;
       if(scenario==='stopped-mutations'){
