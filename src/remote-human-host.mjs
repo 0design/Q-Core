@@ -25,20 +25,21 @@ function plainFile(file, maxBytes = 8_388_608) {
     'Unsafe remote human state file', 'REMOTE_APPROVAL_INVALID');
   return readFileSync(file, 'utf8');
 }
-function context(file) {
+function context(file, { readOnly = false } = {}) {
   // The manifest itself must not be a symlink. Parent is canonicalized once.
   insist(typeof file === 'string' && !/[\x00-\x1f\x7f\u202a-\u202e\u2066-\u2069]/.test(file), 'Unsafe manifest pathname');
   plainFile(file, 1_048_576);
   const manifestFile = realpathSync(file), root = dirname(manifestFile);
   const store = new RunStore(manifestFile);
-  directory(store.dir);
-  return { manifestFile, root, store, policyFile: join(store.dir, 'remote-human-provider.json') };
+  directory(store.dir, !readOnly);
+  return { manifestFile, root, store, readOnly, policyFile: join(store.dir, 'remote-human-provider.json') };
 }
-function directory(path) {
+function directory(path, create = true) {
   if (existsSync(path)) {
     const stat = lstatSync(path);
     insist(stat.isDirectory() && !stat.isSymbolicLink(), 'Unsafe remote human directory', 'REMOTE_APPROVAL_INVALID');
   } else {
+    insist(create, 'Remote human state directory is missing', 'REMOTE_APPROVAL_INVALID');
     guardedMkdirSync(path, { mode: 0o700 });
     guardedSyncDirectorySync(dirname(path));
   }
@@ -98,7 +99,7 @@ export function enrollRemoteHumanProvider(file, policy, io = {}) {
 const plan = run => run.steps.map(({ seq, stepId, kind, name, config, then, else: otherwise, cases, default: fallback, depth, laneOf, invocationId }) =>
   ({ seq, stepId, kind, name, config, then, else: otherwise, cases, default: fallback, depth, laneOf, invocationId }));
 function currentRun(ctx, runId, provider) {
-  directory(ctx.store.runsDir);
+  directory(ctx.store.runsDir, !ctx.readOnly);
   const run = JSON.parse(plainFile(ctx.store.runFile(runId)));
   const manifest = loadWorkflow(ctx.manifestFile), expected = createRun(manifest, { inputs: run.inputs });
   insist(manifest.enabled && !Object.keys(manifest.dependencies ?? {}).length &&
@@ -222,6 +223,46 @@ function consumedState(run, provider, nowMs) {
 function executionPhase(status) {
   return ['success','failed','cancelled'].includes(status) ? 'completed' : status === 'needs_human' ? 'held'
     : status === 'running' ? 'running' : 'paused';
+}
+
+/** Read-only observation for a separately authenticated effect adapter. A valid
+ * receipt alone is insufficient: the exact native consumed checkpoint must
+ * currently contain one running post-gate step under the live workflow lease.
+ * This does not authorize publication, consume, resume, acquire/remove a lease
+ * or resolve an uncertain effect. App bindings/preflight remain adapter duties.
+ */
+export function inspectRemoteHumanExecution(file, runId, { nowMs = Date.now() } = {}) {
+  personOnly();
+  insist(Number.isSafeInteger(nowMs) && nowMs >= 0, 'Invalid execution inspection clock');
+  const ctx = context(file, { readOnly: true });
+  const leaseFile = join(ctx.store.dir, 'workflow.lock');
+  const leaseBytes = plainFile(leaseFile, 1024), lease = JSON.parse(leaseBytes);
+  insist(lease && Object.keys(lease).join(',') === 'pid' && Number.isSafeInteger(lease.pid) && lease.pid > 0,
+    'No current workflow lease', 'REMOTE_APPROVAL_INVALID');
+  const leaseStat = lstatSync(leaseFile);
+  insist((leaseStat.mode & 0o777) === 0o600 &&
+    (typeof process.getuid !== 'function' || leaseStat.uid === process.getuid()), 'Unsafe workflow lease', 'REMOTE_APPROVAL_INVALID');
+  try { process.kill(lease.pid, 0); } catch { insist(false, 'Workflow lease process is unavailable', 'REMOTE_APPROVAL_INVALID'); }
+  const provider = enrollment(ctx), runBytes = plainFile(ctx.store.runFile(runId));
+  const run = currentRun(ctx, runId, provider), state = consumedState(run, provider, nowMs);
+  insist(state.evidence.decision === 'approve' && run.status === 'running' &&
+    state.execution?.phase === 'running' && nowMs < state.request.expiresAt,
+    'No active approved native execution', 'REMOTE_APPROVAL_INVALID');
+  const running = run.steps.filter(step => step.status === 'running');
+  const gate = run.steps.find(step => step.kind === 'approval-gate' && (step.config.reviewer ?? 'human') === 'human');
+  insist(running.length === 1 && running[0].seq > gate.seq &&
+    run.steps.filter(step => step.seq < running[0].seq).every(step => ['success','skipped'].includes(step.status)),
+    'No exact running post-gate step', 'REMOTE_APPROVAL_INVALID');
+  insist(plainFile(ctx.store.runFile(runId)) === runBytes && plainFile(leaseFile, 1024) === leaseBytes &&
+    hash(enrollment(ctx)) === state.enrollmentHash, 'Execution changed during inspection', 'REMOTE_APPROVAL_INVALID');
+  const step = running[0];
+  return { protocol: 'qf.remote-human-execution/v1', runId, manifestHash: provider.manifestHash,
+    providerEndpoint: provider.endpoint, issuerKeyId: provider.issuerKeyId, reviewerId: provider.reviewerId,
+    chatId: provider.chatId, requestId: state.request.requestId, requestHash: state.request.requestHash,
+    approvalHash: state.request.approvalHash, receiptHash: state.evidence.receiptHash,
+    expiresAt: state.request.expiresAt, executionId: state.execution.id, checkpointHash: state.checkpointHash,
+    leasePid: lease.pid, step: { seq: step.seq, stepId: step.stepId, rowId: step.rowId,
+      kind: step.kind, config: structuredClone(step.config), final: step.seq === run.steps.at(-1).seq } };
 }
 
 /** Continue a durably consumed decision under the SAME lease used by the

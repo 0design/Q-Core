@@ -18,6 +18,14 @@ test('shared caller output shape preserves content and text compatibility', () =
 // Only disposable fixtures are run with this explicit simulation environment.
 // The parent agent session is not modified; no existing run can be passed in.
 const fixture = fileURLToPath(new URL('./fixtures/remote-human-host-case.mjs', import.meta.url));
+for (const agent of [false, true]) {
+  test(`read-only active native execution inspection: ${agent ? 'agent refusal' : 'actual local HTTP step'}`, () => {
+    const path = fileURLToPath(new URL('./fixtures/remote-human-inspection-case.mjs', import.meta.url));
+    const child = spawnSync(process.execPath, [path], { env: { PATH: process.env.PATH, ...(agent ? { AI_AGENT: 'new-disposable-fixture' } : {}) }, encoding: 'utf8', timeout: 20000 });
+    assert.equal(child.status, 0, child.stderr || child.error?.message);
+    assert.equal(JSON.parse(child.stdout).passed, true);
+  });
+}
 for (const scenario of ['approve','reject','enrollment','mutations','expiration','cached-corruption','failed-write','symlinks-lock','agent-refusal',
   'native-execution','native-reject','native-restart','native-mutations','native-interrupted','native-preflight','native-expired','native-expiry-between-steps','native-overlap','native-legacy-locks',
   'native-enrollment-during-preflight','native-inference','native-expired-inference','native-ordinary-writers']) {

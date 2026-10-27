@@ -469,3 +469,17 @@ Explicit current-agent inference for SDD and Content: [caller protocol](../contr
 Local manual, UTC schedule, and authenticated loopback webhook triggers use `q-core-host`; see [host contract](../contracts/v1/host.md). The host does not install a daemon or supply model inference.
 
 `runSkill` enforces the explicit criteria of a pinned authored skill bundle with independent Node verifiers and version-bound human review. See [skill contract](../contracts/v1/skill.md) and `examples/skill-caller.mjs`; arbitrary prose is not automatically machine-verifiable.
+
+### Read-only native execution observation
+
+The unreleased native candidate exports `inspectRemoteHumanExecution(manifest, runId)`
+from `src/remote-human-host.mjs`. A separately authenticated operator adapter can
+observe an exact currently running post-gate step after a valid signed decision
+has been consumed. It rereads enrollment, manifest, signed checkpoint and the live
+workflow lease; waiting, unconsumed, expired, changed and completed runs refuse.
+The API is person-host-only and read-only, including missing state directories.
+It does not approve, consume, drive, publish, acquire/remove a lease or reconcile
+an uncertain effect. Its observation is not publication permission by itself:
+application account/source/STOP/evidence/endpoint checks and durable delivery
+claims still belong to the adapter. Same OS user deliberate state/code/key
+changes remain outside this local trust boundary.
