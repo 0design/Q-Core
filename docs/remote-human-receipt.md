@@ -118,7 +118,7 @@ These are controlled tests, not the user's enrollment, decision or a live host.
 
 ## Candidate leased continuation
 
-`resumeRemoteHumanWorkflow(manifest, runId, { beforeStep?, clock? })` continues a
+`resumeRemoteHumanWorkflow(manifest, runId, { beforeStep?, clock?, inferenceReply? })` continues a
 decision already committed by `consumeRemoteHumanDecision`. It is a separate
 human-host API, with the independent agent-session guard before filesystem reads.
 It never accepts a new human confirmation or runs the terminal approval command.
@@ -141,7 +141,8 @@ Native driver checkpoints use exact durable replace/file flush/rename/parent
 flush. A clean stop between consumption and execution can resume in a new process.
 Completed/rejected/held states return without driving again, including after the
 request expires. Starting execution or a further step requires an unexpired
-request and unchanged enrollment/manifest. The trusted `beforeStep` callback lets
+request and unchanged enrollment/manifest, checked again after an awaited
+preflight and before the running claim. The trusted `beforeStep` callback lets
 the eventual platform host enforce current source/STOP/account/report checks;
 manifest/model text cannot supply it. This Core API alone implements none of
 those platform transports or permissions.
@@ -151,9 +152,18 @@ before any later step. A valid workflow-call container can remain active while i
 child pauses; uncertain child rows are still checked individually. The driver
 neither silently skips an uncertain effect nor resends it. Actual
 crash recovery with a stale process lease, outcome reconciliation and automatic
-service lifecycle remain integration work. A paused post-gate caller job also
-requires an explicit compatible continuation; this API does not import inference
-answers. Calling unrelated raw writers can invalidate the native checkpoint.
+service lifecycle remain integration work. A paused post-gate caller job accepts
+an exact `inferenceReply` through this same human-host API only. The existing
+caller validator checks shape, pending job/hash, context and expiry; the native
+checkpoint, signed decision and unexpired request remain required. Wrong job/hash
+or malformed reply is refused before checkpoint mutation. Inference is not a new
+approval. Polling a paused job without a reply does not drive it.
+
+Ordinary `reply`, `clarify`, `resume` and `approve` refuse any run with its own
+`remoteHuman` field, including corrupt or null state, before reading answer files,
+terminal interaction or driving. Ordinary `cancel` remains a safe stop: it
+invalidates the checkpoint and cannot be followed by ordinary resume. Deliberate
+raw library writers/same-user state changes remain outside this CLI boundary.
 
 The consumer still returns `effectExecuted:false`. Once the native driver starts,
 that value is `null`: a generic workflow status cannot attest that a particular

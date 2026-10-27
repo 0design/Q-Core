@@ -9,6 +9,7 @@ import { agentSessionMarker, confirmHumanDecision } from './human-confirmation.m
 import { acquireWorkflowLease } from './workflow-lease.mjs';
 import { RunStore } from './state.mjs';
 import { createRun, waitingGate, resolveKnobs, driveRun } from './run.mjs';
+import { assertInferenceReply, validateCallerInput } from './caller-inference.mjs';
 import { loadWorkflow } from './workflow-policy.mjs';
 import { guardedDurableReplaceSync, guardedMkdirSync, guardedSyncDirectorySync,
   persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
@@ -228,7 +229,7 @@ function executionPhase(status) {
  * beforeStep is trusted host code for source/STOP/account/report preflight; it
  * cannot be supplied by a manifest. Platform safety is still that adapter's job.
  */
-export async function resumeRemoteHumanWorkflow(file, runId, { clock = Date.now, beforeStep } = {}) {
+export async function resumeRemoteHumanWorkflow(file, runId, { clock = Date.now, beforeStep, inferenceReply } = {}) {
   personOnly();
   insist(typeof clock === 'function' && (beforeStep === undefined || typeof beforeStep === 'function'), 'Invalid native execution options');
   const ctx = context(file), lock = acquireWorkflowLease(ctx.manifestFile);
@@ -238,9 +239,15 @@ export async function resumeRemoteHumanWorkflow(file, runId, { clock = Date.now,
     const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), state = consumedState(run, provider, nowMs);
     const report = resumed => ({ runId, status: run.status, decision: state.evidence.decision,
       authorizationApplied: true, executionResumed: resumed, effectExecuted: state.effectExecuted });
-    if (['success','failed','cancelled','needs_human','waiting_inference','waiting_human'].includes(run.status)) return report(false);
-    insist(run.status === 'running' && state.evidence.decision === 'approve', 'Native workflow is not resumable', 'REMOTE_APPROVAL_INVALID');
+    if (inferenceReply !== undefined) {
+      insist(run.status === 'waiting_inference' && run.pendingInference, 'Native run is not waiting for this inference reply', 'STALE_INFERENCE');
+      validateCallerInput({ provider: run.callerProvider, inferenceReply });
+      assertInferenceReply(run, inferenceReply);
+    } else if (['success','failed','cancelled','needs_human','waiting_inference','waiting_human'].includes(run.status)) return report(false);
+    insist((run.status === 'running' || (run.status === 'waiting_inference' && inferenceReply !== undefined)) &&
+      state.evidence.decision === 'approve', 'Native workflow is not resumable', 'REMOTE_APPROVAL_INVALID');
     insist(nowMs < state.request.expiresAt, 'Native approval expired before execution', 'REMOTE_APPROVAL_INVALID');
+    run.status = 'running';
     state.execution = { id: state.execution?.id ?? randomUUID(), phase: 'running', status: run.status };
     state.effectExecuted = null; // Generic workflow status is not proof of a platform effect.
     const durable = value => {
@@ -252,15 +259,21 @@ export async function resumeRemoteHumanWorkflow(file, runId, { clock = Date.now,
     durable(run); // Recovery owns this exact checkpoint before any step.
     const store = Object.create(ctx.store); store.save = durable;
     await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider,
-      apiKey: process.env.OPENROUTER_API_KEY ?? null,
+      apiKey: process.env.OPENROUTER_API_KEY ?? null, inferenceReply,
       beforeStep: async (step, current) => {
-        const at = clock();
-        insist(Number.isSafeInteger(at) && at >= nowMs && at < state.request.expiresAt &&
-          hash(enrollment(ctx)) === state.enrollmentHash,
-          'Native approval or enrollment expired/changed before a step', 'REMOTE_APPROVAL_INVALID');
+        const fresh = () => {
+          const at = clock();
+          insist(Number.isSafeInteger(at) && at >= nowMs && at < state.request.expiresAt &&
+            hash(enrollment(ctx)) === state.enrollmentHash,
+            'Native approval or enrollment expired/changed before a step', 'REMOTE_APPROVAL_INVALID');
+        };
+        fresh();
         // A host may revalidate its current source/STOP/account/report here.
         // A refusal leaves a durable pending step, not an uncertain send claim.
         if (beforeStep) await beforeStep(step, current);
+        // The asynchronous preflight is part of the authority boundary too.
+        // Recheck after it, before the driver persists a running claim/effect.
+        fresh();
       } });
     durable(run); ctx.store.saveLastRun(run);
     return report(true);

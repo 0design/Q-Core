@@ -354,11 +354,16 @@ function readBoundedJson(file) {
   if (statSync(file).size > 128000) fail('JSON input exceeds 128000 bytes');
   return JSON.parse(readFileSync(file, 'utf8'));
 }
+function refuseNativeContinuation(run) {
+  if (run && Object.hasOwn(run, 'remoteHuman'))
+    fail('Native-owned run requires its enrolled human host; ordinary continuation is refused');
+}
 async function cmdReply(args) {
   const [file, runId, replyFile] = args;
   if (!file || !runId || !replyFile) fail('q-core reply <manifest> <runId> <reply.json>', EXIT_USAGE);
   const store = new RunStore(file);
   const run = store.load(runId);
+  refuseNativeContinuation(run);
   if (!run || run.status !== 'waiting_inference' || !run.pendingInference) fail('Run is not waiting for CLI inference');
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, inferenceReply: readBoundedJson(replyFile) });
@@ -371,6 +376,7 @@ async function cmdClarify(args) {
   const [file, runId, answersFile] = args;
   if (!file || !runId || !answersFile) fail('q-core clarify <manifest> <runId> <answers.json>', EXIT_USAGE);
   const store = new RunStore(file), run = store.load(runId);
+  refuseNativeContinuation(run);
   if (!run || run.status !== 'waiting_human' || !run.pendingClarification) fail('Run is not waiting for SDD clarification answers');
   if (!run.executionKnobs || !run.callerProvider) fail('Run has no persisted caller configuration');
   const result = await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider, clarification: readBoundedJson(answersFile) });
@@ -384,6 +390,7 @@ async function cmdPaused(args, action) {
   if (!file || !runId) fail(`q-core ${action} <manifest> <runId>`, EXIT_USAGE);
   const store = new RunStore(file), run = store.load(runId);
   if (!run) fail('Unknown run');
+  if (action !== 'cancel') refuseNativeContinuation(run);
   const opts = { store, knobs: run.executionKnobs, callerProvider: run.callerProvider };
   const result = action === 'cancel' ? cancelWaitingRun(run, opts) : await resumeCancelledRun(run, opts);
   store.saveLastRun(result); guardedStreamWrite(process.stdout, JSON.stringify(withHumanAction(file, result), null, 2) + '\n');
@@ -474,6 +481,7 @@ async function cmdApprove(args, flags, opts) {
   if (!runId) fail("no run is waiting on a human here.");
   const run = store.load(runId);
   if (!run) fail(`run ${runId} not found under ${store.runsDir}`);
+  refuseNativeContinuation(run);
 
   const manifest = loadManifest(file);
   const decision = flags.has("reject") ? "reject" : "approve";

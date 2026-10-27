@@ -33,6 +33,9 @@ try {
   writeFileSync(file, `manifest: q-core.workflow/v1\nid: remote-fixture\nname: Remote fixture\nversion: 1.0.0\nowner: test\nenabled: true\ntriggers:\n  - kind: manual\nsteps:\n  - id: source\n    kind: fetch\n    config:\n      url: "http://127.0.0.1:${server.address().port}/"\n      format: text\n  - id: human_review\n    kind: approval-gate\n    config:\n      reviewer: human\n      bind: sha256\n  - id: local_receipt\n    kind: api-request\n    config:\n      url: "file://${sink}"\n      receiptKey: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n`);
   if (['native-interrupted','native-expiry-between-steps'].includes(scenario))
     writeFileSync(file, readFileSync(file, 'utf8') + `  - id: later_receipt\n    kind: api-request\n    config:\n      url: "file://${laterSink}"\n      receiptKey: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n`);
+  const caller = ['native-inference','native-expired-inference','native-ordinary-writers'].includes(scenario);
+  if (caller) writeFileSync(file, readFileSync(file, 'utf8').replace('steps:\n', 'settings:\n  budgetUsd: null\nsteps:\n')
+    .replace('  - id: local_receipt\n', '  - id: followup\n    kind: llm-call\n    config:\n      provider: cli\n      instructions: "Return synthetic fixture text only."\n      format: text\n  - id: local_receipt\n'));
   const pair = generateKeyPairSync('ed25519');
   const policy = { publicKey: pair.publicKey.export({ type: 'spki', format: 'pem' }),
     endpoint: 'https://approval.example.test/', reviewerId: '12345678', chatId: '-100123456789', manifestHash: hash(readFileSync(file)) };
@@ -51,7 +54,8 @@ try {
         rejects(() => enrollRemoteHumanProvider(file, { ...policy, ...delta }, io));
     }
     enrollRemoteHumanProvider(file, policy, io);
-    const hosted = await createLocalHost({ manifest: file, manifestSha256: policy.manifestHash }).dispatch('manual', 'fixture');
+    const hosted = await createLocalHost({ manifest: file, manifestSha256: policy.manifestHash,
+      ...(caller ? { callerProvider: { kind: 'caller', agent: 'codex', model: 'fixture', payerScope: 'local-cli' } } : {}) }).dispatch('manual', 'fixture');
     assert.equal(hosted.status, 'waiting_human'); probes++;
     const runId = hosted.runId, runFile = store.runFile(runId);
     const request = requestRemoteHumanDecision(file, runId, { nowMs: at(1000), ttlMs: nativeExecution ? 60000 : 10000 });
@@ -97,9 +101,62 @@ try {
         let clock = request.expiresAt - 2;
         await assert.rejects(resume({ clock: () => clock, beforeStep: async () => { clock=request.expiresAt; } }),
           error => error.code === 'REMOTE_APPROVAL_INVALID'); probes++;
-        assert.equal(readFileSync(sink, 'utf8').trim().split('\n').length, 1); probes++;
+        assert.equal(existsSync(sink), false); probes++;
         assert.equal(existsSync(laterSink), false); probes++;
+        assert.equal(store.load(runId).steps[2].status, 'pending'); probes++;
         assert.equal(store.load(runId).steps[3].status, 'pending'); probes++;
+      } else if (scenario === 'native-enrollment-during-preflight') {
+        const original = readFileSync(policyFile, 'utf8');
+        await assert.rejects(resume({ beforeStep: async () => {
+          await Promise.resolve();
+          const changed = JSON.parse(original); changed.enrollmentId = randomUUID();
+          writeFileSync(policyFile, JSON.stringify(changed));
+        } }), error => error.code === 'REMOTE_APPROVAL_INVALID'); probes++;
+        assert.equal(existsSync(sink), false); assert.equal(store.load(runId).steps[2].status, 'pending'); probes += 2;
+        writeFileSync(policyFile, original);
+      } else if (caller) {
+        assert.equal((await resume()).status, 'waiting_inference'); probes++;
+        const paused = readFileSync(runFile, 'utf8'), job = store.load(runId).pendingInference;
+        const reply = { jobId: job.jobId, hash: job.hash, output: { text: 'Synthetic fixture continuation.' } };
+        assert.equal((await resume()).executionResumed, false); assert.equal(readFileSync(runFile, 'utf8'), paused); probes += 2;
+        if (scenario === 'native-ordinary-writers') {
+          for (const record of [snapshot, consumed, paused,
+            ...[null, false, {}].map(remoteHuman => JSON.stringify({ ...JSON.parse(paused), remoteHuman }))]) {
+            writeFileSync(runFile, record);
+            for (const command of ['reply','clarify','resume']) {
+              const child = spawnSync(process.execPath, [new URL('../../bin/q-core.mjs', import.meta.url).pathname,
+                command, file, runId, join(root, 'must-not-read.json'), '--json'],
+                { env: { PATH: process.env.PATH, AI_AGENT: 'disposable-fixture' }, encoding: 'utf8', timeout: 5000 });
+              assert.equal(child.status, 1, child.stderr); assert.match(child.stderr, /Native-owned run/);
+              assert.equal(readFileSync(runFile, 'utf8'), record); assert.equal(existsSync(sink), false); probes += 2;
+            }
+          }
+          writeFileSync(runFile, paused);
+          const child = spawnSync(process.execPath, [new URL('../../bin/q-core.mjs', import.meta.url).pathname,
+            'cancel', file, runId, '--json'], { env: { PATH: process.env.PATH, AI_AGENT: 'disposable-fixture' }, encoding: 'utf8', timeout: 5000 });
+          assert.equal(child.status, 130, child.stderr); assert.equal(store.load(runId).status, 'cancelled'); probes += 2;
+          await assert.rejects(resume()); assert.equal(existsSync(sink), false); probes += 2;
+          // approve is never invoked from an agent, even on this fixture. Verify
+          // its early ownership refusal precedes terminal interaction in source.
+          const cli = readFileSync(new URL('../../bin/q-workflow.mjs', import.meta.url), 'utf8');
+          const approve = cli.slice(cli.indexOf('async function cmdApprove('), cli.indexOf('/* ── catalog'));
+          assert.ok(approve.indexOf('refuseNativeContinuation(run)') > 0);
+          assert.ok(approve.indexOf('refuseNativeContinuation(run)') < approve.indexOf('confirmHumanDecision(')); probes += 2;
+        } else if (scenario === 'native-expired-inference') {
+          await assert.rejects(resume({ inferenceReply: reply, clock: () => request.expiresAt }), error => error.code === 'REMOTE_APPROVAL_INVALID');
+          assert.equal(readFileSync(runFile, 'utf8'), paused); assert.equal(existsSync(sink), false); probes += 3;
+        } else {
+          for (const bad of [{ ...reply, jobId: randomUUID() }, { ...reply, hash: 'f'.repeat(64) },
+            { ...reply, extra: true }, { ...reply, output: null }]) {
+            await assert.rejects(resume({ inferenceReply: bad }));
+            assert.equal(readFileSync(runFile, 'utf8'), paused); assert.equal(existsSync(sink), false); probes += 3;
+          }
+          assert.equal((await resume({ inferenceReply: reply })).status, 'success'); probes++;
+          assert.equal(readFileSync(sink, 'utf8').trim().split('\n').length, 1); probes++;
+          await assert.rejects(resume({ inferenceReply: reply }), error => error.code === 'STALE_INFERENCE'); probes++;
+          assert.equal((await resume()).executionResumed, false); probes++;
+          assert.equal(readFileSync(sink, 'utf8').trim().split('\n').length, 1); probes++;
+        }
       } else if (scenario === 'native-legacy-locks') {
         const lease = acquireWorkflowLease(file);
         try {
