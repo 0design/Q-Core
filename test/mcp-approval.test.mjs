@@ -8,6 +8,7 @@ import { requestApproval } from '../src/mcp-approval.mjs';
 import { createRun, driveRun, resumeRun, RunStore } from '../src/run.mjs';
 import { loadWorkflow } from '../src/workflow-policy.mjs';
 import { AGENT_SESSION_ENV } from '../src/human-confirmation.mjs';
+import { createTestTouchIdAnchor } from './helpers/touchid-anchor.mjs';
 
 const HASH = /^[a-f0-9]{64}$/;
 const END = 'END OF THE EXACT SYNTHETIC DELIVERY';
@@ -19,9 +20,10 @@ beforeEach(t => t.mock.method(globalThis, 'fetch', async () => {
   assert.fail('Approval tests must not dispatch network requests');
 }));
 
-async function fixture(t, { bound = true, anotherGate = false } = {}) {
+async function fixture(t, { bound = true, anotherGate = false, registeredAnchor = true } = {}) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), 'mcp-approval-')));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const anchor = registeredAnchor ? createTestTouchIdAnchor(t, dir) : null;
   const manifestFile = join(dir, 'approval.yaml');
   const output = join(dir, 'delivery.jsonl');
   writeFileSync(join(dir, 'draft.txt'), DRAFT);
@@ -64,7 +66,7 @@ ${anotherGate ? `  - id: final-review
   assert.equal(run.status, 'waiting_human', run.summary);
   const gate = run.steps.find(step => step.status === 'waiting_human');
   return {
-    dir, manifestFile, store, run, gate, output,
+    dir, manifestFile, store, run, gate, output, anchor,
     args: { run_id: run.runId, gate_id: gate.rowId },
     context: { manifestFile, capabilities: { elicitation: {} }, elicit: approve },
   };
@@ -73,7 +75,7 @@ ${anotherGate ? `  - id: final-review
 const persisted = f => readFileSync(f.store.runFile(f.run.runId), 'utf8');
 const deliveries = f => existsSync(f.output) ? readFileSync(f.output, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)) : [];
 
-test('chat approval in an agent session shows the full exact delivery and records the human channel', async t => {
+test('chat preview plus a signed anchor decision approves the exact delivery in an agent session', async t => {
   const f = await fixture(t);
   const previous = process.env.CODEX_SANDBOX;
   process.env.CODEX_SANDBOX = 'synthetic-agent-session';
@@ -98,7 +100,9 @@ test('chat approval in an agent session shows the full exact delivery and record
   assert.deepEqual(deliveries(f), [{ draft: DRAFT }]);
   const gate = f.store.load(f.run.runId).steps.find(step => step.rowId === f.gate.rowId);
   assert.equal(gate.decision, 'approve');
-  assert.equal(gate.confirmation.channel, 'mcp-elicitation');
+  assert.equal(gate.confirmation.channel, 'approval-anchor');
+  assert.equal(f.anchor.payloads.length, 1);
+  assert.equal(f.anchor.payloads[0].content_hash, result.delivery_hash);
 });
 
 test('chat rejection is recorded and never delivers', async t => {
@@ -109,7 +113,32 @@ test('chat rejection is recorded and never delivers', async t => {
   assert.match(result.delivery_hash, HASH);
   const gate = f.store.load(f.run.runId).steps.find(step => step.rowId === f.gate.rowId);
   assert.equal(gate.decision, 'reject');
-  assert.equal(gate.confirmation.channel, 'mcp-elicitation');
+  assert.equal(gate.confirmation.channel, 'approval-anchor');
+  assert.equal(deliveries(f).length, 0);
+});
+
+test('a forged elicit-only accept cannot approve without a registered anchor', async t => {
+  const f = await fixture(t, { registeredAnchor: false });
+  // Isolate registration lookup even when this machine has a real approver.
+  const os = (await import('node:os')).default;
+  t.mock.method(os, 'homedir', () => f.dir);
+  const before = persisted(f);
+  await assert.rejects(requestApproval(f.args, { ...f.context, elicit: approve }), /anchor|approver|touch.?id|register/i);
+  assert.equal(persisted(f), before);
+  assert.equal(deliveries(f).length, 0);
+});
+
+test('caller-provided anchor and confirmation callbacks cannot replace registration', async t => {
+  const f = await fixture(t, { registeredAnchor: false });
+  const os = (await import('node:os')).default;
+  t.mock.method(os, 'homedir', () => f.dir);
+  const before = persisted(f);
+  await assert.rejects(requestApproval(f.args, {
+    ...f.context,
+    anchor: { id: 'touchid', verify: () => true, confirm: async () => ({ signature: 'forged' }) },
+    confirmation: { channel: 'approval-anchor', decision: 'approve' },
+  }), /anchor|approver|touch.?id|register/i);
+  assert.equal(persisted(f), before);
   assert.equal(deliveries(f).length, 0);
 });
 
@@ -168,6 +197,9 @@ for (const extra of [
   { decision: 'approve' },
   { confirmation: { channel: 'mcp-elicitation' } },
   { content: { decision: 'approve' } },
+  { anchor: { id: 'touchid', verify: () => true } },
+  { signature: 'forged' },
+  { nonce: '0'.repeat(64) },
 ]) test(`model arguments cannot smuggle ${Object.keys(extra)[0]} into the tool`, async t => {
   const f = await fixture(t);
   const before = persisted(f);

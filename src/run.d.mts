@@ -98,7 +98,14 @@ export declare function resolveKnobs(settings?: WorkflowManifestSettings): Knobs
 export declare function createRun(manifest: WorkflowManifest, opts?: { trigger?: string; inputs?: Record<string, unknown> }): Run;
 export declare function driveRun(run: Run, opts?: DriveOptions): Promise<Run>;
 /** A record of how a person made the decision; q-core approve records "tty-code". */
-export interface HumanConfirmation { channel: string; decision?: "approve" | "reject"; confirmedAt?: string }
+export interface HumanConfirmation {
+  channel: 'tty-code' | 'approval-anchor';
+  decision?: "approve" | "reject";
+  confirmedAt?: string;
+  anchor_id?: string;
+  payload?: import('./approval-anchor.mjs').ApprovalPayload;
+  signature?: string;
+}
 export declare function waitingGate(run: Run, approvalHash?: string): RunStep;
 export declare function pendingApprovalGate(run: Run, gateId: string): RunStep;
 export declare function resumeRun(run: Run, opts: DriveOptions & { decision: "approve" | "reject"; approvalHash?: string; confirmation: HumanConfirmation }): Promise<Run>;

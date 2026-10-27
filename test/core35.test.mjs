@@ -84,12 +84,12 @@ test("resumeRun does not continue a human gate without a confirmation record", a
     const run = await driveRun(createRun(manifest, { trigger: "manual" }), { store });
     assert.equal(run.status, "waiting_human");
     const approvalHash = run.steps[0].output.approvalHash;
-    for (const confirmation of [undefined, {}, { channel: "" }, { channel: "tty-code", decision: "reject" }])
+    for (const confirmation of [undefined, {}, { channel: "" }, { channel: "embedding-host" }, { channel: "tty-code", decision: "reject" }])
       await assert.rejects(resumeRun(run, { decision: "approve", approvalHash, confirmation, store }), (e) => e.code === "HUMAN_CONFIRMATION_REQUIRED");
     assert.equal(store.load(run.runId).status, "waiting_human");
-    const done = await resumeRun(run, { decision: "approve", approvalHash, confirmation: { channel: "embedding-host" }, store });
+    const done = await resumeRun(run, { decision: "approve", approvalHash, confirmation: { channel: "tty-code" }, store });
     assert.equal(done.status, "success");
-    assert.equal(done.steps[0].confirmation.channel, "embedding-host");
+    assert.equal(done.steps[0].confirmation.channel, "tty-code");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

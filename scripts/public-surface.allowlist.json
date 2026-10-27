@@ -71,6 +71,10 @@
     "README.md",
     "SPEC-MANIFEST.md",
     "src/agent.mjs",
+    "src/approval-anchor.d.mts",
+    "src/approval-anchor.mjs",
+    "src/approval-delivery.mjs",
+    "src/approver-setup.mjs",
     "src/caller-inference.mjs",
     "src/capabilities.mjs",
     "src/catalog.mjs",
@@ -124,7 +128,9 @@
     "src/upstream-adapters.mjs",
     "src/workflow-policy.mjs",
     "src/workspace.mjs",
-    "src/yaml.mjs"
+    "src/yaml.mjs",
+    "tools/touchid-approve/main.swift",
+    "tools/touchid-approve/README.md"
   ],
   "registryRelease": {
     "objects": [

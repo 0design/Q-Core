@@ -9,6 +9,7 @@ import { createMcpSession, serveMcp } from '../src/mcp.mjs';
 import { createRun, driveRun } from '../src/run.mjs';
 import { RunStore } from '../src/state.mjs';
 import { loadWorkflow } from '../src/workflow-policy.mjs';
+import { createTestTouchIdAnchor } from './helpers/touchid-anchor.mjs';
 
 const rpc = (id, method, params) => ({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) });
 const initialize = (capabilities = { elicitation: { form: {} } }, protocolVersion = '2025-11-25') =>
@@ -27,6 +28,7 @@ async function waitFor(messages, predicate) {
 async function fixture(t) {
   const dir = mkdtempSync(join(tmpdir(), 'q-core-mcp-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
+  createTestTouchIdAnchor(t, dir);
   const manifestFile = join(dir, 'workflow.yaml');
   writeFileSync(manifestFile, 'manifest: q-core.workflow/v1\nid: approval-test\nversion: 1.0.0\nsteps:\n  - id: review\n    kind: approval-gate\n    config:\n      reviewer: human\n      bind: sha256\n      anchor: Delivery\n');
   const store = new RunStore(manifestFile);
@@ -68,7 +70,7 @@ test('MCP lifecycle negotiates capabilities and publishes a decision-free tool s
 test('tool arguments and call parameters cannot smuggle an approval or client capabilities', async t => {
   const { session, messages } = await client(t, 'workflow.yaml');
   const args = { run_id: 'unused', gate_id: 'review' };
-  for (const field of ['approval', 'decision', 'confirmation', 'content', '_meta', 'manifestFile', 'capabilities']) {
+  for (const field of ['approval', 'decision', 'confirmation', 'content', 'anchor', 'signature', 'nonce', '_meta', 'manifestFile', 'capabilities']) {
     await session.receive(rpc(field, 'tools/call', { name: 'request_approval', arguments: { ...args, [field]: 'approve' } }));
     assert.equal(messages.at(-1).error.code, -32602, field);
     await session.receive(rpc(field, 'tools/call', { name: 'request_approval', arguments: args, [field]: 'approve' }));
@@ -117,7 +119,7 @@ for (const [version, capabilities, mode] of [
   await session.receive(reply(form));
   await call;
   assert.equal(store.load(run.runId).status, 'success');
-  assert.equal(store.load(run.runId).steps[0].confirmation.channel, 'mcp-elicitation');
+  assert.equal(store.load(run.runId).steps[0].confirmation.channel, 'approval-anchor');
   const result = messages.find(message => message.id === 'approve').result;
   assert.equal(result.isError, undefined);
   assert.equal(JSON.parse(result.content[0].text).decision, 'approve');

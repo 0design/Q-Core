@@ -327,6 +327,9 @@ export function assertUnredactedOutput(data) {
 }
 
 /** stdout/stderr may be redirected to a production log, so guard those bytes too. */
+/** Close a writable after its bytes have passed guardedStreamWrite. */
+export function guardedStreamEnd(stream) { stream.end(); }
+
 export function guardedStreamWrite(stream, data) {
   const { output } = prepare(data);
   const identity = typeof stream.fd === 'number' ? fileIdentity(stream.fd) : null;

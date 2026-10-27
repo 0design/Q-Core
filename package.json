@@ -27,6 +27,8 @@
   "files": [
     "bin/",
     "src/",
+    "tools/touchid-approve/main.swift",
+    "tools/touchid-approve/README.md",
     "launchd/",
     "examples/",
     "LICENSE",

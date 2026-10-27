@@ -185,7 +185,7 @@ async function approvedDelivery(ids, t) {
   assert.equal(parked.status, 'waiting_human', parked.summary);
   const gate = parked.steps.find(row => row.stepId === ids.human);
   assert.deepEqual(gate.output.subject, { text: 'text B', model: MODEL }, 'the person sees the output directly before the agent gate');
-  const done = await resumeRun(parked, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'test' },
+  const done = await resumeRun(parked, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'tty-code' },
     settings: m.settings, providers: p.providers });
   assert.equal(done.status, 'success', done.summary);
   const [line, ...rest] = readFileSync(out, 'utf8').trim().split('\n');

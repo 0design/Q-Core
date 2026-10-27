@@ -8,7 +8,7 @@ import { requestApproval } from './mcp-approval.mjs';
 const PROTOCOLS = new Set(['2025-11-25', '2025-06-18']);
 const TOOL = {
   name: 'request_approval',
-  description: 'Ask the human to approve or reject the exact delivery of a waiting gate through the client form.',
+  description: 'Preview the exact delivery in the client form, then request confirmation from the registered Touch ID anchor.',
   inputSchema: {
     type: 'object',
     properties: { run_id: { type: 'string', minLength: 1 }, gate_id: { type: 'string', minLength: 1 } },
@@ -96,7 +96,7 @@ export function createMcpSession({ manifestFile, send }) {
     if (!only(params, ['name', 'arguments', '_meta']) || (params._meta !== undefined && !object(params._meta)) || params.name !== TOOL.name ||
         !only(params.arguments, ['run_id', 'gate_id']) ||
         !['run_id', 'gate_id'].every(key => typeof params.arguments[key] === 'string' && params.arguments[key].trim())) {
-      return emit(rpcError(id, -32602, 'request_approval accepts only run_id and gate_id; decisions must come directly from client elicitation'));
+      return emit(rpcError(id, -32602, 'request_approval accepts only run_id and gate_id; decisions require a registered human-presence anchor'));
     }
     const call = { cancelled: false, pending: new Set() };
     calls.set(id, call);
