@@ -57,6 +57,17 @@ export function createRemoteApprovalRequest(current,{nowMs=Date.now(),ttlMs=900_
   return Object.freeze({...body,requestHash:hash(body)});
 }
 
+/** Check a persisted request before reusing it or replacing an expired one.
+ * allowExpired only relaxes expiry, never structure, hash, clock or bindings.
+ * This is request integrity checking, not authentication or authorization.
+ */
+export function assertRemoteApprovalRequest({request,current,nowMs=Date.now(),allowExpired=false}) {
+  need(typeof allowExpired==='boolean' && integer(nowMs));
+  validateRequest(request,allowExpired ? request?.issuedAt : nowMs);
+  bindings(current);
+  need(nowMs>=request.issuedAt && BINDINGS.every(k=>current[k]===request[k]));
+}
+
 /**
  * receiptJson is canonical UTF-8 JSON {body,signature}; the provider signs the
  * canonical body with its independently held Ed25519 key. current and request

@@ -12,7 +12,7 @@ import { createRun, waitingGate, resolveKnobs } from './run.mjs';
 import { loadWorkflow } from './workflow-policy.mjs';
 import { guardedDurableReplaceSync, guardedMkdirSync, guardedSyncDirectorySync,
   persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
-import { remoteApprovalKeyId, createRemoteApprovalRequest, verifyRemoteApprovalReceipt } from './remote-human-receipt.mjs';
+import { remoteApprovalKeyId, createRemoteApprovalRequest, assertRemoteApprovalRequest, verifyRemoteApprovalReceipt } from './remote-human-receipt.mjs';
 
 const HEX = /^[a-f0-9]{64}$/;
 function personOnly() {
@@ -127,9 +127,9 @@ export function requestRemoteHumanDecision(file, runId, { nowMs = Date.now(), tt
   try {
     const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), current = binding(run, provider);
     if (run.remoteHuman) {
-      insist(run.remoteHuman.phase === 'requested' && run.remoteHuman.enrollmentHash === hash(provider) &&
+      insist(run.remoteHuman.protocol === 'qf.remote-human-state/v1' && run.remoteHuman.phase === 'requested' && run.remoteHuman.enrollmentHash === hash(provider) &&
         run.remoteHuman.runBindingHash === runHash(run), 'Remote challenge is consumed or its subject changed', 'REMOTE_APPROVAL_INVALID');
-      insist(nowMs >= run.remoteHuman.request.issuedAt, 'Remote request clock moved backwards');
+      assertRemoteApprovalRequest({ request: run.remoteHuman.request, current, nowMs, allowExpired: true });
       if (nowMs < run.remoteHuman.request.expiresAt) return structuredClone(run.remoteHuman.request);
     }
     const request = createRemoteApprovalRequest(current, { nowMs, ttlMs });

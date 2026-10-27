@@ -92,6 +92,25 @@ try {
       writeFileSync(file, manifest);
       enrollRemoteHumanProvider(file, policy, io);
       rejects(() => consumeRemoteHumanDecision(file, runId, receipt(), { nowMs: 2500 }), 'REMOTE_APPROVAL_INVALID');
+    } else if (scenario === 'cached-corruption') {
+      const edits = [state => { state.protocol = 'wrong'; },
+        state => { state.request.approvalHash = 'f'.repeat(64); },
+        state => { state.request.runId = randomUUID(); }, state => { state.request.nonce = '0'.repeat(64); },
+        state => { state.request.requestHash = 'a'.repeat(64); }, state => { state.request.expiresAt = '11000'; },
+        state => { state.request.protocol = 'wrong'; }, state => { state.request.extra = true; },
+        state => { state.request = null; }, state => {
+          // A self-consistent request hash still cannot change its gate binding.
+          state.request.approvalHash = 'f'.repeat(64);
+          const { requestHash, ...body } = state.request; state.request.requestHash = hash(body);
+        }];
+      for (const edit of edits) for (const nowMs of [2500, 12000]) {
+        const changed = JSON.parse(snapshot); edit(changed.remoteHuman); const bytes = JSON.stringify(changed);
+        writeFileSync(runFile, bytes);
+        rejects(() => requestRemoteHumanDecision(file, runId, { nowMs }), 'REMOTE_APPROVAL_INVALID');
+        assert.equal(readFileSync(runFile, 'utf8'), bytes); probes++;
+        assert.equal(existsSync(sink), false); probes++;
+        writeFileSync(runFile, snapshot);
+      }
     } else if (scenario === 'expiration') {
       rejects(() => consumeRemoteHumanDecision(file, runId, receipt(), { nowMs: 11000 }), 'REMOTE_APPROVAL_INVALID');
       rejects(() => requestRemoteHumanDecision(file, runId, { nowMs: 999 }));

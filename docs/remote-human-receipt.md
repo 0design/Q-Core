@@ -80,7 +80,9 @@ markers, upgrade installed Cores, or register an accepted Registry component.
   sha256 human gate, matching enrolled manifest bytes and runtime step/settings
   snapshots. Nested/control-flow workflows and other approval formats are
   refused in this first candidate. Repeating a current request returns the same
-  challenge without rewriting it; expiry creates a new challenge.
+  challenge without rewriting it; expiry creates a new challenge. Both paths
+  validate the entire saved request against current bindings before reuse or
+  rotation; corrupt state is refused rather than returned or silently replaced.
 - `consumeRemoteHumanDecision(manifest, runId, receiptJson)` is a native library
   entry point for a separately operated human host. It refuses agent sessions.
   Under the workspace lock it reloads enrollment/run, verifies the exact current
