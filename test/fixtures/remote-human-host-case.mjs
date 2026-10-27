@@ -111,6 +111,16 @@ try {
         assert.equal(existsSync(sink), false); probes++;
         writeFileSync(runFile, snapshot);
       }
+      for (const invalid of [null, false, 0, '', true, 1, [], {}, { ...JSON.parse(snapshot).remoteHuman, extra: true }])
+        for (const nowMs of [2500, 12000]) {
+          const changed = JSON.parse(snapshot); changed.remoteHuman = invalid; const bytes = JSON.stringify(changed);
+          writeFileSync(runFile, bytes);
+          rejects(() => requestRemoteHumanDecision(file, runId, { nowMs }), 'REMOTE_APPROVAL_INVALID');
+          rejects(() => consumeRemoteHumanDecision(file, runId, receipt(), { nowMs }), 'REMOTE_APPROVAL_INVALID');
+          assert.equal(readFileSync(runFile, 'utf8'), bytes); probes++;
+          assert.equal(existsSync(sink), false); probes++;
+          writeFileSync(runFile, snapshot);
+        }
     } else if (scenario === 'expiration') {
       rejects(() => consumeRemoteHumanDecision(file, runId, receipt(), { nowMs: 11000 }), 'REMOTE_APPROVAL_INVALID');
       rejects(() => requestRemoteHumanDecision(file, runId, { nowMs: 999 }));

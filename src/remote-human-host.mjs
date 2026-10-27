@@ -119,6 +119,15 @@ function binding(run, provider) {
     manifestHash: provider.manifestHash, reviewerId: provider.reviewerId, issuerKeyId: provider.issuerKeyId };
 }
 const runHash = run => { const { remoteHuman, ...rest } = run; return hash(rest); };
+function requestedState(run, provider) {
+  const state = run.remoteHuman;
+  insist(state && typeof state === 'object' && !Array.isArray(state) &&
+    Object.keys(state).sort().join(',') === 'enrollmentHash,phase,protocol,request,runBindingHash' &&
+    state.protocol === 'qf.remote-human-state/v1' && state.phase === 'requested' &&
+    state.enrollmentHash === hash(provider) && state.runBindingHash === runHash(run),
+    'Remote challenge is consumed, missing or changed', 'REMOTE_APPROVAL_INVALID');
+  return state;
+}
 
 /** Save before notification. This function itself never notifies anyone. */
 export function requestRemoteHumanDecision(file, runId, { nowMs = Date.now(), ttlMs = 900_000 } = {}) {
@@ -126,11 +135,10 @@ export function requestRemoteHumanDecision(file, runId, { nowMs = Date.now(), tt
   const ctx = context(file), lock = lockWorkspace(ctx.root);
   try {
     const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), current = binding(run, provider);
-    if (run.remoteHuman) {
-      insist(run.remoteHuman.protocol === 'qf.remote-human-state/v1' && run.remoteHuman.phase === 'requested' && run.remoteHuman.enrollmentHash === hash(provider) &&
-        run.remoteHuman.runBindingHash === runHash(run), 'Remote challenge is consumed or its subject changed', 'REMOTE_APPROVAL_INVALID');
-      assertRemoteApprovalRequest({ request: run.remoteHuman.request, current, nowMs, allowExpired: true });
-      if (nowMs < run.remoteHuman.request.expiresAt) return structuredClone(run.remoteHuman.request);
+    if (Object.hasOwn(run, 'remoteHuman')) {
+      const state = requestedState(run, provider);
+      assertRemoteApprovalRequest({ request: state.request, current, nowMs, allowExpired: true });
+      if (nowMs < state.request.expiresAt) return structuredClone(state.request);
     }
     const request = createRemoteApprovalRequest(current, { nowMs, ttlMs });
     run.remoteHuman = { protocol: 'qf.remote-human-state/v1', phase: 'requested', enrollmentHash: hash(provider),
@@ -148,10 +156,7 @@ export function consumeRemoteHumanDecision(file, runId, receiptJson, { nowMs = D
   personOnly();
   const ctx = context(file), lock = lockWorkspace(ctx.root);
   try {
-    const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), state = run.remoteHuman;
-    insist(state?.protocol === 'qf.remote-human-state/v1' && state.phase === 'requested' &&
-      state.enrollmentHash === hash(provider) && state.runBindingHash === runHash(run),
-      'Remote challenge is consumed, missing or changed', 'REMOTE_APPROVAL_INVALID');
+    const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), state = requestedState(run, provider);
     const current = binding(run, provider);
     const evidence = verifyRemoteApprovalReceipt({ receiptJson, request: state.request, current,
       trustedPublicKey: provider.publicKey, consumedReceiptIds: [], nowMs });
