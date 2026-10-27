@@ -483,3 +483,50 @@ an uncertain effect. Its observation is not publication permission by itself:
 application account/source/STOP/evidence/endpoint checks and durable delivery
 claims still belong to the adapter. Same OS user deliberate state/code/key
 changes remain outside this local trust boundary.
+
+
+### Human STOP after an interrupted native run
+
+The unreleased native candidate supports one bounded recovery path for a known
+run with an enrolled exact human gate, a completed original host dispatch and a
+well-formed workflow lease whose process is verified gone. The manifest path
+must be canonical. It does not evict leases by age, kill a process, repair an
+incomplete start, approve a gate, retry a request or decide whether a platform
+published anything.
+
+A person, in their own terminal outside an agent session, first runs:
+
+```text
+q-core remote-human recovery-plan <manifest> <runId>
+```
+
+The read-only plan returns an exact snapshot hash and the former process ID.
+After inspecting that plan, the person runs:
+
+```text
+q-core remote-human recovery-stop <manifest> <runId> <snapshotHash>
+```
+
+Core requires a fresh terminal code and rechecks the snapshot. It preserves the
+original native gate, receipt, steps and uncertain effect information; durably
+records a human STOP and cancelled run; then releases the dead owner's lease.
+The external effect outcome remains `unknown`. The run cannot be consumed or
+resumed again. A different event may subsequently start, but replaying the old
+host event only returns its existing run. Applications must retain their own
+uncertain delivery claim and prevent recreating that publication as a fresh
+run until separate platform readback/reconciliation.
+
+`inspectStoppedRemoteHumanRun(manifest, runId)` validates the whole permitted
+stop delta read-only, including the original signed decision when present. Its
+`qf.remote-human-stopped/v1` result is not evidence of delivery or non-delivery,
+and is not the existing pristine-waiting cancellation protocol used by edits.
+
+Live/reused/unverifiable PIDs, missing or malformed leases, changed inputs,
+incomplete host dispatch and an earlier interrupted repair refuse. All ordinary
+workflow writers also respect the recovery claim. A failure before final claim
+removal leaves it held for explicit investigation, even if the old lease was
+already removed. A final directory-flush failure can leave cleanup uncertain;
+the durable cancelled checkpoint still prevents repeating the stop or resuming
+the old effect. Do not remove either lock to force a retry. Handling an
+incomplete start or interrupted repair claim is a separate pending capability.
+Same OS user deliberate state/code/key changes remain outside the local boundary.
