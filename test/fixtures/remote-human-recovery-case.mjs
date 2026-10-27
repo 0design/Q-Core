@@ -1,4 +1,4 @@
-// Fresh disposable state/keys/terminal and loopback receiver ONLY. No operator
+// Fresh disposable state/keys/terminal and local HTTP receiver ONLY. No operator
 // context can be supplied. The parent agent environment is never changed.
 import assert from 'node:assert/strict';
 import fs, { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync, realpathSync, chmodSync, unlinkSync } from 'node:fs';
