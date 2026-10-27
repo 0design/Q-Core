@@ -40,6 +40,7 @@ import { buildCatalog, fetchRemoteCatalog, fetchRemoteManifest, REMOTE_CATALOG_B
 import { parseYaml } from "../src/yaml.mjs";
 import { exportMaterialBundle } from '../src/material-graph.mjs';
 import { loadComponentDescriptor } from '../src/component-descriptor.mjs';
+import { withWorkflowLease } from '../src/workflow-lease.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = JSON.parse(readFileSync(join(HERE, "..", "package.json"), "utf8"));
@@ -811,7 +812,10 @@ async function main() {
   const handler = commands[command];
   if (!handler) fail(`unknown command "${command}".\n\n${USAGE}`, EXIT_USAGE);
 
-  const code = await handler(args, flags, opts);
+  const writesRun = ['run', 'reply', 'clarify', 'cancel', 'resume', 'approve'].includes(command);
+  const code = writesRun && args[0]
+    ? await withWorkflowLease(args[0], () => handler(args, flags, opts))
+    : await handler(args, flags, opts);
   /* The version check runs AFTER the work, never before it, and never during a
      --quiet or --json run whose output something else is parsing. */
   if (!flags.has("quiet") && !flags.has("json")) {

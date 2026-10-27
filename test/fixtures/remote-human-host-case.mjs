@@ -7,16 +7,21 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { createLocalHost } from '../../src/host.mjs';
 import { RunStore } from '../../src/state.mjs';
 import { driveRun } from '../../src/run.mjs';
 import { canonical, hash } from '../../src/contracts.mjs';
 import { registerPersistenceSecret, guardedStreamWrite } from '../../src/persistence.mjs';
-import { enrollRemoteHumanProvider, requestRemoteHumanDecision, consumeRemoteHumanDecision } from '../../src/remote-human-host.mjs';
+import { enrollRemoteHumanProvider, requestRemoteHumanDecision, consumeRemoteHumanDecision, resumeRemoteHumanWorkflow } from '../../src/remote-human-host.mjs';
+import { acquireWorkflowLease } from '../../src/workflow-lease.mjs';
 
 const scenario = process.argv[2];
+const nativeExecution = scenario.startsWith('native-');
+const at = n => nativeExecution ? Date.now() - 5000 + n : n;
 const root = mkdtempSync(join(tmpdir(), 'qf-remote-fixture-'));
 const file = join(root, 'workflow.yaml'), sink = join(root, 'fixture.jsonl');
+const laterSink = join(root, 'later.jsonl');
 const sourceText = 'Disposable fixture source; never a customer draft or live approval.';
 const server = createServer((req, res) => res.end(sourceText));
 const io = { env: {}, stdinIsTTY: true, stdoutIsTTY: true, code: 'ABC234',
@@ -26,6 +31,8 @@ const rejects = (fn, code) => { assert.throws(fn, error => !code || error.code =
 try {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   writeFileSync(file, `manifest: q-core.workflow/v1\nid: remote-fixture\nname: Remote fixture\nversion: 1.0.0\nowner: test\nenabled: true\ntriggers:\n  - kind: manual\nsteps:\n  - id: source\n    kind: fetch\n    config:\n      url: "http://127.0.0.1:${server.address().port}/"\n      format: text\n  - id: human_review\n    kind: approval-gate\n    config:\n      reviewer: human\n      bind: sha256\n  - id: local_receipt\n    kind: api-request\n    config:\n      url: "file://${sink}"\n      receiptKey: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n`);
+  if (['native-interrupted','native-expiry-between-steps'].includes(scenario))
+    writeFileSync(file, readFileSync(file, 'utf8') + `  - id: later_receipt\n    kind: api-request\n    config:\n      url: "file://${laterSink}"\n      receiptKey: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n`);
   const pair = generateKeyPairSync('ed25519');
   const policy = { publicKey: pair.publicKey.export({ type: 'spki', format: 'pem' }),
     endpoint: 'https://approval.example.test/', reviewerId: '12345678', chatId: '-100123456789', manifestHash: hash(readFileSync(file)) };
@@ -33,6 +40,7 @@ try {
   if (scenario === 'agent-refusal') {
     rejects(() => enrollRemoteHumanProvider(file, policy, io), 'HUMAN_CONFIRMATION_REQUIRED');
     rejects(() => consumeRemoteHumanDecision(file, randomUUID(), '{}'), 'HUMAN_CONFIRMATION_REQUIRED');
+    await assert.rejects(resumeRemoteHumanWorkflow(join(root, 'never-read.yaml'), randomUUID()), error => error.code === 'HUMAN_CONFIRMATION_REQUIRED'); probes++;
     assert.equal(existsSync(policyFile), false); probes++;
   } else {
     if (scenario === 'enrollment') {
@@ -46,17 +54,97 @@ try {
     const hosted = await createLocalHost({ manifest: file, manifestSha256: policy.manifestHash }).dispatch('manual', 'fixture');
     assert.equal(hosted.status, 'waiting_human'); probes++;
     const runId = hosted.runId, runFile = store.runFile(runId);
-    const request = requestRemoteHumanDecision(file, runId, { nowMs: 1000, ttlMs: 10000 });
+    const request = requestRemoteHumanDecision(file, runId, { nowMs: at(1000), ttlMs: nativeExecution ? 60000 : 10000 });
     const snapshot = readFileSync(runFile, 'utf8');
-    assert.deepEqual(requestRemoteHumanDecision(file, runId, { nowMs: 2000 }), request); probes++;
+    assert.deepEqual(requestRemoteHumanDecision(file, runId, { nowMs: at(2000) }), request); probes++;
     assert.equal(readFileSync(runFile, 'utf8'), snapshot); probes++;
     const receipt = (decision = 'approve', req = request) => {
       const { issuedAt, requestHash, ...fields } = req;
       const body = { ...fields, protocol: 'qf.remote-human-receipt/v1', requestHash,
-        receiptId: randomUUID(), decision, decidedAt: 2000 };
+        receiptId: randomUUID(), decision, decidedAt: at(2000) };
       return canonical({ body, signature: sign(null, Buffer.from(canonical(body)), pair.privateKey).toString('base64') });
     };
-    if (['approve','reject'].includes(scenario)) {
+    if (nativeExecution) {
+      const signed = receipt(scenario === 'native-reject' ? 'reject' : 'approve');
+      consumeRemoteHumanDecision(file, runId, signed, { nowMs: at(2500) });
+      const consumed = readFileSync(runFile, 'utf8');
+      const resume = options => resumeRemoteHumanWorkflow(file, runId, options);
+      if (scenario === 'native-mutations') {
+        for (const change of [run => { run.summary = 'unexpected revision'; },
+          run => { run.remoteHuman.receiptJson = '{}'; }, run => { run.remoteHuman.evidence.decision = 'reject'; },
+          run => { run.remoteHuman.checkpointHash = 'f'.repeat(64); }, run => { delete run.remoteHuman.receiptJson; },
+          run => { run.steps[1].confirmation.channel = 'imported-json'; }, run => { run.remoteHuman.execution = false; }]) {
+          const changed = JSON.parse(consumed); change(changed); const bytes = JSON.stringify(changed); writeFileSync(runFile, bytes);
+          await assert.rejects(resume()); assert.equal(readFileSync(runFile, 'utf8'), bytes); probes += 2;
+          assert.equal(existsSync(sink), false); writeFileSync(runFile, consumed);
+        }
+      } else if (scenario === 'native-expired') {
+        await assert.rejects(resume({ clock: () => request.expiresAt }), error => error.code === 'REMOTE_APPROVAL_INVALID'); probes++;
+        assert.equal(readFileSync(runFile, 'utf8'), consumed); assert.equal(existsSync(sink), false); probes += 2;
+      } else if (scenario === 'native-preflight') {
+        const stopped = async () => { throw Error('fixture current-source/STOP hold'); };
+        for (let i=0;i<2;i++) await assert.rejects(resume({ beforeStep: stopped }), /fixture current-source\/STOP hold/);
+        const current = store.load(runId); assert.equal(current.steps[2].status, 'pending'); probes += 3;
+        assert.equal(existsSync(sink), false); probes++;
+      } else if (scenario === 'native-interrupted') {
+        const current = store.load(runId); current.steps[2].status = 'running';
+        const { remoteHuman, ...rest } = current; current.remoteHuman.checkpointHash = hash(rest);
+        store.save(current); // Explicit corruption/crash simulation in this NEW fixture only.
+        const result = await resume(); assert.equal(result.status, 'needs_human'); probes++;
+        assert.equal(existsSync(sink), false); assert.equal(existsSync(laterSink), false); probes += 2;
+        assert.equal((await resume()).executionResumed, false); probes++;
+      } else if (scenario === 'native-expiry-between-steps') {
+        let clock = request.expiresAt - 2;
+        await assert.rejects(resume({ clock: () => clock, beforeStep: async () => { clock=request.expiresAt; } }),
+          error => error.code === 'REMOTE_APPROVAL_INVALID'); probes++;
+        assert.equal(readFileSync(sink, 'utf8').trim().split('\n').length, 1); probes++;
+        assert.equal(existsSync(laterSink), false); probes++;
+        assert.equal(store.load(runId).steps[3].status, 'pending'); probes++;
+      } else if (scenario === 'native-legacy-locks') {
+        const lease = acquireWorkflowLease(file);
+        try {
+          for (const command of ['run','reply','clarify','cancel','resume']) {
+            const child = spawnSync(process.execPath, [new URL('../../bin/q-core.mjs', import.meta.url).pathname,
+              command, file, runId, join(root,'unused.json'), '--json'],
+              { env: { PATH: process.env.PATH }, encoding: 'utf8', timeout: 5000 });
+            assert.equal(child.status, 1, child.stderr); assert.match(child.stderr, /Workspace already locked/);
+            assert.equal(readFileSync(runFile, 'utf8'), consumed); probes++;
+          }
+          await assert.rejects(createLocalHost({ manifest:file,manifestSha256:policy.manifestHash }).dispatch('manual','overlap'), error => error.code === 'WORKSPACE_LOCKED'); probes++;
+          await assert.rejects(resume(), error => error.code === 'WORKSPACE_LOCKED'); probes++;
+        } finally { lease.release(); }
+        assert.equal(existsSync(sink), false); probes++;
+      } else if (scenario === 'native-overlap') {
+        let preflight = 0;
+        const result = await resume({ beforeStep: async () => {
+          preflight++;
+          await assert.rejects(resume(), error => error.code === 'WORKSPACE_LOCKED');
+          rejects(() => requestRemoteHumanDecision(file, runId), 'WORKSPACE_LOCKED');
+          await assert.rejects(createLocalHost({ manifest:file,manifestSha256:policy.manifestHash }).dispatch('manual','overlap'), error => error.code === 'WORKSPACE_LOCKED');
+          probes += 2;
+        } });
+        assert.equal(preflight, 1); assert.equal(result.status, 'success'); probes += 2;
+        assert.equal(readFileSync(sink, 'utf8').trim().split('\n').length, 1); probes++;
+      } else if (scenario === 'native-restart') {
+        const code = `import {resumeRemoteHumanWorkflow} from ${JSON.stringify(new URL('../../src/remote-human-host.mjs', import.meta.url).href)};
+          const result=await resumeRemoteHumanWorkflow(process.argv[1],process.argv[2]);process.stdout.write(JSON.stringify(result));`;
+        for (let i=0;i<2;i++) {
+          // Only the newly allocated disposable manifest/run is passed onward.
+          const child=spawnSync(process.execPath,['--input-type=module','-e',code,file,runId],
+            {env:{PATH:process.env.PATH},encoding:'utf8',timeout:10000});
+          assert.equal(child.status,0,child.stderr);assert.equal(JSON.parse(child.stdout).status,'success');probes++;
+        }
+        assert.equal(readFileSync(sink,'utf8').trim().split('\n').length,1);probes++;
+      } else {
+        const result = await resume(); assert.equal(result.status, scenario === 'native-reject' ? 'failed' : 'success'); probes++;
+        assert.equal(result.executionResumed, scenario !== 'native-reject'); probes++;
+        const first = existsSync(sink) ? readFileSync(sink, 'utf8') : null;
+        const repeat = await resume({ clock: () => request.expiresAt + 1 });
+        assert.equal(repeat.executionResumed, false); probes++;
+        assert.equal(existsSync(sink) ? readFileSync(sink, 'utf8') : null, first); probes++;
+        if (scenario !== 'native-reject') assert.equal(first.trim().split('\n').length, 1);
+      }
+    } else if (['approve','reject'].includes(scenario)) {
       const signed = receipt(scenario);
       const result = consumeRemoteHumanDecision(file, runId, signed, { nowMs: 2500 });
       assert.equal(result.authorizationApplied, true); assert.equal(result.effectExecuted, false); probes += 2;
@@ -138,7 +226,7 @@ try {
       rejects(() => consumeRemoteHumanDecision(file, runId, receipt(), { nowMs: 2500 }));
       assert.equal(readFileSync(outside, 'utf8'), snapshot); probes++;
       unlinkSync(runFile); writeFileSync(runFile, snapshot);
-      const lock = join(store.dir, 'agent.lock'); writeFileSync(lock, 'interrupted');
+      const lock = join(store.dir, 'workflow.lock'); writeFileSync(lock, 'interrupted');
       rejects(() => consumeRemoteHumanDecision(file, runId, receipt(), { nowMs: 2500 }), 'WORKSPACE_LOCKED');
       assert.equal(readFileSync(runFile, 'utf8'), snapshot); probes++;
     }

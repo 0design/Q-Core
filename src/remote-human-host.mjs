@@ -1,14 +1,14 @@
-/** Candidate native enrollment and single-file gate consumer. No transport,
- * signing, workflow driving or publishing. Existing terminal approvals unchanged.
+/** Candidate native enrollment, receipt consumption and leased continuation.
+ * No provider transport, signing, service installation or platform adapter.
  */
 import { readFileSync, lstatSync, existsSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { hash, insist } from './contracts.mjs';
 import { agentSessionMarker, confirmHumanDecision } from './human-confirmation.mjs';
-import { lockWorkspace } from './workspace.mjs';
+import { acquireWorkflowLease } from './workflow-lease.mjs';
 import { RunStore } from './state.mjs';
-import { createRun, waitingGate, resolveKnobs } from './run.mjs';
+import { createRun, waitingGate, resolveKnobs, driveRun } from './run.mjs';
 import { loadWorkflow } from './workflow-policy.mjs';
 import { guardedDurableReplaceSync, guardedMkdirSync, guardedSyncDirectorySync,
   persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
@@ -83,7 +83,7 @@ export function enrollRemoteHumanProvider(file, policy, io = {}) {
     'The provider must authenticate the human callback before signing; it may not sign model output.'
   ] }, io);
   personOnly();
-  const lock = lockWorkspace(ctx.root);
+  const lock = acquireWorkflowLease(ctx.manifestFile);
   try {
     // Refuse a manifest edit made while the person was reading the terminal.
     policyValue(policy, hash(plainFile(ctx.manifestFile)));
@@ -132,7 +132,7 @@ function requestedState(run, provider) {
 /** Save before notification. This function itself never notifies anyone. */
 export function requestRemoteHumanDecision(file, runId, { nowMs = Date.now(), ttlMs = 900_000 } = {}) {
   insist(Number.isSafeInteger(nowMs) && nowMs >= 0, 'Invalid remote request clock');
-  const ctx = context(file), lock = lockWorkspace(ctx.root);
+  const ctx = context(file), lock = acquireWorkflowLease(ctx.manifestFile);
   try {
     const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), current = binding(run, provider);
     if (Object.hasOwn(run, 'remoteHuman')) {
@@ -150,11 +150,12 @@ export function requestRemoteHumanDecision(file, runId, { nowMs = Date.now(), tt
 
 /** Native one-file transaction: terminal challenge + gate decision are committed
  * together before any effect. No driveRun, network, signing or publish here.
- * A future host must lease/reconcile execution separately; this is not an E2E host.
+ * The separate resume API leases/revalidates continuation; this consumer is not
+ * an E2E host and never drives a workflow itself.
  */
 export function consumeRemoteHumanDecision(file, runId, receiptJson, { nowMs = Date.now() } = {}) {
   personOnly();
-  const ctx = context(file), lock = lockWorkspace(ctx.root);
+  const ctx = context(file), lock = acquireWorkflowLease(ctx.manifestFile);
   try {
     const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), state = requestedState(run, provider);
     const current = binding(run, provider);
@@ -172,10 +173,97 @@ export function consumeRemoteHumanDecision(file, runId, receiptJson, { nowMs = D
       gate.status = 'failed'; gate.errorText = 'Rejected at the gate by a human.';
       run.status = 'failed'; run.finishedAt = confirmedAt; run.summary = `Step "${gate.name}": rejected at the gate.`;
     }
-    run.remoteHuman = { ...state, phase: 'consumed', consumedAt: nowMs,
-      evidence: { ...evidence, authorizationApplied: true }, effectExecuted: false };
+    run.remoteHuman = { ...state, phase: 'consumed', consumedAt: nowMs, receiptJson,
+      evidence: { ...evidence, authorizationApplied: true }, effectExecuted: false,
+      checkpointHash: runHash(run) };
     withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run }, () => save(ctx.store.runFile(runId), run));
     return { runId, decision: evidence.decision, authorizationApplied: true, effectExecuted: false, status: run.status };
+  } finally { lock.release(); }
+}
+
+function consumedState(run, provider, nowMs) {
+  const state = run.remoteHuman;
+  const fields = ['protocol','phase','enrollmentHash','runBindingHash','request','consumedAt',
+    'receiptJson','evidence','effectExecuted','checkpointHash', ...(state?.execution ? ['execution'] : [])];
+  insist(state && typeof state === 'object' && !Array.isArray(state) &&
+    Object.keys(state).sort().join(',') === fields.sort().join(',') &&
+    state.protocol === 'qf.remote-human-state/v1' && state.phase === 'consumed' &&
+    state.enrollmentHash === hash(provider) && state.checkpointHash === runHash(run) &&
+    typeof state.runBindingHash === 'string' && HEX.test(state.runBindingHash) &&
+    Number.isSafeInteger(state.consumedAt) && state.consumedAt >= 0 && state.consumedAt <= nowMs,
+    'Consumed decision or native execution checkpoint changed', 'REMOTE_APPROVAL_INVALID');
+  // Reconstruct only an inspection copy so the existing exact gate-subject
+  // validator checks the approved original output as well as the shown subject.
+  const inspection = structuredClone(run);
+  const gate = inspection.steps.find(step => step.kind === 'approval-gate' && (step.config.reviewer ?? 'human') === 'human');
+  const originalGate = run.steps.find(step => step.seq === gate.seq);
+  gate.status = 'waiting_human'; inspection.status = 'waiting_human';
+  const current = binding(inspection, provider);
+  const evidence = verifyRemoteApprovalReceipt({ receiptJson: state.receiptJson, request: state.request, current,
+    trustedPublicKey: provider.publicKey, consumedReceiptIds: [], nowMs: state.consumedAt });
+  insist(hash(state.evidence) === hash({ ...evidence, authorizationApplied: true }) &&
+    originalGate.decision === evidence.decision && originalGate.status === (evidence.decision === 'approve' ? 'success' : 'failed') &&
+    (evidence.decision !== 'approve' || originalGate.approvedSubjectHash === evidence.approvalHash) &&
+    hash(originalGate.confirmation) === hash({ channel: 'telegram-ed25519', confirmedAt: new Date(state.consumedAt).toISOString(),
+      receiptHash: evidence.receiptHash, enrollmentId: provider.enrollmentId, reviewerId: provider.reviewerId }),
+    'Native gate no longer matches its signed decision', 'REMOTE_APPROVAL_INVALID');
+  if (Object.hasOwn(state, 'execution')) {
+    const execution = state.execution;
+    insist(execution && typeof execution === 'object' && !Array.isArray(execution) &&
+      Object.keys(execution).sort().join(',') === 'id,phase,status' &&
+      typeof execution.id === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(execution.id) &&
+      execution.status === run.status && execution.phase === executionPhase(run.status) && state.effectExecuted === null,
+      'Invalid native execution checkpoint', 'REMOTE_APPROVAL_INVALID');
+  } else insist(state.effectExecuted === false, 'Invalid unstarted native execution', 'REMOTE_APPROVAL_INVALID');
+  return state;
+}
+
+function executionPhase(status) {
+  return ['success','failed','cancelled'].includes(status) ? 'completed' : status === 'needs_human' ? 'held'
+    : status === 'running' ? 'running' : 'paused';
+}
+
+/** Continue a durably consumed decision under the SAME lease used by the
+ * shipped workflow CLI and local host. No imported confirmation or new approval.
+ * beforeStep is trusted host code for source/STOP/account/report preflight; it
+ * cannot be supplied by a manifest. Platform safety is still that adapter's job.
+ */
+export async function resumeRemoteHumanWorkflow(file, runId, { clock = Date.now, beforeStep } = {}) {
+  personOnly();
+  insist(typeof clock === 'function' && (beforeStep === undefined || typeof beforeStep === 'function'), 'Invalid native execution options');
+  const ctx = context(file), lock = acquireWorkflowLease(ctx.manifestFile);
+  try {
+    const nowMs = clock();
+    insist(Number.isSafeInteger(nowMs) && nowMs >= 0, 'Invalid native execution clock');
+    const provider = enrollment(ctx), run = currentRun(ctx, runId, provider), state = consumedState(run, provider, nowMs);
+    const report = resumed => ({ runId, status: run.status, decision: state.evidence.decision,
+      authorizationApplied: true, executionResumed: resumed, effectExecuted: state.effectExecuted });
+    if (['success','failed','cancelled','needs_human','waiting_inference','waiting_human'].includes(run.status)) return report(false);
+    insist(run.status === 'running' && state.evidence.decision === 'approve', 'Native workflow is not resumable', 'REMOTE_APPROVAL_INVALID');
+    insist(nowMs < state.request.expiresAt, 'Native approval expired before execution', 'REMOTE_APPROVAL_INVALID');
+    state.execution = { id: state.execution?.id ?? randomUUID(), phase: 'running', status: run.status };
+    state.effectExecuted = null; // Generic workflow status is not proof of a platform effect.
+    const durable = value => {
+      insist(value === run, 'Native driver attempted to persist a different run', 'REMOTE_APPROVAL_INVALID');
+      state.execution.phase = executionPhase(run.status); state.execution.status = run.status;
+      state.checkpointHash = runHash(run);
+      withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run }, () => save(ctx.store.runFile(runId), run));
+    };
+    durable(run); // Recovery owns this exact checkpoint before any step.
+    const store = Object.create(ctx.store); store.save = durable;
+    await driveRun(run, { store, knobs: run.executionKnobs, callerProvider: run.callerProvider,
+      apiKey: process.env.OPENROUTER_API_KEY ?? null,
+      beforeStep: async (step, current) => {
+        const at = clock();
+        insist(Number.isSafeInteger(at) && at >= nowMs && at < state.request.expiresAt &&
+          hash(enrollment(ctx)) === state.enrollmentHash,
+          'Native approval or enrollment expired/changed before a step', 'REMOTE_APPROVAL_INVALID');
+        // A host may revalidate its current source/STOP/account/report here.
+        // A refusal leaves a durable pending step, not an uncertain send claim.
+        if (beforeStep) await beforeStep(step, current);
+      } });
+    durable(run); ctx.store.saveLastRun(run);
+    return report(true);
   } finally { lock.release(); }
 }
 

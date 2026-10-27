@@ -389,6 +389,17 @@ export async function driveRun(run, opts = {}) {
 
 async function driveRunScoped(run, opts) {
   const { store, apiKey = null, dryRun = false, onStep = () => {} } = opts;
+  // A saved running row has an uncertain outcome. Skipping it and selecting a
+  // later pending row can lose an effect/readback or falsely report success.
+  // Fresh executions enter with pending rows; interrupted executions reconcile.
+  if (run.steps.some(step => step.status === 'running' && !(step.kind === 'workflow-call' &&
+    typeof step.childInvocationId === 'string' && Object.hasOwn(run.invocations ?? {}, step.childInvocationId)))) {
+    run.status = 'needs_human';
+    run.summary = 'Interrupted step outcome is unknown; reconcile it before continuing.';
+    run.finishedAt = new Date().toISOString();
+    store?.save(run);
+    return run;
+  }
   let inferenceReply = opts.inferenceReply;
   if (opts.clarification !== undefined) {
     insist(inferenceReply === undefined, 'Submit clarification separately from a caller inference reply', 'INVALID_CLARIFICATION');
@@ -613,6 +624,9 @@ async function driveRunScoped(run, opts) {
         ? { reserveAnthropicCost: worst => reserveAnthropicCost(run, invocationId, knobs, worst) } : {}),
     };
 
+    // Trusted embedding-host hook, never a manifest/model instruction. Refusal
+    // occurs before the outgoing step's running claim or any external action.
+    if (!dryRun && opts.beforeStep) await opts.beforeStep(next, run);
     next.status = "running";
     next.startedAt = new Date().toISOString();
     persist();

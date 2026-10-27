@@ -120,6 +120,7 @@
     "src/template.mjs",
     "src/update-check.mjs",
     "src/upstream-adapters.mjs",
+    "src/workflow-lease.mjs",
     "src/workflow-policy.mjs",
     "src/workspace.mjs",
     "src/yaml.mjs"

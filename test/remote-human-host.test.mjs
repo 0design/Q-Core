@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 // Only disposable fixtures are run with this explicit simulation environment.
 // The parent agent session is not modified; no existing run can be passed in.
 const fixture = fileURLToPath(new URL('./fixtures/remote-human-host-case.mjs', import.meta.url));
-for (const scenario of ['approve','reject','enrollment','mutations','expiration','cached-corruption','failed-write','symlinks-lock','agent-refusal']) {
+for (const scenario of ['approve','reject','enrollment','mutations','expiration','cached-corruption','failed-write','symlinks-lock','agent-refusal',
+  'native-execution','native-reject','native-restart','native-mutations','native-interrupted','native-preflight','native-expired','native-expiry-between-steps','native-overlap','native-legacy-locks']) {
   test(`remote human disposable fixture: ${scenario}`, () => {
     const env = { PATH: process.env.PATH, ...(scenario === 'agent-refusal' ? { AI_AGENT: 'fixture' } : {}) };
     const child = spawnSync(process.execPath, [fixture, scenario], { env, encoding: 'utf8', timeout: 20000 });

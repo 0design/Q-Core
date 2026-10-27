@@ -166,6 +166,27 @@
       "path": "^src/secret-html-entities\\.mjs$",
       "token": "^looparrow(left|right)$",
       "reason": "WHATWG HTML named character references used by the secret decoder"
+    },
+    {
+      "path": "^src/remote-human-host\\.mjs$",
+      "line": "manifest\\.steps\\.every",
+      "token": "^loop$",
+      "class": "generic-control-flow",
+      "reason": "Native v1 explicitly rejects the loop engine kind with the other non-flat control-flow kinds."
+    },
+    {
+      "path": "^docs/remote-human-receipt\\.md$",
+      "line": "poll/recovery loop",
+      "token": "^loop$",
+      "class": "generic-term",
+      "reason": "A polling/recovery iteration is an ordinary host execution term, not a product identity."
+    },
+    {
+      "path": "^docs/remote-human-receipt\\.md$",
+      "line": "loopback",
+      "token": "^loopback$",
+      "class": "generic-term",
+      "reason": "Loopback describes the localhost-only network used by disposable fixture tests."
     }
   ]
 }

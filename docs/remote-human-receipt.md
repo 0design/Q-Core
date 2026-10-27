@@ -100,7 +100,7 @@ an in-memory modified run. Stale workspace locks require inspection; this module
 does not remove them. Existing ordinary `RunStore` persistence is unchanged.
 
 Remaining integration: authenticated Telegram delivery/card callback and signing
-provider, a human-host execution lease and poll/recovery loop, approval-service
+provider, an operated native host and poll/recovery loop, approval-service
 adapter, current-source/STOP preflight at the effect boundary, compatible Registry
 release and live account E2Es. The enrolled public key delegates callback identity
 verification to its provider; a signature alone does not prove a particular chat
@@ -115,3 +115,48 @@ two receipt IDs, source/config/provider changes, expiry, agent refusal, symlinks
 locks, persistence refusal and file/directory flush failure boundaries. An explicit
 fixture driver after commit produces one local receipt and no duplicate on reload.
 These are controlled tests, not the user's enrollment, decision or a live host.
+
+## Candidate leased continuation
+
+`resumeRemoteHumanWorkflow(manifest, runId, { beforeStep?, clock? })` continues a
+decision already committed by `consumeRemoteHumanDecision`. It is a separate
+human-host API, with the independent agent-session guard before filesystem reads.
+It never accepts a new human confirmation or runs the terminal approval command.
+The consumer now also persists its canonical signed receipt and a checkpoint hash
+of the post-consumption run. Older consumed records without these fields require
+reconciliation; their authority is not inferred from unsigned metadata.
+
+Before continuing, the host revalidates enrollment/current manifest/flat plan,
+the whole checkpoint, the actual signed receipt at consumption time, and the
+exact native gate/subject/confirmation. It holds the same workspace lease used
+by shipped `run`, `reply`, `clarify`, `cancel`, `resume`, `approve` and local-host
+dispatch for the entire driver call. The lease is `.qf/workflow.lock`, distinct
+from the existing `.qf/agent.lock` used by workspace writes, so a leased workflow
+can still execute its own policy-bound workspace-apply step. Read-only status
+does not take that lease.
+Direct library users and deliberately edited same-user state are not made safe
+by a lock; stale lock files still require explicit inspection and reconciliation.
+
+Native driver checkpoints use exact durable replace/file flush/rename/parent
+flush. A clean stop between consumption and execution can resume in a new process.
+Completed/rejected/held states return without driving again, including after the
+request expires. Starting execution or a further step requires an unexpired
+request and unchanged enrollment/manifest. The trusted `beforeStep` callback lets
+the eventual platform host enforce current source/STOP/account/report checks;
+manifest/model text cannot supply it. This Core API alone implements none of
+those platform transports or permissions.
+
+A saved nonstructural `running` step now stops the generic driver as `needs_human`
+before any later step. A valid workflow-call container can remain active while its
+child pauses; uncertain child rows are still checked individually. The driver
+neither silently skips an uncertain effect nor resends it. Actual
+crash recovery with a stale process lease, outcome reconciliation and automatic
+service lifecycle remain integration work. A paused post-gate caller job also
+requires an explicit compatible continuation; this API does not import inference
+answers. Calling unrelated raw writers can invalidate the native checkpoint.
+
+The consumer still returns `effectExecuted:false`. Once the native driver starts,
+that value is `null`: a generic workflow status cannot attest that a particular
+social reply was delivered. The return separates `executionResumed` from status.
+No CLI/service/scheduler/HTTP/provider transport or platform adapter is enabled,
+and no installed Core/Registry version is changed by this source candidate.

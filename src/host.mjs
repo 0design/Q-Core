@@ -11,6 +11,7 @@ import { RunStore } from './state.mjs';
 import { hash, insist } from './contracts.mjs';
 import { validateCallerInput } from './caller-inference.mjs';
 import { validateWorkspacePolicy } from './registry-workspace-steps.mjs';
+import { withWorkflowLease } from './workflow-lease.mjs';
 
 export function cronMatches(expression, date) {
   assertCron(expression);
@@ -54,6 +55,9 @@ export function createLocalHost(config) {
   guardedMkdirSync(dir,{recursive:true,mode:0o700});
   for(const path of [store.dir,join(store.dir,'host'),dir]) insist(!lstatSync(path).isSymbolicLink(),'Unsafe host directory');
   async function dispatch(kind,eventId) {
+    return withWorkflowLease(file, () => dispatchLeased(kind,eventId));
+  }
+  async function dispatchLeased(kind,eventId) {
     insist(['manual','schedule','webhook'].includes(kind),'Unsupported host trigger');
     insist(typeof eventId === 'string' && /^[a-zA-Z0-9_.:-]{1,128}$/.test(eventId),'Bounded event ID required');
     const manifest=verify();
