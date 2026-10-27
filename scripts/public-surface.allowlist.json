@@ -75,6 +75,7 @@
     "src/approval-anchor.mjs",
     "src/approval-delivery.mjs",
     "src/approver-setup.mjs",
+    "src/approver-write-boundary.mjs",
     "src/caller-inference.mjs",
     "src/capabilities.mjs",
     "src/catalog.mjs",

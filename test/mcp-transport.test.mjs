@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -34,7 +34,7 @@ async function fixture(t) {
   const store = new RunStore(manifestFile);
   const run = await driveRun(createRun(loadWorkflow(manifestFile)), { store });
   assert.equal(run.status, 'waiting_human');
-  return { manifestFile, store, run, args: { run_id: run.runId, gate_id: 'review' } };
+  return { dir, manifestFile, store, run, args: { run_id: run.runId, gate_id: 'review' } };
 }
 async function client(t, manifestFile, capabilities, version) {
   const messages = [];
@@ -68,13 +68,40 @@ test('MCP lifecycle negotiates capabilities and publishes a decision-free tool s
 });
 
 test('tool arguments and call parameters cannot smuggle an approval or client capabilities', async t => {
-  const { session, messages } = await client(t, 'workflow.yaml');
-  const args = { run_id: 'unused', gate_id: 'review' };
-  for (const field of ['approval', 'decision', 'confirmation', 'content', 'anchor', 'signature', 'nonce', '_meta', 'manifestFile', 'capabilities']) {
-    await session.receive(rpc(field, 'tools/call', { name: 'request_approval', arguments: { ...args, [field]: 'approve' } }));
+  const { dir, manifestFile, store, run, args } = await fixture(t);
+  const { session, messages } = await client(t, manifestFile);
+  const registration = join(dir, '.q-core', 'approvers', 'touchid.json');
+  const registeredBefore = readFileSync(registration, 'utf8');
+  const runBefore = readFileSync(store.runFile(run.runId), 'utf8');
+  const fields = {
+    ...Object.fromEntries(['approval', 'decision', 'confirmation', 'content', 'anchor', 'signature', 'nonce', '_meta', 'manifestFile', 'capabilities'].map(field => [field, 'approve'])),
+    public_key: '-----BEGIN PUBLIC KEY-----\nforged\n-----END PUBLIC KEY-----\n',
+    key: 'forged-approver-key', helper: '/tmp/another-touchid-helper', helper_path: '/tmp/another-touchid-helper',
+    approver: { id: 'touchid', public_key: 'forged-approver-key' },
+    registration: { id: 'touchid', public_key: 'forged-approver-key' },
+  };
+  for (const [field, value] of Object.entries(fields)) {
+    await session.receive(rpc(field, 'tools/call', { name: 'request_approval', arguments: { ...args, [field]: value } }));
     assert.equal(messages.at(-1).error.code, -32602, field);
-    await session.receive(rpc(field, 'tools/call', { name: 'request_approval', arguments: args, [field]: 'approve' }));
+    await session.receive(rpc(field, 'tools/call', { name: 'request_approval', arguments: args, [field]: value }));
     assert.equal(messages.at(-1).error.code, -32602, field);
+    assert.equal(readFileSync(registration, 'utf8'), registeredBefore, field);
+    assert.equal(readFileSync(store.runFile(run.runId), 'utf8'), runBefore, field);
+  }
+  assert.equal(messages.filter(message => message.method === 'elicitation/create').length, 0);
+});
+
+test('MCP has no tools to register, replace, or remove an approver', async t => {
+  const { dir, manifestFile, store, run, args } = await fixture(t);
+  const { session, messages } = await client(t, manifestFile);
+  const registration = join(dir, '.q-core', 'approvers', 'touchid.json');
+  const registeredBefore = readFileSync(registration, 'utf8');
+  const runBefore = readFileSync(store.runFile(run.runId), 'utf8');
+  for (const name of ['register_approver', 'add_approver', 'replace_approver', 'remove_approver']) {
+    await session.receive(rpc(name, 'tools/call', { name, arguments: args }));
+    assert.equal(messages.at(-1).error.code, -32602, name);
+    assert.equal(readFileSync(registration, 'utf8'), registeredBefore, name);
+    assert.equal(readFileSync(store.runFile(run.runId), 'utf8'), runBefore, name);
   }
   assert.equal(messages.filter(message => message.method === 'elicitation/create').length, 0);
 });

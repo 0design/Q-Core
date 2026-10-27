@@ -3,6 +3,8 @@ import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import childProcess from 'node:child_process';
 import os from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { approverDirectory } from './approver-write-boundary.mjs';
 import { insist } from './contracts.mjs';
 import { guardedMkdirSync, guardedWriteFileSync, guardedUnlinkSync, guardedStreamWrite, guardedStreamEnd } from './persistence.mjs';
 
@@ -27,8 +29,16 @@ export function canonicalApprovalPayload(payload) {
   return JSON.stringify(Object.fromEntries(FIELDS.map(key => [key, payload[key]])));
 }
 
-export const approverDirectory = () => join(os.homedir(), '.q-core', 'approvers');
-export const touchIdHelper = () => join(approverDirectory(), 'touchid-approve');
+export { approverDirectory };
+export const touchIdHelper = () => fileURLToPath(new URL('../tools/touchid-approve/touchid-approve', import.meta.url));
+export const touchIdEnvironment = () => ({ HOME: os.userInfo().homedir, PATH: '/usr/bin:/bin' });
+
+/** Separate signing domain: an enrollment proof can never approve a run. */
+export function canonicalRegistrationPayload(publicKey, nonce) {
+  publicP256Key(publicKey);
+  insist(HEX.test(nonce), 'Invalid registration nonce.', 'INVALID_APPROVAL_ANCHOR');
+  return JSON.stringify({ purpose: 'q-core.touchid-registration/v1', public_key: publicKey, nonce });
+}
 
 /** A registry belongs to its server. Constructing another registry cannot alter
  * the production allowlist or enroll a key through an MCP request. */
@@ -80,7 +90,7 @@ export class TouchIdAnchor extends P256ApprovalAnchor {
     const input = canonicalApprovalPayload(payload);
     const response = await new Promise((resolve, reject) => {
       const child = childProcess.execFile(touchIdHelper(), ['approve'], {
-        encoding: 'utf8', timeout: APPROVAL_TTL_MS, maxBuffer: 65_536,
+        encoding: 'utf8', timeout: APPROVAL_TTL_MS, maxBuffer: 65_536, env: touchIdEnvironment(),
       }, (error, stdout) => error ? reject(error) : resolve(stdout));
       child.stdin.on('error', reject);
       try { guardedStreamWrite(child.stdin, input); guardedStreamEnd(child.stdin); }
@@ -95,7 +105,7 @@ export class TouchIdAnchor extends P256ApprovalAnchor {
 function registeredTouchIdAnchor() {
   const dir = approverDirectory(), file = join(dir, 'touchid.json');
   insist(existsSync(file), 'Set up Touch ID first: q-core approver add touchid', 'APPROVAL_ANCHOR_REQUIRED');
-  for (const path of [join(os.homedir(), '.q-core'), dir]) {
+  for (const path of [join(os.userInfo().homedir, '.q-core'), dir]) {
     insist(lstatSync(path).isDirectory() && !lstatSync(path).isSymbolicLink(), 'Unsafe approver directory.', 'INVALID_APPROVAL_ANCHOR');
   }
   insist(lstatSync(file).isFile() && !lstatSync(file).isSymbolicLink(), 'Unsafe approver registration.', 'INVALID_APPROVAL_ANCHOR');

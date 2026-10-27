@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
-import { canonicalApprovalPayload } from '../../src/approval-anchor.mjs';
+import { canonicalApprovalPayload, touchIdHelper } from '../../src/approval-anchor.mjs';
 
 const fixtures = new WeakMap();
 
@@ -18,14 +18,15 @@ export function createTestTouchIdAnchor(t, dir) {
   mkdirSync(approvers, { recursive: true });
   const publicPem = publicKey.export({ type: 'spki', format: 'pem' });
   writeFileSync(join(approvers, 'touchid.json'), JSON.stringify({ id: 'touchid', public_key: publicPem }));
-  const helper = join(approvers, 'touchid-approve');
+  const helper = touchIdHelper();
   const fixture = {
     privateKey, publicKey, publicPem, payloads: [], helper,
     transformPayload: payload => payload,
     transformSignature: signature => signature,
     sign: payload => sign('sha256', Buffer.from(canonicalApprovalPayload(payload)), privateKey).toString('base64'),
   };
-  t.mock.method(os, 'homedir', () => dir);
+  const account = os.userInfo();
+  t.mock.method(os, 'userInfo', () => ({ ...account, homedir: dir }));
   t.mock.method(childProcess, 'execFile', (file, args, options, callback) => {
     assert.equal(file, helper, 'only the fixed registered helper can be invoked');
     assert.deepEqual(args, ['approve']);

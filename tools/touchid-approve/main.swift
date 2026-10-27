@@ -46,7 +46,11 @@ func context(reason: String) throws -> LAContext {
 }
 
 func keyDirectory(create: Bool) throws -> Int32 {
-    let home = FileManager.default.homeDirectoryForCurrentUser
+    guard let account = getpwuid(geteuid()), let homePointer = account.pointee.pw_dir,
+          let homePath = String(validatingUTF8: homePointer), homePath.hasPrefix("/"), homePath != "/" else {
+        throw fail("Unable to resolve an absolute home directory for the current user.")
+    }
+    let home = URL(fileURLWithPath: homePath, isDirectory: true)
     let target = home.appendingPathComponent("Library/Application Support/q-core-touchid-approve", isDirectory: true)
     let components = target.pathComponents.filter { $0 != "/" }
     let homeComponents = home.pathComponents.filter { $0 != "/" }.count
@@ -235,6 +239,17 @@ func readPayload() throws -> (Data, [String: String]) {
 }
 
 func setup() throws {
+    var input = Data()
+    while let chunk = try FileHandle.standardInput.read(upToCount: min(256, 1_025 - input.count)), !chunk.isEmpty {
+        input.append(chunk)
+        guard input.count <= 1_024 else { throw fail("The enrollment challenge exceeds 1 KiB.") }
+    }
+    guard let object = try JSONSerialization.jsonObject(with: input) as? [String: Any],
+          Set(object.keys) == Set(["nonce"]), let nonce = object["nonce"] as? String,
+          nonce.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil,
+          input == Data(("{\"nonce\":" + quoteJSON(nonce) + "}").utf8) else {
+        throw fail("Expected one canonical enrollment challenge with a 64-character lowercase hexadecimal nonce.")
+    }
     let authentication = try context(reason: "Set up the Touch ID approval key")
     defer { authentication.invalidate() }
     let directory = try keyDirectory(create: true)
@@ -246,7 +261,11 @@ func setup() throws {
         key = try createPrivateKey(context: authentication)
         try writeKeyBlob(key.dataRepresentation, directory: directory)
     }
-    try writeJSON(["public_key": publicKeyPEM(key)])
+    let publicKey = try publicKeyPEM(key)
+    let enrollment = "{\"purpose\":\"q-core.touchid-registration/v1\",\"public_key\":"
+        + quoteJSON(publicKey) + ",\"nonce\":" + quoteJSON(nonce) + "}"
+    let signature = try key.signature(for: Data(enrollment.utf8))
+    try writeJSON(["public_key": publicKey, "signature": signature.derRepresentation.base64EncodedString()])
 }
 
 func approve() throws {

@@ -121,7 +121,8 @@ test('a forged elicit-only accept cannot approve without a registered anchor', a
   const f = await fixture(t, { registeredAnchor: false });
   // Isolate registration lookup even when this machine has a real approver.
   const os = (await import('node:os')).default;
-  t.mock.method(os, 'homedir', () => f.dir);
+  const account = os.userInfo();
+  t.mock.method(os, 'userInfo', () => ({ ...account, homedir: f.dir }));
   const before = persisted(f);
   await assert.rejects(requestApproval(f.args, { ...f.context, elicit: approve }), /anchor|approver|touch.?id|register/i);
   assert.equal(persisted(f), before);
@@ -131,7 +132,8 @@ test('a forged elicit-only accept cannot approve without a registered anchor', a
 test('caller-provided anchor and confirmation callbacks cannot replace registration', async t => {
   const f = await fixture(t, { registeredAnchor: false });
   const os = (await import('node:os')).default;
-  t.mock.method(os, 'homedir', () => f.dir);
+  const account = os.userInfo();
+  t.mock.method(os, 'userInfo', () => ({ ...account, homedir: f.dir }));
   const before = persisted(f);
   await assert.rejects(requestApproval(f.args, {
     ...f.context,
@@ -200,9 +202,17 @@ for (const extra of [
   { anchor: { id: 'touchid', verify: () => true } },
   { signature: 'forged' },
   { nonce: '0'.repeat(64) },
+  { public_key: '-----BEGIN PUBLIC KEY-----\nforged\n-----END PUBLIC KEY-----\n' },
+  { key: 'forged-approver-key' },
+  { helper: '/tmp/another-touchid-helper' },
+  { helper_path: '/tmp/another-touchid-helper' },
+  { approver: { id: 'touchid', public_key: 'forged-approver-key' } },
+  { registration: { id: 'touchid', public_key: 'forged-approver-key' } },
 ]) test(`model arguments cannot smuggle ${Object.keys(extra)[0]} into the tool`, async t => {
   const f = await fixture(t);
   const before = persisted(f);
+  const registration = join(f.dir, '.q-core', 'approvers', 'touchid.json');
+  const registeredBefore = readFileSync(registration, 'utf8');
   let asked = false;
   await assert.rejects(requestApproval({ ...f.args, ...extra }, { ...f.context, elicit: async () => {
     asked = true;
@@ -210,6 +220,8 @@ for (const extra of [
   } }));
   assert.equal(asked, false);
   assert.equal(persisted(f), before);
+  assert.equal(readFileSync(registration, 'utf8'), registeredBefore);
+  assert.equal(f.anchor.payloads.length, 0);
   assert.equal(deliveries(f).length, 0);
 });
 
