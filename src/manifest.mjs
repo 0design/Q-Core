@@ -167,6 +167,10 @@ function validateStep(raw, path, seenIds) {
   }
   if (kind === "approval-gate") {
     const reviewer = config.reviewer ?? "human";
+    if (config.source != null && (reviewer !== 'human' || config.bind !== 'sha256' || config.subject != null ||
+        !/^\{\{inputs\.[A-Za-z_][A-Za-z0-9_-]*\}\}$/.test(config.source))) {
+      throw new ManifestError('source requires a human sha256 gate and one whole declared object input reference; cannot combine with subject', `${path}.config.source`);
+    }
     if (!["human", "agent"].includes(reviewer)) {
       throw new ManifestError(`"reviewer" must be "human" or "agent", got "${reviewer}"`, `${path}.config`);
     }
@@ -381,6 +385,16 @@ export function validateManifest(doc) {
   let inputs, outputs;
   try { inputs = validatePorts(doc.inputs); outputs = validatePorts(doc.outputs, { output: true, path: 'outputs' }); }
   catch (error) { throw new ManifestError(error.message); }
+
+  const checkGateInputs = list => list.forEach(step => {
+    if (step.kind === 'approval-gate' && step.config.source != null) {
+      const name = step.config.source.slice(9, -2), port = inputs[name];
+      if (!port || port.type !== 'object' || port.required === false)
+        throw new ManifestError('source must name a required declared object input', `steps.${step.id}.config.source`);
+    }
+    for (const branch of [step.then, step.else, step.default, ...Object.values(step.cases ?? {})]) if (branch) checkGateInputs(branch);
+  });
+  checkGateInputs(steps);
 
   return {
     manifest: tag,

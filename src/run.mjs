@@ -231,9 +231,19 @@ function lastOutputRow(run, step, { passOverAgentGates = false } = {}) {
 // over (they are shown beside the subject), unless the gate keeps the legacy `subject: previous` (the
 // output of the step directly before it, whatever its kind). An agent gate judges the previous output, as before.
 function currentSubjectRow(run, gate) {
+  if (gate.config?.source != null) {
+    // The manifest pins a required object input. Its contents remain data:
+    // no template substitution or model echo is performed on the input value.
+    const match = /^\{\{inputs\.([A-Za-z_][A-Za-z0-9_-]*)\}\}$/.exec(gate.config.source);
+    insist(match && gate.config.bind === 'sha256' && (gate.config.reviewer ?? 'human') === 'human', 'Invalid gate input source');
+    const inputs = run.invocations?.[gate.invocationId ?? 'root']?.inputs ?? run.inputs ?? {};
+    insist(Object.hasOwn(inputs, match[1]) && inputs[match[1]] && typeof inputs[match[1]] === 'object' && !Array.isArray(inputs[match[1]]), 'Gate object input is missing');
+    return { rowId: `input:${gate.rowId}`, seq: gate.seq, output: structuredClone(inputs[match[1]]) };
+  }
   return lastOutputRow(run, gate, { passOverAgentGates: (gate.config?.reviewer ?? 'human') === 'human' && gate.config?.subject !== 'previous' });
 }
 function gateSubjectRow(run, gate) {
+  if (gate.config?.source != null) return currentSubjectRow(run, gate);
   return gate.boundSubjectRowId ? run.steps.find(row => row.rowId === gate.boundSubjectRowId) : currentSubjectRow(run, gate);
 }
 /** The agent verdicts given on a human gate's subject, shown beside it; never part of the subject or its hash. */

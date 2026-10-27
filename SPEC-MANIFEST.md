@@ -285,6 +285,7 @@ One kind, two modes; they differ only in *who* decides.
 | `escalateOn` | `objection` hands a failed check to a person | default `objection` |
 | `maxTokens` | `reviewer: agent` — answer budget, integer 1–32000 | default `1024` |
 | `subject` | `reviewer: human` — `previous` keeps the legacy subject (see below) | |
+| `source` | Candidate: one whole `{{inputs.name}}` reference to a required object input; human + `bind: sha256` only; cannot combine with `subject` | |
 | `mode` | `check` is `RESERVED` — refused | |
 
 **`reviewer: agent`** returns `{pass, reason}`. An answer that is not one readable
