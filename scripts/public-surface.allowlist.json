@@ -105,6 +105,7 @@
     "src/registry-release.mjs",
     "src/registry-workspace-steps.mjs",
     "src/registry.mjs",
+    "src/remote-human-receipt.mjs",
     "src/run.d.mts",
     "src/run.mjs",
     "src/secrets.mjs",
