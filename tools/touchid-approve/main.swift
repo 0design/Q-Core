@@ -45,6 +45,54 @@ func context(reason: String) throws -> LAContext {
     return context
 }
 
+// Both limits stay below Q-Core's 120-second approval TTL and helper timeout, so
+// the person always gets this helper's own error instead of a silent kill.
+let authenticationTimeoutSeconds = 90
+let operationDeadlineSeconds = 110
+
+final class AuthenticationOutcome: @unchecked Sendable {
+    var succeeded = false
+    var error: Error?
+}
+
+/// Shows the system Touch ID window explicitly and waits for the person.
+/// Signing must not depend on an implicit prompt from the Security framework:
+/// from a background process chain that prompt may never appear, and the
+/// signing call then blocks with no window. The evaluated context is then made
+/// non-interactive, so a signing step that is not covered by this evaluation
+/// fails at once instead of waiting for a window that is not shown.
+func authenticate(_ context: LAContext, reason: String) throws {
+    let finished = DispatchSemaphore(value: 0)
+    let outcome = AuthenticationOutcome()
+    context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, error in
+        outcome.succeeded = success
+        outcome.error = error
+        finished.signal()
+    }
+    guard finished.wait(timeout: .now() + .seconds(authenticationTimeoutSeconds)) == .success else {
+        context.invalidate()
+        throw fail("Touch ID was not confirmed within \(authenticationTimeoutSeconds) seconds. Nothing was signed.")
+    }
+    guard outcome.succeeded else {
+        let detail = outcome.error.map { error -> String in
+            let code = (error as NSError).code
+            return code == LAError.userCancel.rawValue || code == LAError.systemCancel.rawValue || code == LAError.appCancel.rawValue
+                ? "Touch ID was cancelled." : error.localizedDescription
+        } ?? "Touch ID refused the confirmation."
+        throw fail("\(detail) Nothing was signed. No password or software fallback is permitted.")
+    }
+    context.interactionNotAllowed = true
+}
+
+/// Last-resort guard: a native call that never returns still ends the helper
+/// with exit 1 and a message on stderr.
+func armOperationDeadline() {
+    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + .seconds(operationDeadlineSeconds)) {
+        FileHandle.standardError.write(Data("touchid-approve: The Touch ID operation did not finish within \(operationDeadlineSeconds) seconds. Nothing was signed.\n".utf8))
+        _exit(1)
+    }
+}
+
 func keyDirectory(create: Bool) throws -> Int32 {
     guard let account = getpwuid(geteuid()), let homePointer = account.pointee.pw_dir,
           let homePath = String(validatingUTF8: homePointer), homePath.hasPrefix("/"), homePath != "/" else {
@@ -250,12 +298,15 @@ func setup() throws {
           input == Data(("{\"nonce\":" + quoteJSON(nonce) + "}").utf8) else {
         throw fail("Expected one canonical enrollment challenge with a 64-character lowercase hexadecimal nonce.")
     }
-    let authentication = try context(reason: "Set up the Touch ID approval key")
+    let reason = "Set up the Touch ID approval key"
+    let authentication = try context(reason: reason)
     defer { authentication.invalidate() }
     let directory = try keyDirectory(create: true)
     defer { Darwin.close(directory) }
+    let existing = try readKeyBlob(directory: directory)
+    try authenticate(authentication, reason: reason)
     let key: SecureEnclave.P256.Signing.PrivateKey
-    if let blob = try readKeyBlob(directory: directory) {
+    if let blob = existing {
         key = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: blob, authenticationContext: authentication)
     } else {
         key = try createPrivateKey(context: authentication)
@@ -278,6 +329,7 @@ func approve() throws {
     guard let blob = try readKeyBlob(directory: directory) else {
         throw fail("No Touch ID key is enrolled. Run q-core approver add touchid first.")
     }
+    try authenticate(authentication, reason: reason)
     let key = try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation: blob, authenticationContext: authentication)
     let signature = try key.signature(for: data)
     try writeJSON(["signature": signature.derRepresentation.base64EncodedString()])
@@ -285,6 +337,7 @@ func approve() throws {
 
 do {
     guard CommandLine.arguments.count == 2 else { throw fail("Usage: touchid-approve setup|approve") }
+    armOperationDeadline()
     switch CommandLine.arguments[1] {
     case "setup": try setup()
     case "approve": try approve()
