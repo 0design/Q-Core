@@ -1,28 +1,37 @@
 import childProcess from 'node:child_process';
 import { randomBytes, verify } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, readSync } from 'node:fs';
+import { closeSync, existsSync, lstatSync, readFileSync, readSync } from 'node:fs';
 import tty from 'node:tty';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hash, insist } from './contracts.mjs';
 import { approverDirectory, touchIdHelper, touchIdEnvironment, P256ApprovalAnchor, loadApprovalAnchor,
   canonicalApprovalPayload, canonicalRegistrationPayload } from './approval-anchor.mjs';
-import { guardedMkdirSync, guardedWriteFileSync, guardedUnlinkSync, guardedStreamWrite } from './persistence.mjs';
+import { guardedMkdirSync, guardedOpenSync, guardedWriteFileSync, guardedUnlinkSync, guardedStreamWrite } from './persistence.mjs';
 import { withApproverEnrollmentWrites, touchIdKeyDirectory } from './approver-write-boundary.mjs';
 
+// Read the phrase from a fresh blocking /dev/tty description. process.stdin is
+// never touched: its tty stream reopens fd 0 non-blocking, so readSync(0)
+// fails with EAGAIN before the person has typed anything.
 function confirmRegistration(operation) {
-  insist(tty.isatty(process.stdin.fd) && tty.isatty(process.stdout.fd),
+  insist(tty.isatty(0) && tty.isatty(1),
     'Approver changes require an interactive TTY.', 'HUMAN_CONFIRMATION_REQUIRED');
-  const expected = `${operation} touchid`;
-  guardedStreamWrite(process.stderr, `Type "${expected}" to ${operation} the Touch ID approver: `);
-  const byte = Buffer.alloc(1);
-  let answer = '';
-  while (answer.length <= 64 && readSync(process.stdin.fd, byte, 0, 1, null) === 1) {
-    if (byte[0] === 10) break;
-    answer += byte.toString('utf8');
-  }
-  insist(answer.replace(/\r$/, '') === expected,
-    'Approver change was not confirmed at the terminal.', 'HUMAN_CONFIRMATION_REQUIRED');
+  let terminal;
+  try { terminal = guardedOpenSync('/dev/tty', 'r'); }
+  catch { insist(false, 'Approver changes require an interactive TTY.', 'HUMAN_CONFIRMATION_REQUIRED'); }
+  try {
+    insist(tty.isatty(terminal), 'Approver changes require an interactive TTY.', 'HUMAN_CONFIRMATION_REQUIRED');
+    const expected = `${operation} touchid`;
+    guardedStreamWrite(process.stderr, `Type "${expected}" to ${operation} the Touch ID approver: `);
+    const byte = Buffer.alloc(1);
+    let answer = '';
+    while (answer.length <= 64 && readSync(terminal, byte, 0, 1, null) === 1) {
+      if (byte[0] === 10) break;
+      answer += byte.toString('utf8');
+    }
+    insist(answer.replace(/\r$/, '') === expected,
+      'Approver change was not confirmed at the terminal.', 'HUMAN_CONFIRMATION_REQUIRED');
+  } finally { closeSync(terminal); }
 }
 
 function safePath(path) {

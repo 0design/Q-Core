@@ -20,12 +20,26 @@ const signature = (bytes, key) => sign('sha256', Buffer.from(bytes), key.private
 function fixture(t) {
   const dir = mkdtempSync(join(os.tmpdir(), 'q-core-enrollment-'));
   const account = os.userInfo(), key = keyPair();
-  const f = { dir, key, calls: [], answer: 'add touchid\n', registration: join(dir, '.q-core', 'approvers', 'touchid.json') };
+  const f = { dir, key, calls: [], terminalOpens: 0, stdinReads: 0, answer: 'add touchid\n', registration: join(dir, '.q-core', 'approvers', 'touchid.json') };
   t.mock.method(os, 'userInfo', () => ({ ...account, homedir: dir }));
   t.mock.method(tty, 'isatty', () => true);
-  const originalRead = fs.readSync;
+  // The phrase comes from /dev/tty: a real throwaway fd stands in for the terminal.
+  const originalOpen = fs.openSync, originalRead = fs.readSync, originalClose = fs.closeSync;
+  t.mock.method(fs, 'openSync', (path, ...args) => {
+    if (path !== '/dev/tty') return originalOpen(path, ...args);
+    f.terminalOpens++;
+    f.terminalClosed = false;
+    return (f.terminal = originalOpen(os.devNull, 'r'));
+  });
+  t.mock.method(fs, 'closeSync', fd => {
+    // Forget the closed terminal fd so a reused fd number is not mistaken for it.
+    if (fd === f.terminal) { f.terminal = undefined; f.terminalClosed = true; }
+    return originalClose(fd);
+  });
   t.mock.method(fs, 'readSync', (fd, buffer, ...args) => {
-    if (fd !== process.stdin.fd) return originalRead(fd, buffer, ...args);
+    // Node's stdin tty stream leaves fd 0 non-blocking; reading it fails before typing.
+    if (fd === 0) { f.stdinReads++; throw Object.assign(new Error('EAGAIN: resource temporarily unavailable, read'), { code: 'EAGAIN' }); }
+    if (fd !== f.terminal) return originalRead(fd, buffer, ...args);
     if (!f.answer) return 0;
     buffer[0] = f.answer.charCodeAt(0);
     f.answer = f.answer.slice(1);
@@ -114,6 +128,10 @@ test('add and remove refuse noninteractive TTY and unconfirmed terminal input be
   const f = fixture(t);
   t.mock.method(tty, 'isatty', () => false);
   for (const operation of [addTouchIdApprover, removeTouchIdApprover]) assert.throws(operation, /interactive TTY/);
+  assert.equal(f.terminalOpens, 0, 'no terminal read without an interactive TTY');
+  t.mock.method(tty, 'isatty', fd => fd !== 1);
+  assert.throws(addTouchIdApprover, /interactive TTY/);
+  assert.equal(f.terminalOpens, 0);
   t.mock.method(tty, 'isatty', () => true);
   f.answer = 'yes\n';
   assert.throws(addTouchIdApprover, /not confirmed/);
@@ -121,6 +139,34 @@ test('add and remove refuse noninteractive TTY and unconfirmed terminal input be
   assert.throws(removeTouchIdApprover, /not confirmed/);
   assert.equal(f.calls.length, 0);
   assert.equal(existsSync(f.registration), false);
+});
+
+test('the phrase is read from /dev/tty even when fd 0 is non-blocking (EAGAIN) and stdin is never read', t => {
+  const f = fixture(t);
+  f.register(f.key.publicPem);
+  f.answer = 'remove touchid\n';
+  assert.deepEqual(removeTouchIdApprover(), { id: 'touchid', registered: false });
+  assert.equal(f.terminalOpens, 1);
+  assert.equal(f.stdinReads, 0, 'confirmation must not read fd 0');
+  assert.equal(f.terminalClosed, true, 'terminal fd is closed after confirmation');
+});
+
+test('wrong, over-long or unterminated phrases are refused and the terminal fd is closed', t => {
+  const f = fixture(t);
+  for (const answer of ['yes\n', 'add touchid \n', 'Add touchid\n', 'add touchid', '', 'add touchid'.padEnd(80, 'x') + '\n', 'x'.repeat(65) + 'add touchid\n']) {
+    f.answer = answer;
+    assert.throws(removeTouchIdApprover, /not confirmed/, JSON.stringify(answer));
+    assert.equal(f.terminalClosed, true);
+  }
+  assert.equal(f.calls.length, 0);
+});
+
+test('missing controlling terminal is refused as a human-confirmation failure', t => {
+  const f = fixture(t);
+  t.mock.method(fs, 'openSync', path => { if (path === '/dev/tty') throw Object.assign(new Error('ENXIO'), { code: 'ENXIO' }); throw new Error(path); });
+  syncBuiltinESMExports();
+  assert.throws(removeTouchIdApprover, error => error.code === 'HUMAN_CONFIRMATION_REQUIRED' && /interactive TTY/.test(error.message));
+  assert.equal(f.calls.length, 0);
 });
 
 test('explicit interactive remove clears registration and native enrollment for recovery', t => {
