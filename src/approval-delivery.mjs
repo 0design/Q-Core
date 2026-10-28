@@ -4,13 +4,53 @@ import { previewApiRequest } from './steps.mjs';
 import { resolveTemplateValue } from './template.mjs';
 import { assertUnredactedOutput } from './persistence.mjs';
 
+// Steps that produce no outside effect of their own; they may precede a sibling lane's human gate.
+const PASSIVE_KINDS = new Set(['fetch', 'llm-call', 'parse-web', 'deduplicate', 'verify-sources', 'workspace-read',
+  'specification', 'verify-artifact', 'determined']);
+
+/** 'gated' when every path stops at a human gate before any effect, 'clear' when no path reaches an effect,
+ *  'unsafe' otherwise. Nested calls, fan-outs and repeating steps are not walked and count as unsafe. */
+function effectBoundary(steps) {
+  for (const step of steps ?? []) {
+    if (step.kind === 'approval-gate' && (step.config?.reviewer ?? 'human') === 'human') return 'gated';
+    if (step.kind === 'approval-gate' || PASSIVE_KINDS.has(step.kind)) continue;
+    if (step.kind !== 'if' && step.kind !== 'switch') return 'unsafe';
+    const branches = step.kind === 'if' ? [step.then, step.else] : [...Object.values(step.cases ?? {}), step.default];
+    const exhaustive = step.kind === 'if' ? Array.isArray(step.else) : Array.isArray(step.default);
+    const results = branches.map(effectBoundary);
+    if (results.includes('unsafe')) return 'unsafe';
+    if (exhaustive && results.every(result => result === 'gated')) return 'gated';
+  }
+  return 'clear';
+}
+
+/** After a lane's return, only further lanes of the same pinned material may follow, each stopping at its
+ *  own human gate before any effect (or having none). Anything else would run unseen after this approval. */
+function assertSiblingLanesOnly(run, gate, rest) {
+  const frame = run.invocations?.[gate.invocationId];
+  const parent = run.invocations?.[frame?.parent];
+  const boundary = effectBoundary(run.materialGraph?.[frame?.key]?.manifest?.steps);
+  const sibling = row => row.kind === 'workflow-call' && (row.invocationId ?? 'root') === frame.parent &&
+    run.materialGraph?.[parent?.key]?.resolved?.[row.config?.ref] === frame.key;
+  insist(frame && parent && boundary !== 'unsafe' && rest.every(sibling),
+    'Steps after this branch would run without their own human gate. Place a human gate before every later delivery.', 'DELIVERY_NOT_READY');
+}
+
 export function deliveryFor(run, gate, store) {
   const shadow = structuredClone(run);
   shadow.steps.find(row => row.seq === gate.seq).status = 'success';
+  const branch = gate.invocationId ?? 'root';
   const deliveries = [];
-  for (const row of shadow.steps.filter(row => row.seq > gate.seq && row.status === 'pending')) {
-    if (row.kind === 'approval-gate') break;
+  const pending = shadow.steps.filter(row => row.seq > gate.seq && row.status === 'pending');
+  for (const [index, row] of pending.entries()) {
     const invocation = row.invocationId ?? 'root';
+    insist(invocation === branch, 'Delivery content depends on a step outside this gate branch.', 'DELIVERY_NOT_READY');
+    if (row.kind === 'approval-gate') break;
+    if (row.kind === 'workflow-return' && branch !== 'root') {
+      // The end of this branch: what this approval releases ends here.
+      assertSiblingLanesOnly(run, gate, pending.slice(index + 1));
+      break;
+    }
     const previous = shadow.steps.filter(prior => prior.seq < row.seq && (prior.invocationId ?? 'root') === invocation &&
       prior.status === 'success' && prior.output != null && prior.kind !== 'workflow-return');
     const priorOutputs = Object.fromEntries(previous.map(prior => [prior.stepId, prior.output]));
@@ -37,4 +77,3 @@ export function deliveryFor(run, gate, store) {
   assertUnredactedOutput(serialized);
   return delivery;
 }
-
