@@ -151,14 +151,19 @@ test('the phrase is read from /dev/tty even when fd 0 is non-blocking (EAGAIN) a
   assert.equal(f.terminalClosed, true, 'terminal fd is closed after confirmation');
 });
 
-test('wrong, over-long or unterminated phrases are refused and the terminal fd is closed', t => {
+test('wrong or over-long phrases are refused and the terminal fd is closed', t => {
   const f = fixture(t);
-  for (const answer of ['yes\n', 'add touchid \n', 'Add touchid\n', 'add touchid', '', 'add touchid'.padEnd(80, 'x') + '\n', 'x'.repeat(65) + 'add touchid\n']) {
+  for (const answer of ['yes\n', '', 'remove touchid \n', 'Remove touchid\n', ' remove touchid\n', 'add touchid\n',
+    'remove touchid'.padEnd(80, 'x') + '\n', 'x'.repeat(65) + 'remove touchid\n']) {
     f.answer = answer;
     assert.throws(removeTouchIdApprover, /not confirmed/, JSON.stringify(answer));
     assert.equal(f.terminalClosed, true);
   }
   assert.equal(f.calls.length, 0);
+  // Unchanged behaviour: the exact phrase followed by end of input (no newline) still confirms.
+  f.register(f.key.publicPem);
+  f.answer = 'remove touchid';
+  assert.deepEqual(removeTouchIdApprover(), { id: 'touchid', registered: false });
 });
 
 test('missing controlling terminal is refused as a human-confirmation failure', t => {
