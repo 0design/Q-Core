@@ -1,8 +1,8 @@
 /** Types for the driver. Hand-written — see manifest.d.mts on why. */
 import type { WorkflowManifest, WorkflowManifestSettings, WorkflowManifestStep } from "./manifest.d.mts";
 
-export type RunStatus = "running" | "success" | "failed" | "cancelled" | "waiting_human" | "waiting_inference" | "needs_human";
-export type StepStatus = "pending" | "running" | "success" | "failed" | "waiting_human" | "planned";
+export type RunStatus = "running" | "success" | "failed" | "rejected" | "cancelled" | "waiting_human" | "waiting_inference" | "needs_human";
+export type StepStatus = "pending" | "running" | "success" | "failed" | "rejected" | "skipped" | "waiting_human" | "planned";
 
 export interface RunStep {
   rowId?: string;

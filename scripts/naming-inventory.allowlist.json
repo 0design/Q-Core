@@ -64,7 +64,7 @@
     },
     {
       "class": "generic-control-flow",
-      "path": "^test/control-flow\\.test\\.mjs$",
+      "path": "^test/(control-flow|approval-branch-rejection)\\.test\\.mjs$",
       "reason": "control-flow kind tests"
     },
     {

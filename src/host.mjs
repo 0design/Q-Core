@@ -64,7 +64,7 @@ export function createLocalHost(config) {
     guardedWriteFileSync(lock,'',{flag:'wx',mode:0o600});
     try {
       if(existsSync(receipt)) { const prior=safeJson(receipt); insist(prior.phase==='completed','Prior trigger outcome is uncertain; reconcile before retry'); return {...prior,duplicate:true}; }
-      if(existsSync(active)) { const prior=safeJson(active), run=store.load(prior.runId); insist(run && ['success','failed','cancelled','needs_human'].includes(run.status),'Previous run is still active or waiting; resume it before starting another'); }
+      if(existsSync(active)) { const prior=safeJson(active), run=store.load(prior.runId); insist(run && ['success','failed','rejected','cancelled','needs_human'].includes(run.status),'Previous run is still active or waiting; resume it before starting another'); }
       const run=createRun(manifest,{trigger:kind});
       run.hostEvent={id:eventId,manifestSha256:config.manifestSha256};
       run.executionKnobs=resolveKnobs(manifest.settings);

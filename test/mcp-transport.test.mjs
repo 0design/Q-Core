@@ -160,7 +160,7 @@ test('client rejection records rejection while decline and cancel keep the gate 
     const form = await waitFor(messages, message => message.method === 'elicitation/create');
     await session.receive(action === 'reject' ? reply(form, 'reject') : { jsonrpc: '2.0', id: form.id, result: { action } });
     await call;
-    assert.equal(store.load(run.runId).status, action === 'reject' ? 'failed' : 'waiting_human');
+    assert.equal(store.load(run.runId).status, action === 'reject' ? 'rejected' : 'waiting_human');
     assert.equal(store.load(run.runId).steps[0].decision, action === 'reject' ? 'reject' : null);
   }
 });

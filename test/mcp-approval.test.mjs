@@ -109,7 +109,7 @@ test('chat rejection is recorded and never delivers', async t => {
   const f = await fixture(t);
   const result = await requestApproval(f.args, { ...f.context, elicit: reject });
   assert.equal(result.decision, 'reject');
-  assert.equal(result.status, 'failed');
+  assert.equal(result.status, 'rejected');
   assert.match(result.delivery_hash, HASH);
   const gate = f.store.load(f.run.runId).steps.find(step => step.rowId === f.gate.rowId);
   assert.equal(gate.decision, 'reject');

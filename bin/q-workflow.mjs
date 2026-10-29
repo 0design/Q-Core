@@ -249,7 +249,7 @@ async function cmdValidate(args, flags) {
 
 function printStep(s, quiet) {
   if (quiet) return;
-  const mark = { success: "✓", planned: "·", failed: "✗", waiting_human: "⏸" }[s.status] ?? " ";
+  const mark = { success: "✓", planned: "·", failed: "✗", rejected: "⊘", skipped: "↷", waiting_human: "⏸" }[s.status] ?? " ";
   const cost = s.costUsd ? ` $${Number(s.costUsd).toFixed(4)}` : "";
   const lane = s.itemIndex != null ? c.dim(` [item ${s.itemIndex}]`) : "";
   guardedStreamWrite(process.stdout, `  ${mark} ${s.kind.padEnd(14)} ${s.name}${lane}${c.dim(cost)}\n`);
@@ -409,7 +409,7 @@ async function cmdStatus(args, flags) {
   }
   guardedStreamWrite(process.stdout, `${c.bold("last runs")} ${c.dim(shortPath(store.dir))}\n\n`);
   for (const r of runs) {
-    const mark = { success: "✓", failed: "✗", cancelled: "■", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
+    const mark = { success: "✓", failed: "✗", rejected: "⊘", cancelled: "■", waiting_human: "⏸", running: "…" }[r.status] ?? " ";
     const when = String(r.startedAt).replace("T", " ").slice(0, 19);
     guardedStreamWrite(process.stdout, `  ${mark} ${when}  ${r.status.padEnd(14)} ${r.summary ?? ""}\n`);
     if (r.status === "waiting_human") guardedStreamWrite(process.stdout, c.dim(`      a person runs in their own terminal: q-core approve ${file} ${r.runId}\n`));
@@ -417,7 +417,7 @@ async function cmdStatus(args, flags) {
   if (last?.status === "failed") {
     guardedStreamWrite(process.stdout, `\n  ${c.bold("last run FAILED")}: ${last.reason ?? last.summary}\n`);
   }
-  return last?.status === "cancelled" ? 130 : last?.status === "failed" ? EXIT_FAILED : EXIT_OK;
+  return last?.status === "cancelled" ? 130 : ["failed", "rejected"].includes(last?.status) ? EXIT_FAILED : EXIT_OK;
 }
 
 function findManifestNearby() {

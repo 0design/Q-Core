@@ -80,7 +80,7 @@ function updateInvocationStates(run) {
     if (!call) continue;
     call.childUsage = frame.usage;
     const failed = run.steps.find(row => row.status === 'failed' && ancestry(run, row.invocationId ?? 'root').includes(id));
-    frame.status = failed ? 'failed' : call.status === 'success' ? 'success' : run.status === 'cancelled' ? 'cancelled' : rows.some(row => row.status === 'waiting_human') ? 'waiting_human' : run.status === 'waiting_inference' ? 'waiting_inference' : 'running';
+    frame.status = failed ? 'failed' : call.status === 'success' ? 'success' : call.status === 'rejected' ? 'rejected' : run.status === 'cancelled' ? 'cancelled' : rows.some(row => row.status === 'waiting_human') ? 'waiting_human' : run.status === 'waiting_inference' ? 'waiting_inference' : 'running';
     call.childStatus = frame.status;
     if (failed) { call.status = 'failed'; call.errorText = `Child ${frame.key}: ${failed.errorText}`; call.finishedAt = failed.finishedAt; }
   }
@@ -176,6 +176,16 @@ function finishCall(run, row, dryRun) {
   const frame = run.invocations[row.invocationId];
   const call = run.steps.find(candidate => candidate.rowId === frame.callRowId);
   if (!call) throw new Error('Missing parent call snapshot');
+  if (!dryRun && invocationRows(run, row.invocationId).some(candidate => candidate.status === 'rejected')) {
+    call.status = row.status = 'rejected';
+    call.finishedAt = row.finishedAt = new Date().toISOString();
+    call.output = row.output = null;
+    call.errorText = 'Child workflow contains a rejected approval.';
+    // The child's rows sit between its call and this return. Resume the parent
+    // scan after the return, using the call's branch/item boundaries.
+    skipRejectedBranch(run, call, row);
+    return;
+  }
   call.output = dryRun ? { planned: true } : bindOutputs(frame.outputs, invocationContext(run, row.invocationId));
   call.status = row.status = dryRun ? 'planned' : 'success';
   call.finishedAt = row.finishedAt = new Date().toISOString();
@@ -298,6 +308,10 @@ function summarise(status, rows, dryRun = false) {
   const failed = rows.find((r) => r.status === "failed");
   if (failed) return `Step "${failed.name}": ${failed.errorText ?? "failed with no explanation"}`;
   const waiting = rows.find((r) => r.status === "waiting_human");
+  if (status === 'rejected') {
+    const rejected = rows.filter(r => r.kind === 'approval-gate' && r.status === 'rejected').length;
+    return `Completed ${ok}/${rows.length} steps; ${rejected} approval(s) rejected.`;
+  }
   return waiting ? `Waiting on a human at step "${waiting.name}".` : `Completed ${ok}/${rows.length}.`;
 }
 
@@ -402,7 +416,7 @@ async function driveRunScoped(run, opts) {
     if (artifact) try { assertFreshWorkspaceArtifact(artifact, run.workspacePolicy); }
     catch { run.status = 'needs_human'; run.summary = 'Completed artifact or verifier changed; existing evidence is stale'; store?.save(run); }
   }
-  if (['waiting_human', 'failed', 'cancelled', 'needs_human', 'success'].includes(run.status)) return run;
+  if (['waiting_human', 'failed', 'cancelled', 'needs_human', 'success', 'rejected'].includes(run.status)) return run;
   const knobs = opts.knobs ?? resolveKnobs(opts.settings ?? {});
 
   /* SENSITIVITY IS NOT IMPLEMENTED HERE — and it is refused, not ignored.
@@ -459,7 +473,8 @@ async function driveRunScoped(run, opts) {
     if (!next) {
       const anyFailed = run.steps.some((s) => s.status === "failed");
       const anyWaiting = run.steps.some((s) => s.status === "waiting_human");
-      run.status = anyFailed ? "failed" : anyWaiting ? "waiting_human" : "success";
+      const anyRejected = run.steps.some(s => s.status === 'rejected');
+      run.status = anyFailed ? "failed" : anyWaiting ? "waiting_human" : anyRejected ? "rejected" : "success";
       if (run.status === 'success' && !dryRun) {
         try { run.output = bindOutputs(run.outputPorts, invocationContext(run, 'root')); }
         catch (error) { run.status = 'failed'; run.summary = error.message; run.finishedAt = new Date().toISOString(); persist(); return run; }
@@ -1139,6 +1154,22 @@ export async function resumeRun(run, { decision, approvalHash, confirmation, ...
   return opts.store?.withRunLock ? opts.store.withRunLock(run.runId, applyDecision) : applyDecision();
 }
 
+// Rows are depth-first. Skip only the rest of this structural branch/item;
+// leave workflow-return runnable so a rejection reaches its parent call.
+function skipRejectedBranch(run, gate, after = gate) {
+  const invocation = gate.invocationId ?? 'root';
+  for (const row of run.steps.slice(run.steps.indexOf(after) + 1)) {
+    if (row.kind === 'workflow-return' || (row.invocationId ?? 'root') !== invocation || row.depth < gate.depth) break;
+    if (row.depth === gate.depth &&
+        ((row.laneOf ?? null) !== (gate.laneOf ?? null) || (row.itemIndex ?? null) !== (gate.itemIndex ?? null))) break;
+    if (row.status !== 'pending') continue;
+    row.status = 'skipped';
+    row.gateReason = 'rejected';
+    row.errorText = `Skipped after rejection at "${gate.name}".`;
+    row.finishedAt = gate.finishedAt;
+  }
+}
+
 async function resumeConfirmedRun(run, { decision, approvalHash, confirmation, anchored, ...opts }) {
   if (opts.store) {
     const current = opts.store.load(run.runId);
@@ -1159,20 +1190,17 @@ async function resumeConfirmedRun(run, { decision, approvalHash, confirmation, a
   if (decision === 'approve' && gate.config.bind === 'sha256') gate.approvedSubjectHash = approvalHash;
   gate.confirmation = { channel: confirmation.channel, confirmedAt: confirmation.confirmedAt ?? new Date().toISOString(), ...(binding ?? {}) };
   if (decision === "reject") {
-    gate.status = "failed";
+    gate.status = "rejected";
     gate.errorText = "Rejected at the gate by a human.";
     gate.finishedAt = new Date().toISOString();
-    run.status = "failed";
-    run.summary = `Step "${gate.name}": rejected at the gate.`;
-    run.finishedAt = new Date().toISOString();
-    updateInvocationStates(run);
-    opts.store?.save(run);
-    return run;
+    skipRejectedBranch(run, gate);
+  } else {
+    gate.status = "success";
+    gate.finishedAt = new Date().toISOString();
   }
-  gate.status = "success";
-  gate.finishedAt = new Date().toISOString();
   run.status = "running";
   run.finishedAt = null;
+  if (decision === 'reject') updateInvocationStates(run);
   // Consume and persist the gate before any downstream delivery or model call.
   opts.store?.save(run);
   return driveRun(run, opts);
