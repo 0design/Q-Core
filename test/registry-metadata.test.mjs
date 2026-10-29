@@ -5,7 +5,12 @@ import { workflowMetadata } from '../scripts/registry-workflow-metadata.mjs';
 test('new Registry workflows have truthful manifest-derived consumer metadata', () => {
   const { catalog } = buildRegistry();
   const digest = catalog.workflows.find(workflow => workflow.id === 'digest');
-  assert.equal(digest.steps, 21, 'Digest 0.6.0 adds the factcheck step, 0.7.0 the articles step, 0.8.0 the review step');
+  assert.equal(digest.steps, 13, 'one fan-out and its fetch lane replace the ten source nodes');
+  assert.equal(digest.topLevelSteps, 12);
+  assert.equal(digest.fansOut, true);
+  assert.equal(digest.maxItems, 20);
+  assert.ok(digest.kinds.includes('fan-out'));
+  assert.ok(digest.builtinDependencies.some(dependency => dependency.id === 'fan-out'));
   assert.equal(digest.humanGate, true);
   assert.ok(digest.kinds.includes('verify-sources'));
   assert.equal(digest.needsEnv.includes('OPENROUTER_API_KEY'), false);

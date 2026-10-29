@@ -1,7 +1,7 @@
 manifest: q-core.workflow/v1
 id: digest-cli
 name: "Digest (CLI): many sources to one approved Ukrainian trend digest through your coding agent"
-version: 0.8.1
+version: 0.9.0
 description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through your current coding agent (provider: cli, no OpenRouter key), keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments): a theme is a short conclusion without links, each case one short sentence with the key fact, linked to its sources. The articles behind the selected sources are read (static text; an unreachable page falls back to its feed summary), and a fact-check step checks each claim against its linked source's article, revises or removes unsupported or overstated claims and records a verdict per claim; the checks require a verbatim source quote and the source's numbers for every item. Checks citations and the list shape, stops at an exact human approval of the fact-checked text, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
@@ -11,71 +11,45 @@ settings:
   # CLI variant of Digest: every llm-call answers through the caller (q-core reply), no OpenRouter key and no
   # separate model bill. The same steps and input bindings as Digest.
   budgetUsd: null
+inputs:
+  sources:
+    type: array
+    minItems: 1
+    maxItems: 20
+    items:
+      type: string
+      format: http-url
+    envPrefix: QF_DIGEST_FEED_
+    default:
+      - "https://techcrunch.com/category/artificial-intelligence/feed/"
+      - "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+      - "https://www.wired.com/feed/tag/ai/latest/rss"
+      - "https://the-decoder.com/feed/"
+      - "https://feeds.arstechnica.com/arstechnica/technology-lab"
+      - "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+      - "https://www.marktechpost.com/feed/"
+      - "https://simonwillison.net/atom/everything/"
+      - "https://www.latent.space/feed"
+      - "https://openai.com/news/rss.xml"
 steps:
-  - id: techcrunch
-    kind: fetch
+  - id: feeds
+    kind: fan-out
     config:
-      url: "{{env.QF_DIGEST_FEED_1:-https://techcrunch.com/category/artificial-intelligence/feed/}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: the-verge
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_2:-https://www.theverge.com/rss/ai-artificial-intelligence/index.xml}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: wired
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_3:-https://www.wired.com/feed/tag/ai/latest/rss}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: the-decoder
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_4:-https://the-decoder.com/feed/}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: ars-technica
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_5:-https://feeds.arstechnica.com/arstechnica/technology-lab}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: mit-technology-review
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_6:-https://www.technologyreview.com/topic/artificial-intelligence/feed}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: marktechpost
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_7:-https://www.marktechpost.com/feed/}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: simon-willison
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_8:-https://simonwillison.net/atom/everything/}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: latent-space
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_9:-https://www.latent.space/feed}}"
-      format: text
-      maxBodyBytes: 2000000
-  - id: openai
-    kind: fetch
-    config:
-      url: "{{env.QF_DIGEST_FEED_10:-https://openai.com/news/rss.xml}}"
-      format: text
-      maxBodyBytes: 2000000
+      over: "{{inputs.sources}}"
+      maxItems: 20
+    then:
+      - id: source-fetch
+        kind: fetch
+        config:
+          url: "{{item}}"
+          urlInput: sources
+          format: text
+          maxBodyBytes: 2000000
   - id: items
     kind: parse-web
     config:
       items: feed
+      fetchStep: source-fetch
       since: "{{env.QF_DIGEST_SINCE}}"
       until: "{{env.QF_DIGEST_UNTIL}}"
       maxItemsPerSource: 8

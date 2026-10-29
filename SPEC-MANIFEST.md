@@ -416,6 +416,15 @@ silent zero would hide a configuration error as an empty feed.
 
 Each lane step sees **its own** item through `{{item.…}}` and `{{index}}`.
 
+For an operator-provided array of feed URLs, `over: "{{inputs.sources}}"`
+can repeat a `fetch` with `url: "{{item}}"` and `urlInput: sources`.
+`urlInput` is an explicit fetch-only allowlist in the root invocation: the item must exactly match the
+bound input array at the current index and be an absolute HTTP(S) URL without
+credentials, whitespace or template syntax. Step/model data cannot choose a
+different destination; ordinary URL templates retain their authority guard.
+Nested workflow inputs may be bound from step/model data, so child invocations
+cannot use this whole-URL opt-in.
+
 **Truncation is never silent.** The node's output carries `itemsFound`,
 `itemsTaken`, `stepsCreated` and a `truncated` note.
 
@@ -590,6 +599,10 @@ These are generic components, not shortcuts to the direct SDD/content APIs.
   use `{{env.NAME}}`) keep a publication window and drop undated items;
   `maxItemsPerSource` 1..50 (default 10), `itemChars` 100..2000 (default 400), at
   most 100 items. A page that is not a feed, or an empty window, fails.
+  With `items: feed`, `fetchStep: <step-id>` explicitly collects every successful
+  fetch of that ID in the current invocation, in execution order, including all
+  fan-out lanes. It cannot be combined with `source`; the same 1..20 feed bound
+  applies. Ordinary step references continue to select the last result of an ID.
   `articles: "true"` with `source` referencing selected sources (`{sources}` or a
   `deduplicate clusters` output) reads the article behind each source URL: at most 20 distinct URLs,
   in parallel, one GET each (each attempt 20 s, 1 retry on a network error, 429 or 5xx, at most 3
@@ -839,6 +852,15 @@ accounting and persisted human-gate/caller-inference lifecycle are specified in
 [Nested materials](contracts/v1/nested-materials.md). Existing Registry JSON
 component descriptors remain nonexecutable metadata. Run the self-contained
 local example with `q-core run examples/nested/parent.yaml --json`.
+
+Input arrays may declare `minItems` and `maxItems`; string inputs/items may use
+`format: http-url` (absolute HTTP(S), no credentials, whitespace or templates).
+These constraints are enforced for defaults and bound inputs before execution.
+An array may declare `envPrefix: QF_DIGEST_FEED_`: when using its default, each
+nonempty `QF_DIGEST_FEED_1`, `QF_DIGEST_FEED_2`, etc. replaces the corresponding
+default entry. An explicit input array takes precedence over these environment
+overrides. Overrides never append entries or execute template syntax; all final
+values must satisfy the input constraints.
 
 Graph and policy diagnostics identify the actual source with portable
 `materialPath`, retaining semantic `path` and YAML `line` when present. Dependency

@@ -125,7 +125,7 @@
       "name": "Digest",
       "contentType": "workflow-template",
       "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "status": "implementation-candidate",
       "inference": "openrouter",
       "dependencies": [
@@ -172,6 +172,12 @@
             "version": "1.2.0",
             "implementation": "partial",
             "acceptance": "pending"
+          },
+          {
+            "id": "fan-out",
+            "version": "1.0.0",
+            "implementation": "partial",
+            "acceptance": "pending"
           }
         ],
         "components": [
@@ -181,7 +187,8 @@
           "verify-sources@0.5.0",
           "approval-gate@1.0.0",
           "fetch@1.0.0",
-          "api-request@1.1.0"
+          "api-request@1.1.0",
+          "fan-out@1.0.0"
         ]
       },
       "builtinDependencies": [
@@ -192,6 +199,10 @@
         {
           "id": "api-request",
           "version": "1.1.0"
+        },
+        {
+          "id": "fan-out",
+          "version": "1.0.0"
         }
       ]
     },

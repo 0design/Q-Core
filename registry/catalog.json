@@ -1819,7 +1819,7 @@
       "description": "Group related stories into a Ukrainian digest, check claims against linked articles, and approve the text before delivery.",
       "value": "See the themes across sources, with links to check before you share.",
       "file": "workflows/digest.yaml",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -1862,12 +1862,16 @@
         {
           "id": "api-request",
           "version": "1.1.0"
+        },
+        {
+          "id": "fan-out",
+          "version": "1.0.0"
         }
       ],
       "contentType": "workflow-template",
-      "status": "accepted",
+      "status": "implementation-candidate",
       "acceptance": {
-        "status": "accepted",
+        "status": "pending",
         "evidence": [
           {
             "kind": "owner-review",
@@ -1880,7 +1884,7 @@
         ]
       },
       "evidence": {
-        "status": "owner-accepted-run"
+        "status": "candidate-tests"
       },
       "executionProfile": {
         "inference": "openrouter",
@@ -2005,9 +2009,13 @@
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "b6eb3bcaceb50de9aefe09fbff3ae96cd17844e5d871e0e222757091c33324a2",
-      "steps": 21,
+      "fansOut": true,
+      "topLevelSteps": 12,
+      "maxItems": 20,
+      "sha256": "f35898010461e7906362b36842b02cbc5b3869321ce3601b62953477b094b0cc",
+      "steps": 13,
       "kinds": [
+        "fan-out",
         "fetch",
         "parse-web",
         "deduplicate",
@@ -2025,7 +2033,7 @@
       "description": "Use Claude or Codex to create the same Ukrainian digest, check its claims and approve delivery, without an OpenRouter key.",
       "value": "Use your existing coding-agent session for source checks and drafting; approve delivery separately.",
       "file": "workflows/digest-cli.yaml",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": "0design",
       "license": "MIT",
       "origin": {
@@ -2068,6 +2076,10 @@
         {
           "id": "api-request",
           "version": "1.1.0"
+        },
+        {
+          "id": "fan-out",
+          "version": "1.0.0"
         }
       ],
       "contentType": "workflow-template",
@@ -2196,9 +2208,13 @@
           "A fact-checked digest of my own 5 design feeds on a narrower topic."
         ]
       },
-      "sha256": "aa4a2c0922a50067dbb55646c69fa76b6a59e7caea387b0b3846d6b32721ac6e",
-      "steps": 21,
+      "fansOut": true,
+      "topLevelSteps": 12,
+      "maxItems": 20,
+      "sha256": "c60989bf7897b88a2b9eff4490785f3b4679c4567093e1ac203483f8846d9dd4",
+      "steps": 13,
       "kinds": [
+        "fan-out",
         "fetch",
         "parse-web",
         "deduplicate",
@@ -3862,9 +3878,9 @@
     "protocol": "qf.agent/v1",
     "contractRevision": 17,
     "artifact": "vendor/q-core-0.2.0-q-core.51.tgz",
-    "artifactSha256": "59294943d2b7ad5f670c9931910e197241c2c0ca74265524bec81e12a3bab2f4",
-    "integrity": "sha512-0OU+Bd8rKrRjyLKA5EKWlt1UtSdKvCgIvHyP+L8zfQkES657OlHnieEhdGocA8PbCR7rbStLWXA/31JPTJw73Q==",
-    "schemaSha256": "70c24772b26957f83fa799b9e2ead6f8ca2921c4be987a747adf1138775f6eda",
+    "artifactSha256": "f40631e69825245c91bb81ee167651307c67611aaf3b8577786c57d86ff16e7d",
+    "integrity": "sha512-dpl2Ni5Z3aJxA2YvK63gV+Nex8a0GgkHMZQAdlNUdxFvtZZ9vcWPh4n+TS7Qoaqux1rO/ImgJhVN+HVS6xl+pg==",
+    "schemaSha256": "fbd4951a77da6ca833c3ca3cf6b0f74dbda4721eccf4fb0123110b6080c7294f",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "local-candidate-artifact",
     "source": "Core.51 local candidate: llm-call steps support native Anthropic Messages API requests with environment or Keychain credentials, bounded streaming retries, first-party usage pricing and existing call/run budgets. OpenRouter remains unchanged. Artifact hashes bind the exact locally packaged candidate; this is not release or owner acceptance.",
@@ -4002,7 +4018,7 @@
         "name": "Digest",
         "contentType": "workflow-template",
         "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
-        "version": "0.8.1",
+        "version": "0.9.0",
         "status": "implementation-candidate",
         "inference": "openrouter",
         "dependencies": [
@@ -4049,6 +4065,12 @@
               "version": "1.2.0",
               "implementation": "partial",
               "acceptance": "pending"
+            },
+            {
+              "id": "fan-out",
+              "version": "1.0.0",
+              "implementation": "partial",
+              "acceptance": "pending"
             }
           ],
           "components": [
@@ -4058,7 +4080,8 @@
             "verify-sources@0.5.0",
             "approval-gate@1.0.0",
             "fetch@1.0.0",
-            "api-request@1.1.0"
+            "api-request@1.1.0",
+            "fan-out@1.0.0"
           ]
         },
         "builtinDependencies": [
@@ -4069,6 +4092,10 @@
           {
             "id": "api-request",
             "version": "1.1.0"
+          },
+          {
+            "id": "fan-out",
+            "version": "1.0.0"
           }
         ]
       },
@@ -4659,5 +4686,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "d5a6c956ccbbec885f954ab9a60a5a7e43a096ce6840282d8a0ccd1d62b9bf22"
+  "releaseSha256": "114759ce2b26323a938e456319ecb713224f00f4b85aabfda59b59832f8db315"
 }

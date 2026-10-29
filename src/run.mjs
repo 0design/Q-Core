@@ -473,11 +473,13 @@ async function driveRunScoped(run, opts) {
     /* Input of a step = outputs of prior SUCCESSFUL steps, in execution order. */
     const priorOutputs = {};
     const priorStepNames = {};
+    const priorFetchOutputs = [];
     for (const s of run.steps) {
       if (s.seq >= next.seq) break;
       if ((s.invocationId ?? 'root') !== (next.invocationId ?? 'root') || s.kind === 'workflow-return') continue;
       priorStepNames[s.stepId] = s.name ?? s.kind;
       if (s.status === "success" && s.output != null) priorOutputs[s.stepId] = s.output;
+      if (s.status === "success" && s.kind === 'fetch' && s.output != null) priorFetchOutputs.push({ stepId: s.stepId, output: s.output });
     }
 
     const step = {
@@ -588,9 +590,11 @@ async function driveRunScoped(run, opts) {
     const ctx = {
       runId: run.runId,
       templateId: materialId(run, next),
+      invocationId,
       stepId: next.stepId,
       priorOutputs,
       priorStepNames,
+      priorFetchOutputs,
       inputs,
       item: next.item,
       itemIndex: next.itemIndex,

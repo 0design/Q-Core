@@ -236,8 +236,8 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.7.1', '0.8.0', '0.8.1'].includes(manifest.version));
-  const draftText = /^0\.[678]/.test(manifest.version) ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
+  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.7.1', '0.8.0', '0.8.1', '0.9.0'].includes(manifest.version));
+  const draftText = /^0\.[6789]/.test(manifest.version) ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
   // From 0.6.0 a fact-check call follows the draft: it returns the checked text and a claim record per list item.
   const factChecked = manifest.steps.some(s => s.id === 'factcheck');
   const factCheck = JSON.stringify({ text: draftText.trim(), claims: [
@@ -247,8 +247,9 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
   ] });
   // Offline: the key comes from the test, not the Keychain; everything else is the shipped manifest.
   for (const step of manifest.steps) if (step.kind === 'llm-call') { assert.equal(step.config.secretSource, 'keychain'); step.config.secretSource = 'env'; }
-  const feeds = manifest.steps.filter(s => s.kind === 'fetch');
+  const feeds = manifest.inputs.sources.default;
   assert.equal(feeds.length, 10);
+  assert.equal(manifest.steps.filter(s => s.kind === 'fetch').length, 0);
   const env = { QF_DIGEST_DATE: '26.09', QF_DIGEST_SINCE: '2026-09-24T21:00:00Z', QF_DIGEST_UNTIL: '2026-09-26T21:00:00Z', QF_DIGEST_RECEIVER_URL: `file://${join(root, 'delivery.jsonl')}` };
   feeds.forEach((_, i) => { env[`QF_DIGEST_FEED_${i + 1}`] = i === 0 ? 'https://media.example/feed' : i === 1 ? 'https://blog.example/atom' : `https://empty.example/${i}`; });
   const clusters = JSON.stringify({ clusters: [

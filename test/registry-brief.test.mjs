@@ -38,17 +38,20 @@ test('contract facts are in the Registry', () => {
     assert.equal(variant.humanGate, true, `${id}-cli keeps the human approval gate`);
   }
   assert.match(byId['digest-cli'].brief.limits.join('\n'), /q-core reply must run with the same QF_DIGEST_\* variables/);
-  // Negative: the variant is a candidate; only digest 0.8.0 has an accepted-run status.
+  // Negative: the CLI input-array variant remains a candidate.
+
   assert.equal(byId['digest-cli'].acceptance.status, 'pending');
   const cliComponent = catalog.components.find(c => c.id === 'llm-call-cli');
   assert.match(cliComponent.brief.limits.join('\n'), /60000 bytes/);
 });
 
-test('Digest 0.8.0 is accepted; the other workflows keep their status', () => {
+test('Digest input-array version is a candidate and keeps the historical owner evidence scoped to 0.8.0', () => {
   const digest = catalog.workflows.find(w => w.id === 'digest');
-  assert.equal(digest.version, '0.8.1');
-  assert.equal(digest.status, 'accepted');
-  assert.equal(digest.acceptance.status, 'accepted');
+  assert.equal(digest.version, '0.9.0');
+  assert.equal(digest.status, 'implementation-candidate');
+  assert.equal(digest.acceptance.status, 'pending');
+  assert.equal(digest.evidence.status, 'candidate-tests');
+  assert.equal(digest.acceptance.evidence[0].workflowVersion, '0.8.0');
   assert.equal(digest.acceptance.evidence[0].runId, '5b9ffaf1-cb7f-426e-a7e3-eb68d9224452');
   // Negative: the acceptance is scoped; the OpenRouter route is not claimed.
   assert.match(digest.acceptance.evidence[0].scope, /OpenRouter route of 0\.8\.0 was not re-run/);
@@ -63,9 +66,9 @@ test('every component carries a short brief', () => {
   assert.match(catalog.components.find(c => c.id === 'agentation').brief.summary, /[Pp]lanned/);
 });
 
-// Digest 0.8.1 and digest-cli 0.8.1 change only YAML comments: without `version`, the parsed manifests equal the
-// 0.8.0 ones the acceptance record refers to. Any change of steps or settings breaks this and needs a new acceptance.
-test('Digest 0.8.1 and digest-cli 0.8.1 parse to exactly the 0.8.0 manifests apart from the version', async () => {
+// The accepted 0.8.0 downstream chain is unchanged. Normalize only the new typed input/fan-out scaffold
+// back to the ten legacy fetch nodes and compare the original parsed-manifest hashes, never new hashes.
+test('Digest 0.9.0 keeps the complete historical downstream contract behind its source-array scaffold', async () => {
   const { parseYaml } = await import('../src/yaml.mjs');
   const { createHash } = await import('node:crypto');
   const { readFileSync: read } = await import('node:fs');
@@ -73,9 +76,28 @@ test('Digest 0.8.1 and digest-cli 0.8.1 parse to exactly the 0.8.0 manifests apa
     digest: '74112f05e265e0c13f146c3abf585d71de03a1ebf8a6a729e6720e93d1c97031',
     'digest-cli': 'a9f35257a41e50a1daadc85faaf7c48607f16883e5c729a0f82ed8d1d94ee183',
   };
+  const sourceIds = ['techcrunch', 'the-verge', 'wired', 'the-decoder', 'ars-technica', 'mit-technology-review', 'marktechpost', 'simon-willison', 'latent-space', 'openai'];
   for (const [id, sha] of Object.entries(expected)) {
     const manifest = parseYaml(read(new URL(`../registry/workflows/${id}.yaml`, import.meta.url), 'utf8'));
-    assert.equal(manifest.version, '0.8.1', id);
+    assert.equal(manifest.version, '0.9.0', id);
+    assert.deepEqual(Object.keys(manifest.inputs), ['sources'], id);
+    assert.equal(manifest.inputs.sources.default.length, sourceIds.length, id);
+    const fanout = manifest.steps[0];
+    assert.equal(fanout.id, 'feeds', id);
+    assert.equal(fanout.kind, 'fan-out', id);
+    assert.deepEqual(fanout.config, { over: '{{inputs.sources}}', maxItems: 20 }, id);
+    assert.equal(fanout.then.length, 1, id);
+    assert.deepEqual(fanout.then[0], { id: 'source-fetch', kind: 'fetch', config: { url: '{{item}}', urlInput: 'sources', format: 'text', maxBodyBytes: 2000000 } }, id);
+    const fetches = manifest.inputs.sources.default.map((url, index) => ({
+      id: sourceIds[index], kind: 'fetch', config: {
+        url: '{{env.QF_DIGEST_FEED_' + (index + 1) + ':-' + url + '}}', format: 'text', maxBodyBytes: 2000000,
+      },
+    }));
+    manifest.steps = [...fetches, ...manifest.steps.slice(1)];
+    assert.equal(manifest.steps[sourceIds.length].id, 'items', id);
+    assert.equal(manifest.steps[sourceIds.length].config.fetchStep, 'source-fetch', id);
+    delete manifest.steps[sourceIds.length].config.fetchStep;
+    delete manifest.inputs;
     delete manifest.version;
     assert.equal(createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), sha, id);
   }

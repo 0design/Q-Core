@@ -19,6 +19,7 @@ import { resolveTemplate, resolveTemplateDeep, resolveTemplateValue, resolveUrlT
 import { fetchWithRetry } from "./http.mjs";
 import { CoreError, hash, insist } from "./contracts.mjs";
 import { deliverOnce } from "./delivery-receipts.mjs";
+import { assertType, safeName } from './material-io.mjs';
 import { constants as fsConstants, closeSync, existsSync, fstatSync, lstatSync, realpathSync, statSync } from "node:fs";
 import { assertPersistencePath, guardedWriteSync, registerPersistenceSecret, guardedOpenSync } from './persistence.mjs';
 import { basename, dirname, join } from "node:path";
@@ -168,7 +169,19 @@ function urlOf(raw, t, label) {
 
 export async function runFetch(step, ctx) {
   const label = stepLabel(step);
-  const url = urlOf(requireStr(step.config, "url", label), tctx(ctx), label);
+  const rawUrl = requireStr(step.config, "url", label);
+  let url;
+  if (step.config.urlInput !== undefined) {
+    // Explicit opt-in: only an exact entry of the operator's bound input array
+    // may supply a whole URL. Model/step data retains the normal authority guard.
+    const allowed = safeName(step.config.urlInput) && Object.hasOwn(ctx.inputs ?? {}, step.config.urlInput) ? ctx.inputs[step.config.urlInput] : undefined;
+    insist(ctx.invocationId === 'root' && /^\{\{\s*item\s*\}\}$/.test(rawUrl) && Array.isArray(allowed)
+      && Number.isInteger(ctx.itemIndex) && Object.hasOwn(allowed, ctx.itemIndex)
+      && typeof ctx.item === 'string' && allowed[ctx.itemIndex] === ctx.item,
+    'fetch urlInput requires {{item}} matching the indexed root operator input array');
+    url = ctx.item;
+    assertType(url, { type: 'string', format: 'http-url' }, 'fetch urlInput');
+  } else url = urlOf(rawUrl, tctx(ctx), label);
   if (!/^https?:\/\//i.test(url)) {
     throw new Error(`"${label}": url must start with http(s):// — got "${url}".`);
   }
