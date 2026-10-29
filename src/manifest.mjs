@@ -72,6 +72,13 @@ function normaliseConfig(raw, path) {
 
 function validateStep(raw, path, seenIds) {
   if (!isPlainObject(raw)) throw new ManifestError("a step must be a mapping", path);
+  // These declarations have no execution semantics in this manifest version.
+  // Refuse them instead of silently dropping a claimed dependency.
+  for (const key of ['needs', 'data', 'from', 'out']) {
+    if (Object.hasOwn(raw, key) || (isPlainObject(raw.config) && Object.hasOwn(raw.config, key))) {
+      throw new ManifestError(`"${key}" dependency declarations are not supported; use step output references in config`, path);
+    }
+  }
 
   const id = raw.id;
   if (typeof id !== "string" || id.trim() === "") {

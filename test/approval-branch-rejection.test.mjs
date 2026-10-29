@@ -29,7 +29,7 @@ async function fixture(t) {
   const server = createServer((req, res) => {
     requests.push(req.url);
     res.statusCode = req.url === '/error' ? 500 : 200;
-    res.end('synthetic local response');
+    res.end(req.url === '/literal' ? '{{steps.blocked.output}}' : 'synthetic local response');
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
@@ -47,15 +47,20 @@ async function fixture(t) {
 
 // Synthetic terminal record, scoped to this test process and local HTTP fixtures.
 // Never invokes the approve CLI, a real terminal, or the native Touch ID helper.
+function terminalRejectArgs(run, store) {
+  const gate = run.steps.find(row => row.status === 'waiting_human');
+  assert.ok(gate, 'fixture must be waiting at a gate');
+  return { decision: 'reject', approvalHash: gate.output.approvalHash,
+    confirmation: { channel: 'tty-code', decision: 'reject' }, store };
+}
+
 async function terminalReject(run, store, opts = {}) {
   const env = process.env;
   const terminalEnv = { ...env };
   for (const key of AGENT_SESSION_ENV) delete terminalEnv[key];
   process.env = terminalEnv;
   try {
-    const gate = run.steps.find(row => row.status === 'waiting_human');
-    return await resumeRun(run, { decision: 'reject', approvalHash: gate.output.approvalHash,
-      confirmation: { channel: 'tty-code', decision: 'reject' }, store, ...opts });
+    return await resumeRun(run, { ...terminalRejectArgs(run, store), ...opts });
   } finally { process.env = env; }
 }
 
@@ -75,6 +80,7 @@ test('reject skips only its branch, completes independent HTTP, persists and nev
     branch('second', [f.request('independent')]),
   ], { outputs: { blocked: { type: 'object', value: '{{steps.blocked.output}}' } } });
   assert.equal(run.status, 'waiting_human');
+  const originalDecision = terminalRejectArgs(run, f.store);
   let consumedBeforeEffect = false;
   const fetch = globalThis.fetch;
   t.mock.method(globalThis, 'fetch', async (...args) => {
@@ -97,7 +103,14 @@ test('reject skips only its branch, completes independent HTTP, persists and nev
   assert.deepEqual(f.requests, ['/independent']);
   const saved = f.store.load(result.runId);
   assert.deepEqual(await driveRun(saved, { store: f.store }), saved);
-  await assert.rejects(terminalReject(saved, f.store));
+  const env = process.env;
+  process.env = { ...env };
+  for (const key of AGENT_SESSION_ENV) delete process.env[key];
+  try {
+    await assert.rejects(resumeRun(saved, originalDecision),
+      { code: 'STALE_APPROVAL', message: 'Approval does not match the current persisted run.' });
+    assert.deepEqual(f.store.load(saved.runId), saved, 'replay cannot mutate the terminal snapshot');
+  } finally { process.env = env; }
   assert.deepEqual(f.requests, ['/independent']);
   f.store.saveLastRun(saved);
   assert.equal(f.store.lastRun().status, 'rejected');
@@ -147,6 +160,154 @@ test('nested branch rejection leaves the enclosing branch continuation runnable'
   assert.equal(result.status, 'rejected');
   assert.equal(status(result, 'blocked'), 'skipped');
   assert.deepEqual(f.requests, ['/outer-next', '/other']);
+});
+
+test('reject blocks outer-next reading steps.blocked.output and its transitive sibling', async t => {
+  const f = await fixture(t);
+  const consumes = (id, source) => ({ ...f.request(id), config: { ...f.request(id).config,
+    body: JSON.stringify({ data: `{{steps.${source}.output}}` }) } });
+  const run = await f.start([
+    branch('outer', [branch('inner', [review, f.request('blocked')]), consumes('outer-next', 'blocked')]),
+    branch('sibling', [consumes('transitive', 'outer-next'), f.request('independent')]),
+  ]);
+  const result = await terminalReject(run, f.store);
+  assert.equal(result.status, 'rejected', result.summary);
+  for (const id of ['blocked', 'outer-next', 'transitive']) assert.equal(status(result, id), 'skipped', id);
+  assert.equal(status(result, 'independent'), 'success');
+  assert.deepEqual(f.requests, ['/independent']);
+});
+
+for (const source of ['review', 'Blocked delivery', 'hidden']) test(`reject blocks dependent controls and unexpanded outputs: ${source}`, async t => {
+  const f = await fixture(t);
+  const blocked = f.request('blocked');
+  blocked.config.name = 'Blocked delivery';
+  const run = await f.start([
+    branch('first', [review, blocked, branch('unexpanded', [f.request('hidden')])]),
+    { id: 'dependent-control', kind: 'if', config: { condition: `{{steps.${source}.output}}` }, then: [f.request('hidden-dependent')] },
+    { ...f.request('transitive'), config: { ...f.request('transitive').config, body: '{{steps.hidden-dependent.output}}' } },
+    f.request('independent'),
+  ]);
+  const result = await terminalReject(run, f.store);
+  assert.equal(result.status, 'rejected', result.summary);
+  assert.equal(status(result, 'dependent-control'), 'skipped');
+  assert.equal(status(result, 'hidden-dependent'), undefined);
+  assert.equal(status(result, 'transitive'), 'skipped');
+  assert.deepEqual(f.requests, ['/independent']);
+});
+
+test('unsupported dependency declarations are refused instead of being silently discarded', () => {
+  for (const key of ['needs', 'data', 'from', 'out']) {
+  for (const needs of [[], ['review'], 'review', null]) {
+    for (const inConfig of [false, true]) {
+      const dependent = { id: 'dependent', kind: 'fetch', config: { url: 'https://example.test' } };
+      if (inConfig) dependent.config[key] = needs;
+      else dependent[key] = needs;
+      assert.throws(() => validateManifest(document('needs', { steps: [review, branch('nested', [dependent])] })),
+        new RegExp(`${key}.*not supported`));
+    }
+  }
+  }
+});
+
+for (const field of ['body', 'headers']) test(`JSON-escaped ${field} dependencies are blocked`, async t => {
+  const f = await fixture(t);
+  const dependent = f.request('dependent');
+  dependent.config[field] = '{"data":"\\u007b\\u007bsteps.blocked.output\\u007d\\u007d"}';
+  const run = await f.start([branch('first', [review, f.request('blocked')]), dependent, f.request('independent')]);
+  const result = await terminalReject(run, f.store);
+  assert.equal(status(result, 'dependent'), 'skipped');
+  assert.deepEqual(f.requests, ['/independent']);
+});
+
+for (const kind of ['if', 'switch']) test(`${kind} ignores an unused fallback expression after rejection`, async t => {
+  const f = await fixture(t);
+  const independent = kind === 'if'
+    ? { id: 'independent', kind, config: { condition: 'true', when: '{{steps.blocked.output}}' }, then: [f.request('allowed')] }
+    : { id: 'independent', kind, config: { on: 'yes', value: '{{steps.blocked.output}}' }, cases: { yes: [f.request('allowed')] } };
+  const run = await f.start([branch('first', [review, f.request('blocked')]), independent]);
+  const result = await terminalReject(run, f.store);
+  assert.equal(status(result, 'independent'), 'success');
+  assert.deepEqual(f.requests, ['/allowed']);
+});
+
+for (const introLinks of [undefined, '[]', '{{inputs.links}}']) test(`verify-sources ignores inactive formatting references: ${introLinks}`, async t => {
+  const f = await fixture(t);
+  const verifier = { id: 'verify', kind: 'verify-sources', config: {
+    draft: '{{inputs.draft}}', sources: '{{inputs.sources}}', language: 'uk',
+    requiredIntroPrefix: '{{steps.blocked.output}}', forbiddenLabels: '["{{steps.blocked.output}}"]',
+    ...(introLinks === undefined ? {} : { introLinks }),
+  } };
+  const run = await f.start([branch('first', [review, f.request('blocked')]), verifier, f.request('independent')], {
+    inputs: { draft: { type: 'object', default: { text: 'Відомості [джерело](https://example.test/a).' } },
+      sources: { type: 'array', default: [{ url: 'https://example.test/a', text: 'Відомості' }] },
+      links: { type: 'array', default: [] } },
+  });
+  const result = await terminalReject(run, f.store);
+  assert.equal(result.status, 'rejected', result.summary);
+  assert.equal(status(result, 'verify'), 'success');
+  assert.deepEqual(f.requests, ['/independent']);
+});
+
+test('literal metadata, JSON keys and fetched template-looking data do not create dependencies', async t => {
+  const f = await fixture(t);
+  const independent = f.request('independent');
+  independent.config.name = '{{steps.blocked.output}}';
+  independent.config.body = '{"{{steps.blocked.output}}":"literal"}';
+  const run = await f.start([branch('first', [review, f.request('blocked')]),
+    { id: 'source', kind: 'fetch', config: { url: f.request('literal').config.url, format: 'text' } },
+    independent, { ...f.request('consumer'), config: { ...f.request('consumer').config, body: '{{steps.source.output.body}}' } }]);
+  const result = await terminalReject(run, f.store);
+  assert.equal(result.status, 'rejected');
+  assert.equal(status(result, 'independent'), 'success');
+  assert.equal(status(result, 'consumer'), 'success');
+  assert.deepEqual(f.requests, ['/literal', '/independent', '/consumer']);
+});
+
+test('a successful display-name alias retains the resolver precedence over an unavailable ID', async t => {
+  const f = await fixture(t);
+  const alias = f.request('alias');
+  alias.config.name = 'blocked';
+  const run = await f.start([branch('first', [review, f.request('blocked')]), alias,
+    { ...f.request('consumer'), config: { ...f.request('consumer').config, body: '{{steps.blocked.output}}' } }]);
+  const result = await terminalReject(run, f.store);
+  assert.equal(status(result, 'consumer'), 'success');
+  assert.deepEqual(f.requests, ['/alias', '/consumer']);
+});
+
+test('a rejected repeated producer cannot fall back to an earlier successful item', async t => {
+  const f = await fixture(t);
+  const run = await f.start([{ id: 'items', kind: 'each', config: { over: '{{inputs.items}}' }, then: [
+    f.request('producer', 'producer-{{index}}'), review,
+    f.request('blocked', 'blocked-{{index}}'),
+  ] }, { ...f.request('consumer'), config: { ...f.request('consumer').config, body: '{{steps.blocked.output}}' } },
+  f.request('independent')], { inputs: { items: { type: 'array', default: ['a', 'b'] } } });
+  // Synthetic test-only approval of item 0; reject item 1 at the same gate ID.
+  const first = await terminalReject(run, f.store, { decision: 'approve', confirmation: { channel: 'tty-code', decision: 'approve' } });
+  const result = await terminalReject(f.store.load(first.runId), f.store);
+  assert.equal(result.status, 'rejected');
+  assert.equal(status(result, 'consumer'), 'skipped');
+  assert.deepEqual(f.requests, ['/producer-0', '/blocked-0', '/producer-1', '/independent']);
+});
+
+test('a workflow-call with an escaped rejected input is skipped without expanding the child', async t => {
+  const f = await fixture(t);
+  const child = document('child-input', { inputs: { data: { type: 'object' } }, steps: [f.request('child-effect')] });
+  const bytes = yaml(child);
+  writeFileSync(join(f.dir, 'child.yaml'), bytes);
+  const doc = document('parent-input', { dependencies: {
+    child: { kind: 'workflow', id: child.id, version: child.version, path: 'child.yaml', sha256: hash(bytes) },
+  }, steps: [branch('first', [review, f.request('blocked')]),
+    { id: 'dependent-call', kind: 'workflow-call', config: { ref: 'child',
+      inputs: '{"data":"\\u007b\\u007bsteps.blocked.output\\u007d\\u007d"}' } },
+    f.request('independent'),
+  ] });
+  writeFileSync(f.file, yaml(doc));
+  const run = await driveRun(createRun(loadWorkflow(f.file)), { store: f.store });
+  const result = await terminalReject(run, f.store);
+  assert.equal(result.status, 'rejected', result.summary);
+  assert.equal(status(result, 'dependent-call'), 'skipped');
+  assert.equal(status(result, 'child-effect'), undefined);
+  assert.deepEqual(f.requests, ['/independent']);
 });
 
 test('a rejected nested workflow skips its parent branch after the return without binding absent outputs', async t => {
@@ -206,7 +367,8 @@ for (const mutation of ['none', 'signature', 'hash', 'expired', 'snapshot']) tes
     const result = await resumeRun(run, args);
     assert.equal(result.status, 'rejected');
     assert.equal(status(result, 'blocked'), 'skipped');
-    await assert.rejects(resumeRun(f.store.load(run.runId), args));
+    await assert.rejects(resumeRun(f.store.load(run.runId), args),
+      { code: 'STALE_APPROVAL', message: 'Approval does not match the current persisted run.' });
   }
   assert.deepEqual(f.requests, []);
 });

@@ -495,6 +495,24 @@ async function driveRunScoped(run, opts) {
       if (s.status === "success" && s.output != null) priorOutputs[s.stepId] = s.output;
     }
 
+    const blockedBy = rejectedDependency(run, next, { priorOutputs, priorStepNames,
+      inputs: run.invocations?.[next.invocationId ?? 'root']?.inputs ?? run.inputs ?? {}, item: next.item, index: next.itemIndex });
+    if (blockedBy) {
+      const skip = row => {
+        row.status = 'skipped'; row.gateReason = 'rejected';
+        row.errorText = `Skipped because "${blockedBy}" was rejected or skipped after rejection.`;
+        row.finishedAt = new Date().toISOString();
+      };
+      skip(next);
+      // A legacy, non-expanding fan-out already has inline child rows.
+      for (const child of run.steps.slice(run.steps.indexOf(next) + 1)) {
+        if (child.depth <= next.depth || (child.invocationId ?? 'root') !== (next.invocationId ?? 'root')) break;
+        if (child.status === 'pending') skip(child);
+      }
+      persist(); onStep(next);
+      continue;
+    }
+
     const step = {
       id: next.stepId,
       kind: next.kind,
@@ -1152,6 +1170,77 @@ export async function resumeRun(run, { decision, approvalHash, confirmation, ...
   insist(!anchored || opts.store?.withRunLock, 'Anchor decisions require a persistent run lock.', 'HUMAN_CONFIRMATION_REQUIRED');
   const applyDecision = () => resumeConfirmedRun(run, { decision, approvalHash, confirmation, anchored, ...opts });
   return opts.store?.withRunLock ? opts.store.withRunLock(run.runId, applyDecision) : applyDecision();
+}
+
+// Only fields interpreted as templates create data edges. JSON consumers parse
+// once and interpolate string values, never object keys or substituted data.
+function dependencyTemplates(row, context) {
+  const fields = {
+    fetch: ['url'], 'api-request': ['url', 'body', 'headers', 'receiptKey'],
+    'llm-call': ['instructions', 'input'], 'workflow-call': ['inputs'],
+    if: [str(row.config, 'condition') === undefined ? 'when' : 'condition'],
+    switch: [str(row.config, 'on') === undefined ? 'value' : 'on'], each: ['over'], 'fan-out': ['over'],
+    'parse-web': row.config?.items != null ? ['source', 'since', 'until'] : ['source'], deduplicate: ['source', 'clusters'],
+    'verify-sources': ['draft', 'sources', 'review', 'factCheck', 'fixedLinks', 'requiredHeadings', 'introLinks',
+      'requiredPrefix', 'oneClusterPerItem', ...(row.config?.nestedList != null ? ['forbiddenLabels'] : [])],
+    specification: ['source', 'workspace'], 'workspace-apply': ['source', 'approval', 'specification'],
+    'verify-artifact': ['source'], determined: ['source', 'specification'],
+  }[row.kind] ?? [];
+  if (row.kind === 'verify-sources' && row.config?.introLinks != null) {
+    try {
+      let links;
+      try { links = JSON.parse(row.config.introLinks); }
+      catch { links = JSON.parse(resolveTemplate(row.config.introLinks, context)); }
+      if (Array.isArray(links) && links.length) fields.push('requiredIntroPrefix');
+    } catch { /* Invalid introLinks is handled by the existing step validator. */ }
+  }
+  const jsonFields = new Set(['body', 'headers', 'inputs', 'fixedLinks', 'requiredHeadings', 'introLinks', 'oneClusterPerItem', 'forbiddenLabels']);
+  const strings = value => typeof value === 'string' ? [value] : value && typeof value === 'object' ? Object.values(value).flatMap(strings) : [];
+  return fields.flatMap(field => {
+    const raw = row.config?.[field];
+    if (jsonFields.has(field)) {
+      try { return strings(JSON.parse(raw)); } catch { /* Plain text body or a whole-list reference. */ }
+    }
+    return typeof raw === 'string' ? [raw] : [];
+  });
+}
+
+// Match template.mjs's ID/name precedence, shadowing an older repeated item's
+// success when the latest producer was rejected or skipped after rejection.
+function rejectedDependency(run, next, context) {
+  if (!run.steps.some(row => row.status === 'rejected')) return null;
+  const sources = new Map(), names = Object.create(null), successfulIds = new Set();
+  const remember = (step, blocked) => {
+    const id = step.stepId ?? step.id;
+    sources.set(id, { id, name: step.name ?? stepLabel(step), blocked });
+  };
+  const descendants = step => {
+    const branches = [step.then, step.else, step.default, ...Object.values(step.cases ?? {})];
+    for (const branch of branches) for (const child of branch ?? []) {
+      remember(child, true);
+      descendants(child);
+    }
+  };
+  for (const row of run.steps) {
+    if (row.seq >= next.seq) break;
+    if ((row.invocationId ?? 'root') !== (next.invocationId ?? 'root') || row.kind === 'workflow-return') continue;
+    const blocked = row.status === 'rejected' || (row.status === 'skipped' && row.gateReason === 'rejected');
+    names[row.stepId] = row.name ?? row.kind;
+    if (row.status === 'success' && row.output != null) successfulIds.add(row.stepId);
+    // The latest producer wins, even if an earlier repeated item succeeded.
+    remember(row, blocked);
+    if (blocked && row.status === 'skipped') descendants(row);
+  }
+  for (const value of dependencyTemplates(next, context)) {
+    for (const match of value.matchAll(/\{\{\s*steps\.([^{}]+?)\.output(?:\.[^}\s]+)?\s*\}\}/g)) {
+      const ref = match[1];
+      const namedId = Object.entries(names).find(([, name]) => String(name).toLowerCase() === ref.toLowerCase())?.[0];
+      const source = successfulIds.has(ref) ? sources.get(ref) : namedId !== undefined ? sources.get(namedId)
+        : sources.get(ref) ?? [...sources.values()].find(candidate => String(candidate.name).toLowerCase() === ref.toLowerCase());
+      if (source?.blocked) return source.id;
+    }
+  }
+  return null;
 }
 
 // Rows are depth-first. Skip only the rest of this structural branch/item;
