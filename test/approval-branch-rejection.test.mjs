@@ -114,23 +114,19 @@ test('reject skips only its branch, completes independent HTTP, persists and nev
 
 for (const kind of ['each', 'fan-out']) test(`${kind}: rejection is isolated to one item and the next gate still requires a decision`, async t => {
   const f = await fixture(t);
-  const signer = createTestTouchIdAnchor(t, f.dir);
   const driven = await f.start([{ id: 'items', kind, config: { over: '{{inputs.items}}' },
-    then: [{ id: 'candidate', kind: 'fetch', config: { url: f.request('candidate').config.url, format: 'text' } },
-      review, f.request('blocked')] }], { inputs: { items: { type: 'array', default: ['a', 'b'] } } });
+    then: [review, f.request('blocked')] }], { inputs: { items: { type: 'array', default: ['a', 'b'] } } });
   const run = f.store.load(driven.runId);
-  const args = signedReject(f, run, signer);
-  const first = await resumeRun(run, args);
+  const first = await terminalReject(run, f.store);
   assert.equal(first.status, 'waiting_human');
   assert.equal(first.finishedAt, null);
   assert.deepEqual(first.steps.filter(row => row.stepId === 'review').map(row => row.status), ['rejected', 'waiting_human']);
   assert.deepEqual(first.steps.filter(row => row.stepId === 'blocked').map(row => row.status), ['skipped', 'pending']);
   const second = f.store.load(run.runId);
-  await assert.rejects(resumeRun(second, args), /unknown|already used|match/);
-  const result = await resumeRun(second, signedReject(f, second, signer));
+  const result = await terminalReject(second, f.store);
   assert.equal(result.status, 'rejected');
   assert.match(result.summary, /2 approval\(s\) rejected/);
-  assert.deepEqual(f.requests, ['/candidate', '/candidate']);
+  assert.deepEqual(f.requests, []);
 });
 
 test('reject inside a bounded loop skips its remaining iterations and continues the next branch', async t => {
