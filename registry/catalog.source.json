@@ -1201,7 +1201,7 @@
           "A run on an ordinary day is recorded as stopped at the check (the check did not pass); that is the quiet outcome, not an error to fix.",
           "The alert fires every day the rate stays above the threshold; it does not remember the previous day, so it reports 'above', not the moment of crossing.",
           "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
-          "Without an OpenRouter key the check does not run and the decision is handed to you; the alert then has no rate in it, so set the key before relying on it.",
+          "Without an OpenRouter key the check does not run and the decision is handed to you every day; set the key before relying on the quiet days.",
           "A model judges a simple number comparison; the threshold check is not deterministic.",
           "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."

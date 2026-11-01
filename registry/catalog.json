@@ -766,7 +766,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "5c07b9112ada368f6763dcace22dd89036749d24c7c5be8c069c6d7d4f4c5699",
+      "sha256": "9b0b6fd98af55673ee1bcd7c4f399c56df4d3e7040b565dde2a0d6bc726d6602",
       "value": "Give each feed item its own summary, within a clear processing limit.",
       "executionProfile": {
         "inference": "openrouter",
@@ -1200,7 +1200,7 @@
           "A run on an ordinary day is recorded as stopped at the check (the check did not pass); that is the quiet outcome, not an error to fix.",
           "The alert fires every day the rate stays above the threshold; it does not remember the previous day, so it reports 'above', not the moment of crossing.",
           "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
-          "Without an OpenRouter key the check does not run and the decision is handed to you; the alert then has no rate in it, so set the key before relying on it.",
+          "Without an OpenRouter key the check does not run and the decision is handed to you every day; set the key before relying on the quiet days.",
           "A model judges a simple number comparison; the threshold check is not deterministic.",
           "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
@@ -4657,5 +4657,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "a1cb13eaed106c6b589de320153c34814f6f521f4e19fcda9aa841c739e3336c"
+  "releaseSha256": "4b9bf2360c381c35f89e8cacb733e18ebbc04ac0a9bdeff7fdf8239925c3e17d"
 }
