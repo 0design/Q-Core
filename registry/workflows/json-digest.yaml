@@ -49,8 +49,6 @@ steps:
       bind: sha256
       anchor: "Approve the exact JSON object (count and titles) that goes to your webhook"
 
-  # No body: Core sends the approved object as JSON in its envelope {runId, templateId, payload},
-  # so the titles arrive as a JSON array, not as text inside a string.
 
   - id: jd-send
     kind: api-request

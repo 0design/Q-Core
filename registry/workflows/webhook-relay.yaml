@@ -36,7 +36,6 @@ steps:
       bind: sha256
       anchor: "Approve the exact JSON that goes to your webhook"
 
-  # No body: Core sends the approved output as JSON in its envelope {runId, templateId, payload}.
   - id: wr-send
     kind: api-request
     config:

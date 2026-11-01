@@ -940,7 +940,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "9cd6a35b19380ac0e7622db59836481d5b73c3797b0662709ed000409ea468d6",
+      "sha256": "f26d11636d1e797649824e134b161003e8ff0299a7f7213e6d0cdaf84b361e26",
       "value": "Check that the model returned usable JSON before sending the item count onward.",
       "executionProfile": {
         "inference": "openrouter",
@@ -1605,7 +1605,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "8b14add39e9f25330bb6f979ad130efae17904816255ca6e5064c08b8995154e",
+      "sha256": "5a0ee621fa1f3a7da8f6de7cad29c3ea049c78506a52199e9c416e20b16a50d6",
       "value": "Connect a JSON source to a receiver without manual copy-and-paste or a model bill.",
       "executionProfile": {
         "inference": "none",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "aacdfd486fd083c3228eabba059024109171f1e64603d232eabebf0511d0efb4"
+  "releaseSha256": "83b47d9b70f9be69b005c3575efe20d29d2deb836b2d0d9ef55d51edb18c86cb"
 }
