@@ -44,7 +44,7 @@ steps:
   - id: jd-approve
     kind: approval-gate
     config:
-      name: "Send this JSON?"
+      name: "Send this list?"
       reviewer: human
       bind: sha256
       anchor: "Approve the exact JSON object (count and titles) that goes to your webhook"

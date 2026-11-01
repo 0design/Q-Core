@@ -938,7 +938,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "f26d11636d1e797649824e134b161003e8ff0299a7f7213e6d0cdaf84b361e26",
+      "sha256": "6866731534a07e7ac1a04df686ed965e4e7121b51196510c025fd43802fdc1f0",
       "value": "Check that the model returned usable JSON before sending the item count onward.",
       "executionProfile": {
         "inference": "openrouter",
@@ -4657,5 +4657,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "a06233d8e4da84dc80181f7517a6c30eb9ab6856c2c8f269c337464aa3333909"
+  "releaseSha256": "a1cb13eaed106c6b589de320153c34814f6f521f4e19fcda9aa841c739e3336c"
 }
