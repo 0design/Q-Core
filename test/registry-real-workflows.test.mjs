@@ -147,9 +147,10 @@ test("price-watch: above the threshold the person sees the rate and approves exa
   const run = await runUntilStop("price-watch", network);
   assert.equal(run.status, "waiting_human");
   assert.equal(gateRow(run).stepId, "pw-confirm");
-  assert.equal(gateRow(run).output.subject.verdict.reason, reason);
+  // Core.51: the person approves the content past the machine verdict (the fetched rate); the verdict travels as a review.
+  assert.equal(gateRow(run).output.subject.json.rates.UAH, 42.35);
   assert.equal(sends(network.calls).length, 0);
-  assert.equal(bodyAfterApproval(run, "pw-send").text, `Rate alert — ${reason}`);
+  assert.equal(bodyAfterApproval(run, "pw-send").text, "Rate alert — USD/UAH is 42.35");
 });
 
 test("content-factory: publishing waits for the person; nothing goes to Telegram before the decision", async () => {

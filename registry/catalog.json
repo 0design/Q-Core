@@ -434,7 +434,7 @@
           "Fetches JSON material from QCORE_SOURCE_URL.",
           "A model writes one post: under 900 characters, no emoji or hashtags, a link for every claim, one idea.",
           "An agent gate (a model judge) checks those rules; a failure is handed to you.",
-          "A human gate waits for your approval.",
+          "A human gate shows you the post and waits for your approval.",
           "Only after approval the post is sent to Telegram via sendMessage."
         ],
         "inputs": [
@@ -508,7 +508,6 @@
         "price": "OpenRouter: not measured; capped at $0.40 per run (draft plus agent-gate check). CLI route: no separate model bill for the draft.",
         "limits": [
           "Reference example: shows the manifest format; no measured result and no accepted real run.",
-          "On the pinned Q-Core the approval screen shows the machine check's verdict, not the post text itself; showing the post needs the next Q-Core release.",
           "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
           "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
           "The agent gate is a model judge, not a deterministic checker.",
@@ -1104,7 +1103,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "6c7cd2fc648e496229c6d004ca40e1146d323370796782843cfb12324f2a7e72",
+      "sha256": "a557da4e9b65ed1f03fb5435be3a566d683d0667c6ee78286b0bb2fd4f15e5b1",
       "value": "Review the model’s rate check before deciding whether to send the alert.",
       "executionProfile": {
         "inference": "openrouter",
@@ -1137,7 +1136,7 @@
           "An agent gate (a model judge) passes only if USD/UAH is above 42.0 and states the rate in its reason.",
           "Below the threshold the check fails and the run ends there: nobody is asked and nothing is sent.",
           "Above it, a human gate shows you the rate and waits for your approval.",
-          "After approval 'Rate alert — <the approved reason>' is POSTed to QCORE_WEBHOOK_URL."
+          "After approval 'Rate alert — USD/UAH is <the approved rate>' is POSTed to QCORE_WEBHOOK_URL."
         ],
         "inputs": [
           "Nothing beyond configuration; the rate source and the 42.0 threshold are in the manifest.",
@@ -1201,7 +1200,6 @@
           "Reference example: shows the manifest format; no measured result and no accepted real run.",
           "A run on an ordinary day is recorded as stopped at the check (the check did not pass); that is the quiet outcome, not an error to fix.",
           "The alert fires every day the rate stays above the threshold; it does not remember the previous day, so it reports 'above', not the moment of crossing.",
-          "On the pinned Q-Core the approval shows the check's verdict and its reason (with the rate), not a separate alert preview.",
           "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
           "A model judges a simple number comparison; the threshold check is not deterministic.",
           "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
@@ -4659,5 +4657,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "01e87e1622613e4d5128dc59b24f75fc3a3165cb562b828935286f3a89951f15"
+  "releaseSha256": "f37d20907ba3163add9c33ebd1c04aa5f8dee7cad5eb2f5f76dd2673f2ea0784"
 }
