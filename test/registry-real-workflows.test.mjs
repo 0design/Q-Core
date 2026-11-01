@@ -114,17 +114,28 @@ test("webhook-relay: the person approves the fetched JSON and it is forwarded as
   assert.equal(typeof envelope.payload.subject.json.items, "object");
 });
 
-test("feed-fanout: each item's sentence is approved inside its lane before that item is sent", async () => {
-  const network = stubNetwork({ model: () => "One sentence." });
+test("feed-fanout: the person approves the whole list (title, link, sentence) before any entry is sent; every lane sends its approved entry", async () => {
+  const list = { items: [
+    { title: "First headline", link: "https://news.example.com/1", take: "One sentence." },
+    { title: "Second headline", link: "https://news.example.com/2", take: "Another sentence." },
+  ], skipped: 0 };
+  const network = stubNetwork({ model: () => JSON.stringify(list) });
   const run = await runUntilStop("feed-fanout", network);
   assert.equal(run.status, "waiting_human");
   assert.equal(sends(network.calls).length, 0);
   const gate = gateRow(run);
   assert.equal(gate.stepId, "ff-approve");
-  assert.equal(gate.output.subject.text, "One sentence.");
-  const body = bodyAfterApproval(run, "ff-send");
-  assert.equal(body.take, "One sentence.");
-  assert.equal(body.title, "First headline");
+  assert.deepEqual(gate.output.subject, list, "the person sees every title, link and sentence that will be sent");
+  const manifest = loadManifest(file("feed-fanout"));
+  const lane = manifest.steps.find((s) => s.id === "ff-lane");
+  assert.equal(lane.config.over, "{{steps.Send these?.output.subject.items}}", "the lanes run over the approved list, not the raw feed");
+  const send = lane.then.find((s) => s.id === "ff-send");
+  const ctx = contextAfter(run);
+  list.items.forEach((item, index) => {
+    const body = resolveTemplateDeep(JSON.parse(send.config.body), { ...ctx, item, index });
+    assert.deepEqual(body, { i: String(index), title: item.title, link: item.link, take: item.take }, `lane ${index + 1} sends its approved entry`);
+  });
+  assert.equal(lane.then.some((s) => s.kind === "approval-gate" || s.kind === "llm-call"), false, "no per-lane gate or model call (Core.49 lane outputs share step ids)");
 });
 
 test("price-watch: an ordinary day stops quietly at the check; nobody is asked and nothing is sent", async () => {

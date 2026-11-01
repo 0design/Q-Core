@@ -710,7 +710,7 @@
     {
       "id": "feed-fanout",
       "name": "Get a separate summary for each feed item",
-      "description": "Summarize up to the first five feed items individually. You approve each one-sentence summary, then that item's title, link and summary go to your webhook.",
+      "description": "Summarize up to the first five feed items one sentence each. You approve the exact list of titles, links and sentences, then each item goes to your webhook as its own message.",
       "file": "workflows/feed-fanout.yaml",
       "version": "1.2.0",
       "steps": 5,
@@ -795,20 +795,19 @@
         }
       ],
       "brief": {
-        "summary": "Summarize up to the first five feed items individually. You approve each one-sentence summary, then that item's title, link and summary go to your webhook.",
+        "summary": "Summarize up to the first five feed items one sentence each. You approve the exact list of titles, links and sentences, then each item goes to your webhook as its own message.",
         "howItWorks": [
           "Reads up to 20 items from the feed at QCORE_SOURCE_URL.",
-          "Opens a separate lane for each of the first 5 items; how many were skipped is reported.",
-          "In each lane a model writes one sentence about the item.",
-          "A human gate in the lane shows you that sentence and waits for your approval.",
-          "After approval the lane POSTs index, title, link and the approved sentence to QCORE_WEBHOOK_URL."
+          "A model writes one sentence for each of the first 5 items and returns them as a JSON list with each title and link, plus how many items were skipped.",
+          "A human gate shows you that exact list and waits for your approval.",
+          "After approval Core opens a separate lane for each approved item and POSTs its index, title, link and sentence to QCORE_WEBHOOK_URL."
         ],
         "inputs": [
           "An RSS/Atom feed URL.",
-          "Your approval of each summary."
+          "Your approval of the list."
         ],
         "outputs": [
-          "Up to 5 separate JSON messages to your webhook (or files in .qf/out/), plus a truncation note in the run record."
+          "Up to 5 separate JSON messages to your webhook (or files in .qf/out/)."
         ],
         "knobs": [
           {
@@ -821,7 +820,7 @@
           },
           {
             "name": "instructions",
-            "what": "What the per-item sentence says, in ff-take."
+            "what": "How many items and what each sentence says, in ff-takes."
           },
           {
             "name": "settings.budgetUsd",
@@ -845,7 +844,7 @@
             },
             {
               "id": "cli",
-              "how": "Local adapted copy: in ff-take add provider: cli (its instructions already carry the item's title and link; bind only the step the instructions read), budgetUsd: null, q-core run --caller-provider provider.json, one q-core reply per lane."
+              "how": "Local adapted copy: in ff-takes add provider: cli and input: \"{{steps.ff-fetch.output}}\", budgetUsd: null, q-core run --caller-provider provider.json, then q-core reply."
             }
           ],
           "env": [
@@ -866,18 +865,18 @@
             }
           ]
         },
-        "price": "OpenRouter: not measured; capped at $0.15 per run (up to 5 short calls). CLI route: no separate model bill.",
+        "price": "OpenRouter: not measured; capped at $0.15 per run (one model call). CLI route: no separate model bill.",
         "limits": [
           "Reference example: shows the manifest format; no measured result and no accepted real run.",
-          "Each item waits for its own approval: up to 5 decisions per run. You see the exact text and approve it in your own terminal (q-core approve with a one-time code); an agent cannot approve.",
+          "One approval covers the whole list; nothing is sent before it. You approve in your own terminal (q-core approve with a one-time code); an agent cannot approve.",
           "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
-          "Only the first 5 items are processed unless maxItems is raised.",
+          "Only the first 5 items are summarized unless the instructions and maxItems are raised; the model reports how many it skipped.",
           "Model output is not deterministic; the order of steps, checks and stops is.",
           "Needs Node.js 20.3+ and the Q-Core archive pinned by the Registry release (not on npm)."
         ],
         "exampleRequests": [
-          "For each of the latest 5 posts in this feed, let me approve one sentence on who should care, then send it to my webhook.",
-          "Process feed items one by one and push each summary I approve to my webhook."
+          "For the latest 5 posts in this feed, let me approve one sentence each on who should care, then send each to my webhook.",
+          "Summarize feed items one by one and push each summary I approved to my webhook."
         ]
       }
     },
@@ -1203,6 +1202,7 @@
           "A run on an ordinary day is recorded as stopped at the check (the check did not pass); that is the quiet outcome, not an error to fix.",
           "The alert fires every day the rate stays above the threshold; it does not remember the previous day, so it reports 'above', not the moment of crossing.",
           "On the pinned Q-Core the approval shows the check's verdict and its reason (with the rate), not a separate alert preview.",
+          "Without an OpenRouter key the check does not run and the decision is handed to you; the alert then has no rate in it, so set the key before relying on it.",
           "The cron line only documents the cadence: q-core run does one pass, so launchd, cron or q-core-host must start it.",
           "A model judges a simple number comparison; the threshold check is not deterministic.",
           "If the webhook/Telegram variables are unset, nothing is sent: the payload is written to .qf/out/ instead.",
