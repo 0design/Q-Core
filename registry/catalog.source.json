@@ -49,6 +49,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -571,6 +575,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -755,6 +763,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -927,6 +939,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -1262,6 +1278,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -1596,7 +1616,12 @@
         "version": "0.2.0-q-core.49",
         "manifest": "q-core.workflow/v1"
       },
-      "dependencies": [],
+      "dependencies": [
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
       "permissions": {
         "environment": [
           "QCORE_SOURCE_URL",

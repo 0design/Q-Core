@@ -49,6 +49,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -570,6 +574,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -754,6 +762,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -926,6 +938,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -1261,6 +1277,10 @@
         {
           "id": "llm-call-openrouter",
           "version": "1.2.0"
+        },
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
         }
       ],
       "permissions": {
@@ -1594,7 +1614,12 @@
         "version": "0.2.0-q-core.49",
         "manifest": "q-core.workflow/v1"
       },
-      "dependencies": [],
+      "dependencies": [
+        {
+          "id": "approval-gate",
+          "version": "1.0.0"
+        }
+      ],
       "permissions": {
         "environment": [
           "QCORE_SOURCE_URL",
@@ -4659,5 +4684,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "018e54b1a39f8ef895162a2a60eb045bfd8927dd812f0024436eef83a9c6009b"
+  "releaseSha256": "b8fcbc52b0174e6022809cf39ccd43bb705290a3dc652531a827c6d23ea17eb2"
 }
