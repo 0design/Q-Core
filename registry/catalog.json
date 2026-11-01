@@ -767,7 +767,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "5c07b9112ada368f6763dcace22dd89036749d24c7c5be8c069c6d7d4f4c5699",
+      "sha256": "9b0b6fd98af55673ee1bcd7c4f399c56df4d3e7040b565dde2a0d6bc726d6602",
       "value": "Give each feed item its own summary, within a clear processing limit.",
       "executionProfile": {
         "inference": "openrouter",
@@ -4659,5 +4659,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "f1c1d2431dc24d0b89176819518612388c277961d22ab9cbe07d58b05d167474"
+  "releaseSha256": "018e54b1a39f8ef895162a2a60eb045bfd8927dd812f0024436eef83a9c6009b"
 }

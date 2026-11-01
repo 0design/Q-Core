@@ -9,7 +9,7 @@ version: 1.2.0
 description: >
   Reads a feed and writes one sentence for each of the first five entries. You
   approve the exact list (title, link and sentence of every entry), then each
-  entry goes out as its own message. Skipped entries are counted, never silent.
+  entry goes out as its own message. The model reports how many entries it skipped.
 owner: oleg
 enabled: true
 
