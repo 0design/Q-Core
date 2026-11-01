@@ -5,10 +5,11 @@ manifest: q-core.workflow/v1
 
 id: content-feed
 name: "Content feed: the morning digest"
-version: 1.1.0
+version: 1.2.0
 description: >
-  Reads a feed every morning, writes a short digest, and sends it.
-  No human gate. Repeated runs can redeliver; receiver-side deduplication must be configured separately.
+  Reads a feed every morning and writes a short digest. You see the exact
+  text and approve it; only then it goes to your Telegram chat. Repeated runs
+  can redeliver; receiver-side deduplication must be configured separately.
 owner: oleg
 enabled: true
 
@@ -18,7 +19,7 @@ triggers:
   - kind: manual
 
 settings:
-
+  model: openai/gpt-4o-mini
   budgetUsd: 0.10
 
 steps:
@@ -51,6 +52,14 @@ steps:
 
         Do not append a generated-by or cost signature.
 
+  - id: cf-approve
+    kind: approval-gate
+    config:
+      name: "Send this digest?"
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact digest text that goes to your Telegram chat"
+
   - id: cf-send
     kind: api-request
     config:
@@ -59,4 +68,4 @@ steps:
       url: "https://api.telegram.org/bot{{env.TELEGRAM_BOT_TOKEN}}/sendMessage"
       expect: "2xx"
       timeoutSec: "30"
-      body: '{"chat_id":"{{env.TELEGRAM_CHAT_ID}}","text":"{{steps.Write digest.output.text}}","disable_web_page_preview":true}'
+      body: '{"chat_id":"{{env.TELEGRAM_CHAT_ID}}","text":"{{steps.Send this digest?.output.subject.text}}","disable_web_page_preview":true}'

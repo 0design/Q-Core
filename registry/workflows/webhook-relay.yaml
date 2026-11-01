@@ -5,10 +5,11 @@ manifest: q-core.workflow/v1
 
 id: webhook-relay
 name: "Webhook relay: move data, call nothing"
-version: 1.1.0
+version: 1.2.0
 description: >
-  Reads a JSON endpoint and forwards it to a webhook. No model call is needed.
-  Source and destination services may require credentials or charge for requests.
+  Reads a JSON endpoint, shows you the exact data, and forwards it to a webhook
+  as JSON only after you approve it. No model call is needed. Source and
+  destination services may require credentials or charge for requests.
 owner: oleg
 enabled: true
 
@@ -27,6 +28,15 @@ steps:
       format: json
       timeoutSec: "20"
 
+  - id: wr-approve
+    kind: approval-gate
+    config:
+      name: "Forward this data?"
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact JSON that goes to your webhook"
+
+  # No body: Core sends the approved output as JSON in its envelope {runId, templateId, payload}.
   - id: wr-send
     kind: api-request
     config:
@@ -35,4 +45,3 @@ steps:
       url: "{{env.QCORE_WEBHOOK_URL}}"
       expect: "2xx"
       timeoutSec: "20"
-      body: '{"forwarded":"{{steps.Read source.output.json}}","run":"{{run.id}}"}'

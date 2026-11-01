@@ -5,19 +5,26 @@ manifest: q-core.workflow/v1
 
 id: brand-mentions
 name: "Brand mentions: who talked about you today"
-version: 1.1.0
+version: 1.2.0
 description: >
-  Searches a news feed for your brand and keeps only the real mentions.
-  Reports zero when there are none, instead of padding.
+  Searches a news feed for the brand you name and keeps only the real mentions.
+  Reports zero when there are none, instead of padding. You approve the exact
+  report before it is sent.
 owner: oleg
 enabled: true
 
+# A required input has no default: a scheduled run without it would fail every day.
 triggers:
-  - kind: schedule
-    cron: "30 6 * * *"
   - kind: manual
 
+inputs:
+  brand:
+    type: string
+    required: true
+    description: "Your brand: the exact name to look for in the feed"
+
 settings:
+  model: openai/gpt-4o-mini
   budgetUsd: 0.10
 
 steps:
@@ -37,7 +44,9 @@ steps:
       role: analyst
       maxTokens: "800"
       instructions: |
-        The `entries` array holds search results. Some genuinely discuss the
+        The brand is: {{inputs.brand}}
+
+        The `entries` array holds search results. Some genuinely discuss this
         brand; others merely contain the words.
 
         Keep only the real mentions. For each, write one line:
@@ -49,6 +58,14 @@ steps:
         "No mentions today." and nothing else — an empty morning is a result,
         not a failure, and padding it would train the reader to skim.
 
+  - id: bm-approve
+    kind: approval-gate
+    config:
+      name: "Send this report?"
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact mentions report that goes to your webhook"
+
   - id: bm-send
     kind: api-request
     config:
@@ -57,4 +74,4 @@ steps:
       url: "{{env.QCORE_WEBHOOK_URL}}"
       expect: "2xx"
       timeoutSec: "30"
-      body: '{"text":"{{steps.Keep the real ones.output.text}}"}'
+      body: '{"text":"{{steps.Send this report?.output.subject.text}}"}'
