@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: content-factory
 name: "Content factory: draft, check, approve, publish"
-version: 1.1.0
+version: 1.2.0
 description: >
   Writes a post in your channel's voice, runs it past a machine check for the
   formal rules, shows it to you, and publishes only after you say yes.
@@ -18,6 +18,7 @@ triggers:
   - kind: manual
 
 settings:
+  model: anthropic/claude-sonnet-5
   budgetUsd: 0.40
 
 steps:

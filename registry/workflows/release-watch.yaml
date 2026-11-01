@@ -5,10 +5,11 @@ manifest: q-core.workflow/v1
 
 id: release-watch
 name: "Release watch: what shipped in your dependencies"
-version: 1.1.0
+version: 1.2.0
 description: >
   Reads a project's GitHub releases feed and writes a short note on what changed
-  and whether it matters to you. Works on any public repository.
+  and whether it matters to you. You approve the exact note before it is sent.
+  Works on any public repository.
 owner: oleg
 enabled: true
 
@@ -18,6 +19,7 @@ triggers:
   - kind: manual
 
 settings:
+  model: openai/gpt-4o-mini
   budgetUsd: 0.10
 
 steps:
@@ -48,6 +50,14 @@ steps:
         If nothing in the batch is worth acting on, say exactly that in one
         line and stop. Do not pad.
 
+  - id: rw-approve
+    kind: approval-gate
+    config:
+      name: "Send this note?"
+      reviewer: human
+      bind: sha256
+      anchor: "Approve the exact release note that goes to your webhook"
+
   - id: rw-send
     kind: api-request
     config:
@@ -56,4 +66,4 @@ steps:
       url: "{{env.QCORE_WEBHOOK_URL}}"
       expect: "2xx"
       timeoutSec: "30"
-      body: '{"text":"{{steps.Write the note.output.text}}"}'
+      body: '{"text":"{{steps.Send this note?.output.subject.text}}"}'

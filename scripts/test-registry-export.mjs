@@ -86,14 +86,17 @@ try {
   assert.doesNotMatch(remoteInit.stdout, /a loop makes requests and calls models on your key/);
   const destination = join(cwd, 'relay.yaml');
   const install = (digest, version, target) => cli(['install',base+'/registry',digest,'webhook-relay',version,target]);
-  const result = await install(hash(bytes),'1.1.0',destination);
+  const relayVersion = catalog.workflows.find(workflow => workflow.id === 'webhook-relay').version;
+  const result = await install(hash(bytes),relayVersion,destination);
   assert.equal(result.code,0,result.stderr);
   assert.equal((await cli(['validate',destination])).code,0);
+  // The relay holds for a person before it forwards anything: a run parks at its human gate and sends nothing.
   const executed = await cli(['run',destination]);
-  assert.equal(executed.code,0,executed.stderr);
-  assert.equal(deliveries,1);
-  assert.notEqual((await install(hash(bytes),'1.1.0',destination)).code,0);
-  assert.notEqual((await install('0'.repeat(64),'1.1.0',join(cwd,'bad-hash.yaml'))).code,0);
+  assert.equal(executed.code,2,executed.stderr);
+  assert.match(executed.stdout, /WAITING_HUMAN: Waiting on a human at step "Forward this data\?"/);
+  assert.equal(deliveries,0);
+  assert.notEqual((await install(hash(bytes),relayVersion,destination)).code,0);
+  assert.notEqual((await install('0'.repeat(64),relayVersion,join(cwd,'bad-hash.yaml'))).code,0);
   assert.notEqual((await install(hash(bytes),'999.0.0',join(cwd,'bad-version.yaml'))).code,0);
   const planned = join(exported, 'planned.json');
   const originalPlanned = readFileSync(planned);
