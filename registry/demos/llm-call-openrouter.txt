@@ -22,8 +22,6 @@ Refusal before a call (COST_UNKNOWN behavior): run efa598d3-8189-4a4d-9776-059c8
 Recorded refusal (exact errorText from run-1.json):
 OpenRouter model anthropic/claude-haiku-5.5 has no known price, so maxCallCostUsd cannot be enforced; the call was not made
 
-Separate direct billing check supplied by the operator (not a field in these run JSON files): generation gen-1793716234-n1T37OXQbjarsJU0uYuU, provider Anthropic, is_byok: false. The calls were paid from this key's OpenRouter credits, not an Anthropic BYOK key.
-
 Text response (exact text from run-2.json, or-text.output.text):
 Lviv is one of the main cultural centers of Ukraine, known for its historic old town, a UNESCO World Heritage Site.
 The city was founded in the mid-13th century by King Danylo of Galicia, who named it after his son Lev.
