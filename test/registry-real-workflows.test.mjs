@@ -6,9 +6,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { loadManifest } from "../src/manifest.mjs";
-import { loadWorkflow } from "../src/workflow-policy.mjs";
+import { loadWorkflow, workflowWarnings } from "../src/workflow-policy.mjs";
 import { createRun, driveRun } from "../src/run.mjs";
 import { resolveTemplateDeep } from "../src/template.mjs";
+import { hash } from "../src/contracts.mjs";
 
 const file = (id) => fileURLToPath(new URL(`../registry/workflows/${id}.yaml`, import.meta.url));
 const SENDING = ["content-feed", "feed-fanout", "release-watch", "webhook-relay", "json-digest", "brand-mentions", "price-watch", "content-factory"];
@@ -142,26 +143,63 @@ test("price-watch: an ordinary day stops quietly at the check; nobody is asked a
   const network = stubNetwork({ source: JSON.stringify({ rates: { UAH: 41.2 } }), contentType: "application/json",
     model: () => JSON.stringify({ pass: false, reason: "USD/UAH is 41.2, below the 42.0 threshold" }) });
   const run = await runUntilStop("price-watch", network);
-  assert.notEqual(run.status, "waiting_human", "an ordinary day does not wake a person");
+  assert.equal(run.status, "failed", "an ordinary day ends at the failed check");
   const check = run.steps.find((s) => s.stepId === "pw-judge");
   assert.equal(check.status, "failed");
   assert.match(check.errorText, /did not pass — USD\/UAH is 41\.2/, "the run ends at the check with the rate in the reason");
   assert.equal(run.steps.some((s) => s.status === "waiting_human"), false);
   assert.equal(run.steps.find((s) => s.stepId === "pw-confirm")?.status ?? "pending", "pending");
+  assert.equal(run.steps.find((s) => s.stepId === "pw-send")?.status ?? "pending", "pending");
   assert.equal(sends(network.calls).length, 0);
 });
 
-test("price-watch: above the threshold the person sees the rate and approves exactly the alert that is sent", async () => {
+test("price-watch: the approval subject covers the alert without workflow warnings", () => {
+  const manifest = loadWorkflow(file("price-watch"));
+  assert.deepEqual(workflowWarnings(manifest), []);
+});
+
+test("price-watch: above the threshold the person approves the check's reason and the alert sends that exact text", async () => {
   const reason = "USD/UAH is 42.35, above the 42.0 threshold";
   const network = stubNetwork({ source: JSON.stringify({ rates: { UAH: 42.35 } }), contentType: "application/json",
     model: () => JSON.stringify({ pass: true, reason }) });
   const run = await runUntilStop("price-watch", network);
   assert.equal(run.status, "waiting_human");
-  assert.equal(gateRow(run).stepId, "pw-confirm");
-  // Core.51: the person approves the content past the machine verdict (the fetched rate); the verdict travels as a review.
-  assert.equal(gateRow(run).output.subject.json.rates.UAH, 42.35);
+  const gate = gateRow(run);
+  const check = run.steps.find((s) => s.stepId === "pw-judge");
+  assert.equal(gate.stepId, "pw-confirm");
+  assert.equal(gate.output.subject.verdict.reason, reason);
+  assert.deepEqual(gate.output.subject, check.output, "the person approves the check's verdict, including the rate and threshold");
+  assert.match(gate.output.approvalHash, /^[a-f0-9]{64}$/);
+  assert.equal(gate.output.approvalHash, hash(gate.output.subject), "the approval binds the subject that supplies the alert text");
+  assert.equal(run.steps.find((s) => s.stepId === "pw-send")?.status ?? "pending", "pending");
   assert.equal(sends(network.calls).length, 0);
-  assert.equal(bodyAfterApproval(run, "pw-send").text, "Rate alert — USD/UAH is 42.35");
+  assert.deepEqual(bodyAfterApproval(run, "pw-send"), { text: `Rate alert — ${reason}` });
+  check.output = { ...check.output, verdict: { pass: true, reason: "A later, unapproved reason" } };
+  assert.deepEqual(bodyAfterApproval(run, "pw-send"), { text: `Rate alert — ${reason}` }, "the alert reads the approved subject, not a later check output");
+});
+
+test("price-watch: changing only the alert reason changes its approval hash", async () => {
+  const gates = [];
+  for (const reason of ["USD/UAH is 42.35, above the 42.0 threshold", "USD/UAH is 42.35; the 42.0 threshold is exceeded"]) {
+    const network = stubNetwork({ source: JSON.stringify({ rates: { UAH: 42.35 } }), contentType: "application/json",
+      model: () => JSON.stringify({ pass: true, reason }) });
+    const run = await runUntilStop("price-watch", network);
+    assert.equal(run.status, "waiting_human");
+    const gate = gateRow(run);
+    assert.equal(gate.stepId, "pw-confirm");
+    assert.equal(gate.output.subject.verdict.reason, reason);
+    assert.match(gate.output.approvalHash, /^[a-f0-9]{64}$/);
+    assert.equal(gate.output.approvalHash, hash(gate.output.subject));
+    assert.equal(sends(network.calls).length, 0);
+    assert.deepEqual(bodyAfterApproval(run, "pw-send"), { text: `Rate alert — ${reason}` });
+    gates.push(gate.output);
+  }
+  assert.deepEqual(
+    { ...gates[0].subject, verdict: { ...gates[0].subject.verdict, reason: gates[1].subject.verdict.reason } },
+    gates[1].subject,
+    "only the reason changed in the approved subject",
+  );
+  assert.notEqual(gates[0].approvalHash, gates[1].approvalHash, "a different alert text requires a different approval");
 });
 
 test("content-factory: human-approve shows and binds the post, with the machine verdict only in reviews", async () => {
