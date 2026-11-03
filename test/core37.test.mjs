@@ -96,13 +96,15 @@ test("the Registry: every workflow validates as reviewed; created from scratch, 
     try { loadManifest(file); } catch (e) { assert.match(e.message, /GATE_REQUIRED/, f); gateFree.push(f.replace(".yaml", "")); }
   }
   // Human-gated templates pass as created manifests too (they are safe to adapt).
-  for (const id of ["sdd-pipeline", "digest", "content-factory", "price-watch", "podcast-summary"]) assert.ok(!gateFree.includes(id), id);
-  assert.ok(gateFree.includes("webhook-relay") && gateFree.includes("strict-gate"), gateFree.join(","));
+  for (const id of ["sdd-pipeline", "digest", "content-factory", "price-watch", "podcast-summary",
+    "content-feed", "feed-fanout", "release-watch", "webhook-relay", "json-digest", "brand-mentions"]) assert.ok(!gateFree.includes(id), id);
+  assert.ok(gateFree.includes("wide-fanout") && gateFree.includes("strict-gate"), gateFree.join(","));
 });
 
 test("q-core install lock: an unchanged install is reviewed; an adapted copy or a forged hash is not", () => {
-  const dir = mkdtempSync(join(tmpdir(), "q-core37-")), file = join(dir, "webhook-relay.yaml");
-  const bytes = readFileSync(resolve("registry/workflows/webhook-relay.yaml"));
+  // strict-gate stays gate-free in the Registry (an engine check), so it shows the lock exemption.
+  const dir = mkdtempSync(join(tmpdir(), "q-core37-")), file = join(dir, "strict-gate.yaml");
+  const bytes = readFileSync(resolve("registry/workflows/strict-gate.yaml"));
   writeFileSync(file, bytes);
   const m = parseYaml(bytes.toString());
   const lock = (sha) => writeFileSync(`${file}.lock.json`, JSON.stringify({ protocolVersion: "qf.registry-lock/v1", id: m.id, version: String(m.version), resolved: [{ key: `workflows/${m.id}@${m.version}`, sha256: sha }] }));

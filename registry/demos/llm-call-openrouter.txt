@@ -1,0 +1,37 @@
+llm-call/openrouter 1.2.0 — live acceptance run on an installed Q-Core candidate archive
+
+Scope: Controlled local installed Registry candidate run; this evidence is not public-release acceptance.
+Component under test: llm-call/openrouter 1.2.0
+Core: 0.2.0-q-core.51; archive q-core-0.2.0-q-core.51.tgz
+Core archive SHA-256: 59294943d2b7ad5f670c9931910e197241c2c0ca74265524bec81e12a3bab2f4
+Manifest: llm-call-openrouter-acceptance.yaml 1.0.0
+Manifest SHA-256: 11ec13035d3d0f457ce28b2b111e6865bf2b7238e09aba7a4bef0adeab1ce20f
+Execution context supplied with the run: the archive was installed with npm install in tools; tools/node_modules/.bin/q-core run llm-call-openrouter-acceptance.yaml --json ran without OPENROUTER_API_KEY in the environment. Both recorded steps use secretSource: keychain (macOS Keychain).
+Route: llm-call/openrouter (or-text, text) -> llm-call/openrouter (or-json, input: {{steps.or-text.output}}, format: json)
+Model: anthropic/claude-sonnet-5, explicitly set in workflow settings; text output records the same model.
+Run: 976e32a2-9f8f-4991-90dd-fafa37e7791b · status success · Completed 2/2 steps.
+Started: 2026-11-03T14:29:42.584Z; finished: 2026-11-03T14:29:48.532Z
+Cost: or-text 0.00164 USD (60 in / 152 out), or-json 0.001796 USD (218 in / 136 out), total 0.003436 USD.
+Cost source: costSource: provider for both steps; no rate-table estimate substituted.
+Recorded source: run-2.json, identical to .qf/runs/976e32a2-9f8f-4991-90dd-fafa37e7791b.json (SHA-256 50bc0550c64f22c9df76159892400f273ef544a028aee2e5705e399993232dec).
+
+Verified in this run: explicit model; Keychain secret source; bounded policy configured on both steps (retries: 1, timeoutSec: 60, maxCallCostUsd: 0.01); workflow budgetUsd: 0.05; provider-reported cost below each per-call cap; one prior-output input reference; format: json parsed into an object whose three facts exactly match the text step.
+Policy details: maxTokens: 200 for or-text and 300 for or-json; temperature: 0 for both. The run verifies successful calls with retries/timeout configured, not an actual retry or timeout event.
+
+Refusal before a call (COST_UNKNOWN behavior): run efa598d3-8189-4a4d-9776-059c865c27db · status failed · model anthropic/claude-haiku-5.5 · cost 0 USD. or-text failed; or-json stayed pending. With maxCallCostUsd: 0.01 the unpriced model was refused before any provider call.
+Recorded refusal (exact errorText from run-1.json):
+OpenRouter model anthropic/claude-haiku-5.5 has no known price, so maxCallCostUsd cannot be enforced; the call was not made
+
+Text response (exact text from run-2.json, or-text.output.text):
+Lviv is one of the main cultural centers of Ukraine, known for its historic old town, a UNESCO World Heritage Site.
+The city was founded in the mid-13th century by King Danylo of Galicia, who named it after his son Lev.
+Lviv's architecture reflects a blend of styles, including Gothic, Renaissance, Baroque, and Classicist influences.
+
+JSON response (parsed object from run-2.json, or-json.output; fact strings verbatim):
+{
+  "facts": [
+    "Lviv is one of the main cultural centers of Ukraine, known for its historic old town, a UNESCO World Heritage Site.",
+    "The city was founded in the mid-13th century by King Danylo of Galicia, who named it after his son Lev.",
+    "Lviv's architecture reflects a blend of styles, including Gothic, Renaissance, Baroque, and Classicist influences."
+  ]
+}
