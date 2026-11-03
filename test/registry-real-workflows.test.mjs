@@ -164,12 +164,47 @@ test("price-watch: above the threshold the person sees the rate and approves exa
   assert.equal(bodyAfterApproval(run, "pw-send").text, "Rate alert — USD/UAH is 42.35");
 });
 
-test("content-factory: publishing waits for the person; nothing goes to Telegram before the decision", async () => {
+test("content-factory: human-approve shows and binds the post, with the machine verdict only in reviews", async () => {
+  const post = 'Один факт: "exact text".\nSource: https://news.example.com/1?path=a\\b';
+  const verdict = { pass: true, reason: "All formal rules pass." };
   const network = stubNetwork({ source: JSON.stringify({ material: "x" }), contentType: "application/json",
-    model: (request) => /validation gate/.test(JSON.stringify(request.messages)) ? JSON.stringify({ pass: true, reason: "ok" }) : "Post text" });
+    model: (request) => /validation gate/.test(JSON.stringify(request.messages)) ? JSON.stringify(verdict) : post });
   const run = await runUntilStop("content-factory", network);
   assert.equal(run.status, "waiting_human");
-  assert.equal(gateRow(run).stepId, "cf-approve");
-  assert.equal(sends(network.calls).length, 0);
+  const gate = gateRow(run);
+  assert.equal(gate.stepId, "cf-approve");
+  assert.equal(sends(network.calls).length, 0, "nothing goes to Telegram before the person decides");
+  const written = run.steps.find((step) => step.stepId === "cf-write");
+  assert.equal(gate.output.subject.text, post);
+  assert.deepEqual(gate.output.subject, written.output, "the subject is the model's post, not the machine verdict");
+  assert.equal(Object.hasOwn(gate.output.subject, "verdict"), false);
+  assert.deepEqual(gate.output.reviews, [{ step: "cf-rules", verdict }]);
+  assert.match(gate.output.approvalHash, /^[a-f0-9]{64}$/, "approval is bound to the post");
+  assert.equal(bodyAfterApproval(run, "cf-publish").text, gate.output.subject.text);
+  // Distinguish a reference to the approved subject from a reference back to the writer.
+  written.output = { ...written.output, text: "A later, unapproved draft" };
+  assert.equal(bodyAfterApproval(run, "cf-publish").text, post, "the send reads the approved subject even if the writer output changes");
   assert.equal(loadManifest(file("content-factory")).settings.model, "anthropic/claude-sonnet-5");
+});
+
+test("content-factory: changing the machine verdict's reason does not change the post's approval hash", async () => {
+  const post = "One approved post. Source: https://news.example.com/1";
+  const gates = [];
+  for (const reason of ["All formal rules pass.", "Checked again: one linked idea, under the character limit."]) {
+    const verdict = { pass: true, reason };
+    const network = stubNetwork({ source: JSON.stringify({ material: "x" }), contentType: "application/json",
+      model: (request) => /validation gate/.test(JSON.stringify(request.messages)) ? JSON.stringify(verdict) : post });
+    const run = await runUntilStop("content-factory", network);
+    assert.equal(run.status, "waiting_human");
+    assert.equal(gateRow(run).stepId, "cf-approve");
+    assert.equal(sends(network.calls).length, 0);
+    const gate = gateRow(run).output;
+    assert.equal(gate.subject.text, post);
+    assert.deepEqual(gate.reviews, [{ step: "cf-rules", verdict }]);
+    assert.match(gate.approvalHash, /^[a-f0-9]{64}$/);
+    gates.push(gate);
+  }
+  assert.notDeepEqual(gates[0].reviews, gates[1].reviews, "the machine verdict really changed");
+  assert.deepEqual(gates[0].subject, gates[1].subject);
+  assert.equal(gates[0].approvalHash, gates[1].approvalHash, "reviews are excluded from the subject hash");
 });
