@@ -2954,20 +2954,30 @@
         "execution": "none"
       },
       "evidence": {
-        "status": "no-live-proof"
+        "status": "local-live-proof",
+        "coreVersion": "0.2.0-q-core.51",
+        "coreSha256": "59294943d2b7ad5f670c9931910e197241c2c0ca74265524bec81e12a3bab2f4"
       },
       "contentType": "component",
       "acceptance": {
-        "status": "pending",
-        "evidence": []
+        "status": "accepted",
+        "scope": "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
+        "evidence": [
+          {
+            "file": "demos/llm-call-openrouter.txt",
+            "sha256": "2d753c407cb8e11d0e524150e315baaf7f1bed9eb3c3f88e45ac3af271dabcaf",
+            "componentVersion": "1.2.0",
+            "coreVersion": "0.2.0-q-core.51",
+            "coreSha256": "59294943d2b7ad5f670c9931910e197241c2c0ca74265524bec81e12a3bab2f4"
+          }
+        ]
       },
       "file": "components/llm-call-openrouter.json",
       "runtimeKind": "llm-call",
       "value": "OpenRouter inference with an explicit model, a local secret reference from the environment or the macOS Keychain, bounded retries and timeout, an optional per-call money cap, and the provider's own cost in the run record. This is not the current CLI agent.",
       "implementation": {
-        "status": "partial",
-        "source": "src/steps.mjs",
-        "limitation": "Existing runtime evidence is separate from Registry component acceptance."
+        "status": "implemented",
+        "source": "src/steps.mjs"
       },
       "builtinDependencies": [],
       "brief": {
@@ -2977,13 +2987,13 @@
           "An explicit model (step, workflow or OPENROUTER_MODEL)"
         ],
         "limits": [
-          "No acceptance recorded for this component.",
+          "Controlled local installed Registry candidate run; this evidence is not public-release acceptance.",
           "Input capped at 60000 characters; without input it sends all prior outputs.",
           "Unknown cost stops the next paid step when a budget is set.",
           "Keychain option is macOS only."
         ]
       },
-      "sha256": "d897866151680f5b753b1281c060465bbe5077dff91fba2abc540ba830685eda"
+      "sha256": "44cb8761e7892011f2a897c4e54dcb052dbd78c0e06b59a724d3ebfcb26b4033"
     },
     {
       "id": "telegram-publish",
@@ -4065,15 +4075,8 @@
         },
         "readiness": {
           "templateId": "digest",
-          "status": "blocked",
-          "blockers": [
-            {
-              "id": "llm-call-openrouter",
-              "version": "1.2.0",
-              "implementation": "partial",
-              "acceptance": "pending"
-            }
-          ],
+          "status": "components-ready",
+          "blockers": [],
           "components": [
             "llm-call-openrouter@1.2.0",
             "parse-web@0.2.0",
@@ -4682,5 +4685,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "eb9e8357971af045e5d79109bf0ed4f58de79952a7de2509289fedf119dc63e9"
+  "releaseSha256": "a94d3f97c8b853886ffd1b63ce2c5a19b0df47e5f8e37f063177cc0eec17f5dc"
 }

@@ -165,6 +165,7 @@
       "demos/digest-multisource.txt",
       "demos/feed-fanout.txt",
       "demos/json-digest.txt",
+      "demos/llm-call-openrouter.txt",
       "demos/price-watch.txt",
       "demos/release-watch.txt",
       "demos/sdd-verified-change.json",

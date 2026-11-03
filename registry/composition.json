@@ -165,15 +165,8 @@
       },
       "readiness": {
         "templateId": "digest",
-        "status": "blocked",
-        "blockers": [
-          {
-            "id": "llm-call-openrouter",
-            "version": "1.2.0",
-            "implementation": "partial",
-            "acceptance": "pending"
-          }
-        ],
+        "status": "components-ready",
+        "blockers": [],
         "components": [
           "llm-call-openrouter@1.2.0",
           "parse-web@0.2.0",
