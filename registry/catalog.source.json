@@ -346,7 +346,7 @@
       "name": "Turn source material into a Telegram post you approve",
       "description": "Draft one Telegram post with links for its claims, check the writing rules, and publish only after you approve.",
       "file": "workflows/content-factory.yaml",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "steps": 5,
       "topLevelSteps": 5,
       "fansOut": false,
@@ -439,7 +439,7 @@
           "Fetches JSON material from QCORE_SOURCE_URL.",
           "A model writes one post: under 900 characters, no emoji or hashtags, a link for every claim, one idea.",
           "An agent gate (a model judge) checks those rules; a failure is handed to you.",
-          "A human gate shows you the post and waits for your approval.",
+          "human-approve shows you the exact post and waits for your approval.",
           "Only after approval the post is sent to Telegram via sendMessage."
         ],
         "inputs": [
@@ -3789,7 +3789,7 @@
       }
     }
   ],
-  "releaseVersion": "2026.10.13-registry.38-candidate",
+  "releaseVersion": "2026.11.03-registry.40-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.51",

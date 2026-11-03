@@ -345,7 +345,7 @@
       "name": "Turn source material into a Telegram post you approve",
       "description": "Draft one Telegram post with links for its claims, check the writing rules, and publish only after you approve.",
       "file": "workflows/content-factory.yaml",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "steps": 5,
       "topLevelSteps": 5,
       "fansOut": false,
@@ -406,7 +406,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "54b850d40076057e51b17b35bba32dd86c7c7c7cdd153d7dcc7d954f0c096b46",
+      "sha256": "761c7d8756a7f46abfaa3e8144c7b71a83f885c8700823d1305bc08deb9ca785",
       "value": "Keep the final publishing decision in your hands while your agent prepares the draft.",
       "executionProfile": {
         "inference": "openrouter",
@@ -438,7 +438,7 @@
           "Fetches JSON material from QCORE_SOURCE_URL.",
           "A model writes one post: under 900 characters, no emoji or hashtags, a link for every claim, one idea.",
           "An agent gate (a model judge) checks those rules; a failure is handed to you.",
-          "A human gate shows you the post and waits for your approval.",
+          "human-approve shows you the exact post and waits for your approval.",
           "Only after approval the post is sent to Telegram via sendMessage."
         ],
         "inputs": [
@@ -3877,7 +3877,7 @@
       "sha256": "3835c4fa8c426d5f4afff93dd84ffd974d460dbb3586395546cdb7e663a28fdf"
     }
   ],
-  "releaseVersion": "2026.10.13-registry.38-candidate",
+  "releaseVersion": "2026.11.03-registry.40-candidate",
   "core": {
     "package": "q-core",
     "version": "0.2.0-q-core.51",
@@ -4682,5 +4682,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "ed7b992886000beb06a739f61ca03cd7dd593ecd36116631e5f41e1d38e82d14"
+  "releaseSha256": "eb9e8357971af045e5d79109bf0ed4f58de79952a7de2509289fedf119dc63e9"
 }
