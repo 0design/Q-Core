@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: price-watch
 name: "Price watch: machine filters, human authorises"
-version: 1.2.0
+version: 1.3.0
 description: >
   Checks a rate. On an ordinary day the machine check stops the run quietly and
   nobody is asked. Only when USD/UAH is above the threshold does it hold for a
@@ -51,6 +51,8 @@ steps:
     config:
       name: "Send it?"
       reviewer: human
+      # Approve the check's alert text (rate and threshold); send the same verdict reason.
+      subject: previous
       bind: sha256
       anchor: "Approve the exact alert: the rate and the threshold it crossed"
 
@@ -62,4 +64,4 @@ steps:
       url: "{{env.QCORE_WEBHOOK_URL}}"
       expect: "2xx"
       timeoutSec: "30"
-      body: '{"text":"Rate alert — USD/UAH is {{steps.Send it?.output.subject.json.rates.UAH}}"}'
+      body: '{"text":"Rate alert — {{steps.Send it?.output.subject.verdict.reason}}"}'
