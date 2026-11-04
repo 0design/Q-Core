@@ -29,6 +29,8 @@ Open the template's page, copy its start prompt and paste it into your agent.
 | [Review a currency-rate alert before sending](https://qfactory.io/workflows/price-watch) · example | Have a model check USD/UAH against a threshold, then approve the alert before it reaches your webhook. | OpenRouter key |
 | [Stop a rate alert that fails your rule](https://qfactory.io/workflows/strict-gate) · example | A model-review example: continue when the currency rate passes its rubric, or stop the run on failure. | OpenRouter key |
 
+Ready workflows to run with Q-Core: [qfactory.io/workflows](https://qfactory.io/workflows?utm_source=github&utm_medium=readme&utm_campaign=Q-Core)
+
 ## Contribute
 
 You can add your own workflow or component to the Registry, fix something in Q-Core, or suggest an idea.
@@ -109,3 +111,5 @@ $Q run ./workflow.yaml --dry-run
 ```
 
 You should see `SUCCESS: Planned 7/7 steps`. For another template, use its id and its version from `catalog.json`. `$Q doctor` checks your machine. All commands are in the [reference](docs/reference.md).
+
+More from Oleg.Design: [UNSLOP](https://github.com/0design/unslop-skill) · [AINDF](https://github.com/0design/ai-native-design-framework) · [QFactory](https://qfactory.io/?utm_source=github&utm_medium=readme&utm_campaign=Q-Core)
