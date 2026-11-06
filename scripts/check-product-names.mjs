@@ -9,13 +9,14 @@ export function verifyPackageSurface(pkg, binFiles) {
   assert.deepEqual(pkg.bin, {
     "q-core": "bin/q-core.mjs",
     "q-core-host": "bin/q-core-host.mjs",
+    "q-core-mcp": "bin/q-core-mcp.mjs",
   }, "only Q-Core CLI names are public");
   assert.equal(binFiles.some((file) => /^qloops?(?:-|\.)/.test(file)), false, "retired qloop binaries must not ship");
 }
 
 export function verifyPackagedReadmeAliasBoundary(root) {
   const source = readFileSync(join(root, "docs", "reference.md"), "utf8");
-  assert.match(source, /Q-Core installs `q-core` and `q-core-host`\. No other CLI alias is provided\./, "docs/reference.md must name the installed Q-Core executables");
+  assert.match(source, /Q-Core installs `q-core`, `q-core-host` and `q-core-mcp`\. No other CLI alias is provided\./, "docs/reference.md must name the installed Q-Core executables");
   assert.equal(
     /Both `q-core` and legacy `q-core` are installed\./.test(source),
     false,

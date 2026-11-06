@@ -22,7 +22,7 @@ test("packaged reference rejects a duplicate Q-Core legacy-alias claim", () => {
   try {
     writeFileSync(join(root, "docs", "reference.md"), "Both `q-core` and legacy `q-core` are installed.\n");
     assert.throws(() => verifyPackagedReadmeAliasBoundary(root), /installed Q-Core executables/);
-    writeFileSync(join(root, "docs", "reference.md"), "Q-Core installs `q-core` and `q-core-host`. No other CLI alias is provided.\n");
+    writeFileSync(join(root, "docs", "reference.md"), "Q-Core installs `q-core`, `q-core-host` and `q-core-mcp`. No other CLI alias is provided.\n");
     assert.doesNotThrow(() => verifyPackagedReadmeAliasBoundary(root));
   } finally {
     rmSync(root, { recursive: true, force: true });

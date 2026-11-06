@@ -5,5 +5,6 @@ node_modules/
 .DS_Store
 *.log
 __pycache__/
+/tools/touchid-approve/touchid-approve
 docs/delivery/*
 !docs/delivery/.gitkeep

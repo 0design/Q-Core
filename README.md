@@ -79,7 +79,15 @@ Connect the local approval server to an MCP client that supports form elicitatio
 }
 ```
 
+The installed package also exposes `q-core-mcp`; use its absolute installed path as `command` and the absolute workflow path as its only argument. The workflow is fixed at server startup, so register a separate server name for each workflow. This does not connect a running chat automatically: load the client configuration and confirm that its tools include `request_approval` before asking for a decision. The hosted Registry connection supplies catalog tools and cannot approve local runs.
+
 When a workflow reaches `waiting_human`, ask your agent to call `request_approval` with `run_id` and `gate_id` (the gate's `rowId`, or its unique `stepId`). The client shows the full subject, available delivery bodies and destinations, and their SHA-256. Choose **approve** or **reject** in that preview, then confirm that decision with the macOS Touch ID prompt. The form alone cannot approve. Touch ID signs the run, gate, exact content hash, decision, single-use nonce and issue time. A verified approval continues the run; a verified rejection fails the gate. Approval is never a tool argument.
+
+After the one-time setup, no terminal is needed for these three steps:
+
+1. Ask in chat: "Show the approval form for this waiting run."
+2. Read the full content, destination and SHA-256, then choose **approve** or **reject** in the client form.
+3. Confirm that same decision in the native Touch ID prompt; closing either prompt keeps the gate waiting.
 
 Content must be ready before the gate: if a later step still needs to generate delivery content, the server refuses. Changed content requires a fresh request. Nonces expire after two minutes and cannot be reused; an expired nonce, changed hash or wrong key is refused. Closing or declining the form leaves the run waiting. Clients without form elicitation or a registered approver receive an error. The existing `q-core approve` terminal command and its one-time code remain available. This local server is separate from the hosted, read-only Registry MCP.
 

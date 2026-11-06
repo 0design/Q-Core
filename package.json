@@ -6,7 +6,8 @@
   "type": "module",
   "bin": {
     "q-core": "bin/q-core.mjs",
-    "q-core-host": "bin/q-core-host.mjs"
+    "q-core-host": "bin/q-core-host.mjs",
+    "q-core-mcp": "bin/q-core-mcp.mjs"
   },
   "engines": {
     "node": ">=20.3.0"

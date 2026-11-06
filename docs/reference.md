@@ -129,7 +129,7 @@ with the catalog value and run `npm install` only when they are equal.
 ./.qfactory/tools/node_modules/.bin/q-core run ./workflow.yaml
 ```
 
-Q-Core installs `q-core` and `q-core-host`. No other CLI alias is provided. The package includes
+Q-Core installs `q-core`, `q-core-host` and `q-core-mcp`. No other CLI alias is provided. The package includes
 runtime, schema, providers and synthetic contract fixtures. Install reusable workflows
 from a versioned registry export.
 
