@@ -1,17 +1,19 @@
 name: R2 publisher check
 on:
   push:
-    branches: [codex/r1-integration]
+    branches: [main]
     paths: ['scripts/publish-registry.py', 'scripts/test-r2-publisher.py', '.github/workflows/r2-publisher-check.yml']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   check:
+    if: github.ref == 'refs/heads/main'
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Verify isolated publish, conditional writes and rollback
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
