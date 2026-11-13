@@ -19,12 +19,15 @@ on:
         type: string
 permissions:
   contents: read
-  pull-requests: read
 concurrency:
   group: registry-production
   cancel-in-progress: false
 jobs:
   publish:
+    environment: production
+    permissions:
+      contents: read
+      pull-requests: read # Verify that the release commit came from an owner-reviewed PR.
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -34,10 +37,10 @@ jobs:
       DESCRIPTOR: ${{ inputs.descriptor }}
       RELEASE_APPROVED: ${{ inputs.approved }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
       - name: Require reviewed merge
