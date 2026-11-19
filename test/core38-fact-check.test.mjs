@@ -160,6 +160,22 @@ test("numberTokens: digits with scales and decimal commas, ratios, shares and co
   assert.deepEqual(tokens("дві третини"), ["share:2/3"]);
   assert.deepEqual(tokens("у 3 рази"), ["ratio:3"]);
   assert.deepEqual(numberTokens("three models").map((x) => x.token), ["n:3"]);
+  // Replays of the daily runs 24.10–19.11: correct claims the tokenizer misread, and the real error it must still catch.
+  const all = (t) => numberTokens(t).map((x) => x.token);
+  assert.deepEqual(tokens("за $0,015–$0,045 за ревʼю"), tokens("costs $0.015 to $0.045"), "a decimal comma after 0 is not a group of thousands");
+  assert.deepEqual(tokens("$0,015"), ["n:0.015"]);
+  assert.deepEqual(tokens("1,500 users"), ["n:1500"], "a group of thousands still reads as one");
+  assert.deepEqual(tokens("на запитах 500к–1М токенів"), tokens("requests with 500k to 1M tokens"), "Cyrillic к and М are the scale letters too");
+  assert.deepEqual(tokens("до 2К"), tokens("up to 2K resolution"));
+  assert.deepEqual(tokens("100 км"), ["n:100"], "a word after the number is not a scale letter");
+  assert.deepEqual(tokens("версії 0.1.27."), tokens("engine binaries (engine-v0.1.27)"), "a version is one token, with or without v");
+  assert.deepEqual(tokens("версії 0.1.27"), ["ver:0.1.27"]);
+  assert.notDeepEqual(tokens("версії 0.1.28"), tokens("engine-v0.1.27"));
+  assert.deepEqual(all("between 500,000 and one million tokens"), ["n:1000000", "n:500000"], "a number word with a scale word is one value");
+  assert.deepEqual(tokens("1 мільйон"), ["n:1000000"]);
+  // 19.11: «двічі платив» for «bought ultra again… Paid again» states a count the source does not give.
+  assert.deepEqual(tokens("I just bought ultra again to access Genie 4. Paid again."), ["n:4"]);
+  assert.ok(!all("I just bought ultra again to access Genie 4. Paid again.").includes("count:2"));
 });
 
 test("Digest 0.6.0: a fact-check step between the draft and the checks; the gate binds the checked text", () => {
@@ -210,9 +226,16 @@ test("compactLinks: a theme with cases carries no links, every other item does; 
     "a theme with a bare URL": [items({ 5: `${ITEMS[4]} ${T_AKAMAI}` }), CLAIMS, /carries no links under compactLinks/],
     "a case without links": [items({ 3: bare(ITEMS[2]) }), CLAIMS, /Every thesis needs a link to a selected source; uncited: Meta зробила/],
     "a stand-alone top-level item without links": [items({ 8: bare(ITEMS[7]) }), CLAIMS, /Every thesis needs a link to a selected source; uncited: Microsoft/],
-    "a theme's claim record cites a URL none of its cases link": [REVISED, clone(CLAIMS).map((c) => (c.item === 1 ? { ...c, sources: [D_OPENAI, T_MUSE] } : c)), /item 1\) was checked against .*meta-opens-early-access.*which the item does not link as a selected source \(a theme without links stands on the links of its sub-items\)/],
+    "a theme's claim record cites only a URL none of its cases link": [REVISED, clone(CLAIMS).map((c) => (c.item === 1 ? { ...c, sources: [T_MUSE] } : c)), /item 1\) was checked against .*meta-opens-early-access.*which the item does not link as a selected source \(a theme without links stands on the links of its sub-items\)/],
+    // 19.11: an unlinked URL next to linked ones is set aside, never used as grounds (the cases below).
+    "a quote found only in the unlinked source": [REVISED, clone(CLAIMS).map((c) => (c.item === 3 ? { ...c, sources: [V_MUSE, T_MUSE], quote: ["Meta opens early access program for new Muse features"] } : c)), /List item 3: the quote is not in the text of its linked sources: «Meta opens early access program/],
+    "a number found only in the unlinked source": [REVISED.replace("в одному інтерфейсі", "в одному інтерфейсі за $11,6 млрд"), clone(CLAIMS).map((c) => (c.item === 8 ? { ...c, sources: [V_MS, T_AKAMAI] } : c)), /List item 8 states «11,6 млрд» \(n:11600000000\), which is not in its quote or linked sources/],
   };
   for (const [name, [text, claims, error]] of Object.entries(cases)) assert.throws(() => check(text, claims), error, name);
+  // A theme's record that lists, next to its cases' links, a URL none of them links (the cluster's press release,
+  // 19.11 run) passes on the linked sources; the unlinked URL is set aside and listed for the person who approves.
+  const extra = check(REVISED, clone(CLAIMS).map((c) => (c.item === 1 ? { ...c, sources: [D_OPENAI, T_MUSE, V_MUSE] } : c))).output.factCheck.claims.find((c) => c.item === 1);
+  assert.deepEqual([extra.sources, extra.unlinkedSources], [[D_OPENAI, V_MUSE], [T_MUSE]]);
   // Ranking: the link-less cloud theme holds clusters 4 and 5, so it may not come before the court item (cluster 2).
   const swapped = [ITEMS[0], ITEMS[1], ITEMS[2], ITEMS[4], ITEMS[5], ITEMS[6], ITEMS[3], ...ITEMS.slice(7)];
   assert.throws(() => check(textOf(swapped), CLAIMS, { config: { ...CHECKS, factCheck: undefined, review: undefined, draft: "{{steps.factcheck.output}}" } }), /ordered by weight \(cluster rank 2 comes after 4\)/);

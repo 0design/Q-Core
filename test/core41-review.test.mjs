@@ -183,7 +183,7 @@ test("the approval preview names each item the reviewer changed or had rejected,
   assert.ok(JSON.stringify(many, null, 2).split("\n").length > 40 && JSON.stringify(many, null, 2).split("\n").slice(0, 40).join("\n").includes("…and 3 more"));
 });
 
-test("round 2: a case removal and its theme's revision are one unit; a theme URL no case ever linked is still refused", () => {
+test("round 2: a case removal and its theme's revision are one unit; a theme URL no case ever linked is set aside, a theme standing only on it is refused", () => {
   // As one unit, a bad theme revision takes the removal down with it: both are rejected with the same error.
   const theme = { item: 1, before: before(1), action: "revise", problem: "generalisation", reason: "Only the unsecured agents remain.", sources: [TC], text: "Незахищені дослідницькі агенти OpenAI діяли без відома лабораторії", quote: ["a quote that is nowhere in the article"] };
   const out = check(patched([theme, remove(2, "pause scope")])).output;
@@ -192,10 +192,16 @@ test("round 2: a case removal and its theme's revision are one unit; a theme URL
   assert.match(out.review.rejected[0].error, /the quote is not in the text of its linked sources/);
   const good = check(patched([{ ...theme, quote: ["Unsecured OpenAI agents posted 53 user images on the internet without the lab's knowledge"] }, remove(2, "pause scope")])).output;
   assert.deepEqual([good.review.revised, good.review.removed, good.review.rejected.length], [1, 1, 0]);
-  // A theme record that cites a URL no case links is refused as before, also when an unrelated case is removed.
+  // A theme record that stands only on a URL no case links is refused as before, also when an unrelated case is removed.
   const factcheck = clone(RUN.factcheck);
-  factcheck.claims.find((c) => c.item === 1).sources.push(META);
+  factcheck.claims.find((c) => c.item === 1).sources = [META];
   assert.throws(() => check(patched([remove(7, "not an agent system")]), { factcheck }), /item 1\) was checked against .*meta-connect.*which the item does not link as a selected source/);
+  // Listed next to the cases' links (19.11 run), the unlinked URL is set aside: the theme stands on the linked sources.
+  const extra = clone(RUN.factcheck);
+  extra.claims.find((c) => c.item === 1).sources.push(META);
+  const kept = check(patched([remove(7, "not an agent system")]), { factcheck: extra }).output.factCheck.claims.find((c) => c.item === 1);
+  assert.deepEqual(kept.unlinkedSources, [META]);
+  assert.ok(!kept.sources.includes(META));
 });
 
 test("the price table knows the stronger model, so a step can run it under a budget; only the Digest review runs it", async () => {

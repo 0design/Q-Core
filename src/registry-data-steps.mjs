@@ -91,18 +91,25 @@ const NUMBER_PHRASES = [
   // Collective numerals count people or things («восьмеро» = 8, as in «лише восьмеро»).
   [new RegExp(`${B}(двоє|троє|четверо|п['’ʼ]?ятеро|шестеро|семеро|восьмеро|дев['’ʼ]?ятеро|десятеро)${E}`, 'giu'), m => `n:${{ 'двоє': 2, 'троє': 3, 'четверо': 4, 'шестеро': 6, 'семеро': 7, 'восьмеро': 8, 'десятеро': 10 }[m[1].toLowerCase()] ?? (/^п/i.test(m[1]) ? 5 : 9)}`],
 ];
-const SCALES = [[/^\s*(?:трлн|трильйон\p{L}*|trillion)(?![\p{L}\p{N}])/iu, 1e12], [/^\s*(?:млрд|мільярд\p{L}*|billion|bn)(?![\p{L}\p{N}])/iu, 1e9], [/^B(?![\p{L}\p{N}])/u, 1e9], [/^\s*(?:млн|мільйон\p{L}*|million|mln)(?![\p{L}\p{N}])/iu, 1e6], [/^M(?![\p{L}\p{N}])/u, 1e6], [/^\s*(?:тис\.|тисяч\p{L}*|thousand)(?![\p{L}\p{N}])/iu, 1e3], [/^[Kk](?![\p{L}\p{N}])/u, 1e3]];
+// The single-letter suffixes are Latin or Cyrillic (19.11 replay: «500к–1М» and «2К» in a claim for «500k to 1M» and
+// «2K» in the source were read as 500, 1 and 2).
+const SCALES = [[/^\s*(?:трлн|трильйон\p{L}*|trillion)(?![\p{L}\p{N}])/iu, 1e12], [/^\s*(?:млрд|мільярд\p{L}*|billion|bn)(?![\p{L}\p{N}])/iu, 1e9], [/^B(?![\p{L}\p{N}])/u, 1e9], [/^\s*(?:млн|мільйон\p{L}*|million|mln)(?![\p{L}\p{N}])/iu, 1e6], [/^[MМ](?![\p{L}\p{N}])/u, 1e6], [/^\s*(?:тис\.|тисяч\p{L}*|thousand)(?![\p{L}\p{N}])/iu, 1e3], [/^[KkКк](?![\p{L}\p{N}])/u, 1e3]];
 export function numberTokens(input) {
   let text = String(input).normalize('NFKC');
   const found = [];
   // before: the text just ahead of a number, for the approximation check (hedgedBefore).
   for (const [re, token] of NUMBER_PHRASES) text = text.replace(re, (...args) => { const at = args.find(a => typeof a === 'number'); found.push({ token: token(args), surface: args[0], before: text.slice(Math.max(0, at - 30), at) }); return ' '.repeat(args[0].length); });
-  // English number words count as numbers too (a quote may write «three» where a claim writes 3).
-  text = text.replace(new RegExp(`${B}(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)${E}`, 'giu'), (w, word, at) => { found.push({ token: `n:${NUMBER_WORDS[word.toLowerCase()]}`, surface: w, quoteOnly: true, before: text.slice(Math.max(0, at - 30), at) }); return ' '.repeat(w.length); });
-  const DIGITS = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?![\d.,]\d)|\d{1,3}(?:,\d{3})+(?![\d.,]\d)|\d+(?:[.,]\d+)?)(?!\p{N})/gu;
+  // A version (0.1.27, v2.1.312) is one token, compared whole: read as digits it gave «0.1» on the claim side and
+  // nothing on the source side, where «engine-v0.1.27» has a letter before the digits (18.11 replay).
+  text = text.replace(/(?<![\p{L}\p{N}.,])[vV]?(\d+(?:\.\d+){2,})(?![.,]?\p{N})/gu, (w, version, at) => { found.push({ token: `ver:${version}`, surface: w, before: text.slice(Math.max(0, at - 30), at) }); return ' '.repeat(w.length); });
+  // English number words count as numbers too (a quote may write «three» where a claim writes 3), with a scale word
+  // after them as one value («one million» is the «1 мільйон» of a claim, 04.11 replay).
+  text = text.replace(new RegExp(`${B}(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)${E}(?:\\s+(trillion|billion|million|thousand)${E})?`, 'giu'), (w, word, scale, at) => { const by = { trillion: 1e12, billion: 1e9, million: 1e6, thousand: 1e3 }[String(scale ?? '').toLowerCase()] ?? 1; found.push({ token: `n:${NUMBER_WORDS[word.toLowerCase()] * by}`, surface: w, quoteOnly: true, before: text.slice(Math.max(0, at - 30), at) }); return ' '.repeat(w.length); });
+  // «0,015» is a decimal (a group of thousands never starts with 0): read as 15 it failed «$0,015» against «$0.015» (01.11 replay).
+  const DIGITS = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?![\d.,]\d)|[1-9]\d{0,2}(?:,\d{3})+(?![\d.,]\d)|\d+(?:[.,]\d+)?)(?!\p{N})/gu;
   for (const m of text.matchAll(DIGITS)) {
     const raw = m[1];
-    const value = /^\d{1,3}(?:[ \u00a0\u202f]\d{3})+$/.test(raw) || /^\d{1,3}(?:,\d{3})+$/.test(raw) ? Number(raw.replace(/[ \u00a0\u202f,]/g, '')) : Number(raw.replace(',', '.'));
+    const value = /^\d{1,3}(?:[ \u00a0\u202f]\d{3})+$/.test(raw) || /^[1-9]\d{0,2}(?:,\d{3})+$/.test(raw) ? Number(raw.replace(/[ \u00a0\u202f,]/g, '')) : Number(raw.replace(',', '.'));
     const rest = text.slice(m.index + m[0].length);
     const scale = SCALES.find(([re]) => re.test(rest));
     const scaled = scale ? value * scale[1] : value;
@@ -220,9 +227,15 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     kept.set(item, index);
     const itemText = nestedItems[item - 1].text;
     const cited = new Set(citedOf(item - 1));
-    const urls = Array.isArray(claim.sources) ? claim.sources : [];
-    insist(urls.length > 0 && urls.every(url => typeof url === 'string'), `${label} (item ${item}) needs the sources it was checked against`);
-    for (const url of urls) insist(byUrl.has(url) && cited.has(url), `${label} (item ${item}) was checked against ${url}, which the item does not link as a selected source${nestedItems[item - 1].parent ? ' (a theme without links stands on the links of its sub-items)' : ''}`);
+    const listed = Array.isArray(claim.sources) ? claim.sources : [];
+    insist(listed.length > 0 && listed.every(url => typeof url === 'string'), `${label} (item ${item}) needs the sources it was checked against`);
+    // A record may also list a source the item does not link (19.11: a theme's record listed the press release of its
+    // cluster next to the linked articles that hold the quote). Such a URL is set aside and never used as grounds:
+    // quotes and numbers below are checked against the linked sources only, so a claim still stands on what the reader
+    // can open, and a record with no linked source at all is refused as before.
+    const urls = listed.filter(url => byUrl.has(url) && cited.has(url));
+    const unlinkedSources = listed.filter(url => !urls.includes(url));
+    insist(urls.length > 0, `${label} (item ${item}) was checked against ${unlinkedSources[0]}, which the item does not link as a selected source${nestedItems[item - 1].parent ? ' (a theme without links stands on the links of its sub-items)' : ''}`);
     const quotes = (Array.isArray(claim.quote) ? claim.quote : claim.quote == null ? [] : [claim.quote]).filter(q => typeof q === 'string' && q.trim());
     insist(quotes.length > 0, `List item ${item} has no quote from its linked sources; every claim, a theme's generalisation included, needs a verbatim quote that supports it: ${itemText.slice(0, 60)}`);
     // Grounds: the feed-item title and summary and, when parse-web articles read it, the article text.
@@ -256,7 +269,7 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
       const hedged = where.length > 0 && where.every(o => hedgedBefore(o.before));
       insist(!hedged, `List item ${item} states «${t.surface}» exactly; its source says «${(HEDGE.exec(String(where[0]?.before ?? '').replace(/\s+/g, ' '))?.[0] ?? '').replace(/^[^\p{L}~≈]+/u, '').trim()} ${where[0]?.surface}»: keep the approximation or bound («близько», «майже», «до», «понад»): ${itemText.slice(0, 60)}`);
     }
-    out.push({ item, verdict, sources: urls, quote: matchedQuotes, ...(unmatchedQuotes.length ? { unmatchedQuotes } : {}), numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
+    out.push({ item, verdict, sources: urls, ...(unlinkedSources.length ? { unlinkedSources } : {}), quote: matchedQuotes, ...(unmatchedQuotes.length ? { unmatchedQuotes } : {}), numbers: [...new Set(numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly).map(t => t.token))], ...(claim.reason ? { reason: claim.reason } : {}) });
   });
   const unmapped = nestedItems.findIndex((_, i) => !kept.has(i + 1));
   insist(unmapped < 0, `List item ${unmapped + 1} has no claim record; every item of the final text is fact-checked: ${nestedItems[unmapped]?.text.slice(0, 60)}`);
