@@ -298,3 +298,21 @@ test("Digest 0.7.1 fact-check prompt carries the precision rules", () => {
   const fc = DIGEST.steps.find((s) => s.id === "factcheck").config.instructions.replace(/\s+/g, " ");
   for (const rule of ["narrower statement in the article body", "«за даними дослідників»", "never «скорочує … до N%»", "An experimental condition stays a condition", "a way around a rule is «лазівка», not «вада»", "gender, number and case agreement", "«у тестах, які провела сама компанія»"]) assert.ok(fc.includes(rule), rule);
 });
+
+test("20.11: a short <article> card on a long page is not the article; the next wider block is read", () => {
+  // figma.com/blog (10 000 characters): three <article> «related post» cards, the longest 112 characters, inside <main>.
+  const story = "Figma Weave brings AI generation and editing tools together into connected, reusable workflows. ".repeat(20);
+  const card = (t) => `<article><a href="/x">${t}</a></article>`;
+  const figma = `<body><nav>menu</nav><main><h1>The TL;DR on Figma Weave</h1><p>${story}</p>${card("Workflow lab: From design system to campaign in Figma Weave")}${card("Short card")}</main><footer>f</footer></body>`;
+  const r = extractArticle(figma);
+  assert.equal(r.extraction, "main");
+  assert.match(r.text, /^The TL;DR on Figma Weave Figma Weave brings AI generation/);
+  // microsoft.ai: six short cards and no <main> wide enough either: the whole page.
+  const ms = `<body><div>${story}</div>${card("MAI Code 2 and Code 2 Flash: Everyday coding at scalable prices Nov 17, 2026")}</body>`;
+  assert.equal(extractArticle(ms).extraction, "body");
+  // A real <article> is kept, also next to short cards; a short page keeps its short <article> as before.
+  const real = `<body><article><p>${story}</p></article>${card("related")}</body>`;
+  assert.equal(extractArticle(real).extraction, "article");
+  assert.equal(extractArticle("<body><article>Short news.</article><p>x</p></body>").extraction, "article");
+  assert.equal(extractArticle("<main>Main</main>").extraction, "main");
+});

@@ -255,7 +255,12 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     // «in half» / «удвічі» (ratio 2) and «половина» (share 1/2) state the same halving; thirds stay apart (65ef7d49).
     const canon = token => token === 'share:1/2' ? 'ratio:2' : token;
     const quoteTokens = new Set([...matchedQuotes, ...sourceTexts].flatMap(q => numberTokens(unifyQuotes(q)).map(t => canon(t.token))));
-    const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)));
+    // A version written short is the same version (20.11 replay: «Impeccable 4.10» for «skill-v4.10.0», «gh 2.105» for
+    // «gh v2.105.0»; read as decimals they were 4.1 and 2.105, in no source). The claim's digits must be the leading
+    // parts of a version a linked source states, compared as written: «4.1» is not «4.10.0», «4.11» is not «4.10.0».
+    const versions = [...quoteTokens].filter(token => token.startsWith('ver:')).map(token => token.slice(4));
+    const shortVersion = t => /^\d+\.\d+$/.test(String(t.surface).trim()) && versions.some(v => v.startsWith(`${String(t.surface).trim()}.`));
+    const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)) && !shortVersion(t));
     insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
     // An approximation or bound stays («160 ІТ-керівників» for «about 160 IT vice presidents»,
     // while the feed summary said «160»): a number the item states bare is refused when every place that states it has
@@ -373,14 +378,22 @@ function pageText(html) {
     .replace(/&#x([0-9a-f]{1,6});/gi, (m, n) => { const c = parseInt(n, 16); return c > 0 && c <= 0x10ffff ? String.fromCodePoint(c) : ' '; })
     .replace(/&([a-z]+);/gi, (m, n) => ENTITY[n.toLowerCase()] ?? m).replace(/\s+/g, ' ').trim();
 }
-/** Readable text of an article page: the longest <article>, else <main>, else the whole page (extraction "body"). */
+/** Readable text of an article page: the longest <article>, else <main>, else the whole page (extraction "body").
+ *  An <article> or <main> shorter than a paragraph is a card, not the article (20.11: on figma.com/blog the longest
+ *  <article> was a 112-character «related post» card of a 10 000-character page; on microsoft.ai 76 characters): the
+ *  next wider block is read instead, and the whole page when every block is that short. */
+export const ARTICLE_MIN_CHARS = 400;
 export function extractArticle(html) {
   const page = String(html), lower = page.toLowerCase();
+  let whole = null; const wholeText = () => (whole ??= pageText(page));
   for (const tag of ['article', 'main']) {
     const blocks = blocksOf(lower, tag);
-    if (blocks.length) return { text: blocks.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0], extraction: tag };
+    if (!blocks.length) continue;
+    const text = blocks.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0];
+    // A short block on a long page is a card; a short block on a short page is the article.
+    if (text.length >= ARTICLE_MIN_CHARS || wholeText().length < 3 * ARTICLE_MIN_CHARS) return { text, extraction: tag };
   }
-  return { text: pageText(page), extraction: 'body' };
+  return { text: wholeText(), extraction: 'body' };
 }
 export const articleTextOf = html => extractArticle(html).text;
 const ARTICLE_BYTES = 1_500_000;

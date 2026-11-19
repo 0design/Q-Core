@@ -331,3 +331,24 @@ test("ratios written as «у 1,5 раза», «2.5-fold» or «1.5x»; years and
   assert.deepEqual(tokens("разом 3 компанії"), ["n:3"]);
   assert.notDeepEqual(tokens("у 1,5 раза"), tokens("1.5 billion"));
 });
+
+test("20.11 replay: a version written short is the version its source states; any other number still fails", () => {
+  const sources = clone(RUN.sources);
+  const ms = sources.find((s) => s.url === V_MS);
+  ms.text = `${ms.text} The release ships as gh v2.105.0 and skill-v4.10.0 today.`;
+  const run = (line) => {
+    const items = [...ITEMS]; items[7] = line;
+    return runVerifySources({ config: CHECKS }, { priorOutputs: { clusters: { sources }, articles: { sources }, review: { edits: [] }, factcheck: { claims: CLAIMS, text: textOf(items) } }, priorStepNames: {} });
+  };
+  const base = ITEMS[7].replace("в одному інтерфейсі", "в одному інтерфейсі");
+  assert.doesNotThrow(() => run(base.replace("Microsoft представила", "Microsoft у версії 4.10 представила")), "«4.10» for «v4.10.0»");
+  assert.doesNotThrow(() => run(base.replace("Microsoft представила", "Microsoft у gh 2.105 представила")), "«2.105» for «v2.105.0»");
+  assert.doesNotThrow(() => run(base.replace("Microsoft представила", "Microsoft у версії 4.10.0 представила")), "the full version as before");
+  // Negatives: other digits are other versions or numbers, and stay refused.
+  assert.throws(() => run(base.replace("Microsoft представила", "Microsoft у версії 4.11 представила")), /states «4\.11» \(n:4\.11\), which is not in its quote or linked sources/);
+  assert.throws(() => run(base.replace("Microsoft представила", "Microsoft у версії 4.1 представила")), /states «4\.1» \(n:4\.1\)/, "«4.1» is not «4.10.0»");
+  assert.throws(() => run(base.replace("Microsoft представила", "Microsoft у версії 2.10 представила")), /states «2\.10»/, "«2.10» is not «2.105.0»");
+  assert.throws(() => run(base.replace("Microsoft представила", "Microsoft за 36 комітів представила")), /states «36» \(n:36\)/, "an invented number is refused as before");
+  // Without the version in the source, the short form is refused as before.
+  assert.throws(() => check(textOf([...ITEMS.slice(0, 7), base.replace("Microsoft представила", "Microsoft у версії 4.10 представила"), ...ITEMS.slice(8)])), /states «4\.10» \(n:4\.1\)/);
+});
