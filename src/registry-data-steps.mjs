@@ -276,14 +276,16 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     // Only where the claim writes it as a version (20.11 review: with «skill-v4.10.0» in the source, «коштує $4.10»
     // passed): right after a version word or a product name in Latin script, and with no money, percent or unit
     // around it. «$4.10», «4.10 $», «коштує 4.10», «4.10 доларів», «4.10 ГБ» are numbers and are refused as before.
-    const versionTexts = [...matchedQuotes, ...sourceTexts].map(text => ({ text, versions: numberTokens(unifyQuotes(text)).filter(o => o.token.startsWith('ver:')).map(o => o.token.slice(4)) }));
+    // Round 3: the name must stand right before that version in the source (within its 30 characters), not just
+    // anywhere in the same text («ROI remains undisclosed» next to «skill-v4.10.0» does not make «ROI 4.10»).
+    const versionTexts = [...matchedQuotes, ...sourceTexts].flatMap(text => numberTokens(unifyQuotes(text)).filter(o => o.token.startsWith('ver:')).map(o => ({ version: o.token.slice(4), before: `${o.before ?? ''} ${o.surface ?? ''}` })));
     const shortVersion = t => {
       const surface = String(t.surface).trim();
       if (!/^\d+\.\d+$/.test(surface)) return false;
       const name = versionContext(t);
       if (name == null) return false;
       const named = name ? new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(name)}(?![\\p{L}\\p{N}])`, 'iu') : null;
-      return versionTexts.some(v => v.versions.some(x => x.startsWith(`${surface}.`)) && (!named || named.test(v.text)));
+      return versionTexts.some(v => v.version.startsWith(`${surface}.`) && (!named || named.test(v.before)));
     };
     const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)) && !shortVersion(t));
     insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
@@ -421,7 +423,10 @@ export function isTeaserCard(blockHtml) {
   const linked = links.reduce((n, m) => n + pageText(m[4]).length, 0);
   const paragraphs = (html.match(/<p[\s>]/gi) ?? []).length;
   const overlay = links.some(m => !pageText(m[4]).length && !/<(?:img|picture|svg|video|source)\b/i.test(m[4]) && OVERLAY_ATTRS.test(`${m[1]} ${m[3]}`));
-  return linked >= 0.6 * all || (overlay && paragraphs <= 1);
+  // Round 3: a link inside the block's own paragraph is prose (an article that is one linked sentence), not a card,
+  // whose title paragraph sits inside its link.
+  const proseLink = [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p\s*>/gi)].some(m => /<a\b[^>]*\bhref\s*=/i.test(m[1]));
+  return (linked >= 0.6 * all && !proseLink) || (overlay && paragraphs <= 1);
 }
 /** Readable text of an article page: the longest <article> that is not a teaser card, else <main>, else the whole page
  *  (extraction "body"). A wider block is read without the teaser cards inside it, so a recommended article's quote or

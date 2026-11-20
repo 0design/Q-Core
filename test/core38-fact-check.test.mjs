@@ -356,7 +356,7 @@ test("20.11 replay: a version written short is the version its source states; an
 test("20.11 review: a short version counts only where the claim writes a version; a price or a unit next to it stays refused", () => {
   const sources = clone(RUN.sources);
   const ms = sources.find((s) => s.url === V_MS);
-  ms.text = `${ms.text} Impeccable ships as gh v2.105.0 and skill-v4.10.0 today.`;
+  ms.text = `${ms.text} gh v2.105.0 ships with Impeccable skill-v4.10.0 today. ROI remains undisclosed.`;
   const run = (line) => {
     const items = [...ITEMS]; items[7] = line;
     return runVerifySources({ config: CHECKS }, { priorOutputs: { clusters: { sources }, articles: { sources }, review: { edits: [] }, factcheck: { claims: CLAIMS, text: textOf(items) } }, priorStepNames: {} });
@@ -371,4 +371,6 @@ test("20.11 review: a short version counts only where the claim writes a version
   // Round 2: a Latin word counts as the name of the versioned thing only when the source holding the version names it.
   assert.throws(() => run(with_("Microsoft з показником ROI 4.10 представила")), /states «4\.10» \(n:4\.1\)/, "«ROI 4.10»: the source names no ROI");
   assert.throws(() => run(with_("Microsoft з Figma 4.10 представила")), /states «4\.10»/, "«Figma 4.10»: the version is Impeccable's");
+  // Round 3: «ROI» is named in that source, but not right before the version.
+  assert.throws(() => run(with_("Microsoft з показником ROI 4.10 представила")), /states «4\.10» \(n:4\.1\)/, "ROI is in the source, not at the version");
 });

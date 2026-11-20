@@ -353,3 +353,10 @@ test("20.11 review, round 2: a link around an image does not make a real article
   assert.doesNotMatch(m.text, /36 commits|another story/);
   assert.equal(isTeaserCard(`<article><a href="/x.jpg"><img src="/x.jpg"></a><p>${story}</p></article>`), false);
 });
+
+test("20.11 review, round 3: an article that is one linked sentence is the article, not a card", () => {
+  const r = extractArticle(`<body><main><article><p><a href="/notes">The editor update is available today</a></p></article><div>Other story: 36 commits</div></main></body>`);
+  assert.deepEqual(r, { text: "The editor update is available today", extraction: "article" });
+  // The figma.com/blog card keeps its title paragraph inside its link: still a card.
+  assert.equal(isTeaserCard(`<article><a href="https://www.figma.com/blog/x/"><div><img src="x.png"></div><p>Workflow lab</p></a><a href="/blog/tag/">Tag</a></article>`), true);
+});
