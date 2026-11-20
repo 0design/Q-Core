@@ -159,36 +159,63 @@ export function hasSecretShape(value) {
 }
 
 // Parts of an environment variable name that mark a credential. Substrings are
-// matched anywhere (APIKEY, DB_PASSWORD); the short words only as a whole part
-// between underscores or digits (PAT, DB_PASS, API_BASE), so COMPASS or PATH do not count.
-const CREDENTIAL_NAME_PART = /key|token|secret|passw|pwd|credential|cred|auth|cookie|bearer|webhook|dsn|session|private|signing|salt|database/i;
-const CREDENTIAL_NAME_WORD = /^(?:pass|passwd|pat|api)$/i;
+// matched anywhere (APIKEY, DB_PASSWORD, PASSPHRASE); the short words only as a whole
+// part between underscores or digits (PAT, DB_PW, PIN, API_BASE); a part ending in
+// PASS or PAT counts too (DBPASS, GITHUBPAT), except COMPASS, BYPASS and PATH-like words.
+// A false match is safe: the manifest is refused and the author declares it secret.
+const CREDENTIAL_NAME_PART = /key|token|secret|passw|passphrase|pwd|credential|cred|auth|cookie|bearer|webhook|dsn|session|private|signing|signature|salt|database|hmac|jwt|mnemonic|phrase|cert|ssh|conn(?:ection)?_?str/i;
+const CREDENTIAL_NAME_WORD = /^(?:pass|passwd|pat|api|pw|otp|pin|sid|sas|pem)$/i;
+const CREDENTIAL_NAME_SUFFIX = /(?<!com|by|encom)pass$|pat$/i;
 
 /** True when an environment variable name reads like a credential; such a value is never declared public. */
 export function credentialLikeName(name) {
   const text = String(name);
-  return CREDENTIAL_NAME_PART.test(text) || text.split(/[^A-Za-z]+/).some(part => CREDENTIAL_NAME_WORD.test(part));
+  return CREDENTIAL_NAME_PART.test(text)
+    || text.split(/[^A-Za-z]+/).some(part => CREDENTIAL_NAME_WORD.test(part) || CREDENTIAL_NAME_SUFFIX.test(part));
 }
 
-const CREDENTIAL_PARAM = /token|key|secret|sig|auth|passw|pwd|credential|session/i;
-const CREDENTIAL_HOST = /(?:^|\.)hooks\.slack\.com$|(?:^|\.)(?:discord|discordapp)\.com$/i;
+const CREDENTIAL_PARAM = /token|key|secret|sig|auth(?!or)|pass|pwd|credential|session|^pw$|^otp$|(?:^|[_-])code$/i;
+const CREDENTIAL_HOST = /(?:^|\.)hooks\.slack\.com$|(?:^|\.)(?:discord|discordapp)\.com$|(?:^|\.)webhook\.office\.com$|^outlook\.office(?:365)?\.com$/i;
+const CONNECTION_SECRET = /(?:^|;)\s*(?:AccountKey|SharedAccessKey|SharedAccessSignature|Password|Pwd)\s*=/i;
+
+function credentialAddress(url) {
+  if (url.username || url.password) return true;
+  if (CREDENTIAL_HOST.test(url.hostname)) {
+    if (/discord/i.test(url.hostname)) { if (/\/api\/webhooks\//i.test(url.pathname)) return true; }
+    else if (!/^outlook\./i.test(url.hostname) || /^\/webhook/i.test(url.pathname)) return true;
+  }
+  const params = [...url.searchParams.keys(), ...new URLSearchParams(url.hash.slice(1)).keys()];
+  return params.some(name => CREDENTIAL_PARAM.test(name));
+}
 
 /** True when the value is, or holds, an address carrying credentials: user info
- * (`user:pass@`), a query or fragment parameter named like a token, key, secret,
- * signature, auth or password, or a Slack or Discord webhook. Percent-encoded
- * text is checked decoded as well. */
+ * (`user:pass@`, with or without a scheme), a query or fragment parameter named
+ * like a token, key, secret, signature, auth, password or code, a Slack, Discord or
+ * Teams webhook, or a connection string with AccountKey= or Password=. Text
+ * percent-encoded up to three times is checked decoded as well. */
 export function hasCredentialUrl(value) {
   const texts = [String(value)];
-  try { texts.push(decodeURIComponent(texts[0])); } catch { /* not percent-encoded */ }
+  for (let i = 0; i < 3; i++) {
+    try { const decoded = decodeURIComponent(texts.at(-1)); if (decoded === texts.at(-1)) break; texts.push(decoded); }
+    catch { break; }
+  }
   for (const text of texts) {
-    if (/[a-z][a-z0-9+.-]*:\/\/[^\s/?#@]+@/i.test(text)) return true;
-    for (const [candidate] of text.matchAll(/[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]+/gi)) {
+    if (CONNECTION_SECRET.test(text)) return true;
+    // Cheap guards first: the scans below are only needed when an address marker is present.
+    const scheme = text.includes('://');
+    if (text.includes('@') && scheme && /[a-z][a-z0-9+.-]*:\/\/[^\s/?#@]+@/i.test(text)) return true;
+    if (text.includes('@') && /(?:^|[\s"'(<])[^\s/?#@:"'<>]+:[^\s/?#@"'<>]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+/i.test(text)) return true;
+    for (const [candidate] of scheme ? text.matchAll(/[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]+/gi) : []) {
       let url;
       try { url = new URL(candidate); } catch { continue; }
-      if (url.username || url.password) return true;
-      if (CREDENTIAL_HOST.test(url.hostname) && (!/discord/i.test(url.hostname) || /\/api\/webhooks\//i.test(url.pathname))) return true;
-      const params = [...url.searchParams.keys(), ...new URLSearchParams(url.hash.slice(1)).keys()];
-      if (params.some(name => CREDENTIAL_PARAM.test(name))) return true;
+      if (credentialAddress(url)) return true;
+    }
+    // An address written without a scheme (feed.example.com/rss?token=…).
+    for (const word of text.split(/[\s"'<>]+/)) {
+      if (!word || word.includes('://') || !/^[^/?#]+\.[a-z]{2,}(?::\d+)?(?:[/?#]|$)/i.test(word)) continue;
+      let url;
+      try { url = new URL(`https://${word}`); } catch { continue; }
+      if (credentialAddress(url)) return true;
     }
   }
   return false;

@@ -533,15 +533,21 @@ env:
   it, and a private feed whose address carries a token.
 - `secret: false` keeps the value visible. It is still redacted when its value
   has a credential shape (provider API key, GitHub or AWS key, Telegram bot token),
-  when it is an address carrying credentials (user info such as `user:pass@`, a
-  query or fragment parameter named like a token, key, secret, signature, auth or
-  password, a Slack or Discord webhook), or when a `keyRef`, `tokenRef`,
-  `secretRef`, `authRef` or `workspaceRef` names it.
+  when it is an address carrying credentials (user info such as `user:pass@`, with
+  or without a scheme; a query or fragment parameter named like a token, key,
+  secret, signature, auth, pass, pw or code; a Slack, Discord or Teams webhook; a
+  connection string with `AccountKey=` or `Password=`), or when a `keyRef`,
+  `tokenRef`, `secretRef`, `authRef` or `workspaceRef` names it. A token inside
+  the path of an ordinary address cannot be recognised: declare it `secret: true`.
 - A name that reads like a credential cannot be declared `secret: false`; the
   manifest is refused. That is a name containing `KEY`, `TOKEN`, `SECRET`,
-  `PASSW`, `PWD`, `CRED`, `AUTH`, `COOKIE`, `BEARER`, `WEBHOOK`, `DSN`, `SESSION`,
-  `PRIVATE`, `SIGNING`, `SALT` or `DATABASE`, or the whole word `PASS`, `PASSWD`,
-  `PAT` or `API` between underscores (`DB_PASS`, `GITHUB_PAT`, `API_BASE`).
+  `PASSW`, `PASSPHRASE`, `PWD`, `CRED`, `AUTH`, `COOKIE`, `BEARER`, `WEBHOOK`,
+  `DSN`, `SESSION`, `PRIVATE`, `SIGNING`, `SIGNATURE`, `SALT`, `DATABASE`, `HMAC`,
+  `JWT`, `MNEMONIC`, `PHRASE`, `CERT`, `SSH` or `CONN_STR`/`CONNECTION_STRING`; a
+  whole word `PASS`, `PASSWD`, `PAT`, `API`, `PW`, `OTP`, `PIN`, `SID`, `SAS` or
+  `PEM` between underscores (`DB_PASS`, `DB_PW`, `TWILIO_SID`); or a word ending in
+  `PASS` or `PAT` (`DBPASS`, `GITHUBPAT`; not `COMPASS`). A false match is safe:
+  declare the value `secret: true` or leave it undeclared.
 - Only a run created from a manifest keeps a declared-public value. A
   `q-core agent` or `q-core content` request cannot mark anything public.
 - A referenced value that is not declared is redacted, as in manifests written
