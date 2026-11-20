@@ -49,7 +49,7 @@ export interface WorkflowManifest {
   steps: WorkflowManifestStep[];
   file?: string;
   /** `env:` declarations. `secret: true` is always redacted from saved state; `secret: false` stays visible
-   *  unless its name reads like a credential or its value has a credential shape. Undeclared `{{env.X}}` values are redacted. */
+   *  unless its name reads like a credential, or its value has a credential shape or is an address carrying credentials. Undeclared `{{env.X}}` values are redacted. */
   env: Record<string, { secret: boolean }>;
   inputs: Record<string, MaterialPort>;
   outputs: Record<string, MaterialPort & { value: unknown }>;

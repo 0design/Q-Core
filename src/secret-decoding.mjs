@@ -157,3 +157,39 @@ export function hasSecretShape(value) {
   try { assertNoDecodedSecrets(String(value), text => SECRET_SHAPE.test(text)); return false; }
   catch { return true; }
 }
+
+// Parts of an environment variable name that mark a credential. Substrings are
+// matched anywhere (APIKEY, DB_PASSWORD); the short words only as a whole part
+// between underscores or digits (PAT, DB_PASS, API_BASE), so COMPASS or PATH do not count.
+const CREDENTIAL_NAME_PART = /key|token|secret|passw|pwd|credential|cred|auth|cookie|bearer|webhook|dsn|session|private|signing|salt|database/i;
+const CREDENTIAL_NAME_WORD = /^(?:pass|passwd|pat|api)$/i;
+
+/** True when an environment variable name reads like a credential; such a value is never declared public. */
+export function credentialLikeName(name) {
+  const text = String(name);
+  return CREDENTIAL_NAME_PART.test(text) || text.split(/[^A-Za-z]+/).some(part => CREDENTIAL_NAME_WORD.test(part));
+}
+
+const CREDENTIAL_PARAM = /token|key|secret|sig|auth|passw|pwd|credential|session/i;
+const CREDENTIAL_HOST = /(?:^|\.)hooks\.slack\.com$|(?:^|\.)(?:discord|discordapp)\.com$/i;
+
+/** True when the value is, or holds, an address carrying credentials: user info
+ * (`user:pass@`), a query or fragment parameter named like a token, key, secret,
+ * signature, auth or password, or a Slack or Discord webhook. Percent-encoded
+ * text is checked decoded as well. */
+export function hasCredentialUrl(value) {
+  const texts = [String(value)];
+  try { texts.push(decodeURIComponent(texts[0])); } catch { /* not percent-encoded */ }
+  for (const text of texts) {
+    if (/[a-z][a-z0-9+.-]*:\/\/[^\s/?#@]+@/i.test(text)) return true;
+    for (const [candidate] of text.matchAll(/[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]+/gi)) {
+      let url;
+      try { url = new URL(candidate); } catch { continue; }
+      if (url.username || url.password) return true;
+      if (CREDENTIAL_HOST.test(url.hostname) && (!/discord/i.test(url.hostname) || /\/api\/webhooks\//i.test(url.pathname))) return true;
+      const params = [...url.searchParams.keys(), ...new URLSearchParams(url.hash.slice(1)).keys()];
+      if (params.some(name => CREDENTIAL_PARAM.test(name))) return true;
+    }
+  }
+  return false;
+}

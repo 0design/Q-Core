@@ -21,6 +21,7 @@
 import { readFileSync } from "node:fs";
 import { parseYaml, YamlError } from "./yaml.mjs";
 import { validatePorts, safeName } from './material-io.mjs';
+import { credentialLikeName } from './secret-decoding.mjs';
 
 /** The format tag every manifest must carry, verbatim. */
 export const MANIFEST_TAG = "q-core.workflow/v1";
@@ -327,8 +328,6 @@ export function assertCron(expr, path = "cron") {
   });
 }
 
-/** Environment names that persistence always protects, whatever a manifest says. */
-const CREDENTIAL_NAME = /(?:key|token|secret|password|credential|authorization|cookie)/i;
 
 /**
  * `env:` declares the environment values a workflow reads and whether each one is
@@ -347,7 +346,7 @@ function validateEnvDeclarations(raw) {
     if (!isPlainObject(entry) || typeof entry.secret !== "boolean") throw new ManifestError('needs "secret: true" or "secret: false"', path);
     const extra = Object.keys(entry).filter((key) => key !== "secret");
     if (extra.length) throw new ManifestError(`only "secret" is accepted here, not ${extra.map((key) => `"${key}"`).join(", ")}`, path);
-    if (!entry.secret && CREDENTIAL_NAME.test(name)) throw new ManifestError("reads like a credential (key, token, secret, password…) and is always redacted; declare it secret: true", path);
+    if (!entry.secret && credentialLikeName(name)) throw new ManifestError("reads like a credential (key, token, secret, pass, auth, webhook, dsn, session…) and is always redacted; declare it secret: true", path);
     out[name] = { secret: entry.secret };
   }
   return out;
@@ -381,7 +380,7 @@ export function publicEnvNames(manifest) {
       if (declared[name]?.secret === false) open.add(name); else closed.add(name);
     }
   }
-  return [...open].filter((name) => !closed.has(name) && !CREDENTIAL_NAME.test(name)).sort();
+  return [...open].filter((name) => !closed.has(name) && !credentialLikeName(name)).sort();
 }
 
 /** Environment names any manifest of the run declares `secret: true`. */

@@ -532,10 +532,18 @@ env:
   every token, key, password and every webhook or receiver address with a token in
   it, and a private feed whose address carries a token.
 - `secret: false` keeps the value visible. It is still redacted when its value
-  has a credential shape (provider API key, GitHub or AWS key, Telegram bot token)
-  or a `keyRef`, `tokenRef`, `secretRef`, `authRef` or `workspaceRef` names it. A name that reads like a
-  credential (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`, `AUTHORIZATION`,
-  `COOKIE`) cannot be declared `secret: false`; the manifest is refused.
+  has a credential shape (provider API key, GitHub or AWS key, Telegram bot token),
+  when it is an address carrying credentials (user info such as `user:pass@`, a
+  query or fragment parameter named like a token, key, secret, signature, auth or
+  password, a Slack or Discord webhook), or when a `keyRef`, `tokenRef`,
+  `secretRef`, `authRef` or `workspaceRef` names it.
+- A name that reads like a credential cannot be declared `secret: false`; the
+  manifest is refused. That is a name containing `KEY`, `TOKEN`, `SECRET`,
+  `PASSW`, `PWD`, `CRED`, `AUTH`, `COOKIE`, `BEARER`, `WEBHOOK`, `DSN`, `SESSION`,
+  `PRIVATE`, `SIGNING`, `SALT` or `DATABASE`, or the whole word `PASS`, `PASSWD`,
+  `PAT` or `API` between underscores (`DB_PASS`, `GITHUB_PAT`, `API_BASE`).
+- Only a run created from a manifest keeps a declared-public value. A
+  `q-core agent` or `q-core content` request cannot mark anything public.
 - A referenced value that is not declared is redacted, as in manifests written
   before `env:` existed. In a nested run a value stays visible only when every
   workflow that references it declares it `secret: false`.

@@ -35,7 +35,7 @@ import { CoreError, hash, insist } from "./contracts.mjs";
 import { questions } from "./specification.mjs";
 import { bindInputs, bindOutputs, resolveBinding } from './material-io.mjs';
 import { MAX_CALL_DEPTH } from './material-graph.mjs';
-import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
+import { persistenceEnvironment, runPersistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
 import { publicEnvNames, secretEnvNames } from './manifest.mjs';
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
@@ -330,7 +330,7 @@ export function createRun(manifest, { trigger = "manual", inputs = {} } = {}) {
     inputs: boundInputs,
     outputPorts: structuredClone(manifest.outputs ?? {}),
     /* The manifest's `env:` declarations, resolved once: saved state keeps the
-       publicEnv values and always redacts the secretEnv ones (persistenceEnvironment). */
+       publicEnv values and always redacts the secretEnv ones (runPersistenceEnvironment). */
     ...envPolicy(manifest),
     materialGraph: structuredClone(manifest.materialGraph ?? {}),
     invocations: { root: { key: manifest.materialKey ?? null, inputs: boundInputs, parent: null, settings: structuredClone(manifest.settings ?? {}) } },
@@ -396,7 +396,7 @@ export function destinationProblems(steps) {
  * @param {object} opts   { store, apiKey, dryRun, onStep }
  */
 export async function driveRun(run, opts = {}) {
-  return withPersistenceSecrets({ env: persistenceEnvironment(run, opts.env ?? process.env),
+  return withPersistenceSecrets({ env: runPersistenceEnvironment(run, opts.env ?? process.env),
     secrets: [opts.apiKey, ...Object.values(opts.secrets ?? {})], receipt: run }, () => driveRunScoped(run, opts));
 }
 
