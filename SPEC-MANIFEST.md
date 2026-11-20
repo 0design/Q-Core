@@ -533,7 +533,7 @@ env:
   it, and a private feed whose address carries a token.
 - `secret: false` keeps the value visible. It is still redacted when its value
   has a credential shape (provider API key, GitHub or AWS key, Telegram bot token)
-  or a `keyRef`/`tokenRef`/`workspaceRef` names it. A name that reads like a
+  or a `keyRef`, `tokenRef`, `secretRef`, `authRef` or `workspaceRef` names it. A name that reads like a
   credential (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`, `AUTHORIZATION`,
   `COOKIE`) cannot be declared `secret: false`; the manifest is refused.
 - A referenced value that is not declared is redacted, as in manifests written
