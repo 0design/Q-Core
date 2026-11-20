@@ -1,6 +1,7 @@
 /* Core35: a human gate continues only with a decision typed by a person at a terminal. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { typedAtTerminal } from "./terminal-confirmation-helper.mjs";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -87,7 +88,7 @@ test("resumeRun does not continue a human gate without a confirmation record", a
     for (const confirmation of [undefined, {}, { channel: "" }, { channel: "embedding-host" }, { channel: "tty-code", decision: "reject" }])
       await assert.rejects(resumeRun(run, { decision: "approve", approvalHash, confirmation, store }), (e) => e.code === "HUMAN_CONFIRMATION_REQUIRED");
     assert.equal(store.load(run.runId).status, "waiting_human");
-    const done = await resumeRun(run, { decision: "approve", approvalHash, confirmation: { channel: "tty-code" }, store });
+    const done = await resumeRun(run, { decision: "approve", approvalHash, confirmation: typedAtTerminal('approve'), store });
     assert.equal(done.status, "success");
     assert.equal(done.steps[0].confirmation.channel, "tty-code");
   } finally {

@@ -2,6 +2,7 @@
 // deterministically, every thesis linked to a selected source, section shape checks, a bounded model input,
 // and a podcast summary without the channel header. Every test here is offline: fetch is stubbed.
 import { test } from 'node:test';
+import { typedAtTerminal } from "./terminal-confirmation-helper.mjs";
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -288,15 +289,15 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
       assert.deepEqual(step('approval').output.subject.factCheck, step('checks').output.factCheck, 'the gate binds the checked text and its verdicts');
     }
     const approvalHash = step('approval').output.approvalHash;
-    await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'tty-code' }, approvalHash: '0'.repeat(64) }), /Approval/);
-    await resumeRun(run, { ...opts, decision: 'approve', confirmation: { channel: 'tty-code' }, approvalHash });
+    await assert.rejects(resumeRun(run, { ...opts, decision: 'approve', confirmation: typedAtTerminal('approve'), approvalHash: '0'.repeat(64) }), /Approval/);
+    await resumeRun(run, { ...opts, decision: 'approve', confirmation: typedAtTerminal('approve'), approvalHash });
     assert.equal(run.status, 'success', run.summary);
     const lines = readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n');
     assert.equal(lines.length, 1);
     assert.match(lines[0], /Штучно-інтелектуальний дайджест/);
     const repeat = createRun(manifest);
     await driveRun(repeat, opts);
-    await resumeRun(repeat, { ...opts, decision: 'approve', confirmation: { channel: 'tty-code' }, approvalHash: repeat.steps.find(s => s.stepId === 'approval').output.approvalHash });
+    await resumeRun(repeat, { ...opts, decision: 'approve', confirmation: typedAtTerminal('approve'), approvalHash: repeat.steps.find(s => s.stepId === 'approval').output.approvalHash });
     assert.equal(repeat.status, 'success');
     assert.equal(repeat.steps.at(-1).output.duplicatePrevented, true);
     assert.equal(readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n').length, 1);

@@ -17,7 +17,7 @@
  * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a workflow
  * that ends in `api-request` is a complete workflow.
  */
-import { agentSessionMarker } from './human-confirmation.mjs';
+import { agentSessionMarker, consumeTerminalConfirmation } from './human-confirmation.mjs';
 import { consumeAnchorDecision } from './approval-anchor.mjs';
 import { deliveryFor } from './approval-delivery.mjs';
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
@@ -1122,7 +1122,8 @@ export function pendingApprovalGate(run, gateId) {
  *
  * `confirmation` is the record of how a person made this decision. The CLI
  * (`q-core approve`) passes the record of a one-time code typed at the terminal
- * (src/human-confirmation.mjs). Agent-chat decisions require a signature from
+ * (src/human-confirmation.mjs); a `tty-code` record is accepted only as issued
+ * there, once. Agent-chat decisions require a signature from
  * a registered human-presence anchor and a fresh, content-bound nonce. A form
  * response or an arbitrary channel name cannot authorize a gate.
  */
@@ -1134,6 +1135,8 @@ export async function resumeRun(run, { decision, approvalHash, confirmation, ...
   const anchored = confirmation.channel === 'approval-anchor';
   insist(!marker || anchored, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal or confirms with a registered anchor`, 'HUMAN_CONFIRMATION_REQUIRED');
   insist(anchored || confirmation.channel === 'tty-code', 'A human gate requires a registered approval anchor or the terminal one-time code.', 'HUMAN_CONFIRMATION_REQUIRED');
+  insist(anchored || consumeTerminalConfirmation(confirmation, decision),
+    'The terminal one-time code was not typed for this decision: a tty-code record counts only when q-core approve issued it after the code was entered, and only once.', 'HUMAN_CONFIRMATION_REQUIRED');
   insist(!anchored || opts.store?.withRunLock, 'Anchor decisions require a persistent run lock.', 'HUMAN_CONFIRMATION_REQUIRED');
   const applyDecision = () => resumeConfirmedRun(run, { decision, approvalHash, confirmation, anchored, ...opts });
   return opts.store?.withRunLock ? opts.store.withRunLock(run.runId, applyDecision) : applyDecision();
