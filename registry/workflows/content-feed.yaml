@@ -18,9 +18,12 @@ triggers:
     cron: "30 6 * * *"
   - kind: manual
 
-# Secret environment values: redacted before anything is saved. Values not
-# declared here are redacted too; `secret: false` keeps one visible (SPEC-MANIFEST "env").
+# The bot token is secret and redacted before anything is saved. The feed address
+# is not: the saved, approved and sent digest keeps it. Values not declared here
+# (TELEGRAM_CHAT_ID) stay redacted, as before (SPEC-MANIFEST "env").
 env:
+  QCORE_SOURCE_URL:
+    secret: false
   TELEGRAM_BOT_TOKEN:
     secret: true
 
