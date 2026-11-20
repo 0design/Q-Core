@@ -117,17 +117,21 @@ export function numberTokens(input) {
   }
   return found;
 }
-/* A number the claim writes as a version: after a version word («версія», «version», «v») or a Latin product name
-   («Impeccable 4.10», «gh 2.105»), with no currency, percent or unit before or after it. */
+/* A number the claim writes as a version: after a version word («версія», «version», «v») or a Latin name
+   («Impeccable 4.10», «gh 2.105»), with no currency, percent or unit before or after it. versionContext returns the
+   name (or "" after a version word), else null; a name only counts when the source holding the version names it too
+   (round 2 of the 20.11 review: «ROI 4.10» passed against «skill-v4.10.0»). */
 const VERSION_WORD = /(?:^|[^\p{L}])(?:верс\p{L}*|version|ver\.?|release|реліз\p{L}*|build|збірк\p{L}*)\s*$/iu;
-const LATIN_NAME = /(?:^|[^\p{L}\p{N}])[A-Za-z][A-Za-z0-9_.-]*\s+$/u;
+const LATIN_NAME = /(?:^|[^\p{L}\p{N}])([A-Za-z][A-Za-z0-9_.-]*)\s+$/u;
 const MONEY_OR_UNIT_BEFORE = /[$€£¥₴]\s*$|(?:usd|eur|грн|uah)\s*$/iu;
 const MONEY_OR_UNIT_AFTER = /^\s*(?:[$€£¥₴%×x]|(?:usd|eur|грн|uah|долар\p{L}*|dollars?|євро|euros?|центів|cents?|відсот\p{L}*|percent|раз\p{L}*|times|[кмгт]?б|[kmgt]?b|gb|mb|tb|мс|ms|сек\p{L}*|sec\p{L}*|хв\p{L}*|min\p{L}*|год\p{L}*|hours?|днів|days?|токен\p{L}*|tokens?|бал\p{L}*|points?|рядк\p{L}*|lines?|комміт\p{L}*|коміт\p{L}*|commits?|мільйон\p{L}*|млн|тис\p{L}*|million|thousand|billion|млрд)(?![\p{L}]))/iu;
 export function versionContext(t) {
   const before = String(t?.before ?? ''), after = String(t?.after ?? '');
-  if (MONEY_OR_UNIT_BEFORE.test(before) || MONEY_OR_UNIT_AFTER.test(after)) return false;
-  return VERSION_WORD.test(before) || LATIN_NAME.test(before);
+  if (MONEY_OR_UNIT_BEFORE.test(before) || MONEY_OR_UNIT_AFTER.test(after)) return null;
+  if (VERSION_WORD.test(before)) return '';
+  return before.match(LATIN_NAME)?.[1] ?? null;
 }
+const escapeRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /* An approximation or a bound right before a number («about 160», «up to 49 percent», «близько 160», «до 49%»). */
 const HEDGE = /(?:^|[^\p{L}])(?:about|around|roughly|approximately|nearly|almost|some|circa|an estimated|more than|over|up to|at least|at most|less than|fewer than|under|близько|приблизно|майже|орієнтовно|понад|більше ніж|більш ніж|до|щонайменше|менше ніж|не менше|не більше|лише близько|більше|менше|від|десь|як мінімум|мінімум|максимум|в середньому|у середньому|під)(?:\s+(?:на|в|у|by|to|in))?\s*(?:[~≈$€£]\s*)?$/iu;
 export const hedgedBefore = before => HEDGE.test(String(before ?? '').replace(/\s+/g, ' ')) || /[~≈]\s*$/.test(String(before ?? ''));
@@ -272,8 +276,15 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     // Only where the claim writes it as a version (20.11 review: with «skill-v4.10.0» in the source, «коштує $4.10»
     // passed): right after a version word or a product name in Latin script, and with no money, percent or unit
     // around it. «$4.10», «4.10 $», «коштує 4.10», «4.10 доларів», «4.10 ГБ» are numbers and are refused as before.
-    const versions = [...quoteTokens].filter(token => token.startsWith('ver:')).map(token => token.slice(4));
-    const shortVersion = t => /^\d+\.\d+$/.test(String(t.surface).trim()) && versionContext(t) && versions.some(v => v.startsWith(`${String(t.surface).trim()}.`));
+    const versionTexts = [...matchedQuotes, ...sourceTexts].map(text => ({ text, versions: numberTokens(unifyQuotes(text)).filter(o => o.token.startsWith('ver:')).map(o => o.token.slice(4)) }));
+    const shortVersion = t => {
+      const surface = String(t.surface).trim();
+      if (!/^\d+\.\d+$/.test(surface)) return false;
+      const name = versionContext(t);
+      if (name == null) return false;
+      const named = name ? new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(name)}(?![\\p{L}\\p{N}])`, 'iu') : null;
+      return versionTexts.some(v => v.versions.some(x => x.startsWith(`${surface}.`)) && (!named || named.test(v.text)));
+    };
     const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)) && !shortVersion(t));
     insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
     // An approximation or bound stays («160 ІТ-керівників» for «about 160 IT vice presidents»,
@@ -397,26 +408,37 @@ function pageText(html) {
  *  mostly the text of links to elsewhere (the card's title, media and tags are one link), or it holds a link with no
  *  text of its own over the whole block (an overlay) and no second paragraph. A real article, short or long, is its own
  *  text: a link inside one of its paragraphs does not make it a card. */
-const LINK = /<a\b[^>]*\bhref\s*=\s*["']\s*([^"'\s#][^"']*)["'][^>]*>([\s\S]*?)<\/a\s*>/gi;
+const LINK = /<a\b([^>]*)\bhref\s*=\s*["']\s*([^"'\s#][^"']*)["']([^>]*)>([\s\S]*?)<\/a\s*>/gi;
+// An overlay link: no text and no media of its own, named by aria or laid over the block by its class (microsoft.ai:
+// aria-labelledby="related-article-4" class="absolute inset-0"). A link around an image is not one (round 2 of the
+// 20.11 review: <a href="/image.jpg"><img></a> made a real one-paragraph article a card).
+const OVERLAY_ATTRS = /\baria-label(?:ledby)?\s*=|\bclass\s*=\s*["'][^"']*\b(?:inset-0|overlay|stretched-link|card-link|absolute)\b/i;
 export function isTeaserCard(blockHtml) {
   const html = String(blockHtml), links = [...html.matchAll(LINK)];
   if (!links.length) return false;
   const all = pageText(html).length;
   if (!all) return true;
-  const linked = links.reduce((n, m) => n + pageText(m[2]).length, 0);
+  const linked = links.reduce((n, m) => n + pageText(m[4]).length, 0);
   const paragraphs = (html.match(/<p[\s>]/gi) ?? []).length;
-  return linked >= 0.6 * all || (links.some(m => !pageText(m[2]).length) && paragraphs <= 1);
+  const overlay = links.some(m => !pageText(m[4]).length && !/<(?:img|picture|svg|video|source)\b/i.test(m[4]) && OVERLAY_ATTRS.test(`${m[1]} ${m[3]}`));
+  return linked >= 0.6 * all || (overlay && paragraphs <= 1);
 }
 /** Readable text of an article page: the longest <article> that is not a teaser card, else <main>, else the whole page
- *  (extraction "body"). */
+ *  (extraction "body"). A wider block is read without the teaser cards inside it, so a recommended article's quote or
+ *  number never becomes grounds for this one. */
 export function extractArticle(html) {
   const page = String(html), lower = page.toLowerCase();
-  for (const tag of ['article', 'main']) {
-    const blocks = blocksOf(lower, tag).filter(([, a, b]) => tag !== 'article' || !isTeaserCard(page.slice(a, b)));
-    if (!blocks.length) continue;
-    return { text: blocks.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0], extraction: tag };
-  }
-  return { text: pageText(page), extraction: 'body' };
+  const cards = blocksOf(lower, 'article').filter(([s0, a, b]) => isTeaserCard(page.slice(a, b)));
+  const withoutCards = (from, to) => {
+    let out = '', at = from;
+    for (const [s0, , , e0] of cards) { if (s0 < from || e0 > to) continue; out += page.slice(at, s0) + ' '; at = e0; }
+    return out + page.slice(at, to);
+  };
+  const articles = blocksOf(lower, 'article').filter(([, a, b]) => !isTeaserCard(page.slice(a, b)));
+  if (articles.length) return { text: articles.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0], extraction: 'article' };
+  const mains = blocksOf(lower, 'main');
+  if (mains.length) return { text: mains.map(([, a, b]) => pageText(withoutCards(a, b))).sort((x, y) => y.length - x.length)[0], extraction: 'main' };
+  return { text: pageText(withoutCards(0, page.length)), extraction: 'body' };
 }
 export const articleTextOf = html => extractArticle(html).text;
 const ARTICLE_BYTES = 1_500_000;

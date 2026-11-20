@@ -320,7 +320,9 @@ test("20.11: a short <article> card on a long page is not the article; the next 
 test("20.11 review: a card is told by its build, not its length; a short real article on a long page stays the article", () => {
   // Codex review: a real 300-character <article> next to a long menu, footer and recommendations must not be replaced
   // by the whole page, or a number from a recommended article becomes grounds for this one.
-  const recs = Array.from({ length: 8 }, (_, i) => `<div class="rec"><a href="/other-${i}">Other story ${i}: costs $4.10 and 36 commits</a><p>Teaser of another article with its own numbers ${i}.</p></div>`).join("");
+  // Round 2: the text around the article that pageText keeps (not nav or footer) is over 1 200 characters, so the old
+  // length rule would have read <main>, recommendations and all.
+  const recs = Array.from({ length: 8 }, (_, i) => `<div class="rec"><a href="/other-${i}">Other story ${i}: costs $4.10 and 36 commits</a><p>Teaser of another article with its own numbers ${i}. ${"It says more about that other story. ".repeat(5)}</p></div>`).join("");
   const page = `<body><nav>${"menu ".repeat(200)}</nav><main><article><h1>Short news</h1><p>The team released the update today, see <a href="https://example.com/notes">the notes</a> for details. It is small but useful for designers.</p></article>${recs}</main><footer>${"footer ".repeat(200)}</footer></body>`;
   const r = extractArticle(page);
   assert.equal(r.extraction, "article");
@@ -336,4 +338,18 @@ test("20.11 review: a card is told by its build, not its length; a short real ar
   assert.equal(isTeaserCard(card), true);
   assert.equal(isTeaserCard(`<article><p>${body}</p><p>More, with <a href="/x">a link</a>.</p></article>`), false);
   assert.equal(isTeaserCard("<article><p>No links at all.</p></article>"), false);
+});
+
+test("20.11 review, round 2: a link around an image does not make a real article a card; cards are cut out of a wider block", () => {
+  const recs = Array.from({ length: 6 }, (_, i) => `<article class="group relative"><a href="/other-${i}" aria-labelledby="r${i}" class="absolute inset-0"></a><h3 id="r${i}">Other ${i}: «a quote of another story», 36 commits</h3><p>Nov 17</p></article>`).join("");
+  const story = "The team rebuilt the editor around one canvas and measured the time to first edit. ".repeat(8);
+  const page = `<body><main><article><h1>Real news</h1><a href="/image.jpg"><img src="/image.jpg" alt=""></a><p>${story}</p></article>${recs}<p>${"Side text. ".repeat(150)}</p></main></body>`;
+  const r = extractArticle(page);
+  assert.equal(r.extraction, "article");
+  assert.doesNotMatch(r.text, /36 commits|another story/);
+  // No real <article>: <main> is read without the cards in it.
+  const m = extractArticle(`<body><main><h1>Seven new models</h1><p>${story}</p>${recs}</main></body>`);
+  assert.equal(m.extraction, "main");
+  assert.doesNotMatch(m.text, /36 commits|another story/);
+  assert.equal(isTeaserCard(`<article><a href="/x.jpg"><img src="/x.jpg"></a><p>${story}</p></article>`), false);
 });
