@@ -113,9 +113,20 @@ export function numberTokens(input) {
     const rest = text.slice(m.index + m[0].length);
     const scale = SCALES.find(([re]) => re.test(rest));
     const scaled = scale ? value * scale[1] : value;
-    found.push({ token: `n:${Number(scaled.toPrecision(12))}`, surface: scale ? `${raw}${rest.match(scale[0])[0]}` : raw, before: text.slice(Math.max(0, m.index - 30), m.index) });
+    found.push({ token: `n:${Number(scaled.toPrecision(12))}`, surface: scale ? `${raw}${rest.match(scale[0])[0]}` : raw, before: text.slice(Math.max(0, m.index - 30), m.index), ...(scale ? {} : { after: rest.slice(0, 24) }) });
   }
   return found;
+}
+/* A number the claim writes as a version: after a version word («версія», «version», «v») or a Latin product name
+   («Impeccable 4.10», «gh 2.105»), with no currency, percent or unit before or after it. */
+const VERSION_WORD = /(?:^|[^\p{L}])(?:верс\p{L}*|version|ver\.?|release|реліз\p{L}*|build|збірк\p{L}*)\s*$/iu;
+const LATIN_NAME = /(?:^|[^\p{L}\p{N}])[A-Za-z][A-Za-z0-9_.-]*\s+$/u;
+const MONEY_OR_UNIT_BEFORE = /[$€£¥₴]\s*$|(?:usd|eur|грн|uah)\s*$/iu;
+const MONEY_OR_UNIT_AFTER = /^\s*(?:[$€£¥₴%×x]|(?:usd|eur|грн|uah|долар\p{L}*|dollars?|євро|euros?|центів|cents?|відсот\p{L}*|percent|раз\p{L}*|times|[кмгт]?б|[kmgt]?b|gb|mb|tb|мс|ms|сек\p{L}*|sec\p{L}*|хв\p{L}*|min\p{L}*|год\p{L}*|hours?|днів|days?|токен\p{L}*|tokens?|бал\p{L}*|points?|рядк\p{L}*|lines?|комміт\p{L}*|коміт\p{L}*|commits?|мільйон\p{L}*|млн|тис\p{L}*|million|thousand|billion|млрд)(?![\p{L}]))/iu;
+export function versionContext(t) {
+  const before = String(t?.before ?? ''), after = String(t?.after ?? '');
+  if (MONEY_OR_UNIT_BEFORE.test(before) || MONEY_OR_UNIT_AFTER.test(after)) return false;
+  return VERSION_WORD.test(before) || LATIN_NAME.test(before);
 }
 /* An approximation or a bound right before a number («about 160», «up to 49 percent», «близько 160», «до 49%»). */
 const HEDGE = /(?:^|[^\p{L}])(?:about|around|roughly|approximately|nearly|almost|some|circa|an estimated|more than|over|up to|at least|at most|less than|fewer than|under|близько|приблизно|майже|орієнтовно|понад|більше ніж|більш ніж|до|щонайменше|менше ніж|не менше|не більше|лише близько|більше|менше|від|десь|як мінімум|мінімум|максимум|в середньому|у середньому|під)(?:\s+(?:на|в|у|by|to|in))?\s*(?:[~≈$€£]\s*)?$/iu;
@@ -258,8 +269,11 @@ function checkFactCheck(record, text, nestedItems, sources, citedUrls, citedOf =
     // A version written short is the same version (20.11 replay: «Impeccable 4.10» for «skill-v4.10.0», «gh 2.105» for
     // «gh v2.105.0»; read as decimals they were 4.1 and 2.105, in no source). The claim's digits must be the leading
     // parts of a version a linked source states, compared as written: «4.1» is not «4.10.0», «4.11» is not «4.10.0».
+    // Only where the claim writes it as a version (20.11 review: with «skill-v4.10.0» in the source, «коштує $4.10»
+    // passed): right after a version word or a product name in Latin script, and with no money, percent or unit
+    // around it. «$4.10», «4.10 $», «коштує 4.10», «4.10 доларів», «4.10 ГБ» are numbers and are refused as before.
     const versions = [...quoteTokens].filter(token => token.startsWith('ver:')).map(token => token.slice(4));
-    const shortVersion = t => /^\d+\.\d+$/.test(String(t.surface).trim()) && versions.some(v => v.startsWith(`${String(t.surface).trim()}.`));
+    const shortVersion = t => /^\d+\.\d+$/.test(String(t.surface).trim()) && versionContext(t) && versions.some(v => v.startsWith(`${String(t.surface).trim()}.`));
     const missing = numberTokens(unifyQuotes(plainClaim(itemText))).filter(t => !t.quoteOnly && !quoteTokens.has(canon(t.token)) && !shortVersion(t));
     insist(missing.length === 0, `List item ${item} states «${missing[0]?.surface}» (${missing[0]?.token}), which is not in its quote or linked sources; numbers must be exactly as in the source: ${itemText.slice(0, 60)}`);
     // An approximation or bound stays («160 ІТ-керівників» for «about 160 IT vice presidents»,
@@ -378,22 +392,31 @@ function pageText(html) {
     .replace(/&#x([0-9a-f]{1,6});/gi, (m, n) => { const c = parseInt(n, 16); return c > 0 && c <= 0x10ffff ? String.fromCodePoint(c) : ' '; })
     .replace(/&([a-z]+);/gi, (m, n) => ENTITY[n.toLowerCase()] ?? m).replace(/\s+/g, ' ').trim();
 }
-/** Readable text of an article page: the longest <article>, else <main>, else the whole page (extraction "body").
- *  An <article> or <main> shorter than a paragraph is a card, not the article (20.11: on figma.com/blog the longest
- *  <article> was a 112-character «related post» card of a 10 000-character page; on microsoft.ai 76 characters): the
- *  next wider block is read instead, and the whole page when every block is that short. */
-export const ARTICLE_MIN_CHARS = 400;
+/** A teaser card of another page, told by its build, not by its length (20.11: on figma.com/blog the only <article>
+ *  blocks were «related post» cards, the longest 112 characters, and on microsoft.ai cards of 76): the block is
+ *  mostly the text of links to elsewhere (the card's title, media and tags are one link), or it holds a link with no
+ *  text of its own over the whole block (an overlay) and no second paragraph. A real article, short or long, is its own
+ *  text: a link inside one of its paragraphs does not make it a card. */
+const LINK = /<a\b[^>]*\bhref\s*=\s*["']\s*([^"'\s#][^"']*)["'][^>]*>([\s\S]*?)<\/a\s*>/gi;
+export function isTeaserCard(blockHtml) {
+  const html = String(blockHtml), links = [...html.matchAll(LINK)];
+  if (!links.length) return false;
+  const all = pageText(html).length;
+  if (!all) return true;
+  const linked = links.reduce((n, m) => n + pageText(m[2]).length, 0);
+  const paragraphs = (html.match(/<p[\s>]/gi) ?? []).length;
+  return linked >= 0.6 * all || (links.some(m => !pageText(m[2]).length) && paragraphs <= 1);
+}
+/** Readable text of an article page: the longest <article> that is not a teaser card, else <main>, else the whole page
+ *  (extraction "body"). */
 export function extractArticle(html) {
   const page = String(html), lower = page.toLowerCase();
-  let whole = null; const wholeText = () => (whole ??= pageText(page));
   for (const tag of ['article', 'main']) {
-    const blocks = blocksOf(lower, tag);
+    const blocks = blocksOf(lower, tag).filter(([, a, b]) => tag !== 'article' || !isTeaserCard(page.slice(a, b)));
     if (!blocks.length) continue;
-    const text = blocks.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0];
-    // A short block on a long page is a card; a short block on a short page is the article.
-    if (text.length >= ARTICLE_MIN_CHARS || wholeText().length < 3 * ARTICLE_MIN_CHARS) return { text, extraction: tag };
+    return { text: blocks.map(([, a, b]) => pageText(page.slice(a, b))).sort((x, y) => y.length - x.length)[0], extraction: tag };
   }
-  return { text: wholeText(), extraction: 'body' };
+  return { text: pageText(page), extraction: 'body' };
 }
 export const articleTextOf = html => extractArticle(html).text;
 const ARTICLE_BYTES = 1_500_000;

@@ -9,7 +9,7 @@ import test from "node:test";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { loadManifest } from "../src/manifest.mjs";
-import { runParseWeb, runVerifySources, articleTextOf, extractArticle, isLocalHost } from "../src/registry-data-steps.mjs";
+import { runParseWeb, runVerifySources, articleTextOf, extractArticle, isLocalHost, isTeaserCard } from "../src/registry-data-steps.mjs";
 
 const IT = "https://the-decoder.com/two-thirds-of-it-leaders-report-ai-results-but-few-would-interrupt-the-ceos-vacation-over-them/";
 const TC = "https://techcrunch.com/2026/09/25/unsecured-openai-agents-posted-53-user-images-on-the-internet-without-the-labs-knowledge/";
@@ -315,4 +315,25 @@ test("20.11: a short <article> card on a long page is not the article; the next 
   assert.equal(extractArticle(real).extraction, "article");
   assert.equal(extractArticle("<body><article>Short news.</article><p>x</p></body>").extraction, "article");
   assert.equal(extractArticle("<main>Main</main>").extraction, "main");
+});
+
+test("20.11 review: a card is told by its build, not its length; a short real article on a long page stays the article", () => {
+  // Codex review: a real 300-character <article> next to a long menu, footer and recommendations must not be replaced
+  // by the whole page, or a number from a recommended article becomes grounds for this one.
+  const recs = Array.from({ length: 8 }, (_, i) => `<div class="rec"><a href="/other-${i}">Other story ${i}: costs $4.10 and 36 commits</a><p>Teaser of another article with its own numbers ${i}.</p></div>`).join("");
+  const page = `<body><nav>${"menu ".repeat(200)}</nav><main><article><h1>Short news</h1><p>The team released the update today, see <a href="https://example.com/notes">the notes</a> for details. It is small but useful for designers.</p></article>${recs}</main><footer>${"footer ".repeat(200)}</footer></body>`;
+  const r = extractArticle(page);
+  assert.equal(r.extraction, "article");
+  assert.match(r.text, /^Short news The team released the update today/);
+  assert.doesNotMatch(r.text, /\$4\.10|36 commits|Other story/);
+  // microsoft.ai: a card is an empty overlay link over the block with one teaser paragraph.
+  const overlay = (u, t) => `<article class="group relative"><a href="${u}" aria-labelledby="x" class="absolute inset-0"></a><div><h3>${t}</h3><p>Nov 17, 2026</p></div></article>`;
+  const body = "At MAI, our mission is to build you the very best models in the world. ".repeat(30);
+  const ms = `<body><main><h1>Seven new models</h1><p>${body}</p>${overlay("https://microsoft.ai/news/a", "MAI Code 2 and Code 2 Flash")}${overlay("https://microsoft.ai/news/b", "MAI Image 2.7")}</main></body>`;
+  assert.deepEqual([extractArticle(ms).extraction, extractArticle(ms).text.startsWith("Seven new models At MAI")], ["main", true]);
+  // figma.com/blog: the card's media, title and tags are links; the story is in <main>.
+  const card = `<article aria-label="Workflow lab"><a href="https://www.figma.com/blog/workflow-lab/"><div><img src="x.png"></div><p>Workflow lab: From design system to campaign in Figma Weave</p></a><a href="/blog/working-well/">Working Well</a></article>`;
+  assert.equal(isTeaserCard(card), true);
+  assert.equal(isTeaserCard(`<article><p>${body}</p><p>More, with <a href="/x">a link</a>.</p></article>`), false);
+  assert.equal(isTeaserCard("<article><p>No links at all.</p></article>"), false);
 });

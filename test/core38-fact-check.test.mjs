@@ -352,3 +352,20 @@ test("20.11 replay: a version written short is the version its source states; an
   // Without the version in the source, the short form is refused as before.
   assert.throws(() => check(textOf([...ITEMS.slice(0, 7), base.replace("Microsoft представила", "Microsoft у версії 4.10 представила"), ...ITEMS.slice(8)])), /states «4\.10» \(n:4\.1\)/);
 });
+
+test("20.11 review: a short version counts only where the claim writes a version; a price or a unit next to it stays refused", () => {
+  const sources = clone(RUN.sources);
+  const ms = sources.find((s) => s.url === V_MS);
+  ms.text = `${ms.text} The release ships as gh v2.105.0 and skill-v4.10.0 today.`;
+  const run = (line) => {
+    const items = [...ITEMS]; items[7] = line;
+    return runVerifySources({ config: CHECKS }, { priorOutputs: { clusters: { sources }, articles: { sources }, review: { edits: [] }, factcheck: { claims: CLAIMS, text: textOf(items) } }, priorStepNames: {} });
+  };
+  const with_ = (s) => ITEMS[7].replace("Microsoft представила", s);
+  assert.doesNotThrow(() => run(with_("Microsoft з Impeccable 4.10 представила")));
+  assert.doesNotThrow(() => run(with_("Microsoft у версії 4.10 представила")));
+  for (const bad of ["Microsoft за $4.10 представила", "Microsoft за 4.10 $ представила", "Microsoft за 4.10 доларів представила", "Microsoft за 4.10 USD представила",
+    "Microsoft з Impeccable на 4.10 ГБ представила", "Microsoft на 4.10 % швидше представила", "Microsoft за 4.10 мс представила"]) {
+    assert.throws(() => run(with_(bad)), /states «4\.10/, bad);
+  }
+});
