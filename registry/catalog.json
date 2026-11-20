@@ -66,7 +66,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "2c5bc51c83275ad5bc5cb930ed2c548eb36b7fcad805029398a2104b4d252127",
+      "sha256": "9694c47cc36502181d3a5eba12cea510b6cbb4b567a4a65fdce22125aca4e59d",
       "value": "See relevant mentions and their overall tone without reading every feed item.",
       "executionProfile": {
         "inference": "openrouter",
@@ -244,7 +244,7 @@
       "evidence": {
         "status": "no-live-proof"
       },
-      "sha256": "6cfa525f2bb4ae6a31c69c1103032f0513e8c5499227f8217cba58a9a6b2c4b6",
+      "sha256": "137fc595f8f64a95a6292f3cff135fd258d9fb4aca919583b0205e1f740014a9",
       "value": "See the budget stop before you risk a paid run.",
       "executionProfile": {
         "inference": "openrouter",
@@ -406,7 +406,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "761c7d8756a7f46abfaa3e8144c7b71a83f885c8700823d1305bc08deb9ca785",
+      "sha256": "c22691df1e6144dbf4c9ef57483aa140bf9928450e1c7e8e4a9eddf916674235",
       "value": "Keep the final publishing decision in your hands while your agent prepares the draft.",
       "executionProfile": {
         "inference": "openrouter",
@@ -591,7 +591,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "44737eaef1ef5bb420eecfce95ebf8bc9109f15370a508752942a148cfe29cb0",
+      "sha256": "4722604e51ebe5a36ad51e76462744000f0574133adf5ace54aed7d4f17049a0",
       "value": "Catch the main points without reading the whole feed.",
       "executionProfile": {
         "inference": "openrouter",
@@ -778,7 +778,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "9b0b6fd98af55673ee1bcd7c4f399c56df4d3e7040b565dde2a0d6bc726d6602",
+      "sha256": "c2b3c6d21496b961ceab0466a267fe2034241f324d30f6e41d5cb63cc8d3b434",
       "value": "Give each feed item its own summary, within a clear processing limit.",
       "executionProfile": {
         "inference": "openrouter",
@@ -954,7 +954,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "6866731534a07e7ac1a04df686ed965e4e7121b51196510c025fd43802fdc1f0",
+      "sha256": "8312489354bf69111ba40ef6a9bd4239a0697d4120e8d87cc7d3ca7640b1e5fb",
       "value": "Check that the model returned usable JSON before sending the item count onward.",
       "executionProfile": {
         "inference": "openrouter",
@@ -1118,7 +1118,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "36806acc57a6791e8c17b5ca7c0b9f78fb4c6357c3793e390ece4762bc973b62",
+      "sha256": "03be6a2933d2221a83d5af837b88e64e9466a89d64fca4c5c88fbb1ffa02ad00",
       "value": "Review the model’s rate check before deciding whether to send the alert.",
       "executionProfile": {
         "inference": "openrouter",
@@ -1292,7 +1292,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "f147781e3d7f5359725ac89fe5245fb086e87e62ae1ba8689298ce07ed258e51",
+      "sha256": "4177991a0c5a63e8026859b33becf61762992f67da0973a661de17c2e7b9c1cf",
       "value": "Find release notes worth reviewing without reading the full release feed.",
       "executionProfile": {
         "inference": "openrouter",
@@ -1469,7 +1469,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "f38ff47e8c37a445429fd22098a6d860cc218c605e61c0c9fcdf5b573d371fb7",
+      "sha256": "613361dbdf28935b1e7836dbfab49280abab1cea5290ad518f55f14d483c666f",
       "value": "Make passing the review rule a condition for continuing the example.",
       "executionProfile": {
         "inference": "openrouter",
@@ -1628,7 +1628,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "5a0ee621fa1f3a7da8f6de7cad29c3ea049c78506a52199e9c416e20b16a50d6",
+      "sha256": "652f91cfd82d0f378853662fc10ddfd1acec768fe64408cedffcc4a999c2ceab",
       "value": "Connect a JSON source to a receiver without manual copy-and-paste or a model bill.",
       "executionProfile": {
         "inference": "none",
@@ -1755,7 +1755,7 @@
       "evidence": {
         "status": "historical-unverified"
       },
-      "sha256": "52c0af677376ce94b3e5aa91c748d770089c74d9fb0f18245273abf711283caa",
+      "sha256": "b708126841c9cb12f2c5d5d0d03be5e6f9181cb08453048ac34666ecf7d48969",
       "value": "See what gets processed and what gets skipped before scaling up.",
       "executionProfile": {
         "inference": "none",
@@ -2394,7 +2394,7 @@
           "Key points of a two-part podcast transcript, for me to approve before I post them."
         ]
       },
-      "sha256": "b58deb5b87c8ca6f9d81790a5715525022e47a3433e963ab5082be39b03226a6",
+      "sha256": "cc771fa22a6a25268e618a641d887486545de0aa959e396965c2e8c378590255",
       "steps": 7,
       "kinds": [
         "fetch",
@@ -4685,5 +4685,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "523a1849151e575e0916f5de06736a308c0ca2f71957888875ab8c6b2ef35791"
+  "releaseSha256": "9dd84187765edeea86592c60d6289938d0ff18c3733cad05332319085fba8b9b"
 }

@@ -53,6 +53,9 @@ export interface Run {
   tokensIn: number | null;
   tokensOut: number | null;
   steps: RunStep[];
+  /** From the manifest's `env:`: values kept in saved state (`secret: false`) and always redacted (`secret: true`). */
+  publicEnv?: string[];
+  secretEnv?: string[];
   pendingInference?: { protocolVersion: string; jobId: string; hash: string; runId: string; phase: string; inputHash: string; expiresAt: number; messages: Array<{ role: string; content: string }>; outputKind: string };
   pendingClarification?: { hash: string; questions: Array<{ id: string; question: string }>; seq: number; stepId: string; inferenceJobId: string };
   clarificationContext?: { hash: string; questions: Array<{ id: string; question: string }>; answers: Array<{ id: string; answer: string }> };

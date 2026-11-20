@@ -18,6 +18,12 @@ triggers:
     cron: "30 6 * * *"
   - kind: manual
 
+# Secret environment values: redacted before anything is saved. Values not
+# declared here are redacted too; `secret: false` keeps one visible (SPEC-MANIFEST "env").
+env:
+  TELEGRAM_BOT_TOKEN:
+    secret: true
+
 settings:
   model: openai/gpt-4o-mini
   budgetUsd: 0.10

@@ -6,10 +6,9 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
-import { assertNoDecodedSecrets } from "../src/secret-decoding.mjs";
+import { assertNoDecodedSecrets, SECRET_SHAPE as secretShape } from "../src/secret-decoding.mjs";
 
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const secretShape = /(?:sk-(?:(?:ant-|or-)[A-Za-z0-9_-]{16,}|(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,})|gsk_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{30,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{22,}|(?:AKIA|ASIA)[A-Z0-9]{16}|[0-9]{8,10}:[A-Za-z0-9_-]{30,})/;
 
 // These transformations are detection only. Never include matched bytes in an
 // error, stdout, or a generated file, including a synthetic test credential.

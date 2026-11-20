@@ -36,6 +36,7 @@ import { questions } from "./specification.mjs";
 import { bindInputs, bindOutputs, resolveBinding } from './material-io.mjs';
 import { MAX_CALL_DEPTH } from './material-graph.mjs';
 import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
+import { publicEnvNames, secretEnvNames } from './manifest.mjs';
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -302,6 +303,13 @@ function summarise(status, rows, dryRun = false) {
 }
 
 /** Build the initial run record from a manifest. */
+function envPolicy(manifest) {
+  const policy = {}, publicEnv = publicEnvNames(manifest), secretEnv = secretEnvNames(manifest);
+  if (publicEnv.length) policy.publicEnv = publicEnv;
+  if (secretEnv.length) policy.secretEnv = secretEnv;
+  return policy;
+}
+
 export function createRun(manifest, { trigger = "manual", inputs = {} } = {}) {
   if (Object.keys(manifest.dependencies ?? {}).length && !manifest.materialGraph) throw new Error('Load the complete pinned dependency graph before creating a run (loadWorkflow/loadManifestGraph)');
   const boundInputs = bindInputs(manifest.inputs, inputs);
@@ -321,6 +329,9 @@ export function createRun(manifest, { trigger = "manual", inputs = {} } = {}) {
     tokensOut: 0,
     inputs: boundInputs,
     outputPorts: structuredClone(manifest.outputs ?? {}),
+    /* The manifest's `env:` declarations, resolved once: saved state keeps the
+       publicEnv values and always redacts the secretEnv ones (persistenceEnvironment). */
+    ...envPolicy(manifest),
     materialGraph: structuredClone(manifest.materialGraph ?? {}),
     invocations: { root: { key: manifest.materialKey ?? null, inputs: boundInputs, parent: null, settings: structuredClone(manifest.settings ?? {}) } },
     steps: flat.map(({ step, seq, depth, laneOf }) => ({

@@ -327,6 +327,69 @@ export function assertCron(expr, path = "cron") {
   });
 }
 
+/** Environment names that persistence always protects, whatever a manifest says. */
+const CREDENTIAL_NAME = /(?:key|token|secret|password|credential|authorization|cookie)/i;
+
+/**
+ * `env:` declares the environment values a workflow reads and whether each one is
+ * secret. `secret: true` is redacted before anything is saved; `secret: false`
+ * (a feed or source address) is kept in saved runs, approvals and receipts. Only
+ * `secret` is accepted, so a typo cannot quietly publish a credential. A name that
+ * reads like a credential cannot be declared non-secret.
+ */
+function validateEnvDeclarations(raw) {
+  if (raw == null) return {};
+  if (!isPlainObject(raw)) throw new ManifestError("must be a mapping of NAME → { secret: true | false }", "env");
+  const out = {};
+  for (const [name, entry] of Object.entries(raw)) {
+    const path = `env.${name}`;
+    if (!/^[A-Z][A-Z0-9_]*$/.test(name)) throw new ManifestError("names an environment variable in UPPER_SNAKE, as {{env.NAME}} does", path);
+    if (!isPlainObject(entry) || typeof entry.secret !== "boolean") throw new ManifestError('needs "secret: true" or "secret: false"', path);
+    const extra = Object.keys(entry).filter((key) => key !== "secret");
+    if (extra.length) throw new ManifestError(`only "secret" is accepted here, not ${extra.map((key) => `"${key}"`).join(", ")}`, path);
+    if (!entry.secret && CREDENTIAL_NAME.test(name)) throw new ManifestError("reads like a credential (key, token, secret, password…) and is always redacted; declare it secret: true", path);
+    out[name] = { secret: entry.secret };
+  }
+  return out;
+}
+
+/** The `{{env.NAME}}` names one manifest's steps reference (with or without a default). */
+function referencedEnv(steps, found = new Set()) {
+  for (const step of steps ?? []) {
+    for (const value of Object.values(step.config ?? {})) {
+      for (const match of String(value).matchAll(/\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)/g)) found.add(match[1]);
+    }
+    for (const branch of [step.then, step.else, step.default, ...Object.values(step.cases ?? {})]) if (branch) referencedEnv(branch, found);
+  }
+  return found;
+}
+
+/**
+ * Environment names a run may keep in its saved state: every manifest of the run
+ * (the workflow and each pinned child) that references the name declares it
+ * `secret: false`, and none declares it secret. A name a manifest references
+ * without declaring stays protected, as before declarations existed.
+ */
+export function publicEnvNames(manifest) {
+  const manifests = Object.values(manifest.materialGraph ?? {}).map((node) => node.manifest);
+  if (!manifests.length) manifests.push(manifest);
+  const open = new Set(), closed = new Set();
+  for (const m of manifests) {
+    const declared = m.env ?? {};
+    for (const [name, entry] of Object.entries(declared)) if (entry?.secret !== false) closed.add(name);
+    for (const name of referencedEnv(m.steps)) {
+      if (declared[name]?.secret === false) open.add(name); else closed.add(name);
+    }
+  }
+  return [...open].filter((name) => !closed.has(name) && !CREDENTIAL_NAME.test(name)).sort();
+}
+
+/** Environment names any manifest of the run declares `secret: true`. */
+export function secretEnvNames(manifest) {
+  const manifests = [manifest, ...Object.values(manifest.materialGraph ?? {}).map((node) => node.manifest)];
+  return [...new Set(manifests.flatMap((m) => Object.entries(m.env ?? {}).filter(([, entry]) => entry?.secret === true).map(([name]) => name)))].sort();
+}
+
 /**
  * Validate a parsed document.
  * @returns {{id:string,name:string,version:string,description:string,owner:string,
@@ -392,6 +455,7 @@ export function validateManifest(doc) {
     enabled: doc.enabled !== false,
     triggers: validateTriggers(doc.triggers),
     settings: validateSettings(doc.settings),
+    env: validateEnvDeclarations(doc.env),
     inputs,
     outputs,
     dependencies: structuredClone(dependencies),

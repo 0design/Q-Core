@@ -7,6 +7,12 @@ owner: oleg
 enabled: true
 triggers:
   - kind: manual
+# Secret environment values: redacted before anything is saved. Values not
+# declared here are redacted too; `secret: false` keeps one visible (SPEC-MANIFEST "env").
+env:
+  OPENROUTER_API_KEY:
+    secret: true
+
 settings:
   model: anthropic/claude-sonnet-5
   budgetUsd: 0.25

@@ -144,3 +144,16 @@ export function assertNoDecodedSecrets(input, matches, { minSecretBytes = 12 } =
     }
   }
 }
+
+/** Well-known credential shapes (provider API keys, GitHub tokens, AWS keys,
+ * Telegram bot tokens). The release scanner refuses them in published bytes;
+ * persistence keeps protecting an environment value that has one of them even
+ * when a manifest declares it `secret: false`. */
+export const SECRET_SHAPE = /(?:sk-(?:(?:ant-|or-)[A-Za-z0-9_-]{16,}|(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,})|gsk_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{30,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{22,}|(?:AKIA|ASIA)[A-Z0-9]{16}|[0-9]{8,10}:[A-Za-z0-9_-]{30,})/;
+
+/** True when the value, or a bounded decoding of it, has a credential shape.
+ * Fails closed: a value that cannot be checked within the budget counts as one. */
+export function hasSecretShape(value) {
+  try { assertNoDecodedSecrets(String(value), text => SECRET_SHAPE.test(text)); return false; }
+  catch { return true; }
+}

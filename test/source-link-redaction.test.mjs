@@ -1,8 +1,7 @@
 /* Telegram Content (content-factory): the post cites its source, and the person
-   approves and sends exactly that post. Known defect, kept as a todo until the
-   policy is decided: every `{{env.X}}` value is protected as a credential at the
-   persistence boundary, so the non-secret source address in the saved post becomes
-   [REDACTED]. Credentials must stay redacted whatever the fix is.
+   approves and sends exactly that post. The manifest declares the source address
+   `secret: false` and the bot token `secret: true` (`env:`), so the saved post keeps
+   its link and credentials stay redacted.
    Offline: a local fetch stub, no paid model, no real receiver, no approval. */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -46,8 +45,7 @@ async function parkedPost(t, post) {
   return { gate: saved_.steps.find((s) => s.stepId === "cf-approve"), file: readFileSync(store.runFile(run.runId), "utf8") };
 }
 
-test("the saved post keeps the link to its source, so the approved and sent text cites it",
-  { todo: "persistence protects every {{env.X}} value as a credential; the source-address policy is open" }, async (t) => {
+test("the saved post keeps the link to its source, so the approved and sent text cites it", async (t) => {
     const post = `One idea from the material. (${SOURCE})`;
     const { gate } = await parkedPost(t, post);
     assert.equal(gate.output.subject.text, post);

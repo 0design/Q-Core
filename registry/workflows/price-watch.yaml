@@ -18,6 +18,12 @@ triggers:
     cron: "0 8 * * *"
   - kind: manual
 
+# Secret environment values: redacted before anything is saved. Values not
+# declared here are redacted too; `secret: false` keeps one visible (SPEC-MANIFEST "env").
+env:
+  QCORE_WEBHOOK_URL:
+    secret: true
+
 settings:
   model: openai/gpt-4o-mini
   budgetUsd: 0.10

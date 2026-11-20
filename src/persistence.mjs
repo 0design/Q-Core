@@ -3,7 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { CoreError } from './contracts.mjs';
-import { assertNoDecodedSecrets, MAX_SECRET_RECORD_BYTES } from './secret-decoding.mjs';
+import { assertNoDecodedSecrets, hasSecretShape, MAX_SECRET_RECORD_BYTES } from './secret-decoding.mjs';
 import { assertApproverWriteAllowed } from './approver-write-boundary.mjs';
 
 // Credentials stay in memory. All persistent bytes, including temporary files,
@@ -421,15 +421,26 @@ export function guardedStreamWrite(stream, data) {
   return accepted;
 }
 
-/** Capture configured references before even the first run snapshot is saved. */
+/**
+ * Capture configured references before even the first run snapshot is saved.
+ * Every referenced `{{env.NAME}}` value is protected, unless the run's manifest
+ * declared it `secret: false` (config.publicEnv, see manifest `env:`). Such a value
+ * is still protected when its name reads like a credential, a `*Ref` names it, or
+ * the value itself has a credential shape. `secret: true` names (config.secretEnv)
+ * are protected even when no template references them.
+ */
 export function persistenceEnvironment(config, env = process.env) {
   const names = new Set(["ANTHROPIC_WORKSPACE_ID", ...Object.keys(env).filter(name => credentialName.test(name))]);
+  const refs = new Set();
+  const declared = key => Array.isArray(config?.[key]) ? config[key].filter(name => typeof name === 'string') : [];
+  const publicNames = new Set(declared('publicEnv'));
+  for (const name of declared('secretEnv')) names.add(name);
   const visit = value => {
     if (typeof value === 'string') {
       for (const match of value.matchAll(/\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)/g)) names.add(match[1]);
     } else if (value && typeof value === 'object') {
       for (const [key, child] of Object.entries(value)) {
-        if (/(?:keyRef|tokenRef|secretRef|authRef|workspaceRef)$/i.test(key) && typeof child === 'string') names.add(child);
+        if (/(?:keyRef|tokenRef|secretRef|authRef|workspaceRef)$/i.test(key) && typeof child === 'string') { names.add(child); refs.add(child); }
         // Legacy literal workspace config must be protected before the first
         // run snapshot, as well as when the provider resolves it.
         if (key === 'workspaceId' && typeof child === 'string') registerPersistenceSecret(child);
@@ -438,5 +449,7 @@ export function persistenceEnvironment(config, env = process.env) {
     }
   };
   visit(config);
-  return Object.fromEntries([...names].filter(name => typeof env[name] === 'string').map(name => [name, env[name]]));
+  const kept = name => publicNames.has(name) && !refs.has(name) && !credentialName.test(name)
+    && name !== 'ANTHROPIC_WORKSPACE_ID' && !declared('secretEnv').includes(name) && !hasSecretShape(env[name]);
+  return Object.fromEntries([...names].filter(name => typeof env[name] === 'string' && !kept(name)).map(name => [name, env[name]]));
 }
