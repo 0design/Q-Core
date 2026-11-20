@@ -40,6 +40,7 @@ description: >            # free-form
 owner: oleg               # free-form
 enabled: true             # false ⇒ `q-core run` does nothing and says so
 triggers: [...]           # §3
+env: {...}                # which {{env.NAME}} values are secret — §6
 settings: {...}           # §4
 steps: [...]              # REQUIRED, at least one — §5
 ```
@@ -337,15 +338,19 @@ human gate carries the same `nextAction` (`q-core run`, `reply`, `clarify`, `res
 `approve --json` at a second gate, `status --json`). An agent shows the subject, asks the
 user to run that command in their own terminal and waits; it never runs it itself.
 The library `resumeRun` requires a `confirmation` record (`{channel, ...}`) and stores
-its channel on the gate step; `q-core approve` records `tty-code`. Inside an agent
-session `resumeRun` accepts no record at all. An embedding host that passes its own
-record is responsible for having asked a person.
+its channel on the gate step; `q-core approve` records `tty-code`. A `tty-code`
+record counts only when the terminal confirmation issued it after the code was typed
+back, and only once: a record written by hand, copied or replayed is refused and the
+run keeps waiting. `q-core agent approve` / `q-core content approve`
+(`recordHumanDecision`) apply the same rule. The only other accepted channel is a
+registered approval anchor (`approval-anchor`, signed). Inside an agent session
+`resumeRun` accepts no record at all.
 
 Limits: this stops an agent that runs `q-core approve` itself or from its own script,
-and a blind or piped answer. It is not an identity service: a process of the same OS
-user can still get around it on purpose (remove the markers and drive a
-pseudo-terminal; remove the markers and import the library with a forged record; edit
-the unsigned run state under `.qf/`). Instructions to
+a blind or piped answer, and a hand-written confirmation record passed to the
+library. It is not an identity service: a process of the same OS user can still get
+around it on purpose (remove the markers and drive a pseudo-terminal, or the
+confirmation's test terminal; edit the unsigned run state under `.qf/`). Instructions to
 agents forbid all of these; the gate records how each decision was made. POSIX terminals only (macOS, Linux);
 Windows consoles are refused.
 
@@ -510,6 +515,32 @@ arriving at a receiver is a visible failure; an empty string is a silent one.
 
 `{{env.…}}` exists so a manifest never carries a secret. A manifest is a file
 that goes into git — "share the workflow" must not mean "share the bot token".
+
+**`env:` says which environment values are secret.** Saved run state, approval
+subjects, receipts and logs never keep a secret value: it becomes `[REDACTED]`
+before anything is written. Declare each value the workflow reads:
+
+```yaml
+env:
+  QCORE_SOURCE_URL:      # the feed or page the post cites
+    secret: false        # kept: the saved, approved and sent post shows the link
+  TELEGRAM_BOT_TOKEN:
+    secret: true         # redacted everywhere it would be saved
+```
+
+- `secret: true` is always redacted, even where no template references it. Mark
+  every token, key, password and every webhook or receiver address with a token in
+  it, and a private feed whose address carries a token.
+- `secret: false` keeps the value visible. It is still redacted when its value
+  has a credential shape (provider API key, GitHub or AWS key, Telegram bot token)
+  or a `keyRef`/`tokenRef`/`workspaceRef` names it. A name that reads like a
+  credential (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`, `AUTHORIZATION`,
+  `COOKIE`) cannot be declared `secret: false`; the manifest is refused.
+- A referenced value that is not declared is redacted, as in manifests written
+  before `env:` existed. In a nested run a value stays visible only when every
+  workflow that references it declares it `secret: false`.
+- Only `secret` is accepted under a name, so a typo is refused rather than read
+  as "not secret". The field is optional and needs no new manifest tag.
 
 ---
 

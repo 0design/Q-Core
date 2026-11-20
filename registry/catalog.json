@@ -3897,7 +3897,7 @@
     "artifact": "vendor/q-core-0.2.0-q-core.51.tgz",
     "artifactSha256": "59294943d2b7ad5f670c9931910e197241c2c0ca74265524bec81e12a3bab2f4",
     "integrity": "sha512-0OU+Bd8rKrRjyLKA5EKWlt1UtSdKvCgIvHyP+L8zfQkES657OlHnieEhdGocA8PbCR7rbStLWXA/31JPTJw73Q==",
-    "schemaSha256": "70c24772b26957f83fa799b9e2ead6f8ca2921c4be987a747adf1138775f6eda",
+    "schemaSha256": "025c740debbdceeb7173a782b778328d8dbb863bd72dae907fc91057b255203e",
     "requestSchemaSha256": "682eb8fe5128bf36f07d5ae1426233b5e19c53bd9b84920c13f186ed8b3d3c6d",
     "status": "local-candidate-artifact",
     "source": "Core.51 local candidate: llm-call steps support native Anthropic Messages API requests with environment or Keychain credentials, bounded streaming retries, first-party usage pricing and existing call/run budgets. OpenRouter remains unchanged. Artifact hashes bind the exact locally packaged candidate; this is not release or owner acceptance.",
@@ -4685,5 +4685,5 @@
       "limits": "Bound iterations, concurrency, timeouts and retries. Cancellation and failure propagation must be tested."
     }
   },
-  "releaseSha256": "9dd84187765edeea86592c60d6289938d0ff18c3733cad05332319085fba8b9b"
+  "releaseSha256": "a2bd87ea30bf49f45ea892c8c751b497fefa3a154d6a196a4ab8148c89b62442"
 }

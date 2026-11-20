@@ -100,7 +100,9 @@ export declare const MAX_EXPANDED_RUN_ROWS: number;
 export declare function resolveKnobs(settings?: WorkflowManifestSettings): Knobs;
 export declare function createRun(manifest: WorkflowManifest, opts?: { trigger?: string; inputs?: Record<string, unknown> }): Run;
 export declare function driveRun(run: Run, opts?: DriveOptions): Promise<Run>;
-/** A record of how a person made the decision; q-core approve records "tty-code". */
+/** A record of how a person made the decision. "tty-code" counts only as issued by the terminal
+ *  confirmation of q-core approve after the code was typed back, once; a hand-written record is refused.
+ *  "approval-anchor" requires a registered anchor's signature. */
 export interface HumanConfirmation {
   channel: 'tty-code' | 'approval-anchor';
   decision?: "approve" | "reject";
