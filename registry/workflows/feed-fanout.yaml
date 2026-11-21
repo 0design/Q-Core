@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: feed-fanout
 name: "Feed fan-out — a lane per entry"
-version: 1.2.0
+version: 1.2.1
 description: >
   Reads a feed and writes one sentence for each of the first five entries. You
   approve the exact list (title, link and sentence of every entry), then each

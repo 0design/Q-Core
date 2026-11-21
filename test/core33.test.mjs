@@ -264,7 +264,7 @@ test("agent gate uses the same policy: retries 0 is one attempt and the provider
 test("podcast-summary 0.1.0 (formerly podcast-digest 0.3.1) sets explicit retries and timeout, runs on a priced model, and plans one bounded call", async () => {
   const { loadManifest } = await import("../src/manifest.mjs");
   const m = loadManifest(new URL("../registry/workflows/podcast-summary.yaml", import.meta.url).pathname);
-  assert.equal(m.version, "0.1.0");
+  assert.equal(m.version, "0.1.1");
   const draft = m.steps.find((s) => s.id === "draft");
   assert.deepEqual([draft.config.retries, draft.config.timeoutSec], ["1", "180"]);
   assert.deepEqual(llmCallPolicy(draft.config, "draft"), { retries: 1, timeoutMs: 180_000 });

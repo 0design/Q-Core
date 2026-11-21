@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: webhook-relay
 name: "Webhook relay: move data, call nothing"
-version: 1.2.0
+version: 1.2.1
 description: >
   Reads a JSON endpoint, shows you the exact data, and forwards it to a webhook
   as JSON only after you approve it. No model call is needed. Source and

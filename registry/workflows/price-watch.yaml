@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: price-watch
 name: "Price watch: machine filters, human authorises"
-version: 1.3.0
+version: 1.3.1
 description: >
   Checks a rate. On an ordinary day the machine check stops the run quietly and
   nobody is asked. Only when USD/UAH is above the threshold does it hold for a

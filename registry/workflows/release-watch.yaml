@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: release-watch
 name: "Release watch: what shipped in your dependencies"
-version: 1.2.0
+version: 1.2.1
 description: >
   Reads a project's GitHub releases feed and writes a short note on what changed
   and whether it matters to you. You approve the exact note before it is sent.

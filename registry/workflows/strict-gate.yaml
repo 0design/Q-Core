@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: strict-gate
 name: "Strict gate: a check that is allowed to say no"
-version: 1.1.0
+version: 1.1.1
 description: >
   Runs a machine check that ends the run when it fails, instead of handing the
   decision to a person. The shape to use when the answer is not negotiable.

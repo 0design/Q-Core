@@ -12,10 +12,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
       - run: python3 -m unittest discover -s test -p test_registry_publish.py
+      # A published (id, version) keeps its bytes: a changed workflow, component or demo needs a new version.
+      - name: Same version keeps the same bytes as the previous release
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: node scripts/check-registry-version-immutability.mjs --base "$BASE_REF"
       - name: Build and exercise exact downloadable candidate
         run: |
           mkdir -p /tmp/core-package

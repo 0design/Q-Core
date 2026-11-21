@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: json-digest
 name: "JSON digest: structured output or nothing"
-version: 1.2.0
+version: 1.2.1
 description: >
   Asks the model for strict JSON and refuses the step when it gets prose. You
   approve the exact JSON, and the whole object (count and titles) goes to your
