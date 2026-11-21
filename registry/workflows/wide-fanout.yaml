@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: wide-fanout
 name: "Wide fan-out: truncation that says so"
-version: 1.1.0
+version: 1.1.1
 description: >
   Sixty entries against a cap of twelve. Checks that the lane stops where it was
   told and reports how many it skipped, instead of quietly processing a slice.

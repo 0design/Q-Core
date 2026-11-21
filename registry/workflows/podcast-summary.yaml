@@ -1,7 +1,7 @@
 manifest: q-core.workflow/v1
 id: podcast-summary
 name: "Podcast summary: one timestamped transcript to an approved Ukrainian summary"
-version: 0.1.0
+version: 0.1.1
 description: "Read one podcast or video transcript you may process (with [mm:ss] segment markers), draft a two-section Ukrainian summary through OpenRouter with no channel header, check timestamps and format, and stop at an exact human approval. A building block for other workflows such as Digest. Nothing is delivered or published. Replaces podcast-digest."
 owner: oleg
 enabled: true

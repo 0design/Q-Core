@@ -307,7 +307,7 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
 test('podcast-summary 0.1.0 is podcast-digest without the channel header; Digest 0.4 keeps the exact header', () => {
   const summary = loadManifest(new URL('../registry/workflows/podcast-summary.yaml', import.meta.url).pathname);
   assert.equal(summary.id, 'podcast-summary');
-  assert.equal(summary.version, '0.1.0');
+  assert.equal(summary.version, '0.1.1');
   const checks = summary.steps.find(s => s.id === 'checks').config;
   assert.equal(checks.requiredPrefix, undefined);
   assert.equal(checks.fixedLinks, undefined);

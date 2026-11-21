@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: brand-mentions
 name: "Brand mentions: who talked about you today"
-version: 1.2.0
+version: 1.2.1
 description: >
   Searches a news feed for the brand you name and keeps only the real mentions.
   Reports zero when there are none, instead of padding. You approve the exact

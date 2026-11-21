@@ -14,7 +14,7 @@ them so no version names two different archives.
   like a credential cannot be declared `secret: false`; the manifest is refused.
 - Content Feed and Telegram Content declare their source address public, so the
   link in the saved and sent digest or post is no longer `[REDACTED]`. Their bot
-  token, the webhook address of eight other Registry workflows and the OpenRouter
+  token, the webhook address of nine other Registry workflows and the OpenRouter
   key of Podcast Summary are declared `secret: true`.
 - A human approval through `q-core approve`, `q-core agent approve` or
   `q-core content approve` counts only when the terminal confirmation issued the

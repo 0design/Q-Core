@@ -57,7 +57,7 @@ test('L9: a thematic break after a list item or a quote and a link with a title 
 test('podcast-summary (formerly podcast-digest) cites by timestamps, forbids local links and keeps the intro rule', () => {
   const manifest = loadManifest(new URL('../registry/workflows/podcast-summary.yaml', import.meta.url).pathname);
   const checks = manifest.steps.find(s => s.id === 'checks').config;
-  assert.equal(manifest.version, '0.1.0');
+  assert.equal(manifest.version, '0.1.1');
   assert.equal(checks.citation, 'timestamps');
   assert.equal(checks.forbidLocalLinks, 'true');
   assert.equal(checks.requiredIntroPrefix, 'Цікаві тези із [');

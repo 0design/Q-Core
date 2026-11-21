@@ -5,7 +5,7 @@ manifest: q-core.workflow/v1
 
 id: budget-guard
 name: "Budget guard: proof the ceiling cuts first"
-version: 1.1.0
+version: 1.1.1
 description: >
   Deliberately impossible: a zero ceiling in front of a paid step. The run must
   stop at the model call, name the budget, and send nothing.
