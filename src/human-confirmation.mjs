@@ -16,10 +16,13 @@ import { guardedOpenSync } from './persistence.mjs';
  * - Stops an agent that runs `q-core approve` itself, directly or from its own
  *   script (no terminal, agent environment), and a blind `yes |` or piped answer
  *   (the code is random per call and is read only from the terminal).
+ * - resumeRun accepts a `tty-code` record only if this function issued it after
+ *   the code was typed back, and only once (consumeTerminalConfirmation); a
+ *   record written by hand, copied or replayed is refused.
  * - It is not an identity service. A process of the same OS user can still get
- *   around it deliberately: remove the markers and drive a pseudo-terminal, remove
- *   the markers and call resumeRun with a forged record, or edit the unsigned run
- *   state on disk. The instructions forbid all of these.
+ *   around it deliberately: remove the markers and drive a pseudo-terminal (or
+ *   this function's test terminal), or edit the unsigned run state on disk. The
+ *   instructions forbid all of these.
  * - POSIX terminals only (macOS, Linux). There is no Windows console path yet.
  */
 import { closeSync, readSync, writeSync } from "node:fs";
@@ -58,6 +61,19 @@ export function oneTimeCode(length = 6, pick = randomInt) {
   for (let i = 0; i < length; i++) code += ALPHABET[pick(ALPHABET.length)];
   return code;
 }
+/** Records issued by confirmHumanDecision after the code was typed back; spent on first use. */
+const typedRecords = new WeakSet();
+
+/**
+ * True once for a record that confirmHumanDecision issued for this decision; the
+ * record is spent either way. A hand-written, copied or replayed record is false.
+ */
+export function consumeTerminalConfirmation(record, decision) {
+  if (!record || typeof record !== "object" || !typedRecords.has(record)) return false;
+  typedRecords.delete(record);
+  return record.decision === decision;
+}
+
 const normalize = (s) => String(s ?? "").toUpperCase().replace(/[\s-]/g, "");
 
 /** Default terminal: the controlling terminal of this process. */
@@ -116,7 +132,9 @@ export function confirmHumanDecision({ decision, lines = [] }, io = {}) {
       throw new HumanConfirmationError("code-mismatch", "The one-time code was not confirmed at the terminal.");
     }
     terminal.write(`  Confirmed: ${decision}.\n\n`);
-    return { decision, channel: "tty-code", confirmedAt: new Date().toISOString() };
+    const record = Object.freeze({ decision, channel: "tty-code", confirmedAt: new Date().toISOString() });
+    typedRecords.add(record);
+    return record;
   } finally {
     terminal.close();
   }

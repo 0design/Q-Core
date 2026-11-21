@@ -48,6 +48,9 @@ export interface WorkflowManifest {
   settings: WorkflowManifestSettings;
   steps: WorkflowManifestStep[];
   file?: string;
+  /** `env:` declarations. `secret: true` is always redacted from saved state; `secret: false` stays visible
+   *  unless its name reads like a credential, or its value has a credential shape or is an address carrying credentials. Undeclared `{{env.X}}` values are redacted. */
+  env: Record<string, { secret: boolean }>;
   inputs: Record<string, MaterialPort>;
   outputs: Record<string, MaterialPort & { value: unknown }>;
   dependencies: Record<string, MaterialReference>;
@@ -80,3 +83,7 @@ export declare class ManifestError extends Error {
 export declare function validateManifest(doc: unknown): WorkflowManifest;
 export declare function loadManifest(file: string): WorkflowManifest;
 export declare function assertCron(expr: string, path?: string): void;
+/** Names every manifest of the run declares `secret: false` (and none declares secret). */
+export declare function publicEnvNames(manifest: WorkflowManifest): string[];
+/** Names any manifest of the run declares `secret: true`. */
+export declare function secretEnvNames(manifest: WorkflowManifest): string[];

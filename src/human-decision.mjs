@@ -22,7 +22,7 @@ import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, isAbsolute, join } from "node:path";
 import { CoreError, insist } from "./contracts.mjs";
 import { atomicJson, lockWorkspace } from "./workspace.mjs";
-import { agentSessionMarker, confirmHumanDecision, HumanConfirmationError } from "./human-confirmation.mjs";
+import { agentSessionMarker, confirmHumanDecision, consumeTerminalConfirmation, HumanConfirmationError } from "./human-confirmation.mjs";
 
 export const HUMAN_APPROVAL_REQUIRED = "HUMAN_APPROVAL_REQUIRED";
 const KINDS = ["agent", "content"];
@@ -108,9 +108,11 @@ export function loadWaitingRun({ kind, workspace, runId, approvalHash }) {
 /**
  * Record a person's decision on the persisted run, bound to its current approval
  * hash. `confirmation` is the record of how the person decided; `q-core agent
- * approve` / `q-core content approve` pass the terminal record (`tty-code`). There is
- * no default and, inside an agent session, no record is accepted (like resumeRun).
- * The JSON protocols never reach this function.
+ * approve` / `q-core content approve` pass the terminal record (`tty-code`) that
+ * confirmHumanDecision issued after the code was typed back. It counts once
+ * (consumeTerminalConfirmation): a hand-written, copied or replayed record, or any
+ * other channel, is refused (like resumeRun). There is no default and, inside an
+ * agent session, no record is accepted. The JSON protocols never reach this function.
  */
 export function recordHumanDecision({ kind, workspace, runId, approvalHash, decision, confirmation }) {
   insist(["approve", "reject"].includes(decision), "Decision must be approve or reject");
@@ -121,6 +123,9 @@ export function recordHumanDecision({ kind, workspace, runId, approvalHash, deci
   );
   const marker = agentSessionMarker(process.env);
   insist(!marker, `A decision is not recorded from an agent session (${marker} is set); a person runs the approve command in their own terminal`, "HUMAN_CONFIRMATION_REQUIRED");
+  insist(confirmation.channel === "tty-code" && consumeTerminalConfirmation(confirmation, decision),
+    "The terminal one-time code was not typed for this decision: a tty-code record counts only when the approve command issued it after the code was entered, and only once.",
+    "HUMAN_CONFIRMATION_REQUIRED");
   insist(KINDS.includes(kind), "Unknown protocol");
   insist(RUN_ID.test(runId ?? ""), "Invalid runId");
   insist(HASH.test(approvalHash ?? ""), "--approval-hash <sha256> is required");

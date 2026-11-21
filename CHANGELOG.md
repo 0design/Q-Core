@@ -1,6 +1,27 @@
 # Changelog
 
-## Unreleased
+## 0.2.0-q-core.54 — 2026-11-21
+
+Core.52 and Core.53 were used by earlier unmerged candidates; this release skips
+them so no version names two different archives.
+
+- A workflow manifest can say under `env:` which environment values are secret
+  (`secret: true` / `secret: false`). A value declared `secret: false`, such as the
+  feed or page a post cites, stays visible in saved run state, approval subjects,
+  receipts and the sent output. A value that is undeclared or `secret: true` is
+  still saved as `[REDACTED]`, and a value with a credential shape or an address
+  carrying credentials stays redacted even when declared public. A name that reads
+  like a credential cannot be declared `secret: false`; the manifest is refused.
+- Content Feed and Telegram Content declare their source address public, so the
+  link in the saved and sent digest or post is no longer `[REDACTED]`. Their bot
+  token, the webhook address of eight other Registry workflows and the OpenRouter
+  key of Podcast Summary are declared `secret: true`.
+- A human approval through `q-core approve`, `q-core agent approve` or
+  `q-core content approve` counts only when the terminal confirmation issued the
+  record after the one-time code was typed back, and only once. A record written by
+  hand, copied or replayed is refused and the run keeps waiting.
+
+Earlier changes released with this version:
 
 - A human `approval-gate` directly after agent gates now shows and binds the
   content those gates judged (the step output that goes on to delivery), not the

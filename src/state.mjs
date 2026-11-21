@@ -1,4 +1,4 @@
-import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, withPersistenceSecrets, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync } from './persistence.mjs';
+import { assertPersistencePath, guardedWriteFileSync, persistenceEnvironment, runPersistenceEnvironment, withPersistenceSecrets, guardedMkdirSync, guardedRenameSync, guardedUnlinkSync } from './persistence.mjs';
 /**
  * Run state — plain files under `.qf/`, next to the manifest. No database.
  *
@@ -75,7 +75,7 @@ export class RunStore {
   }
 
   save(run) {
-    return withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run },
+    return withPersistenceSecrets({ env: runPersistenceEnvironment(run), receipt: run },
       () => writeJsonAtomic(this.runFile(run.runId), run));
   }
 
@@ -124,7 +124,7 @@ export class RunStore {
    * one, so the reason is written down even when — especially when — it failed.
    */
   saveLastRun(run) {
-    return withPersistenceSecrets({ env: persistenceEnvironment(run), receipt: run }, () => {
+    return withPersistenceSecrets({ env: runPersistenceEnvironment(run), receipt: run }, () => {
       const failed = run.steps.find((s) => s.status === "failed");
       const waiting = run.steps.find((s) => s.status === "waiting_human");
       writeJsonAtomic(join(this.dir, "last-run.json"), {

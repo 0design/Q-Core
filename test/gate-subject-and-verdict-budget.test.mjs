@@ -1,4 +1,5 @@
 import test, { beforeEach } from 'node:test';
+import { typedAtTerminal } from "./terminal-confirmation-helper.mjs";
 import assert from 'node:assert/strict';
 import { anthropic } from '../src/providers/anthropic.mjs';
 import { createRun, driveRun, resumeRun, waitingGate } from '../src/run.mjs';
@@ -185,7 +186,7 @@ async function approvedDelivery(ids, t) {
   assert.equal(parked.status, 'waiting_human', parked.summary);
   const gate = parked.steps.find(row => row.stepId === ids.human);
   assert.deepEqual(gate.output.subject, { text: 'text B', model: MODEL }, 'the person sees the output directly before the agent gate');
-  const done = await resumeRun(parked, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'tty-code' },
+  const done = await resumeRun(parked, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: typedAtTerminal('approve'),
     settings: m.settings, providers: p.providers });
   assert.equal(done.status, 'success', done.summary);
   const [line, ...rest] = readFileSync(out, 'utf8').trim().split('\n');

@@ -18,6 +18,15 @@ triggers:
     cron: "30 6 * * *"
   - kind: manual
 
+# The bot token is secret and redacted before anything is saved. The feed address
+# is not: the saved, approved and sent digest keeps it. Values not declared here
+# (TELEGRAM_CHAT_ID) stay redacted, as before (SPEC-MANIFEST "env").
+env:
+  QCORE_SOURCE_URL:
+    secret: false
+  TELEGRAM_BOT_TOKEN:
+    secret: true
+
 settings:
   model: openai/gpt-4o-mini
   budgetUsd: 0.10

@@ -3,7 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { CoreError } from './contracts.mjs';
-import { assertNoDecodedSecrets, MAX_SECRET_RECORD_BYTES } from './secret-decoding.mjs';
+import { assertNoDecodedSecrets, credentialLikeName, hasCredentialUrl, hasSecretShape, MAX_SECRET_RECORD_BYTES } from './secret-decoding.mjs';
 import { assertApproverWriteAllowed } from './approver-write-boundary.mjs';
 
 // Credentials stay in memory. All persistent bytes, including temporary files,
@@ -421,15 +421,39 @@ export function guardedStreamWrite(stream, data) {
   return accepted;
 }
 
-/** Capture configured references before even the first run snapshot is saved. */
+/**
+ * Capture configured references before even the first run snapshot is saved.
+ * Every referenced `{{env.NAME}}` value is protected; `secretEnv` names (manifest
+ * `secret: true`) are protected even when no template references them. A
+ * `publicEnv` field in `config` is ignored here: only runPersistenceEnvironment,
+ * for a run created from a manifest, keeps declared-public values.
+ */
 export function persistenceEnvironment(config, env = process.env) {
+  return protectedEnvironment(config, env, new Set());
+}
+
+/**
+ * The same for a run created from a manifest (createRun): a value its manifest
+ * declared `secret: false` (run.publicEnv) is kept, unless its name reads like a
+ * credential, a `*Ref` names it, it is also declared secret, or the value has a
+ * credential shape or is an address carrying credentials.
+ */
+export function runPersistenceEnvironment(run, env = process.env) {
+  const publicEnv = Array.isArray(run?.publicEnv) ? run.publicEnv.filter(name => typeof name === 'string') : [];
+  return protectedEnvironment(run, env, new Set(publicEnv));
+}
+
+function protectedEnvironment(config, env, publicNames) {
   const names = new Set(["ANTHROPIC_WORKSPACE_ID", ...Object.keys(env).filter(name => credentialName.test(name))]);
+  const refs = new Set();
+  const secretEnv = Array.isArray(config?.secretEnv) ? config.secretEnv.filter(name => typeof name === 'string') : [];
+  for (const name of secretEnv) names.add(name);
   const visit = value => {
     if (typeof value === 'string') {
       for (const match of value.matchAll(/\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)/g)) names.add(match[1]);
     } else if (value && typeof value === 'object') {
       for (const [key, child] of Object.entries(value)) {
-        if (/(?:keyRef|tokenRef|secretRef|authRef|workspaceRef)$/i.test(key) && typeof child === 'string') names.add(child);
+        if (/(?:keyRef|tokenRef|secretRef|authRef|workspaceRef)$/i.test(key) && typeof child === 'string') { names.add(child); refs.add(child); }
         // Legacy literal workspace config must be protected before the first
         // run snapshot, as well as when the provider resolves it.
         if (key === 'workspaceId' && typeof child === 'string') registerPersistenceSecret(child);
@@ -438,5 +462,7 @@ export function persistenceEnvironment(config, env = process.env) {
     }
   };
   visit(config);
-  return Object.fromEntries([...names].filter(name => typeof env[name] === 'string').map(name => [name, env[name]]));
+  const kept = name => publicNames.has(name) && !refs.has(name) && !credentialName.test(name) && !credentialLikeName(name)
+    && name !== 'ANTHROPIC_WORKSPACE_ID' && !secretEnv.includes(name) && !hasSecretShape(env[name]) && !hasCredentialUrl(env[name]);
+  return Object.fromEntries([...names].filter(name => typeof env[name] === 'string' && !kept(name)).map(name => [name, env[name]]));
 }

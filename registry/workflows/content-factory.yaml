@@ -17,6 +17,15 @@ triggers:
     cron: "0 9 * * *"
   - kind: manual
 
+# The bot token is secret and redacted before anything is saved. The source address
+# is not: the saved, approved and sent post keeps its link. Values not declared here
+# (TELEGRAM_CHAT_ID) stay redacted, as before (SPEC-MANIFEST "env").
+env:
+  QCORE_SOURCE_URL:
+    secret: false
+  TELEGRAM_BOT_TOKEN:
+    secret: true
+
 settings:
   model: anthropic/claude-sonnet-5
   budgetUsd: 0.40

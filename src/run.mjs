@@ -17,7 +17,7 @@
  * HUMAN-GATE IS OPTIONAL. Nothing here assumes a run must meet a person; a workflow
  * that ends in `api-request` is a complete workflow.
  */
-import { agentSessionMarker } from './human-confirmation.mjs';
+import { agentSessionMarker, consumeTerminalConfirmation } from './human-confirmation.mjs';
 import { consumeAnchorDecision } from './approval-anchor.mjs';
 import { deliveryFor } from './approval-delivery.mjs';
 import { flattenWorkflowSteps, isExpandingFanOut, isControlFlow, SEQ_STRIDE } from "./flatten.mjs";
@@ -35,7 +35,8 @@ import { CoreError, hash, insist } from "./contracts.mjs";
 import { questions } from "./specification.mjs";
 import { bindInputs, bindOutputs, resolveBinding } from './material-io.mjs';
 import { MAX_CALL_DEPTH } from './material-graph.mjs';
-import { persistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
+import { persistenceEnvironment, runPersistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
+import { publicEnvNames, secretEnvNames } from './manifest.mjs';
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -302,6 +303,13 @@ function summarise(status, rows, dryRun = false) {
 }
 
 /** Build the initial run record from a manifest. */
+function envPolicy(manifest) {
+  const policy = {}, publicEnv = publicEnvNames(manifest), secretEnv = secretEnvNames(manifest);
+  if (publicEnv.length) policy.publicEnv = publicEnv;
+  if (secretEnv.length) policy.secretEnv = secretEnv;
+  return policy;
+}
+
 export function createRun(manifest, { trigger = "manual", inputs = {} } = {}) {
   if (Object.keys(manifest.dependencies ?? {}).length && !manifest.materialGraph) throw new Error('Load the complete pinned dependency graph before creating a run (loadWorkflow/loadManifestGraph)');
   const boundInputs = bindInputs(manifest.inputs, inputs);
@@ -321,6 +329,9 @@ export function createRun(manifest, { trigger = "manual", inputs = {} } = {}) {
     tokensOut: 0,
     inputs: boundInputs,
     outputPorts: structuredClone(manifest.outputs ?? {}),
+    /* The manifest's `env:` declarations, resolved once: saved state keeps the
+       publicEnv values and always redacts the secretEnv ones (runPersistenceEnvironment). */
+    ...envPolicy(manifest),
     materialGraph: structuredClone(manifest.materialGraph ?? {}),
     invocations: { root: { key: manifest.materialKey ?? null, inputs: boundInputs, parent: null, settings: structuredClone(manifest.settings ?? {}) } },
     steps: flat.map(({ step, seq, depth, laneOf }) => ({
@@ -385,7 +396,7 @@ export function destinationProblems(steps) {
  * @param {object} opts   { store, apiKey, dryRun, onStep }
  */
 export async function driveRun(run, opts = {}) {
-  return withPersistenceSecrets({ env: persistenceEnvironment(run, opts.env ?? process.env),
+  return withPersistenceSecrets({ env: runPersistenceEnvironment(run, opts.env ?? process.env),
     secrets: [opts.apiKey, ...Object.values(opts.secrets ?? {})], receipt: run }, () => driveRunScoped(run, opts));
 }
 
@@ -1122,7 +1133,8 @@ export function pendingApprovalGate(run, gateId) {
  *
  * `confirmation` is the record of how a person made this decision. The CLI
  * (`q-core approve`) passes the record of a one-time code typed at the terminal
- * (src/human-confirmation.mjs). Agent-chat decisions require a signature from
+ * (src/human-confirmation.mjs); a `tty-code` record is accepted only as issued
+ * there, once. Agent-chat decisions require a signature from
  * a registered human-presence anchor and a fresh, content-bound nonce. A form
  * response or an arbitrary channel name cannot authorize a gate.
  */
@@ -1134,6 +1146,8 @@ export async function resumeRun(run, { decision, approvalHash, confirmation, ...
   const anchored = confirmation.channel === 'approval-anchor';
   insist(!marker || anchored, `A human gate is not continued from an agent session (${marker} is set); a person runs q-core approve in their own terminal or confirms with a registered anchor`, 'HUMAN_CONFIRMATION_REQUIRED');
   insist(anchored || confirmation.channel === 'tty-code', 'A human gate requires a registered approval anchor or the terminal one-time code.', 'HUMAN_CONFIRMATION_REQUIRED');
+  insist(anchored || consumeTerminalConfirmation(confirmation, decision),
+    'The terminal one-time code was not typed for this decision: a tty-code record counts only when q-core approve issued it after the code was entered, and only once.', 'HUMAN_CONFIRMATION_REQUIRED');
   insist(!anchored || opts.store?.withRunLock, 'Anchor decisions require a persistent run lock.', 'HUMAN_CONFIRMATION_REQUIRED');
   const applyDecision = () => resumeConfirmedRun(run, { decision, approvalHash, confirmation, anchored, ...opts });
   return opts.store?.withRunLock ? opts.store.withRunLock(run.runId, applyDecision) : applyDecision();

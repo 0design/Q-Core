@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { typedAtTerminal } from "./terminal-confirmation-helper.mjs";
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, rmSync, symlinkSync, readdirSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -79,7 +80,7 @@ test('child waiting_human persists and resumes its snapshot; agent and stale app
   try {
     for (const key of AGENT_SESSION_ENV) delete process.env[key];
     writeFileSync(join(dir, 'clean.yaml'), 'changed after pause');
-    const result = await resumeRun(snapshot, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: { channel: 'tty-code' }, store });
+    const result = await resumeRun(snapshot, { decision: 'approve', approvalHash: gate.output.approvalHash, confirmation: typedAtTerminal('approve'), store });
     assert.equal(result.status, 'success', result.summary);
     assert.deepEqual(result.output, { removed: 1 });
   } finally { for (const [key, value] of Object.entries(markers)) if (value === undefined) delete process.env[key]; else process.env[key] = value; }

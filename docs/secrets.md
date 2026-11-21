@@ -41,3 +41,10 @@ secret-store errors so the caller can request `configure_access`.
 The trust boundary is the current local user account and its macOS Keychain
 access controls. This feature provides local Core storage and retrieval; it
 makes no hosted secret-management or remote vault claim.
+
+## Secret values a workflow reads
+
+A workflow reads its tokens, webhook addresses and feeds as `{{env.NAME}}`. Its
+`env:` block marks each one `secret: true` (redacted before anything is saved) or
+`secret: false` (kept, for example a public source link the post cites); an
+undeclared value stays redacted. See SPEC-MANIFEST §6 for the rules and an example.
