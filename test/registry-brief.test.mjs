@@ -67,7 +67,7 @@ test('every component carries a short brief', () => {
 });
 
 // The accepted 0.8.0 downstream chain is unchanged. Normalize only the new typed input/fan-out scaffold
-// back to the ten legacy fetch nodes and compare the original parsed-manifest hashes, never new hashes.
+// (and the env declarations) back to the ten legacy fetch nodes and compare the original parsed-manifest hashes, never new hashes.
 test('Digest 0.8.3 keeps the complete historical downstream contract behind its source-array scaffold', async () => {
   const { parseYaml } = await import('../src/yaml.mjs');
   const { createHash } = await import('node:crypto');
@@ -97,6 +97,12 @@ test('Digest 0.8.3 keeps the complete historical downstream contract behind its 
     assert.equal(manifest.steps[sourceIds.length].id, 'items', id);
     assert.equal(manifest.steps[sourceIds.length].config.fetchStep, 'source-fetch', id);
     delete manifest.steps[sourceIds.length].config.fetchStep;
+    // 0.8.3 also declares which environment values are public (the approved digest shows them).
+    assert.deepEqual(manifest.env, {
+      ...Object.fromEntries(['QF_DIGEST_DATE', 'QF_DIGEST_SINCE', 'QF_DIGEST_UNTIL', 'QF_DIGEST_TOPIC', ...sourceIds.map((_, index) => `QF_DIGEST_FEED_${index + 1}`)].map(name => [name, { secret: false }])),
+      QF_DIGEST_RECEIVER_URL: { secret: true },
+    }, id);
+    delete manifest.env;
     delete manifest.inputs;
     delete manifest.version;
     assert.equal(createHash('sha256').update(JSON.stringify(manifest)).digest('hex'), sha, id);
