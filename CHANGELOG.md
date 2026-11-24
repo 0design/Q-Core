@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0-q-core.55 — 2026-11-25
+
+Registry 2026.11.25-registry.43-candidate. Everything in Core.54 is unchanged.
+
+- An operator input array can feed a fan-out of fetches: with `urlInput: <input>`
+  a `fetch` takes `url: "{{item}}"` only when the item is the exact entry of the
+  root invocation's bound input array at that index, an absolute HTTP(S) address
+  without credentials, whitespace or template syntax. Step or model data cannot
+  choose another address, and a child workflow cannot use this opt-in.
+- Input arrays may declare `minItems`, `maxItems` and `format: http-url` for their
+  items; defaults and bound inputs are checked before anything runs. An array with
+  `envPrefix: QF_DIGEST_FEED_` lets each non-empty `QF_DIGEST_FEED_1`, `_2`, …
+  replace the matching default entry; an explicit input wins, and overrides never
+  add entries.
+- `parse-web` with `items: feed` and `fetchStep: <id>` collects every successful
+  fetch of that step in the current invocation, in execution order, including all
+  fan-out lanes.
+- Digest and Digest CLI 0.8.2 read their ten default feeds from one `sources`
+  input array instead of ten separate fetch steps. `QF_DIGEST_FEED_1..10` still
+  replace the defaults; parsing, grouping, drafting, fact-check, review, checks,
+  approval and delivery are unchanged. 0.9.0 is skipped: unmerged candidates
+  already used it for other bytes.
+
 ## 0.2.0-q-core.54 — 2026-11-21
 
 Core.52 and Core.53 were used by earlier unmerged candidates; this release skips

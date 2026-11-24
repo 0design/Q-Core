@@ -125,7 +125,7 @@
       "name": "Digest",
       "contentType": "workflow-template",
       "value": "Many sources, one picture: deduplicate meanings across feeds and write an approved Ukrainian digest as a nested list of themes, cases and comments, each linked to its sources and fact-checked against the linked articles and reviewed for overstatement, scope and attribution before approval.",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "status": "implementation-candidate",
       "inference": "openrouter",
       "dependencies": [
@@ -165,8 +165,15 @@
       },
       "readiness": {
         "templateId": "digest",
-        "status": "components-ready",
-        "blockers": [],
+        "status": "blocked",
+        "blockers": [
+          {
+            "id": "fan-out",
+            "version": "1.0.0",
+            "implementation": "partial",
+            "acceptance": "pending"
+          }
+        ],
         "components": [
           "llm-call-openrouter@1.2.0",
           "parse-web@0.2.0",
@@ -174,7 +181,8 @@
           "verify-sources@0.5.0",
           "approval-gate@1.0.0",
           "fetch@1.0.0",
-          "api-request@1.1.0"
+          "api-request@1.1.0",
+          "fan-out@1.0.0"
         ]
       },
       "builtinDependencies": [
@@ -185,6 +193,10 @@
         {
           "id": "api-request",
           "version": "1.1.0"
+        },
+        {
+          "id": "fan-out",
+          "version": "1.0.0"
         }
       ]
     },
@@ -419,7 +431,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.54",
+        "version": "0.2.0-q-core.55",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -514,7 +526,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.54",
+        "version": "0.2.0-q-core.55",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -615,7 +627,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.54",
+        "version": "0.2.0-q-core.55",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
@@ -684,7 +696,7 @@
       },
       "engine": {
         "package": "q-core",
-        "version": "0.2.0-q-core.54",
+        "version": "0.2.0-q-core.55",
         "manifest": "q-core.workflow/v1"
       },
       "dependencies": [],
