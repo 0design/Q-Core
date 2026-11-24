@@ -87,3 +87,4 @@ export declare function assertCron(expr: string, path?: string): void;
 export declare function publicEnvNames(manifest: WorkflowManifest): string[];
 /** Names any manifest of the run declares `secret: true`. */
 export declare function secretEnvNames(manifest: WorkflowManifest): string[];
+export declare function inputEnvNames(manifest: WorkflowManifest): string[];

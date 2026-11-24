@@ -1,12 +1,45 @@
 manifest: q-core.workflow/v1
 id: digest
 name: "Digest: many sources to one approved Ukrainian trend digest"
-version: 0.8.2
+version: 0.8.3
 description: "Read ten public AI news feeds (media, blogs, official) for a time window, group items that report the same thing into meaning clusters through OpenRouter, keep the most important, and draft a Ukrainian digest with the fixed Saturday header as a nested list of up to three levels (themes ordered by independent outlets, then cases, then comments): a theme is a short conclusion without links, each case one short sentence with the key fact, linked to its sources. The articles behind the selected sources are read (static text; an unreachable page falls back to its feed summary), and a fact-check step checks each claim against its linked source's article, revises or removes unsupported or overstated claims and records a verdict per claim; the checks require a verbatim source quote and the source's numbers for every item. Checks citations and the list shape, stops at an exact human approval of the fact-checked text, then delivers the approved text once to an HTTP receiver or a local file (file:///absolute/path.jsonl). Set QF_DIGEST_DATE (DD.MM), QF_DIGEST_SINCE and QF_DIGEST_UNTIL (ISO), QF_DIGEST_RECEIVER_URL; QF_DIGEST_FEED_1..10 replace the default feeds; QF_DIGEST_TOPIC narrows the theme."
 owner: oleg
 enabled: true
 triggers:
   - kind: manual
+# The date, window, topic and feed addresses are public: the approved and sent digest shows them.
+# A feed address that carries a token is still saved as [REDACTED]; the receiver address is secret.
+env:
+  QF_DIGEST_DATE:
+    secret: false
+  QF_DIGEST_SINCE:
+    secret: false
+  QF_DIGEST_UNTIL:
+    secret: false
+  QF_DIGEST_TOPIC:
+    secret: false
+  QF_DIGEST_FEED_1:
+    secret: false
+  QF_DIGEST_FEED_2:
+    secret: false
+  QF_DIGEST_FEED_3:
+    secret: false
+  QF_DIGEST_FEED_4:
+    secret: false
+  QF_DIGEST_FEED_5:
+    secret: false
+  QF_DIGEST_FEED_6:
+    secret: false
+  QF_DIGEST_FEED_7:
+    secret: false
+  QF_DIGEST_FEED_8:
+    secret: false
+  QF_DIGEST_FEED_9:
+    secret: false
+  QF_DIGEST_FEED_10:
+    secret: false
+  QF_DIGEST_RECEIVER_URL:
+    secret: true
 settings:
   model: anthropic/claude-sonnet-5
   budgetUsd: 0.5

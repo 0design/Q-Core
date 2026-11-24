@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import { typedAtTerminal } from "./terminal-confirmation-helper.mjs";
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { loadManifest, validateManifest } from '../src/manifest.mjs';
@@ -237,7 +237,7 @@ test('llm-call input: the model sees only the referenced step output, not every 
 test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exact approval -> one file delivery, no duplicate', async () => {
   const root = mkdtempSync(join(tmpdir(), 'qf-digest-04-'));
   const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
-  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.7.1', '0.8.0', '0.8.1', '0.8.2'].includes(manifest.version));
+  assert.ok(['0.4.0', '0.4.1', '0.4.2', '0.5.0', '0.6.0', '0.6.1', '0.7.0', '0.7.1', '0.8.0', '0.8.1', '0.8.3'].includes(manifest.version));
   const draftText = /^0\.[6789]/.test(manifest.version) ? NESTED06 : manifest.version.startsWith('0.5') ? NESTED : DIGEST;
   // From 0.6.0 a fact-check call follows the draft: it returns the checked text and a claim record per list item.
   const factChecked = manifest.steps.some(s => s.id === 'factcheck');
@@ -301,6 +301,60 @@ test('Digest 0.4 end to end offline: feeds -> clusters -> draft -> checks -> exa
     await resumeRun(repeat, { ...opts, decision: 'approve', confirmation: typedAtTerminal('approve'), approvalHash: repeat.steps.find(s => s.stepId === 'approval').output.approvalHash });
     assert.equal(repeat.status, 'success');
     assert.equal(repeat.steps.at(-1).output.duplicatePrevented, true);
+    assert.equal(readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n').length, 1);
+  })).finally(() => rmSync(root, { recursive: true, force: true }));
+});
+
+// `q-core approve` runs in its own process and reloads the saved run, so the saved subject must
+// equal the approved one. Digest declares its date, window, topic and feeds public (0.8.1 did not:
+// its date header was saved as [REDACTED] and no reloaded run could be approved). A feed address
+// carrying a token is still saved as [REDACTED]; the approved subject does not carry feed addresses.
+for (const feedsFrom of ['defaults', 'public overrides', 'a token override']) test(`Digest with ${feedsFrom}: approval after reloading the saved run delivers once${feedsFrom === 'a token override' ? ' and the token is not saved' : ''}`, async () => {
+  const overrides = feedsFrom !== 'defaults', tokenFeed = feedsFrom === 'a token override';
+  const root = mkdtempSync(join(tmpdir(), 'qf-digest-reload-'));
+  const manifest = loadManifest(new URL('../registry/workflows/digest.yaml', import.meta.url).pathname);
+  for (const step of manifest.steps) if (step.kind === 'llm-call') step.config.secretSource = 'env';
+  const feeds = manifest.inputs.sources.default;
+  const env = { QF_DIGEST_DATE: '26.09', QF_DIGEST_SINCE: '2026-09-24T21:00:00Z', QF_DIGEST_UNTIL: '2026-09-26T21:00:00Z', QF_DIGEST_RECEIVER_URL: `file://${join(root, 'delivery.jsonl')}` };
+  const urls = overrides ? feeds.map((_, i) => i === 0 ? 'https://media.example/feed' : i === 1 ? 'https://blog.example/atom' : `https://empty.example/${i}`) : feeds;
+  if (tokenFeed) urls[2] = 'https://empty.example/private?token=feedtoken0123456789';
+  feeds.forEach((_, i) => { env[`QF_DIGEST_FEED_${i + 1}`] = overrides ? urls[i] : undefined; });
+  const clusters = JSON.stringify({ clusters: [
+    { topic: 'OpenAI pause', summary: 'Two outlets report the pause.', sources: [1, 3] },
+    { topic: 'Muse', summary: 'Muse filesystem.', sources: [C] },
+  ] });
+  const factCheck = JSON.stringify({ text: NESTED06.trim(), claims: [
+    { item: 1, verdict: 'supported', sources: [A], quote: ['OpenAI paused training of its most capable models'] },
+    { item: 2, verdict: 'supported', sources: [A], quote: ['OpenAI paused training of its most capable models'] },
+    { item: 3, verdict: 'revised', sources: [C], quote: ["Muse & filesystem 'exposed'"], reason: 'The feed item says only that the filesystem was exposed.' },
+  ] });
+  const replies = [clusters, NESTED06, factCheck, '{"edits":[]}'];
+  let modelCalls = 0;
+  const handler = url => {
+    if (url.startsWith('https://openrouter.ai')) return completion(replies[(modelCalls++) % replies.length]);
+    if (url === urls[0]) return new Response(MEDIA);
+    if (url === urls[1]) return new Response(BLOG);
+    return new Response(rss([['Stale', 'https://empty.example/stale', 'Mon, 01 Sep 2026 00:00:00 +0000', 'Old.']]));
+  };
+  await withEnv(env, () => withFetch(handler, async () => {
+    const store = new RunStore(join(root, 'digest.yaml'));
+    const opts = { store, apiKey: 'test-key', settings: manifest.settings };
+    const run = createRun(manifest);
+    await driveRun(run, opts);
+    assert.equal(run.status, 'waiting_human', run.summary);
+    assert.deepEqual(run.inputs.sources, urls);
+    const saved = readFileSync(store.runFile(run.runId), 'utf8');
+    const loaded = store.load(run.runId);
+    const approvalHash = run.steps.find(s => s.stepId === 'approval').output.approvalHash;
+    const approve = () => resumeRun(loaded, { ...opts, decision: 'approve', confirmation: typedAtTerminal('approve'), approvalHash });
+    assert.equal(saved.includes('26.09'), true, 'the date header is saved as written');
+    if (tokenFeed) {
+      assert.equal(saved.includes('feedtoken0123456789'), false, 'the token is not saved');
+      assert.equal(loaded.inputs.sources[2], '[REDACTED]');
+    } else for (const url of urls) assert.ok(saved.includes(url), `${url} stays visible`);
+    assert.equal(existsSync(join(root, 'delivery.jsonl')), false);
+    await approve();
+    assert.equal(loaded.status, 'success', loaded.summary);
     assert.equal(readFileSync(join(root, 'delivery.jsonl'), 'utf8').trim().split('\n').length, 1);
   })).finally(() => rmSync(root, { recursive: true, force: true }));
 });

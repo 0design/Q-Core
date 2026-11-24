@@ -36,7 +36,7 @@ import { questions } from "./specification.mjs";
 import { bindInputs, bindOutputs, resolveBinding } from './material-io.mjs';
 import { MAX_CALL_DEPTH } from './material-graph.mjs';
 import { persistenceEnvironment, runPersistenceEnvironment, withPersistenceSecrets } from './persistence.mjs';
-import { publicEnvNames, secretEnvNames } from './manifest.mjs';
+import { inputEnvNames, publicEnvNames, secretEnvNames } from './manifest.mjs';
 
 /** Default ceiling per run, USD. Not infinity: a run without one spends whatever
  *  it manages to before somebody notices. Raise it explicitly in `settings`. */
@@ -307,6 +307,10 @@ function envPolicy(manifest) {
   const policy = {}, publicEnv = publicEnvNames(manifest), secretEnv = secretEnvNames(manifest);
   if (publicEnv.length) policy.publicEnv = publicEnv;
   if (secretEnv.length) policy.secretEnv = secretEnv;
+  /* Values an input array reads through envPrefix land in run.inputs; they are
+     protected like referenced {{env.NAME}} values unless declared secret: false. */
+  const inputEnv = inputEnvNames(manifest);
+  if (inputEnv.length) policy.inputEnv = inputEnv;
   return policy;
 }
 

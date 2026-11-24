@@ -47,7 +47,7 @@ test('contract facts are in the Registry', () => {
 
 test('Digest input-array version is a candidate and keeps the historical owner evidence scoped to 0.8.0', () => {
   const digest = catalog.workflows.find(w => w.id === 'digest');
-  assert.equal(digest.version, '0.8.2');
+  assert.equal(digest.version, '0.8.3');
   assert.equal(digest.status, 'implementation-candidate');
   assert.equal(digest.acceptance.status, 'pending');
   assert.equal(digest.evidence.status, 'candidate-tests');
@@ -68,7 +68,7 @@ test('every component carries a short brief', () => {
 
 // The accepted 0.8.0 downstream chain is unchanged. Normalize only the new typed input/fan-out scaffold
 // back to the ten legacy fetch nodes and compare the original parsed-manifest hashes, never new hashes.
-test('Digest 0.8.2 keeps the complete historical downstream contract behind its source-array scaffold', async () => {
+test('Digest 0.8.3 keeps the complete historical downstream contract behind its source-array scaffold', async () => {
   const { parseYaml } = await import('../src/yaml.mjs');
   const { createHash } = await import('node:crypto');
   const { readFileSync: read } = await import('node:fs');
@@ -79,7 +79,7 @@ test('Digest 0.8.2 keeps the complete historical downstream contract behind its 
   const sourceIds = ['techcrunch', 'the-verge', 'wired', 'the-decoder', 'ars-technica', 'mit-technology-review', 'marktechpost', 'simon-willison', 'latent-space', 'openai'];
   for (const [id, sha] of Object.entries(expected)) {
     const manifest = parseYaml(read(new URL(`../registry/workflows/${id}.yaml`, import.meta.url), 'utf8'));
-    assert.equal(manifest.version, '0.8.2', id);
+    assert.equal(manifest.version, '0.8.3', id);
     assert.deepEqual(Object.keys(manifest.inputs), ['sources'], id);
     assert.equal(manifest.inputs.sources.default.length, sourceIds.length, id);
     const fanout = manifest.steps[0];

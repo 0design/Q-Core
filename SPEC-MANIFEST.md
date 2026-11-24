@@ -425,7 +425,7 @@ For an operator-provided array of feed URLs, `over: "{{inputs.sources}}"`
 can repeat a `fetch` with `url: "{{item}}"` and `urlInput: sources`.
 `urlInput` is an explicit fetch-only allowlist in the root invocation: the item must exactly match the
 bound input array at the current index and be an absolute HTTP(S) URL without
-credentials, whitespace or template syntax. Step/model data cannot choose a
+user info (`user:pass@`), whitespace or template syntax. Step/model data cannot choose a
 different destination; ordinary URL templates retain their authority guard.
 Nested workflow inputs may be bound from step/model data, so child invocations
 cannot use this whole-URL opt-in.
@@ -899,13 +899,17 @@ component descriptors remain nonexecutable metadata. Run the self-contained
 local example with `q-core run examples/nested/parent.yaml --json`.
 
 Input arrays may declare `minItems` and `maxItems`; string inputs/items may use
-`format: http-url` (absolute HTTP(S), no credentials, whitespace or templates).
+`format: http-url` (absolute HTTP(S), no user info, whitespace or templates).
 These constraints are enforced for defaults and bound inputs before execution.
 An array may declare `envPrefix: QF_DIGEST_FEED_`: when using its default, each
 nonempty `QF_DIGEST_FEED_1`, `QF_DIGEST_FEED_2`, etc. replaces the corresponding
 default entry. An explicit input array takes precedence over these environment
 overrides. Overrides never append entries or execute template syntax; all final
-values must satisfy the input constraints.
+values must satisfy the input constraints. An override is saved in the run's
+inputs, so it is protected like a referenced `{{env.NAME}}`: saved as
+`[REDACTED]` unless the manifest declares the name `secret: false` under `env:`,
+and even then when the value is an address carrying credentials (such as a
+`token` query parameter). Defaults are not environment values and stay visible.
 
 Graph and policy diagnostics identify the actual source with portable
 `materialPath`, retaining semantic `path` and YAML `line` when present. Dependency
