@@ -448,6 +448,9 @@ function protectedEnvironment(config, env, publicNames) {
   const refs = new Set();
   const secretEnv = Array.isArray(config?.secretEnv) ? config.secretEnv.filter(name => typeof name === 'string') : [];
   for (const name of secretEnv) names.add(name);
+  // Values read through an input array's envPrefix are saved in run.inputs.
+  const inputEnv = Array.isArray(config?.inputEnv) ? config.inputEnv.filter(name => typeof name === 'string') : [];
+  for (const name of inputEnv) names.add(name);
   const visit = value => {
     if (typeof value === 'string') {
       for (const match of value.matchAll(/\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)/g)) names.add(match[1]);

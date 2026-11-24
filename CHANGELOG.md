@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.2.0-q-core.56 — 2026-11-25
+
+Registry 2026.11.25-registry.44-candidate. Core.55 and Registry 43 were pushed for
+review with other bytes and are skipped, as are Digest 0.9.0 (used by unmerged
+candidates for other bytes) and 0.8.2 (the Core.55 review candidate).
+
+- An operator input array can feed a fan-out of fetches: with `urlInput: <input>`
+  a `fetch` takes `url: "{{item}}"` only when the item is the exact entry of the
+  root invocation's bound input array at that index, an absolute HTTP(S) address
+  without user info (`user:pass@`), whitespace or template syntax. Step or model
+  data cannot choose another address, and a child workflow cannot use this opt-in.
+- Input arrays may declare `minItems`, `maxItems` and `format: http-url` for their
+  items; defaults and bound inputs are checked before anything runs. An array with
+  `envPrefix: QF_DIGEST_FEED_` lets each non-empty `QF_DIGEST_FEED_1`, `_2`, …
+  replace the matching default entry; an explicit input wins, and overrides never
+  add entries.
+- A value read through `envPrefix` is saved in the run's inputs and is protected
+  like a referenced `{{env.NAME}}`: `[REDACTED]` unless declared `secret: false`,
+  and still redacted when it is an address carrying credentials.
+- `parse-web` with `items: feed` and `fetchStep: <id>` collects every successful
+  fetch of that step in the current invocation, in execution order, including all
+  fan-out lanes.
+- Digest and Digest CLI 0.8.3 read their ten default feeds from one `sources`
+  input array instead of ten separate fetch steps. `QF_DIGEST_FEED_1..10` still
+  replace the defaults; parsing, grouping, drafting, fact-check, review, checks,
+  approval and delivery are unchanged.
+- Digest and Digest CLI declare their date, window, topic and feed addresses
+  `secret: false` and the receiver address `secret: true`. With 0.8.1 on Core.54
+  the date in the digest header was saved as `[REDACTED]`, so the saved approval
+  subject no longer matched and `q-core approve` (which reloads the saved run)
+  refused every Digest run as stale.
+
 ## 0.2.0-q-core.54 — 2026-11-21
 
 Core.52 and Core.53 were used by earlier unmerged candidates; this release skips

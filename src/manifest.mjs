@@ -363,6 +363,22 @@ function referencedEnv(steps, found = new Set()) {
   return found;
 }
 
+/** The numbered names an input array's `envPrefix` reads: one per default entry. */
+function inputPrefixEnv(manifest) {
+  return Object.values(manifest.inputs ?? {}).flatMap((schema) =>
+    schema && typeof schema.envPrefix === 'string' && Array.isArray(schema.default)
+      ? schema.default.map((_, index) => `${schema.envPrefix}${index + 1}`) : []);
+}
+
+/**
+ * Environment names a run reads through input arrays' `envPrefix` (every manifest
+ * of the run). They are protected in saved state like a referenced `{{env.NAME}}`.
+ */
+export function inputEnvNames(manifest) {
+  const manifests = [manifest, ...Object.values(manifest.materialGraph ?? {}).map((node) => node.manifest)];
+  return [...new Set(manifests.flatMap(inputPrefixEnv))].sort();
+}
+
 /**
  * Environment names a run may keep in its saved state: every manifest of the run
  * (the workflow and each pinned child) that references the name declares it
@@ -376,7 +392,7 @@ export function publicEnvNames(manifest) {
   for (const m of manifests) {
     const declared = m.env ?? {};
     for (const [name, entry] of Object.entries(declared)) if (entry?.secret !== false) closed.add(name);
-    for (const name of referencedEnv(m.steps)) {
+    for (const name of [...referencedEnv(m.steps), ...inputPrefixEnv(m)]) {
       if (declared[name]?.secret === false) open.add(name); else closed.add(name);
     }
   }

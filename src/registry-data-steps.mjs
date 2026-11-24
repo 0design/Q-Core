@@ -284,7 +284,7 @@ export function runParseWeb(step, ctx) {
   const maxChars = Number(step.config.maxChars ?? 6000);
   insist(Number.isInteger(maxChars) && maxChars >= 500 && maxChars <= 10000, 'parse-web maxChars must be 500..10000');
   const sources = inputs.map(source => {
-    insist(source?.status >= 200 && source.status < 300 && typeof source.body === 'string' && /^https?:\/\//.test(source.url), 'parse-web requires a successful fetch');
+    insist(source?.status >= 200 && source.status < 300 && typeof source.body === 'string' && /^https?:\/\//i.test(source.url), 'parse-web requires a successful fetch');
     const text = strip(source.body);
     insist(text.length > 0, 'Source has no readable text');
     return { id: hash(source.url), url: source.url, text: text.slice(0, maxChars), sourceSha256: hash(source.body), sourceTruncated: source.truncated === true, textTruncated: text.length > maxChars, extraction: 'static-html-text; dynamic content and factual accuracy not verified' };
@@ -484,14 +484,19 @@ const cleanItemText = raw => {
 /** items: feed — each RSS/Atom item becomes its own source with its own link, date and bounded text. */
 function runParseFeedItems(step, ctx) {
   insist(step.config.items === 'feed', 'parse-web items must be "feed"');
-  const inputs = step.config.source ? [value(step, 'source', ctx)] : Object.values(ctx.priorOutputs).filter(v => v && typeof v.url === 'string' && typeof v.body === 'string');
+  insist(!(step.config.source && step.config.fetchStep), 'parse-web source and fetchStep are mutually exclusive');
+  // Repeated lane step IDs intentionally keep their last value in priorOutputs.
+  // Select the complete ordered fetch history explicitly when collecting a fan-out.
+  const inputs = step.config.fetchStep
+    ? (ctx.priorFetchOutputs ?? []).filter(entry => entry.stepId === step.config.fetchStep).map(entry => entry.output)
+    : step.config.source ? [value(step, 'source', ctx)] : Object.values(ctx.priorOutputs).filter(v => v && typeof v.url === 'string' && typeof v.body === 'string');
   insist(inputs.length > 0 && inputs.length <= 20, 'parse-web requires 1..20 fetched text sources');
   const perFeed = intIn(step, 'maxItemsPerSource', 1, 50, 10), itemChars = intIn(step, 'itemChars', 100, 2000, 400);
   const since = timeBound(step, 'since', ctx), until = timeBound(step, 'until', ctx);
   insist(since === null || until === null || since < until, 'parse-web since must be before until');
   const sources = [], feeds = [];
   for (const source of inputs) {
-    insist(source?.status >= 200 && source.status < 300 && typeof source.body === 'string' && /^https?:\/\//.test(source.url), 'parse-web requires a successful fetch');
+    insist(source?.status >= 200 && source.status < 300 && typeof source.body === 'string' && /^https?:\/\//i.test(source.url), 'parse-web requires a successful fetch');
     const entries = parseFeed(source.body);
     insist(entries.length > 0, `Source is not an RSS/Atom feed: ${source.url}`);
     const dated = entries.map(entry => ({ ...entry, at: Date.parse(entry.published) }))
